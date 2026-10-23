@@ -1,0 +1,20 @@
+{
+  "name": "@ins-solar/shared",
+  "version": "1.0.0",
+  "description": "Shared browser-safe types, enums, and schemas for INS Solar ERP",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}
