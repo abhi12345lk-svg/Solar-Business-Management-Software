@@ -87,43 +87,63 @@ graph TD
 ---
 
 ### Phase 3: Database Models, Numbering Engine & Shared Domain Services
-*   **Focus:** Core database connections (MongoDB Atlas), Mongoose schema definitions, compound indexes, sequential document numbering engine (`SequenceService`), centralized tax calculator (`TaxCalculationService`), and atomic transaction helpers.
+*   **Focus:** Core database connections (MongoDB Atlas), Mongoose schema definitions, compound indexes, sequential document numbering engine (`SequenceService`), integer paise financial primitives, product catalog, categories, and multi-location warehouses.
 *   **Entry Criteria:** Phase 2 Auth passing all tests.
-*   **Deliverables:**
-    *   MongoDB connection manager with retry logic, replica set support, and graceful shutdown.
-    *   Atomic `SequenceService` guaranteeing sequential, non-colliding IDs (`QT-YYYY-XXXXX`, `ORD-YYYY-XXXXX`, etc.).
-    *   `TaxCalculationService` supporting standard GST, solar 70:30 split, and non-GST regimes with integer paise precision.
-    *   Shared validation schemas and common domain utilities.
-*   **Acceptance Criteria:** Atomic sequence generator tested under high concurrent load with zero duplicate keys.
-*   **Test Gate:** Unit tests asserting 100% precision on financial and tax calculations; sequence generation concurrency tests.
+*   **Phase 3A Status (Completed & Verified):**
+    *   Shared domain primitives and validation conventions (`@ins-solar/shared`): `MoneyPaiseSchema`, `PositiveMoneyPaiseSchema`, `SignedMoneyPaiseSchema`, Indian Rupees-to-Paise helpers, `AddressSchema`, `ContactPersonSchema`, `QuantitySchema`, `GstinSchema`, `PanSchema`, `CustomerCodeSchema`.
+    *   Atomic `SequenceService` utilizing MongoDB atomic `$inc` with upsert collision retry, producing formatted sequential IDs (`CUST-2026-00001`, `QT-2026-00001`, `ORD-2026-00001`, etc.).
+    *   Foundational Mongoose models: `SequenceCounter`, refined `Customer` (with addresses, GST/PAN, contact info), and `CompanySettings` singleton profile.
+    *   Index management: explicit `syncIndexes()` method on `DatabaseManager` without destructive drops.
+*   **Phase 3B Status (Completed & Verified):**
+    *   `ProductCategory` model: Hierarchical categories with bounded cycle detection and deactivation constraints.
+    *   `Product` model: Master hardware catalog with integer paise purchase/selling rates, normalized case-insensitive SKU uniqueness (`skuNormalized`), and decoupled balance design.
+    *   `Warehouse` model: Multi-location foundation (Central Depot, Transit, Installation Site, Employee Custody) with unique location codes and non-destructive deactivation.
+    *   `SequenceService` Production Guard: Strict safety check refusing in-memory fallback in production when disconnected (HTTP 503).
+    *   Minimal service layer and authorized API routes (`/api/v1/catalog`, `/api/v1/warehouses`).
+    *   Future Inventory Integrity Contract documented in database design.
+*   **Acceptance Criteria:** Atomic sequence generator tested under high concurrent load with zero duplicate keys; master hardware catalog decoupled from stock ledger; case-insensitive SKU uniqueness enforced.
+*   **Test Gate:** 13 test suites, 120 automated tests passing with 0 errors across all workspaces.
 
 ---
 
 ### Phase 4: CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations & PDFs)
 *   **Focus:** Lead management, customer directory, site profiles, feasibility surveys, tri-topology solar design (On-Grid, Off-Grid, Hybrid), quotation generator, discount approval gates, and server-side PDF proposal compiler.
 *   **Entry Criteria:** Phase 3 Core Data & Services verified.
-*   **Deliverables:**
-    *   Modules 2, 3, 4, 5, 6, 7, 8 implemented end-to-end.
-    *   Duplicate lead phone check and assignment workflow.
-    *   Solar sizing engine calculating panel counts, inverters, and battery capacities.
-    *   Quotation management with multi-revision tracking (`R0`, `R1`) and PDF generation.
-    *   Sales Panel views for Leads, Surveys, and Quotations.
-*   **Acceptance Criteria:** Complete sales flow from lead capture to accepted quotation PDF; discounts > threshold blocked without Admin sign-off.
-*   **Test Gate:** Integration tests for lead state transitions, sizing calculation accuracy, and PDF compilation.
+*   **Phase 4A Status (Completed & Verified):**
+    *   `Lead` Mongoose model and shared schemas (`@ins-solar/shared`): atomic `LEAD-YYYY-NNNNN` generation, prospect contact details, requirement classification, advisory duplicate phone lookup (non-unique index, non-destructive), supervisory assignment RBAC, and lifecycle status machine.
+    *   `LeadActivity` Mongoose model: chronological interaction timeline (calls, meetings, site visits, follow-ups), sentiment tracking (`HOT`, `WARM`, `COLD`), and automated next follow-up scheduling.
+    *   Idempotent Lead-to-Customer conversion: verifies lead is not already converted, allocates sequential `CUST-YYYY-NNNNN` customer record, binds `convertedCustomerId`, logs audit activity, and permanently preserves lead history.
+    *   `SiteSurvey` Mongoose model: atomic `SRV-YYYY-NNNNN` allocation, customer/lead relational linkage, roof substrate classification, positive physical measurements (usable roof area in sq ft, integer paise average monthly electricity bill, utility sanctioned load in kW), shadow analysis notes, and private photo metadata attachment.
+    *   Minimal operational UI (`apps/web`): Responsive directories, search filters, and detail dialogs for Leads (`LeadsPage`, `LeadDetailPage`), Follow-ups (`FollowUpsPage`), and Site Surveys (`SurveysPage`).
+    *   Automated test suite: 14 test suites, 151 automated tests passing with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
+*   **Phase 4B Status (Completed & Verified):**
+    *   `SolarDesign` Mongoose model & pure `SolarSizingService`: tri-topology mathematical calculation engine (On-Grid, Off-Grid, Hybrid) computing explicit physical units (panel quantity, actual DC kWp, inverter matching, battery Ah/kWh/units, and daily/monthly/annual kWh generation yields) with MNRE disclaimer notices and engineering warnings.
+    *   `Quotation` Mongoose model: immutable revision snapshots (`fullQuotationCode`: `QT-YYYY-NNNNN-R0`, `R1`, etc.), integer-paise financial engine, itemized Bill of Materials with catalog product validation, and configurable date-effective tax profiles with basis-point calculations.
+    *   Managerial Discount Approval Workflow: automatic threshold enforcement (> 5.0% unapproved default pending owner confirmation) with strict anti-self-approval rule prevention, audit logging, and prior approval invalidation upon material price/discount changes.
+    *   Customer Review & Digital Acceptance: authenticated record-level customer portal boundary allowing customers to review their own proposals, download PDF documents, and digitally accept/reject specific revisions with idempotent state handling and IP/timestamp capture.
+    *   Server-Side Proposal Compiler: `ProposalCompilerService` compiling professional, print-optimized proposal documents with company branding, BOM, financial breakdown, milestone schedules, and legal terms.
+    *   Operational Web Interface (`apps/web`): Interactive `SolarDesignPage` sizing calculator & design directory, `QuotationsPage` proposals directory with discount approval queue filters, and `QuotationDetailPage` comprehensive revision viewer with anti-self-approval managerial controls and digital acceptance simulation.
+*   **Acceptance Criteria:** Complete sales flow from lead capture and site survey to technical solar design, quotation revisioning, discount approval control, and customer digital acceptance.
+*   **Test Gate:** 186 automated tests passing across 20 test suites with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
 
 ---
 
-### Phase 5: Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement & Vendors)
-*   **Focus:** Order confirmation locking accepted quotation terms, product master catalog, multi-location inventory (Warehouse, Site, Employee Issued), atomic stock reservations, material dispatch slips, shortage blocking, purchase orders, and vendor ledgers.
+### Phase 5: Supply Chain & Orders (Orders, Multi-Location Inventory, Stock Reservation, Procurement & Vendors)
+*   **Focus:** Order confirmation locking accepted quotation terms, multi-location inventory projections (Warehouse, Site, Transit), append-oriented stock movement ledger, race-condition-free reservations, serialized hardware tracking, purchase orders, and vendor ledgers.
 *   **Entry Criteria:** Phase 4 CRM Pipeline verified.
-*   **Deliverables:**
-    *   Modules 9, 10, 11, 12, 13 implemented end-to-end.
-    *   Order confirmation auto-creating project and placing stock reservations.
-    *   Multi-location inventory tracking with atomic anti-negative stock guards.
-    *   PO generation, GRN stock-in flow, and vendor accounts payable ledger.
-    *   Inventory Panel interface for storekeepers.
-*   **Acceptance Criteria:** Stock cannot fall below zero; physical issue is hard-blocked on shortages; order locks prices permanently against catalog changes.
-*   **Test Gate:** Concurrent stock reservation tests; negative balance rejection tests; PO to GRN stock-in integration tests.
+*   **Phase 5A Status (Completed & Verified):**
+    *   `SalesOrder` model & `OrderService`: Controlled order creation from eligible accepted quotation revisions with atomic sequence numbering (`ORD-YYYY-NNNNN`), immutable agreed commercial snapshots, payment milestones, and unique 1:1 revision binding preventing duplicate orders.
+    *   Order lifecycle & cancellation controls: State-machine transitions (`CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`); automated atomic reservation release if cancelled before issue; direct cancellation strictly forbidden after physical issue.
+    *   `StockBalance` model: Location-scoped material projections (`productId`, `warehouseId`, `onHandQuantity`, `reservedQuantity`, `availableQuantity`) with compound uniqueness and negative quantity prevention.
+    *   `StockMovement` model: Immutable append-only material transaction ledger (`STK-YYYY-NNNNN`) tracking receipts, issues, transfers, returns, and authorized opening balances. No direct updates/deletions permitted.
+    *   `StockReservation` model & atomic reservation engine: Conditional single-document database updates (`availableQuantity: { $gte: quantity }`) eliminating over-reservation under high concurrency, leaving physical on-hand quantity untouched, with batch compensation rollback on partial failures.
+    *   `ProductSerialNumber` model & `SerialNumberService`: High-value hardware serialization (solar panels, inverters) with uppercase-normalized uniqueness and full custody history.
+    *   Operational Web Interface (`apps/web`): Responsive `OrdersPage` (with quotation-to-order converter), `OrderDetailPage` (with commercial snapshot review and reservation controls), and `InventoryPage` (multi-location balances, movement ledger, serial asset database, and operation action modals).
+    *   Automated test suite: 215 automated tests passing with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
+*   **Phase 5B Scope (Next Pending Implementation Batch):**
+    *   Vendor master catalog, purchase orders (PO), inbound GRN receipt linking, and vendor accounts payable ledgers.
+*   **Acceptance Criteria:** Stock cannot fall below zero; physical issue is hard-blocked on shortages; order locks prices permanently against catalog changes; reservations and physical issues strictly decoupled.
+*   **Test Gate:** 215 automated tests passing across 21 test suites with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
 
 ---
 

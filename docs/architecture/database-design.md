@@ -197,73 +197,261 @@ interface ILead {
   prospectPhone: string;         // Indexed (checked for duplicates)
   prospectEmail?: string;
   location: {
+    street?: string;
     city: string;
+    district?: string;
     state: string;
     pinCode?: string;
+    geoCoordinates?: { latitude: number; longitude: number };
   };
-  source: 'WEBSITE' | 'REFERRAL' | 'EXPO' | 'COLD_CALL' | 'SOCIAL_MEDIA' | 'OTHER';
-  solarRequirement: 'RESIDENTIAL' | 'COMMERCIAL' | 'PUMP' | 'STORAGE_RETROFIT';
-  estimatedCapacityKw: number;
+  source: 'WEBSITE' | 'REFERRAL' | 'EXPO' | 'COLD_CALL' | 'SOCIAL_MEDIA' | 'CHANNEL_PARTNER' | 'OTHER';
+  solarRequirement: 'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'PUMP' | 'STORAGE_RETROFIT' | 'OTHER';
+  estimatedCapacityKw?: number;
   assignedToEmployeeId?: ObjectId; // Ref -> users._id (indexed)
   status: 'NEW' | 'CONTACTED' | 'SURVEY_SCHEDULED' | 'QUOTED' | 'NEGOTIATION' | 'CONVERTED' | 'LOST';
   lostReason?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  notes?: string;
+  nextFollowUpDate?: Date;
+  isActive: boolean;
+  convertedCustomerId?: ObjectId;  // Ref -> customers._id (populated upon explicit conversion)
+  convertedAt?: Date;
+  createdBy?: ObjectId;
+  updatedBy?: ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 // Indexes: { leadCode: 1 } (unique), { prospectPhone: 1 }, { assignedToEmployeeId: 1 }, { status: 1, createdAt: -1 }
 ```
 
-#### `quotations`
-Commercial project proposals with immutable snapshots.
+#### `lead_activities`
+Chronological interaction timeline and scheduled sales follow-ups.
 ```typescript
-interface IQuotation {
+interface ILeadActivity {
   _id: ObjectId;
-  quotationNumber: string;       // e.g. "QT-2026-00055" (base number)
-  revisionNumber: number;        // 0 for R0, 1 for R1, etc.
-  fullQuotationCode: string;     // "QT-2026-00055-R0" (unique compound index)
-  customerId: ObjectId;          // Ref -> customers._id
-  siteId: ObjectId;              // Ref -> sites._id
-  systemCapacityKw: number;
-  systemTopology: 'ON_GRID' | 'OFF_GRID' | 'HYBRID';
-  
-  // Explicit line items
-  lineItems: Array<{
-    productId: ObjectId;         // Ref -> products._id
-    category: string;
-    itemDescription: string;
-    hsnCode: string;
-    quantity: number;
-    unit: string;
-    unitPricePaise: number;      // Integer paise
-    taxableAmountPaise: number;
-    gstRatePercent: number;      // e.g. 12 or 18
-    gstAmountPaise: number;
-    totalAmountPaise: number;
-  }>;
-
-  // Financial Summary (in Paise)
-  subtotalPaise: number;
-  discountPaise: number;
-  discountPercent: number;
-  isDiscountApproved: boolean;
-  discountApprovedBy?: ObjectId; // Ref -> users._id
-  totalGstPaise: number;
-  grossTotalPaise: number;
-
-  isGstInvoice: boolean;         // true for GST, false for Non-GST
-  validUntil: Date;
-  termsAndConditions: string[];
-  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT' | 'ACCEPTED' | 'REVISED' | 'DECLINED' | 'EXPIRED';
-  customerAcceptance?: {
-    acceptedAt: Date;
-    ipAddress: string;
-    signatureUrl?: string;
-  };
-  createdBy: ObjectId;           // Ref -> users._id
+  leadId: ObjectId;              // Ref -> leads._id (indexed)
+  customerId?: ObjectId;         // Ref -> customers._id
+  activityType: 'CALL' | 'MEETING' | 'SITE_VISIT' | 'NOTE' | 'FOLLOW_UP' | 'WHATSAPP' | 'EMAIL';
+  summary: string;
+  remarks?: string;
+  activityDate: Date;
+  nextFollowUpDate?: Date;       // Indexed for due/overdue queries
+  assignedEmployeeId?: ObjectId; // Ref -> users._id
+  status: 'SCHEDULED' | 'COMPLETED' | 'RESCHEDULED' | 'CANCELLED';
+  sentiment?: 'HOT' | 'WARM' | 'COLD';
+  completedAt?: Date;
+  createdBy?: ObjectId;          // Ref -> users._id
   createdAt: Date;
   updatedAt: Date;
 }
-// Indexes: { fullQuotationCode: 1 } (unique), { quotationNumber: 1, revisionNumber: -1 }, { customerId: 1 }, { status: 1 }
+// Indexes: { leadId: 1, createdAt: -1 }, { assignedEmployeeId: 1, nextFollowUpDate: 1, status: 1 }, { status: 1, nextFollowUpDate: 1 }
+```
+
+#### `site_surveys`
+Physical rooftop feasibility, shadow analysis, electrical parameters, and photographic evidence.
+```typescript
+interface ISiteSurvey {
+  _id: ObjectId;
+  surveyNumber: string;          // e.g. "SRV-2026-00001" (unique, indexed)
+  leadId: ObjectId;              // Ref -> leads._id (indexed)
+  customerId?: ObjectId;         // Ref -> customers._id (indexed)
+  siteAddress: IAddressSubdocument;
+  roofType: 'RCC_FLAT' | 'METAL_SHEET' | 'TILE' | 'ELEVATED' | 'GROUND';
+  usableRoofAreaSqFt: number;    // Non-negative
+  grossRoofAreaSqFt?: number;
+  monthlyUnitsKwh?: number;
+  averageMonthlyBillPaise?: number; // Integer paise (Rs. 1 = 100 paise)
+  sanctionedLoadKw: number;      // Strictly positive
+  connectionPhase: 'SINGLE' | 'THREE';
+  shadowAnalysisNotes?: string;
+  orientationAzimuth?: string;
+  proposedCapacityKw?: number;
+  surveyorEmployeeId?: ObjectId; // Ref -> users._id
+  status: 'DRAFT' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+  scheduledDate?: Date;
+  completedDate?: Date;
+  observations?: string;
+  constraints?: string;
+  recommendations?: string;
+  photos: Array<{
+    storageKey: string;          // Private object reference (no image binary stored in MongoDB)
+    fileName: string;
+    fileSizeBytes: number;
+    mimeType: string;
+    category: 'ROOF' | 'DISTRIBUTION_BOARD' | 'METER' | 'EARTHING_PIT' | 'SHADOW_OBSTRUCTION' | 'OTHER';
+    caption?: string;
+    geoCoordinates?: { latitude: number; longitude: number };
+    uploadedBy?: ObjectId;
+    uploadedAt: Date;
+  }>;
+  createdBy?: ObjectId;
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { surveyNumber: 1 } (unique), { leadId: 1, createdAt: -1 }, { status: 1, createdAt: -1 }, { surveyorEmployeeId: 1, status: 1 }
+```
+
+#### `solar_designs`
+Technical sizing records and PV plant configurations for On-Grid, Off-Grid, and Hybrid plants.
+```typescript
+interface ISolarDesign {
+  _id: ObjectId;
+  designNumber: string;          // e.g. "DES-2026-00001" (unique, indexed)
+  customerId: ObjectId;          // Ref -> customers._id (indexed)
+  leadId?: ObjectId;             // Ref -> leads._id (indexed)
+  surveyId?: ObjectId;           // Ref -> site_surveys._id (indexed)
+  designName: string;
+  systemTopology: 'ON_GRID' | 'OFF_GRID' | 'HYBRID';
+  proposedCapacityKwp: number;   // DC capacity in kWp
+
+  module: {
+    productId: ObjectId;         // Ref -> products._id
+    name: string;
+    sku: string;
+    wattageWp: number;
+    quantity: number;
+    totalDcCapacityKwp: number;
+  };
+  inverter: {
+    productId: ObjectId;         // Ref -> products._id
+    name: string;
+    sku: string;
+    ratedCapacityKw: number;
+    quantity: number;
+    actualDcAcRatio: number;     // e.g. 1.20
+  };
+  battery?: {
+    productId?: ObjectId;        // Ref -> products._id
+    batteryType: string;
+    unitVoltageV: number;
+    unitCapacityAh: number;
+    quantity: number;
+    totalStorageKwh: number;
+    autonomyDays: number;
+  };
+  structure: {
+    roofType: 'RCC_FLAT' | 'METAL_SHEET' | 'TILE' | 'ELEVATED' | 'GROUND';
+    structureType: string;
+    tiltAngleDegrees: number;
+    azimuthOrientation: string;
+  };
+  estimatedGeneration: {
+    dailyGenerationKwh: number;
+    monthlyGenerationKwh: number;
+    annualGenerationKwh: number;
+    specificYieldKwhPerKwp: number;
+  };
+  assumptions: {
+    peakSunHoursPerDay: number;
+    performanceRatioPercent: number;
+    assumptionsSource: string;
+  };
+  warnings: string[];
+  disclaimer: string;
+  engineeringNotes?: string;
+  createdBy: ObjectId;           // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { designNumber: 1 } (unique), { customerId: 1, createdAt: -1 }, { leadId: 1 }, { surveyId: 1 }, { systemTopology: 1 }
+```
+
+#### `quotations`
+Commercial proposals with immutable revision snapshots (`QT-YYYY-NNNNN-R0`, `R1`, etc.), integer paise financials, and approval tracking.
+```typescript
+interface IQuotation {
+  _id: ObjectId;
+  quotationNumber: string;       // e.g. "QT-2026-00001"
+  revisionNumber: number;        // 0 for R0, 1 for R1, etc.
+  fullQuotationCode: string;     // e.g. "QT-2026-00001-R0" (unique, indexed)
+  parentQuotationId?: ObjectId;  // Ref -> quotations._id
+  isLatestRevision: boolean;
+  status:
+    | 'DRAFT'
+    | 'PENDING_APPROVAL'
+    | 'APPROVED'
+    | 'SENT'
+    | 'ACCEPTED'
+    | 'REJECTED'
+    | 'REVISED'
+    | 'EXPIRED'
+    | 'CANCELLED';
+
+  customerId: ObjectId;          // Ref -> customers._id
+  leadId?: ObjectId;             // Ref -> leads._id
+  solarDesignId?: ObjectId;      // Ref -> solar_designs._id
+
+  systemTopology: 'ON_GRID' | 'OFF_GRID' | 'HYBRID';
+  systemCapacityKwp: number;
+
+  // Itemized Bill of Materials (all monetary values in Integer Paise)
+  lineItems: Array<{
+    itemType: 'SOLAR_MODULE' | 'INVERTER' | 'BATTERY' | 'STRUCTURE' | 'BOS_ELECTRICAL' | 'INSTALLATION_LABOUR' | 'OTHER';
+    productId?: ObjectId;        // Ref -> products._id
+    skuSnapshot?: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    unitRatePaise: number;       // Integer paise
+    discountPaise: number;
+    taxableAmountPaise: number;
+    gstRateBasisPoints: number;  // e.g. 1200 for 12%, 1800 for 18%
+    taxPaise: number;
+    itemTotalPaise: number;
+  }>;
+
+  // Commercial Financial Summary (Integer Paise)
+  grossSubtotalPaise: number;
+  additionalDiscountPaise: number;
+  totalDiscountPaise: number;
+  discountPercent: number;
+  requiresDiscountApproval: boolean;
+  discountApprovalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_REQUIRED';
+  discountApprovedBy?: ObjectId; // Ref -> users._id (Anti-self-approval enforced)
+  discountApprovedAt?: Date;
+  discountRemarks?: string;
+  discountRejectionReason?: string;
+
+  taxableAmountPaise: number;
+  totalTaxPaise: number;
+  taxComponents: Array<{
+    componentName: string;       // 'CGST', 'SGST', 'IGST'
+    rateBasisPoints: number;
+    taxAmountPaise: number;
+  }>;
+  netTotalPaise: number;
+
+  taxProfile: {
+    profileName: string;
+    profileCode: string;
+    effectiveDate: string;
+    isInterState: boolean;
+    accountingNotice: string;
+  };
+
+  paymentMilestones: Array<{
+    name: string;
+    percentage: number;
+    description: string;
+  }>;
+  termsAndConditions: string[];
+  validUntil: Date;
+
+  // Customer Review & Acceptance
+  isAccepted: boolean;
+  acceptedAt?: Date;
+  decisionIpAddress?: string;
+  customerNotes?: string;
+  rejectionReason?: string;
+
+  createdBy: ObjectId;           // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { fullQuotationCode: 1 } (unique), { quotationNumber: 1, revisionNumber: -1 }, { customerId: 1, status: 1 }, { requiresDiscountApproval: 1, discountApprovalStatus: 1 }, { status: 1, validUntil: 1 }
 ```
 
 ---
@@ -525,6 +713,26 @@ stateDiagram-v2
 ### 4.3 Multi-Document ACID Transactions
 Critical multi-entity operations—such as confirming an order (updating order status, creating project record, reserving inventory balances, and logging audit entry)—execute inside a native **MongoDB ClientSession Transaction** with `readConcern: "majority"` and `writeConcern: "majority"`.
 
+### 4.4 Future Inventory Integrity Contract (Phase 3B Baseline)
+To ensure absolute accounting and physical traceability across subsequent inventory and supply chain phases, the system establishes the following architectural rules:
+1.  **Movement History as Single Source of Truth:** Stock balances are never arbitrarily mutated. Every physical addition, deduction, or relocation must originate from an immutable `StockMovement` ledger entry.
+2.  **Location-Scoped Balances:** Balances are strictly scoped by composite key `{ productId, locationType, locationId }`. A product has no monolithic global quantity.
+3.  **Serial Number Tracking:** Tier-1 solar hardware (PV modules and solar inverters) requires individual barcode/serial tracking mapped through `SerialNumberTracking` documents to link factory warranties to installation roofs.
+4.  **Two-Phase Reservation vs Issue:** Reserving stock for an approved quotation or confirmed order increases `reservedQuantity` without altering `physicalQuantity`. Physical dispatch reduces both depot `physicalQuantity` and `reservedQuantity`, simultaneously creating in-transit or site balance.
+5.  **Traceable Transfers:** Inter-warehouse or depot-to-site stock transfers require explicit source and destination locations, tracked through a two-step dispatch and receipt confirmation lifecycle.
+6.  **Custody History for Tools & Crews:** Field installation tools and unconsumed materials issued to technicians are maintained in `EMPLOYEE_CUSTODY` warehouse locations, enforcing accountability upon job completion.
+7.  **Atomic Negative Stock Prevention:** Stock deductions must use atomic MongoDB conditional updates (`$gte: requiredQuantity`), rejecting requests that would drive physical or available balances below zero.
+8.  **Idempotency Protection:** Material transaction requests must include client-supplied or correlation-derived `Idempotency-Key` headers to prevent double-issue or double-receipt upon network retries.
+9.  **Immutability of Historical Transactions:** Committed stock movements cannot be updated or deleted. Reconciliation discrepancies require compensating adjustment movements (`ADJUSTMENT_WRITE_OFF` or `COUNT_VARIANCE`).
+10. **Non-Destructive Master Lifecycle:** Soft deactivation (`isActive: false`) of products or warehouses preserves historical relational integrity across past quotations, purchase orders, and ledger movements.
+
+#### Proposed Future Inventory Models (Phase 5 Batch)
+*   `StockMovement`: Append-only transaction ledger (`movementCode`, `productId`, `sourceLocation`, `destLocation`, `quantity`, `movementType`, `referenceEntityId`, `performedByUserId`, `timestamp`).
+*   `StockBalance`: Real-time aggregated location balance (`productId`, `locationType`, `locationId`, `physicalQuantity`, `reservedQuantity`, `updatedAt`).
+*   `StockReservation`: Active order allocations (`orderId`, `productId`, `locationId`, `reservedQuantity`, `expiresAt`).
+*   `SerialNumberTracking`: Serialized asset lifecycle (`serialNumber`, `productId`, `currentLocationId`, `status: IN_STOCK | ALLOCATED | DISPATCHED | INSTALLED | DEFECTIVE`, `warrantyExpiryDate`).
+*   `LocationCustody`: Custodian signoff records for toolkits and materials (`custodianUserId`, `warehouseLocationId`, `issuedAt`, `returnedAt`, `signatureUrl`).
+
 ---
 
 ## 5. Audit Logging, Data Retention & Unresolved Decisions
@@ -538,9 +746,56 @@ All state modifications on critical business records (Quotations, Orders, Invoic
 ### 5.2 Data Retention & Archival
 *   **Active Records:** Retained indefinitely in primary collections for the company's operational lifetime.
 *   **Audit Logs:** Hot retention in Atlas for 2 years; automated weekly ETL offloads older logs to compressed S3 Glacier parquet files.
-*   **Soft Deletes:** Master entities (Users, Customers, Products) use `isActive: false` flags. Hard deletion is forbidden to preserve historical relational integrity.
+*   **Soft Deletes:** Master entities (Users, Customers, Products, Warehouses) use `isActive: false` flags. Hard deletion is forbidden to preserve historical relational integrity.
 
 ### 5.3 Documented Architectural Decisions & Tax Engine Alignment
 1.  **Multi-Component Date-Effective Tax Engine (DEC-01):** As mandated in [open-decisions-and-risks.md](file:///d:/My%20project/Solar%20Business%20Management%20Software/docs/planning/open-decisions-and-risks.md), no statutory tax formula, split percentage (such as 70:30), or effective tax rate is hardcoded. Quotations compute estimates using date-effective tax profiles, while legally issued Tax Invoices permanently snapshot applied tax components (CGST, SGST, IGST, cess), HSN/SAC codes, and line-item amounts in base integer paise. Applicable GST treatment must be confirmed by the company's chartered accountant before production use.
 2.  **Technician Tool Kit Tracking:** Field technician tools (multimeters, torque wrenches, crimping tools, ladder harnesses) are modeled in `products` with category `TOOL_ASSET` to leverage the established multi-location inventory tracking engine across employee custodianship.
+
+---
+
+## 6. Model Implementation Roadmap & Dependency Plan for All 30 Modules
+
+### 6.1 Status Baseline: Models Implemented in Phase 2, Phase 3A & Phase 3B
+*   **`User` (Phase 2):** Internal employee identity, role, department, Argon2id hash, encrypted TOTP MFA secret, session version.
+*   **`CustomerIdentity` (Phase 2):** Customer portal passwordless authentication (magic link and OTP hashes).
+*   **`PasswordResetToken` (Phase 2):** Single-use employee password reset tokens with MongoDB TTL deletion.
+*   **`SecurityAuditLog` (Phase 2):** Append-only security audit events with Mongoose query-level mutation blocking and recursive secret redaction.
+*   **`Customer` (Phase 3A):** Business customer record (`customerCode`, name, company, contact details, Indian billing & site addresses, GSTIN/PAN).
+*   **`SequenceCounter` (Phase 3A):** Atomic sequence counter store supporting concurrent business number generation (`sequenceKey`, `currentValue`).
+*   **`CompanySettings` (Phase 3A):** Organization profile, registered address, fiscal year start month, default numbering prefixes.
+*   **`ProductCategory` (Phase 3B):** Hierarchical hardware category model with cycle detection and deactivation constraints.
+*   **`Product` (Phase 3B):** Hardware component master catalog with integer paise pricing, normalized case-insensitive SKU uniqueness (`skuNormalized`), and decoupled inventory balance design.
+*   **`Warehouse` (Phase 3B):** Multi-location storage model (Central Depot, Transit, Installation Site, Employee Custody) with unique location codes and non-destructive deactivation.
+
+### 6.2 Dependency-Ordered Roadmap for Remaining Modules
+
+| Batch / Phase | Target Module | Proposed Model Name | Main References & Relationships | Critical Indexes | Ownership & Concurrency Rules | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Phase 3B** | Mod 9: Products | `Product`, `ProductCategory` | `categoryId -> ProductCategory` | `skuNormalized` (unique), `productCode` (unique) | Optimistic locking (`__v`); rates in paise; decoupled balances | **Verified & Passing (12/12 Tests)** |
+| **Phase 3B** | Mod 10: Inventory Locations | `Warehouse` | None (standalone locations) | `code` (unique), `{ type, isActive }` | Central depot vs site transit vs custody; soft deactivation | **Verified & Passing** |
+| **Phase 4** | Mod 2: Leads | `Lead`, `LeadActivity` | `assignedTo -> User`, `customer -> Customer` | `leadNumber` (unique), `phone`, `status` | Role-scoped sales visibility | Planned |
+| **Phase 4** | Mod 5: Surveys | `SiteSurvey` | `leadId -> Lead`, `surveyorId -> User` | `surveyNumber` (unique), `leadId` | Surveyor ownership; GPS & shadow photo URLs | Planned |
+| **Phase 4** | Mod 6: Solar Design | `SolarDesign` | `surveyId -> SiteSurvey`, `engineerId -> User` | `designCode` (unique), `surveyId` | Versioned CAD layout & monthly kWh estimate | Planned |
+| **Phase 4** | Mod 7: Quotations | `Quotation`, `QuotationVersion` | `customerId -> Customer`, `designId -> SolarDesign` | `quotationNumber` (unique), `customerId` | Immutable accepted versions; anti-self discount approval | Planned |
+| **Phase 5** | Mod 10: Inventory Balances | `StockBalance`, `StockMovement`, `StockReservation` | `productId -> Product`, `warehouseId -> Warehouse` | `{ productId, warehouseId }` (unique), `movementNumber` | Atomic `$inc` with `$gte` balance guard; append-only ledger | Product, Warehouse, Order |
+| **Phase 5** | Mod 11: Purchases | `PurchaseOrder`, `PurchaseInvoice` | `vendorId -> Vendor`, `orderId -> Order` | `poNumber` (unique), `vendorId` | PO approval limit guard (>₹25k requires Admin) | Product, SequenceService |
+| **Phase 5** | Mod 12: Vendors | `Vendor` | Standalone supplier directory | `vendorCode` (unique), `gstin` | Procurement department scope | Shared Primitives |
+| **Phase 6** | Mod 13: Project Governance | `Project`, `ProjectStage` | `orderId -> Order`, `managerId -> User` | `projectCode` (unique), `orderId` | Linear stage gates; supervisor signoff | Order, SequenceService |
+| **Phase 6** | Mod 14: Quality & Installation | `InstallationChecklist`, `ElectricalTestRecord` | `projectId -> Project`, `crewLeadId -> User` | `projectId`, `stageId` | Geo-tagged timestamped photo proof | Project |
+| **Phase 6** | Mod 15: Net Metering | `NetMeteringApplication` | `projectId -> Project`, `discomId` | `discomApplicationNumber` (sparse unique) | Utility milestone date tracking | Project |
+| **Phase 6** | Mod 16: Subsidy (Surya Ghar) | `SubsidyApplication` | `projectId -> Project`, `customerId -> Customer` | `nationalPortalId` (sparse unique) | Direct Benefit Transfer (DBT) status tracking | Project, Customer |
+| **Phase 6** | Mod 17: Documents & Storage | `Document` | `entityId`, `entityType`, `uploadedBy -> User` | `storageKey` (unique), `{ entityType, entityId }` | Private S3 key; short-lived signed URLs | User, Customer |
+| **Phase 7** | Mod 18: Invoices & Payments | `Invoice`, `PaymentReceipt`, `CustomerLedgerEntry` | `orderId -> Order`, `customerId -> Customer` | `invoiceNumber` (unique), `receiptNumber` (unique) | Integer paise; append-only running ledger with reversals | Order, SequenceService |
+| **Phase 7** | Mod 19: Expenses | `Expense` | `projectId -> Project`, `submittedBy -> User` | `expenseNumber` (unique), `projectId` | Anti-self approval; manager threshold check | Project, SequenceService |
+| **Phase 7** | Mod 20: Project Costing | `ProjectCostEstimate`, `ActualCostEntry` | `projectId -> Project` | `projectId` (unique) | Estimated vs realized gross margin calculation | Project, Expense, PurchaseOrder |
+| **Phase 8** | Mod 21: Service Complaints | `ServiceTicket` | `customerId -> Customer`, `projectId -> Project` | `ticketNumber` (unique), `customerId` | SLA breach alerts; technician assignment | Customer, Project |
+| **Phase 8** | Mod 22: Warranty & Serials | `SerialNumber`, `WarrantyRecord`, `WarrantyClaim` | `productId -> Product`, `orderId -> Order` | `serialNumber` (unique), `orderId` | Serial lookup across manufacturer & installation warranties | Product, Order |
+| **Phase 8** | Mod 23: AMC Contracts | `AmcContract`, `AmcSchedule` | `customerId -> Customer`, `projectId -> Project` | `contractNumber` (unique), `customerId` | Preventive maintenance schedules & expiry alerts | Customer, Project |
+| **Phase 8** | Mod 24: Field Service Visits | `ServiceVisit`, `VisitReport` | `ticketId -> ServiceTicket`, `technicianId -> User` | `visitNumber` (unique), `ticketId` | Digital customer acknowledgment; spare part deduction | ServiceTicket, StockMovement |
+| **Phase 8** | Mod 25: Teams & Crews | `Team` | `leaderId -> User`, `members -> [User]` | `name` (unique) | Department assignment | User |
+| **Phase 8** | Mod 26: Tasks | `Task` | `assignedTo -> User`, `relatedEntityId` | `taskId` (unique), `assignedTo` | Milestone task dependencies & deadlines | User, Project |
+| **Phase 9** | Mod 27: Notifications | `Notification`, `NotificationTemplate` | `recipientId -> User/Customer` | `recipientId`, `isRead` | In-app notification center & dispatch logs | User, CustomerIdentity |
+| **Phase 9** | Mod 28: Reminders | `Reminder` | `assignedTo -> User`, `relatedEntityId` | `dueDate`, `isCompleted` | Automated background scheduler triggers | User, SequenceService |
+| **Phase 10** | Mod 1: Analytics & KPIs | `MetricSnapshot`, `KpiCache` | Aggregated read model | `metricKey`, `snapshotDate` | Background aggregation; read-only KPI dashboards | All Modules |
 

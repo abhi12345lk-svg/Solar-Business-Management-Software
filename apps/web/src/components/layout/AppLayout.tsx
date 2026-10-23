@@ -1,6 +1,20 @@
 import React from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Sun, Activity, LayoutDashboard, ShieldCheck, Shield, LogOut, LogIn } from 'lucide-react';
+import {
+  Sun,
+  Activity,
+  LayoutDashboard,
+  ShieldCheck,
+  Shield,
+  LogOut,
+  LogIn,
+  Users,
+  Clock,
+  Layers,
+  FileSpreadsheet,
+  ShoppingCart,
+  Boxes
+} from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
 
@@ -55,6 +69,108 @@ export const AppLayout: React.FC = () => {
                 <LayoutDashboard className="w-4 h-4 mr-1.5" />
                 <span>Dashboard</span>
               </NavLink>
+
+              {isAuthenticated && (
+                <>
+                  <NavLink
+                    to="/leads"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Users className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Leads</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/follow-ups"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Clock className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Follow-ups</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/surveys"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Layers className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Surveys</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/solar-designs"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Sun className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Solar Designs</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/quotations"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <FileSpreadsheet className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Quotations</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/orders"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Orders</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/inventory"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Boxes className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Inventory</span>
+                  </NavLink>
+                </>
+              )}
 
               <NavLink
                 to="/health"

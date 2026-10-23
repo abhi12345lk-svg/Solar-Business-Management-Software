@@ -64,6 +64,28 @@ export class DatabaseManager {
   public isReady(): boolean {
     return this.getState() === 'connected';
   }
+
+  /**
+   * Safely synchronizes indexes on models without dropping existing data or collections.
+   */
+  public async syncIndexes(): Promise<void> {
+    if (this.getState() !== 'connected') {
+      logger.warn('Cannot synchronize indexes: Database is not connected.');
+      return;
+    }
+
+    try {
+      await Promise.all(
+        Object.values(mongoose.models).map(async model => {
+          await model.syncIndexes();
+        })
+      );
+      logger.info('Database indexes synchronized successfully.');
+    } catch (err: any) {
+      logger.error({ err: err?.message }, 'Error synchronizing database indexes.');
+      throw err;
+    }
+  }
 }
 
 export const dbManager = DatabaseManager.getInstance();

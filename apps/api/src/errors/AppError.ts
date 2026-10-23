@@ -53,11 +53,27 @@ export class AppError extends Error {
     return new AppError(400, ErrorCode.VALIDATION_FAILED, message, details);
   }
 
+  static validationFailed(message: string, details?: ApiErrorDetail[]): AppError {
+    return new AppError(400, ErrorCode.VALIDATION_FAILED, message, details);
+  }
+
+  static insufficientStock(message: string): AppError {
+    return new AppError(400, ErrorCode.BUSINESS_RULE_VIOLATION, message);
+  }
+
+  static businessRule(message: string): AppError {
+    return new AppError(422, ErrorCode.BUSINESS_RULE_VIOLATION, message);
+  }
+
   static notFound(resource = 'Resource'): AppError {
     return new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, `${resource} not found.`);
   }
 
   static forbidden(message = 'Permission denied.'): AppError {
+    return new AppError(403, ErrorCode.PERMISSION_DENIED, message);
+  }
+
+  static permissionDenied(message = 'Permission denied.'): AppError {
     return new AppError(403, ErrorCode.PERMISSION_DENIED, message);
   }
 
@@ -67,6 +83,10 @@ export class AppError extends Error {
 
   static conflict(message: string): AppError {
     return new AppError(409, ErrorCode.DUPLICATE_RESOURCE, message);
+  }
+
+  static database(message = 'Database unavailable.'): AppError {
+    return new AppError(503, ErrorCode.DATABASE_UNAVAILABLE, message);
   }
 
   static internal(message = 'An unexpected internal error occurred.'): AppError {

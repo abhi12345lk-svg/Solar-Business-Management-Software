@@ -2,6 +2,16 @@ import { Router } from 'express';
 import { healthRouter } from './health.routes.js';
 import { authRouter, devTestTokens } from './auth.routes.js';
 import { customerAuthRouter, devCustomerTokens } from './customer-auth.routes.js';
+import { catalogRouter } from './catalog.routes.js';
+import { warehouseRouter } from './warehouse.routes.js';
+import { leadRouter } from './lead.routes.js';
+import { surveyRouter } from './survey.routes.js';
+import { solarDesignRouter } from './solarDesign.routes.js';
+import { quotationRouter } from './quotation.routes.js';
+import { customerQuotationRouter } from './customerQuotation.routes.js';
+import { orderRouter } from './order.routes.js';
+import { inventoryRouter } from './inventory.routes.js';
+import { customerOrderRouter } from './customerOrder.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -21,6 +31,16 @@ export const apiRouter = Router();
 apiRouter.use('/health', healthRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/customer-auth', customerAuthRouter);
+apiRouter.use('/catalog', catalogRouter);
+apiRouter.use('/warehouses', warehouseRouter);
+apiRouter.use('/leads', leadRouter);
+apiRouter.use('/surveys', surveyRouter);
+apiRouter.use('/solar-designs', solarDesignRouter);
+apiRouter.use('/quotations', quotationRouter);
+apiRouter.use('/customer-portal/quotations', customerQuotationRouter);
+apiRouter.use('/orders', orderRouter);
+apiRouter.use('/inventory', inventoryRouter);
+apiRouter.use('/customer-portal/orders', customerOrderRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)
 if (config.NODE_ENV !== 'production') {

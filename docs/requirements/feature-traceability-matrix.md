@@ -48,27 +48,27 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD02-01` | Lead Management | Lead ID Generation | Phase 3 | Phase 4 | Sequential format LD-YYYY-XXXXX, immutable, unique, zero collision under concurrency. | Concurrency unit test asserting atomic sequence generation. | Planned |
-| `REQ-MOD02-02` | Lead Management | Lead Date Capture | Phase 3 | Phase 4 | Timestamp of lead creation recorded automatically with creator identity and origin. | Schema default and audit field test. | Planned |
-| `REQ-MOD02-03` | Lead Management | Customer Name Capture | Phase 3 | Phase 4 | Captures primary contact person or legal company name; trimmed and sanitized. | Zod string validation and sanitization test. | Planned |
-| `REQ-MOD02-04` | Lead Management | Mobile Number & Duplicate Check | Phase 3 | Phase 4 | E.164 phone validation; flags existing active/closed leads on phone match. | Zod regex test; duplicate detection service query test. | Planned |
-| `REQ-MOD02-05` | Lead Management | Location Details | Phase 3 | Phase 4 | Captures installation street, city, district, state, and postal PIN code. | Geographical address schema validation test. | Planned |
-| `REQ-MOD02-06` | Lead Management | Lead Source Attribution | Phase 3 | Phase 4 | Captures source (Website, Referral, Expo, Cold Call, Social Media, Channel Partner). | Enum validation test against configured source master. | Planned |
-| `REQ-MOD02-07` | Lead Management | Solar Requirement Classification | Phase 3 | Phase 4 | Classifies requirement: Residential, C&I, Agricultural Pump, Storage Retrofit. | Requirement category schema test. | Planned |
-| `REQ-MOD02-08` | Lead Management | Estimated Capacity Capture | Phase 3 | Phase 4 | Captures prospect desired capacity in kWp as positive decimal/float. | Positive numeric boundary test. | Planned |
-| `REQ-MOD02-09` | Lead Management | Assigned Employee Tracking | Phase 2, Phase 8 | Phase 4 | Assigns lead to sales executive; logs assignment timestamp and notification. | Assignment update test with audit history log. | Planned |
-| `REQ-MOD02-10` | Lead Management | Lead Status State Machine | Phase 3 | Phase 4 | States: New -> Contacted -> Survey Scheduled -> Quoted -> Negotiation -> Converted / Lost. Lost requires reason. | Finite state machine transition validator test. | Planned |
+| `REQ-MOD02-01` | Lead Management | Lead ID Generation | Phase 3 | Phase 4 | Sequential format LEAD-YYYY-XXXXX, immutable, unique, zero collision under concurrency. | Concurrency unit test asserting atomic sequence generation. | Verified |
+| `REQ-MOD02-02` | Lead Management | Lead Date Capture | Phase 3 | Phase 4 | Timestamp of lead creation recorded automatically with creator identity and origin. | Schema default and audit field test. | Verified |
+| `REQ-MOD02-03` | Lead Management | Customer Name Capture | Phase 3 | Phase 4 | Captures primary contact person or legal company name; trimmed and sanitized. | Zod string validation and sanitization test. | Verified |
+| `REQ-MOD02-04` | Lead Management | Mobile Number & Duplicate Check | Phase 3 | Phase 4 | E.164 phone validation; flags existing active/closed leads on phone match. | Zod regex test; duplicate detection service query test. | Verified |
+| `REQ-MOD02-05` | Lead Management | Location Details | Phase 3 | Phase 4 | Captures installation street, city, district, state, and postal PIN code. | Geographical address schema validation test. | Verified |
+| `REQ-MOD02-06` | Lead Management | Lead Source Attribution | Phase 3 | Phase 4 | Captures source (Website, Referral, Expo, Cold Call, Social Media, Channel Partner). | Enum validation test against configured source master. | Verified |
+| `REQ-MOD02-07` | Lead Management | Solar Requirement Classification | Phase 3 | Phase 4 | Classifies requirement: Residential, C&I, Agricultural Pump, Storage Retrofit. | Requirement category schema test. | Verified |
+| `REQ-MOD02-08` | Lead Management | Estimated Capacity Capture | Phase 3 | Phase 4 | Captures prospect desired capacity in kWp as positive decimal/float. | Positive numeric boundary test. | Verified |
+| `REQ-MOD02-09` | Lead Management | Assigned Employee Tracking | Phase 2, Phase 8 | Phase 4 | Assigns lead to sales executive; logs assignment timestamp and notification. | Assignment update test with audit history log. | Verified |
+| `REQ-MOD02-10` | Lead Management | Lead Status State Machine | Phase 3 | Phase 4 | States: New -> Contacted -> Survey Scheduled -> Quoted -> Negotiation -> Converted / Lost. Lost requires reason. | Finite state machine transition validator test. | Verified |
 
 ### Module 3: Customer Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD03-01` | Customer Management | Customer ID Generation | Phase 3 | Phase 4 | Sequential format CUST-YYYY-XXXXX, immutable, unique across database. | Sequence counter uniqueness test. | Planned |
-| `REQ-MOD03-02` | Customer Management | Customer Legal Name | Phase 3 | Phase 4 | Captures full individual name or registered corporate/industrial entity name. | String length and character sanitization test. | Planned |
-| `REQ-MOD03-03` | Customer Management | Customer Mobile Numbers | Phase 3 | Phase 4 | Captures primary mobile (indexed, validated) and optional secondary site contact. | E.164 format validation test. | Planned |
-| `REQ-MOD03-04` | Customer Management | Customer Email Address | Phase 3 | Phase 4 | Captures validated email address for digital document and quote delivery. | Email regex and RFC 5322 compliance test. | Planned |
-| `REQ-MOD03-05` | Customer Management | Permanent Billing Address | Phase 3 | Phase 4 | Captures complete postal address with street, city, state, and 6-digit PIN code. | Address subdocument schema test. | Planned |
-| `REQ-MOD03-06` | Customer Management | GSTIN & PAN Identification | Phase 3 | Phase 4 | Validates 15-char Indian GSTIN checksum and 10-char PAN structure. | GSTIN checksum algorithm test and PAN regex test. | Planned |
+| `REQ-MOD03-01` | Customer Management | Customer ID Generation | Phase 3 | Phase 4 | Sequential format CUST-YYYY-XXXXX, immutable, unique across database. | Sequence counter uniqueness test. | Verified |
+| `REQ-MOD03-02` | Customer Management | Customer Legal Name | Phase 3 | Phase 4 | Captures full individual name or registered corporate/industrial entity name. | String length and character sanitization test. | Verified |
+| `REQ-MOD03-03` | Customer Management | Customer Mobile Numbers | Phase 3 | Phase 4 | Captures primary mobile (indexed, validated) and optional secondary site contact. | E.164 format validation test. | Verified |
+| `REQ-MOD03-04` | Customer Management | Customer Email Address | Phase 3 | Phase 4 | Captures validated email address for digital document and quote delivery. | Email regex and RFC 5322 compliance test. | Verified |
+| `REQ-MOD03-05` | Customer Management | Permanent Billing Address | Phase 3 | Phase 4 | Captures complete postal address with street, city, state, and 6-digit PIN code. | Address subdocument schema test. | Verified |
+| `REQ-MOD03-06` | Customer Management | GSTIN & PAN Identification | Phase 3 | Phase 4 | Validates 15-char Indian GSTIN checksum and 10-char PAN structure. | GSTIN checksum algorithm test and PAN regex test. | Verified |
 | `REQ-MOD03-07` | Customer Management | Installation Site Profiles | Phase 3 | Phase 4 | Links physical sites with GPS coordinates, DISCOM division, and consumer number. | Customer-to-Site 1:N relationship integration test. | Planned |
 | `REQ-MOD03-08` | Customer Management | Customer Project History | Phase 6 | Phase 6 | Consolidated view of all past, present, and pipeline projects for customer. | Relational projection query test. | Planned |
 | `REQ-MOD03-09` | Customer Management | Customer Payment History | Phase 7 | Phase 7 | Complete ledger view of invoices raised, payments received, and running balance. | Financial statement generation test. | Planned |
@@ -78,129 +78,129 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD04-01` | Follow-up Management | Lead / Customer Relational Link | Phase 4 | Phase 4 | Follow-up record strictly binds to either an active Lead ID or Customer ID. | Polymorphic reference validation test. | Planned |
-| `REQ-MOD04-02` | Follow-up Management | Follow-up Interaction Date | Phase 4 | Phase 4 | Records timestamp of when interaction occurred. | Date validation test. | Planned |
-| `REQ-MOD04-03` | Follow-up Management | Discussion Narrative Log | Phase 4 | Phase 4 | Captures detailed notes of customer objections, requirements, and budget discussions. | Text field length and markdown sanitization test. | Planned |
-| `REQ-MOD04-04` | Follow-up Management | Next Follow-up Scheduling | Phase 4, Phase 9 | Phase 4 | Schedules subsequent date/time; provisions calendar task and reminder. | Reminder provisioning service test. | Planned |
-| `REQ-MOD04-05` | Follow-up Management | Assigned Employee Ownership | Phase 4 | Phase 4 | Binds follow-up to accountable sales representative. | User reference integrity test. | Planned |
-| `REQ-MOD04-06` | Follow-up Management | Follow-up Status Transition | Phase 4 | Phase 4 | Tracks status: Scheduled, Completed, Rescheduled, or Cancelled. | Status enum transition test. | Planned |
-| `REQ-MOD04-07` | Follow-up Management | Qualitative Remarks & Sentiment | Phase 4 | Phase 4 | Records outcome remarks and sentiment tags (Hot, Warm, Cold). | Sentiment tag validation test. | Planned |
+| `REQ-MOD04-01` | Follow-up Management | Lead / Customer Relational Link | Phase 4 | Phase 4 | Follow-up record strictly binds to either an active Lead ID or Customer ID. | Polymorphic reference validation test. | Verified |
+| `REQ-MOD04-02` | Follow-up Management | Follow-up Interaction Date | Phase 4 | Phase 4 | Records timestamp of when interaction occurred. | Date validation test. | Verified |
+| `REQ-MOD04-03` | Follow-up Management | Discussion Narrative Log | Phase 4 | Phase 4 | Captures detailed notes of customer objections, requirements, and budget discussions. | Text field length and markdown sanitization test. | Verified |
+| `REQ-MOD04-04` | Follow-up Management | Next Follow-up Scheduling | Phase 4, Phase 9 | Phase 4 | Schedules subsequent date/time; provisions calendar task and reminder. | Reminder provisioning service test. | Verified |
+| `REQ-MOD04-05` | Follow-up Management | Assigned Employee Ownership | Phase 4 | Phase 4 | Binds follow-up to accountable sales representative. | User reference integrity test. | Verified |
+| `REQ-MOD04-06` | Follow-up Management | Follow-up Status Transition | Phase 4 | Phase 4 | Tracks status: Scheduled, Completed, Rescheduled, or Cancelled. | Status enum transition test. | Verified |
+| `REQ-MOD04-07` | Follow-up Management | Qualitative Remarks & Sentiment | Phase 4 | Phase 4 | Records outcome remarks and sentiment tags (Hot, Warm, Cold). | Sentiment tag validation test. | Verified |
 
 ### Module 5: Site Survey
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD05-01` | Site Survey | Survey ID Generation | Phase 3 | Phase 4 | Sequential format SRV-YYYY-XXXXX, uniquely allocated. | Sequence generator test. | Planned |
-| `REQ-MOD05-02` | Site Survey | Customer & Lead Association | Phase 4 | Phase 4 | Binds survey to target customer and originating lead. | Foreign key integrity test. | Planned |
-| `REQ-MOD05-03` | Site Survey | Site Address & Geo-Location | Phase 4 | Phase 4 | Records physical site address with GPS latitude/longitude. | Coordinate range validator test. | Planned |
-| `REQ-MOD05-04` | Site Survey | Roof Substrate Classification | Phase 4 | Phase 4 | Classifies roof: RCC Flat, Metal Trapezoidal/Standing Seam, Tile, Ground Mount. | Roof type enum validation test. | Planned |
-| `REQ-MOD05-05` | Site Survey | Usable Roof Area Measurement | Phase 4 | Phase 4 | Captures gross and usable shadow-free rooftop surface area (sqm / sqft). | Positive numeric area validation test. | Planned |
-| `REQ-MOD05-06` | Site Survey | Electricity Bill Audit | Phase 4 | Phase 4 | Captures monthly consumed units (kWh), tariff category, and historical bill costs. | Numeric unit and tariff validation test. | Planned |
-| `REQ-MOD05-07` | Site Survey | Sanctioned Load Verification | Phase 4 | Phase 4 | Records utility sanctioned load (kW/kVA) and phase supply (Single/Three Phase). | Sanctioned load parameter test. | Planned |
-| `REQ-MOD05-08` | Site Survey | Shadow Analysis Documentation | Phase 4 | Phase 4 | Documents azimuth, tilt, parapet walls, water tanks, trees, and seasonal shade. | Shadow matrix data schema test. | Planned |
-| `REQ-MOD05-09` | Site Survey | Proposed System Capacity | Phase 4 | Phase 4 | Calculates maximum feasible plant capacity (kWp) based on area and load limits. | Sizing boundary calculation test. | Planned |
+| `REQ-MOD05-01` | Site Survey | Survey ID Generation | Phase 3 | Phase 4 | Sequential format SRV-YYYY-XXXXX, uniquely allocated. | Sequence generator test. | Verified |
+| `REQ-MOD05-02` | Site Survey | Customer & Lead Association | Phase 4 | Phase 4 | Binds survey to target customer and originating lead. | Foreign key integrity test. | Verified |
+| `REQ-MOD05-03` | Site Survey | Site Address & Geo-Location | Phase 4 | Phase 4 | Records physical site address with GPS latitude/longitude. | Coordinate range validator test. | Verified |
+| `REQ-MOD05-04` | Site Survey | Roof Substrate Classification | Phase 4 | Phase 4 | Classifies roof: RCC Flat, Metal Trapezoidal/Standing Seam, Tile, Ground Mount. | Roof type enum validation test. | Verified |
+| `REQ-MOD05-05` | Site Survey | Usable Roof Area Measurement | Phase 4 | Phase 4 | Captures gross and usable shadow-free rooftop surface area (sqm / sqft). | Positive numeric area validation test. | Verified |
+| `REQ-MOD05-06` | Site Survey | Electricity Bill Audit | Phase 4 | Phase 4 | Captures monthly consumed units (kWh), tariff category, and historical bill costs. | Numeric unit and tariff validation test. | Verified |
+| `REQ-MOD05-07` | Site Survey | Sanctioned Load Verification | Phase 4 | Phase 4 | Records utility sanctioned load (kW/kVA) and phase supply (Single/Three Phase). | Sanctioned load parameter test. | Verified |
+| `REQ-MOD05-08` | Site Survey | Shadow Analysis Documentation | Phase 4 | Phase 4 | Documents azimuth, tilt, parapet walls, water tanks, trees, and seasonal shade. | Shadow matrix data schema test. | Verified |
+| `REQ-MOD05-09` | Site Survey | Proposed System Capacity | Phase 4 | Phase 4 | Calculates maximum feasible plant capacity (kWp) based on area and load limits. | Sizing boundary calculation test. | Verified |
 | `REQ-MOD05-10` | Site Survey | Site Photo Repository | Phase 1, Phase 6 | Phase 6 | Uploads timestamped site photos (roof, DB, meter, earthing pits) to private S3. | Multipart S3 upload integration test. | Planned |
-| `REQ-MOD05-11` | Site Survey | Assigned Surveyor Tracking | Phase 4 | Phase 4 | Tracks identity of technical surveyor or engineer conducting site audit. | Employee reference validation test. | Planned |
-| `REQ-MOD05-12` | Site Survey | Surveyor Technical Remarks | Phase 4 | Phase 4 | Records structural integrity, waterproofing condition, and cable routing feasibility. | Text remarks schema test. | Planned |
+| `REQ-MOD05-11` | Site Survey | Assigned Surveyor Tracking | Phase 4 | Phase 4 | Tracks identity of technical surveyor or engineer conducting site audit. | Employee reference validation test. | Verified |
+| `REQ-MOD05-12` | Site Survey | Surveyor Technical Remarks | Phase 4 | Phase 4 | Records structural integrity, waterproofing condition, and cable routing feasibility. | Text remarks schema test. | Verified |
 
 ### Module 6: Solar System Design
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD06-01` | Solar System Design | System Capacity Sizing | Phase 3 | Phase 4 | Defines total rated DC capacity in kWp with decimal precision. | Capacity calculation unit test. | Planned |
-| `REQ-MOD06-02` | Solar System Design | Solar Panel Quantity | Phase 5 | Phase 4 | Computes panel count: Panel Count = (System Capacity * 1000) / Panel Wattage. | Integer panel count calculation test. | Planned |
-| `REQ-MOD06-03` | Solar System Design | Solar Panel Wattage Selection | Phase 5 | Phase 4 | Selects module wattage rating from catalog (e.g. 540Wp, 550Wp, 580Wp TopCon). | Product master lookup test. | Planned |
-| `REQ-MOD06-04` | Solar System Design | Inverter Sizing & MPPT Matching | Phase 5 | Phase 4 | Selects inverter capacity (kW), phase (1P/3P), and validates DC:AC ratio (1.1-1.35). | Inverter loading ratio calculation test. | Planned |
-| `REQ-MOD06-05` | Solar System Design | Mounting Structure Specification | Phase 5 | Phase 4 | Specifies structure: HDG Aluminum Rail, Elevated Truss, Ballasted, or Sheet Clamps. | Structure specification schema test. | Planned |
-| `REQ-MOD06-06` | Solar System Design | Battery Storage Sizing | Phase 5 | Phase 4 | Mandatory for Off-Grid/Hybrid: sizes kWh/Ah capacity, chemistry, and autonomy days. | Storage sizing algorithmic test. | Planned |
-| `REQ-MOD06-07` | Solar System Design | DC & AC Cable Sizing | Phase 5 | Phase 4 | Sizes solar DC cable gauge (4/6 sqmm) and AC armored cable based on run length. | Cable voltage-drop sizing test. | Planned |
-| `REQ-MOD06-08` | Solar System Design | Balance of System Accessories | Phase 5 | Phase 4 | Compiles ACDB, DCDB, MC4 connectors, earthing rods, lightning arrester into BOM. | BOM item compilation test. | Planned |
-| `REQ-MOD06-09` | Solar System Design | Estimated Generation Yield | Phase 3 | Phase 4 | Calculates annual kWh output using regional GHI and specific yield factors. | Solar yield generation model test. | Planned |
-| `REQ-MOD06-10` | Solar System Design | Tri-Topology Support | Phase 3 | Phase 4 | First-class calculation and BOM rules for On-Grid, Off-Grid, and Hybrid plants. | Topology-specific validation test suite. | Planned |
+| `REQ-MOD06-01` | Solar System Design | System Capacity Sizing | Phase 3 | Phase 4 | Defines total rated DC capacity in kWp with decimal precision. | Capacity calculation unit test. | Verified |
+| `REQ-MOD06-02` | Solar System Design | Solar Panel Quantity | Phase 5 | Phase 4 | Computes panel count: Panel Count = (System Capacity * 1000) / Panel Wattage. | Integer panel count calculation test. | Verified |
+| `REQ-MOD06-03` | Solar System Design | Solar Panel Wattage Selection | Phase 5 | Phase 4 | Selects module wattage rating from catalog (e.g. 540Wp, 550Wp, 580Wp TopCon). | Product master lookup test. | Verified |
+| `REQ-MOD06-04` | Solar System Design | Inverter Sizing & MPPT Matching | Phase 5 | Phase 4 | Selects inverter capacity (kW), phase (1P/3P), and validates DC:AC ratio (1.1-1.35). | Inverter loading ratio calculation test. | Verified |
+| `REQ-MOD06-05` | Solar System Design | Mounting Structure Specification | Phase 5 | Phase 4 | Specifies structure: HDG Aluminum Rail, Elevated Truss, Ballasted, or Sheet Clamps. | Structure specification schema test. | Verified |
+| `REQ-MOD06-06` | Solar System Design | Battery Storage Sizing | Phase 5 | Phase 4 | Mandatory for Off-Grid/Hybrid: sizes kWh/Ah capacity, chemistry, and autonomy days. | Storage sizing algorithmic test. | Verified |
+| `REQ-MOD06-07` | Solar System Design | DC & AC Cable Sizing | Phase 5 | Phase 4 | Sizes solar DC cable gauge (4/6 sqmm) and AC armored cable based on run length. | Cable voltage-drop sizing test. | Verified |
+| `REQ-MOD06-08` | Solar System Design | Balance of System Accessories | Phase 5 | Phase 4 | Compiles ACDB, DCDB, MC4 connectors, earthing rods, lightning arrester into BOM. | BOM item compilation test. | Verified |
+| `REQ-MOD06-09` | Solar System Design | Estimated Generation Yield | Phase 3 | Phase 4 | Calculates annual kWh output using regional GHI and specific yield factors. | Solar yield generation model test. | Verified |
+| `REQ-MOD06-10` | Solar System Design | Tri-Topology Support | Phase 3 | Phase 4 | First-class calculation and BOM rules for On-Grid, Off-Grid, and Hybrid plants. | Topology-specific validation test suite. | Verified |
 
 ### Module 7: Quotation Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD07-01` | Quotation Management | Quotation Number & Revisioning | Phase 3 | Phase 4 | Format QT-YYYY-XXXXX-R0; revisions increment R1, R2 while preserving history. | Revision sequence generation test. | Planned |
-| `REQ-MOD07-02` | Quotation Management | Customer & Site Link | Phase 4 | Phase 4 | Associates quotation with customer profile and verified site survey. | Reference integrity test. | Planned |
-| `REQ-MOD07-03` | Quotation Management | Contracted System Capacity | Phase 6 | Phase 4 | Binds quotation to engineered plant capacity in kWp. | Capacity parity validation test. | Planned |
-| `REQ-MOD07-04` | Quotation Management | Itemized BOM Line Items | Phase 5 | Phase 4 | Captures modules, inverters, structures, electrical BOS, and labor line items. | Line item array schema validation test. | Planned |
-| `REQ-MOD07-05` | Quotation Management | Line Item Quantity | Phase 5 | Phase 4 | Enforces positive integer/decimal quantities based on unit of measurement. | Quantity positive boundary test. | Planned |
-| `REQ-MOD07-06` | Quotation Management | Unit Selling Rate | Phase 5 | Phase 4 | Captures unit rate in integer paise; calculates line subtotal before taxes. | Integer paise multiplication test. | Planned |
-| `REQ-MOD07-07` | Quotation Management | Discount & Approval Threshold | Phase 2 | Phase 4 | Applies discount; discounts exceeding configured threshold require Admin sign-off. | Approval threshold workflow test. | Planned |
-| `REQ-MOD07-08` | Quotation Management | Configurable GST Engine | Phase 3 | Phase 4 | Calculates CGST+SGST, IGST, or Non-GST based on date-effective tax profiles. | Centralized tax calculator test suite. | Planned |
-| `REQ-MOD07-09` | Quotation Management | Gross Proposal Total | Phase 3 | Phase 4 | Computes Gross Total = Taxable Subtotal + Tax Lines - Approved Discounts in Paise. | Total summation accuracy test. | Planned |
-| `REQ-MOD07-10` | Quotation Management | Quotation Validity Period | Phase 3 | Phase 4 | Sets validity expiration date (default 15/30 days); flags expired proposals. | Quotation expiry cron test. | Planned |
-| `REQ-MOD07-11` | Quotation Management | Commercial Terms & Conditions | Phase 3 | Phase 4 | Embeds structured legal, warranty, payment milestone, and DISCOM timeline terms. | Terms clause inclusion test. | Planned |
-| `REQ-MOD07-12` | Quotation Management | Quotation Lifecycle Status | Phase 3 | Phase 4 | Lifecycle: Draft -> Pending Approval -> Approved -> Sent -> Accepted -> Revised -> Declined -> Expired. | Status state machine transition test. | Planned |
+| `REQ-MOD07-01` | Quotation Management | Quotation Number & Revisioning | Phase 3 | Phase 4 | Format QT-YYYY-XXXXX-R0; revisions increment R1, R2 while preserving history. | Revision sequence generation test. | Verified |
+| `REQ-MOD07-02` | Quotation Management | Customer & Site Link | Phase 4 | Phase 4 | Associates quotation with customer profile and verified site survey. | Reference integrity test. | Verified |
+| `REQ-MOD07-03` | Quotation Management | Contracted System Capacity | Phase 6 | Phase 4 | Binds quotation to engineered plant capacity in kWp. | Capacity parity validation test. | Verified |
+| `REQ-MOD07-04` | Quotation Management | Itemized BOM Line Items | Phase 5 | Phase 4 | Captures modules, inverters, structures, electrical BOS, and labor line items. | Line item array schema validation test. | Verified |
+| `REQ-MOD07-05` | Quotation Management | Line Item Quantity | Phase 5 | Phase 4 | Enforces positive integer/decimal quantities based on unit of measurement. | Quantity positive boundary test. | Verified |
+| `REQ-MOD07-06` | Quotation Management | Unit Selling Rate | Phase 5 | Phase 4 | Captures unit rate in integer paise; calculates line subtotal before taxes. | Integer paise multiplication test. | Verified |
+| `REQ-MOD07-07` | Quotation Management | Discount & Approval Threshold | Phase 2 | Phase 4 | Applies discount; discounts exceeding configured threshold require Admin sign-off. | Approval threshold workflow test. | Verified |
+| `REQ-MOD07-08` | Quotation Management | Configurable GST Engine | Phase 3 | Phase 4 | Calculates CGST+SGST, IGST, or Non-GST based on date-effective tax profiles. | Centralized tax calculator test suite. | Verified |
+| `REQ-MOD07-09` | Quotation Management | Gross Proposal Total | Phase 3 | Phase 4 | Computes Gross Total = Taxable Subtotal + Tax Lines - Approved Discounts in Paise. | Total summation accuracy test. | Verified |
+| `REQ-MOD07-10` | Quotation Management | Quotation Validity Period | Phase 3 | Phase 4 | Sets validity expiration date (default 15/30 days); flags expired proposals. | Quotation expiry cron test. | Verified |
+| `REQ-MOD07-11` | Quotation Management | Commercial Terms & Conditions | Phase 3 | Phase 4 | Embeds structured legal, warranty, payment milestone, and DISCOM timeline terms. | Terms clause inclusion test. | Verified |
+| `REQ-MOD07-12` | Quotation Management | Quotation Lifecycle Status | Phase 3 | Phase 4 | Lifecycle: Draft -> Pending Approval -> Approved -> Sent -> Accepted -> Revised -> Declined -> Expired. | Status state machine transition test. | Verified |
 
 ### Module 8: Quotation Sharing
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD08-01` | Quotation Sharing | Server-Side PDF Generation | Phase 1, Phase 7 | Phase 4 | Compiles clean branded proposal PDF with company header, BOM, financials, and terms. | Headless PDF compiler integration test. | Planned |
-| `REQ-MOD08-02` | Quotation Sharing | Print-Optimized Layout | Phase 1 | Phase 4 | Provides clean CSS print media stylesheet for branch office hardcopy printing. | Print media CSS smoke test. | Planned |
-| `REQ-MOD08-03` | Quotation Sharing | Secure Instant Download | Phase 1, Phase 2 | Phase 4 | Allows authenticated sales staff and customers to download generated PDF proposals. | Authenticated download endpoint test. | Planned |
+| `REQ-MOD08-01` | Quotation Sharing | Server-Side PDF Generation | Phase 1, Phase 7 | Phase 4 | Compiles clean branded proposal PDF with company header, BOM, financials, and terms. | Headless PDF compiler integration test. | Verified |
+| `REQ-MOD08-02` | Quotation Sharing | Print-Optimized Layout | Phase 1 | Phase 4 | Provides clean CSS print media stylesheet for branch office hardcopy printing. | Print media CSS smoke test. | Verified |
+| `REQ-MOD08-03` | Quotation Sharing | Secure Instant Download | Phase 1, Phase 2 | Phase 4 | Allows authenticated sales staff and customers to download generated PDF proposals. | Authenticated download endpoint test. | Verified |
 | `REQ-MOD08-04` | Quotation Sharing | Email Proposal Dispatch | Phase 9 | Phase 4 | Dispatches quotation PDF directly to customer email via configured transactional mailer. | SMTP mailer delivery integration test. | Planned |
 | `REQ-MOD08-05` | Quotation Sharing | WhatsApp Template Sharing | Phase 9 | Phase 9 | Dispatches pre-approved WhatsApp notification with secure tokenized document URL. | WhatsApp API service wrapper test. | Planned |
-| `REQ-MOD08-06` | Quotation Sharing | Quotation Version History | Phase 7 | Phase 4 | Preserves complete chronological audit log of all quotation revisions and prices. | Revision audit trail immutability test. | Planned |
-| `REQ-MOD08-07` | Quotation Sharing | Digital Customer Acceptance | Phase 2 | Phase 4 | Generates secure cryptographic token enabling customer to digitally accept/decline quote. | Cryptographic token acceptance test. | Planned |
+| `REQ-MOD08-06` | Quotation Sharing | Quotation Version History | Phase 7 | Phase 4 | Preserves complete chronological audit log of all quotation revisions and prices. | Revision audit trail immutability test. | Verified |
+| `REQ-MOD08-07` | Quotation Sharing | Digital Customer Acceptance | Phase 2 | Phase 4 | Generates secure cryptographic token enabling customer to digitally accept/decline quote. | Cryptographic token acceptance test. | Verified |
 
 ### Module 9: Order Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD09-01` | Order Management | Order ID Generation | Phase 3 | Phase 5 | Sequential format ORD-YYYY-XXXXX, uniquely allocated on confirmation. | Order ID sequence uniqueness test. | Planned |
-| `REQ-MOD09-02` | Order Management | Customer Master Link | Phase 3 | Phase 5 | Binds sales order to customer master profile. | Customer reference integrity test. | Planned |
-| `REQ-MOD09-03` | Order Management | Accepted Quotation Terms Lock | Phase 7 | Phase 5 | Creates immutable snapshot of accepted quotation BOM, pricing, and terms on order. | Immutability test asserting order terms cannot mutate if item rates change. | Planned |
-| `REQ-MOD09-04` | Order Management | Order Date Capture | Phase 3 | Phase 5 | Records contract execution date or advance confirmation date. | Order date validation test. | Planned |
-| `REQ-MOD09-05` | Order Management | Contracted System Capacity | Phase 6 | Phase 5 | Records contracted solar plant capacity in kWp. | Capacity schema test. | Planned |
-| `REQ-MOD09-06` | Order Management | Contracted Order Value | Phase 7 | Phase 5 | Records total agreed order value in integer paise. | Order value monetary precision test. | Planned |
+| `REQ-MOD09-01` | Order Management | Order ID Generation | Phase 3 | Phase 5 | Sequential format ORD-YYYY-XXXXX, uniquely allocated on confirmation. | Order ID sequence uniqueness test. | Verified |
+| `REQ-MOD09-02` | Order Management | Customer Master Link | Phase 3 | Phase 5 | Binds sales order to customer master profile. | Customer reference integrity test. | Verified |
+| `REQ-MOD09-03` | Order Management | Accepted Quotation Terms Lock | Phase 7 | Phase 5 | Creates immutable snapshot of accepted quotation BOM, pricing, and terms on order. | Immutability test asserting order terms cannot mutate if item rates change. | Verified |
+| `REQ-MOD09-04` | Order Management | Order Date Capture | Phase 3 | Phase 5 | Records contract execution date or advance confirmation date. | Order date validation test. | Verified |
+| `REQ-MOD09-05` | Order Management | Contracted System Capacity | Phase 6 | Phase 5 | Records contracted solar plant capacity in kWp. | Capacity schema test. | Verified |
+| `REQ-MOD09-06` | Order Management | Contracted Order Value | Phase 7 | Phase 5 | Records total agreed order value in integer paise. | Order value monetary precision test. | Verified |
 | `REQ-MOD09-07` | Order Management | Advance Payment Tracking | Phase 7 | Phase 5 | Tracks advance payment received toward order booking. | Advance payment ledger balance test. | Planned |
 | `REQ-MOD09-08` | Order Management | Outstanding Balance Ledger | Phase 7 | Phase 5 | Dynamically computes Balance = Total Order Value - Cleared Payments in Paise. | Balance calculation assertion test. | Planned |
 | `REQ-MOD09-09` | Order Management | Payment Status Classification | Phase 7 | Phase 5 | Classifies status: Advance Pending, Partially Paid, Fully Paid. | Payment status update test. | Planned |
 | `REQ-MOD09-10` | Order Management | Installation Status Sync | Phase 6 | Phase 5 | Tracks high-level installation state: Not Started, In Progress, Completed, On Hold. | Installation status sync test. | Planned |
 | `REQ-MOD09-11` | Order Management | Automatic Project Creation | Phase 6 | Phase 5 | Atomically instantiates linked Project record upon order confirmation event. | Atomic transaction test verifying Project creation. | Planned |
-| `REQ-MOD09-12` | Order Management | Inventory Stock Reservation | Phase 11 | Phase 5 | Places virtual reservation on required BOM inventory items upon order confirmation. | Stock reservation atomic increment test. | Planned |
+| `REQ-MOD09-12` | Order Management | Inventory Stock Reservation | Phase 11 | Phase 5 | Places virtual reservation on required BOM inventory items upon order confirmation. | Stock reservation atomic increment test. | Verified |
 
 ### Module 10: Product / Item Master
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD10-01` | Product / Item Master | Solar Panels Catalog | Phase 3 | Phase 5 | Manages solar modules (Mono, Bifacial, TopCon, Poly) with wattage and dimensions. | Panel catalog CRUD test. | Planned |
-| `REQ-MOD10-02` | Product / Item Master | Inverters Catalog | Phase 3 | Phase 5 | Manages string, hybrid, and micro-inverters with kW rating, phase, and MPPT count. | Inverter catalog CRUD test. | Planned |
-| `REQ-MOD10-03` | Product / Item Master | Batteries Catalog | Phase 3 | Phase 5 | Manages battery storage units (LiFePO4, Lead-Acid) with voltage, Ah, and kWh capacity. | Battery catalog CRUD test. | Planned |
-| `REQ-MOD10-04` | Product / Item Master | Mounting Structures Catalog | Phase 3 | Phase 5 | Manages mounting structures, rails, clamps, fasteners, and strut channels. | Structure catalog CRUD test. | Planned |
-| `REQ-MOD10-05` | Product / Item Master | Cables & Wiring Catalog | Phase 3 | Phase 5 | Manages DC solar cables (4/6 sqmm) and AC armored cables per meter. | Cable catalog CRUD test. | Planned |
-| `REQ-MOD10-06` | Product / Item Master | ACDB / DCDB Switchgear Catalog | Phase 3 | Phase 5 | Manages distribution boxes with MCB, SPD, fuse, and isolator specifications. | Switchgear catalog CRUD test. | Planned |
-| `REQ-MOD10-07` | Product / Item Master | MC4 Connectors Catalog | Phase 3 | Phase 5 | Manages MC4 male/female connectors and Y-branch branch connectors. | Connector catalog CRUD test. | Planned |
-| `REQ-MOD10-08` | Product / Item Master | Earthing & Lightning Protection | Phase 3 | Phase 5 | Manages chemical earthing electrodes, compound bags, GI strips, and arresters. | Earthing catalog CRUD test. | Planned |
-| `REQ-MOD10-09` | Product / Item Master | Balance of System Accessories | Phase 3 | Phase 5 | Manages conduits, cable ties, glands, lugs, caution boards, and consumable hardware. | Accessories catalog CRUD test. | Planned |
-| `REQ-MOD10-10` | Product / Item Master | Unit of Measurement Enforcement | Phase 3 | Phase 5 | Enforces standard UOM enums (Nos, Sets, Meters, Kg, Pairs) per item. | UOM enum validation test. | Planned |
-| `REQ-MOD10-11` | Product / Item Master | Standard Purchase Rate | Phase 3 | Phase 5 | Maintains acquisition cost in integer paise for inventory valuation and costing. | Purchase rate precision test. | Planned |
-| `REQ-MOD10-12` | Product / Item Master | Standard Selling Rate | Phase 3 | Phase 5 | Maintains baseline selling price in integer paise for quotation auto-population. | Selling rate precision test. | Planned |
-| `REQ-MOD10-13` | Product / Item Master | HSN / SAC Code & Tax Mapping | Phase 3 | Phase 5 | Maps statutory Indian tax codes (HSN/SAC) and default GST rates per item. | HSN format validation test. | Planned |
+| `REQ-MOD10-01` | Product / Item Master | Solar Panels Catalog | Phase 3 | Phase 3B | Manages solar modules (Mono, Bifacial, TopCon, Poly) with wattage and dimensions. | Panel catalog CRUD test. | Verified |
+| `REQ-MOD10-02` | Product / Item Master | Inverters Catalog | Phase 3 | Phase 3B | Manages string, hybrid, and micro-inverters with kW rating, phase, and MPPT count. | Inverter catalog CRUD test. | Verified |
+| `REQ-MOD10-03` | Product / Item Master | Batteries Catalog | Phase 3 | Phase 3B | Manages battery storage units (LiFePO4, Lead-Acid) with voltage, Ah, and kWh capacity. | Battery catalog CRUD test. | Verified |
+| `REQ-MOD10-04` | Product / Item Master | Mounting Structures Catalog | Phase 3 | Phase 3B | Manages mounting structures, rails, clamps, fasteners, and strut channels. | Structure catalog CRUD test. | Verified |
+| `REQ-MOD10-05` | Product / Item Master | Cables & Wiring Catalog | Phase 3 | Phase 3B | Manages DC solar cables (4/6 sqmm) and AC armored cables per meter. | Cable catalog CRUD test. | Verified |
+| `REQ-MOD10-06` | Product / Item Master | ACDB / DCDB Switchgear Catalog | Phase 3 | Phase 3B | Manages distribution boxes with MCB, SPD, fuse, and isolator specifications. | Switchgear catalog CRUD test. | Verified |
+| `REQ-MOD10-07` | Product / Item Master | MC4 Connectors Catalog | Phase 3 | Phase 3B | Manages MC4 male/female connectors and Y-branch branch connectors. | Connector catalog CRUD test. | Verified |
+| `REQ-MOD10-08` | Product / Item Master | Earthing & Lightning Protection | Phase 3 | Phase 3B | Manages chemical earthing electrodes, compound bags, GI strips, and arresters. | Earthing catalog CRUD test. | Verified |
+| `REQ-MOD10-09` | Product / Item Master | Balance of System Accessories | Phase 3 | Phase 3B | Manages conduits, cable ties, glands, lugs, caution boards, and consumable hardware. | Accessories catalog CRUD test. | Verified |
+| `REQ-MOD10-10` | Product / Item Master | Unit of Measurement Enforcement | Phase 3 | Phase 3B | Enforces standard UOM enums (Nos, Sets, Meters, Kg, Pairs) per item. | UOM enum validation test. | Verified |
+| `REQ-MOD10-11` | Product / Item Master | Standard Purchase Rate | Phase 3 | Phase 3B | Maintains acquisition cost in integer paise for inventory valuation and costing. | Purchase rate precision test. | Verified |
+| `REQ-MOD10-12` | Product / Item Master | Standard Selling Rate | Phase 3 | Phase 3B | Maintains baseline selling price in integer paise for quotation auto-population. | Selling rate precision test. | Verified |
+| `REQ-MOD10-13` | Product / Item Master | HSN / SAC Code & Tax Mapping | Phase 3 | Phase 3B | Maps statutory Indian tax codes (HSN/SAC) and default GST rates per item. | HSN format validation test. | Verified |
 
 ### Module 11: Inventory Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD11-01` | Inventory Management | Item Master Association | Phase 10 | Phase 5 | Every inventory record strictly binds to an active Product Master ID. | Product foreign key integrity test. | Planned |
-| `REQ-MOD11-02` | Inventory Management | Opening Stock Baseline | Phase 3 | Phase 5 | Captures audited opening stock balance at system launch or annual audit. | Opening stock audit ledger test. | Planned |
+| `REQ-MOD11-01` | Inventory Management | Item Master Association | Phase 10 | Phase 5 | Every inventory record strictly binds to an active Product Master ID. | Product foreign key integrity test. | Verified |
+| `REQ-MOD11-02` | Inventory Management | Opening Stock Baseline | Phase 3 | Phase 5 | Captures audited opening stock balance at system launch or annual audit. | Opening stock audit ledger test. | Verified |
 | `REQ-MOD11-03` | Inventory Management | Stock In via Procurement | Phase 12 | Phase 5 | Increments physical stock atomically upon verified Goods Receipt Note (GRN). | GRN stock increment unit test. | Planned |
-| `REQ-MOD11-04` | Inventory Management | Stock Out via Material Dispatch | Phase 9, Phase 14 | Phase 5 | Decrements physical stock atomically upon verified material issue to project site. | Material dispatch decrement test. | Planned |
+| `REQ-MOD11-04` | Inventory Management | Stock Out via Material Dispatch | Phase 9, Phase 14 | Phase 5 | Decrements physical stock atomically upon verified material issue to project site. | Material dispatch decrement test. | Verified |
 | `REQ-MOD11-05` | Inventory Management | Used & Damaged Quantity Log | Phase 3 | Phase 5 | Logs damaged, defective, or field-consumed consumables with justification. | Stock write-off adjustment test. | Planned |
-| `REQ-MOD11-06` | Inventory Management | Real-Time Available Stock Calculation | Phase 3 | Phase 5 | Calculates Available Stock = Physical on Hand - Reserved Stock. | Available stock balance formula test. | Planned |
+| `REQ-MOD11-06` | Inventory Management | Real-Time Available Stock Calculation | Phase 3 | Phase 5 | Calculates Available Stock = Physical on Hand - Reserved Stock. | Available stock balance formula test. | Verified |
 | `REQ-MOD11-07` | Inventory Management | Minimum Stock Safety Threshold | Phase 3 | Phase 5 | Configures reorder safety threshold per item to prevent stockouts. | Threshold configuration test. | Planned |
 | `REQ-MOD11-08` | Inventory Management | Low Stock Alert Trigger | Phase 9 | Phase 5 | Triggers automated alerts to Storekeeper when Available Stock falls below safety level. | Low stock event dispatcher test. | Planned |
-| `REQ-MOD11-09` | Inventory Management | Warehouse Stock Balance | Phase 3 | Phase 5 | Tracks physical stock housed in central company depot. | Depot stock balance ledger test. | Planned |
+| `REQ-MOD11-09` | Inventory Management | Warehouse Stock Balance | Phase 3 | Phase 5 | Tracks physical stock housed in central company depot. | Depot stock balance ledger test. | Verified |
 | `REQ-MOD11-10` | Inventory Management | Installation-Site Stock Balance | Phase 14 | Phase 5 | Tracks staged hardware physically delivered to customer rooftop site. | Site stock balance ledger test. | Planned |
 | `REQ-MOD11-11` | Inventory Management | Employee / Team-Issued Stock | Phase 24 | Phase 5 | Tracks tools, consumables, and parts issued into technician custody. | Technician bag balance test. | Planned |
-| `REQ-MOD11-12` | Inventory Management | Stock Reservation Lifecycle | Phase 9 | Phase 5 | Reserves stock on Order -> Consumes on Dispatch / Releases on Order Cancel. | Two-phase reservation lifecycle test. | Planned |
+| `REQ-MOD11-12` | Inventory Management | Stock Reservation Lifecycle | Phase 9 | Phase 5 | Reserves stock on Order -> Consumes on Dispatch / Releases on Order Cancel. | Two-phase reservation lifecycle test. | Verified |
 | `REQ-MOD11-13` | Inventory Management | Material Issue Slip Authorization | Phase 2 | Phase 5 | Generates formal issue slip requiring storekeeper and technician sign-off. | Material issue authorization test. | Planned |
-| `REQ-MOD11-14` | Inventory Management | Anti-Negative Stock Concurrency Guard | Phase 3 | Phase 5 | Blocks material issue if available stock is deficient; atomic update prevents negative stock. | High-concurrency race condition unit test. | Planned |
-| `REQ-MOD11-15` | Inventory Management | Hardware Serial Number Tracking | Phase 6, Phase 8 | Phase 5 | Captures module barcodes, inverter serials, and battery BMS IDs on dispatch. | Serial number uniqueness and asset link test. | Planned |
+| `REQ-MOD11-14` | Inventory Management | Anti-Negative Stock Concurrency Guard | Phase 3 | Phase 5 | Blocks material issue if available stock is deficient; atomic update prevents negative stock. | High-concurrency race condition unit test. | Verified |
+| `REQ-MOD11-15` | Inventory Management | Hardware Serial Number Tracking | Phase 6, Phase 8 | Phase 5 | Captures module barcodes, inverter serials, and battery BMS IDs on dispatch. | Serial number uniqueness and asset link test. | Verified |
 
 ### Module 12: Purchase Management
 
