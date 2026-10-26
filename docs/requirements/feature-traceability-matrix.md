@@ -17,12 +17,12 @@
 | **Phase 3** | Core Database Models, Numbering Engine & Shared Domain Services | 1 | Planned |
 | **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Planned |
 | **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Planned |
-| **Phase 6** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (20/58 - Phase 6A & 6B Complete) |
+| **Phase 6 / 7A** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (31/58 - Phase 6A, 6B & 7A Complete) |
 | **Phase 7** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Planned |
 | **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks, Service Tickets, AMC, Visits) | 49 | Planned |
 | **Phase 9** | Customer Portal, Notifications, Reminders & System Settings | 27 | Planned |
 | **Phase 10** | Full Integration, E2E Testing, Security Hardening, Backup Drills & Production Go-Live | 8 | Planned |
-| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **30 Verified, 324 Planned** |
+| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **41 Verified, 313 Planned** |
 
 ---
 
@@ -280,17 +280,17 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD17-01` | Net Metering / Subsidy | Utility Application Number | Phase 14 | Phase 6 | Records official DISCOM / National Portal application registration ID. | Registration ID schema test. | Planned |
-| `REQ-MOD17-02` | Net Metering / Subsidy | Customer & Project Association | Phase 14 | Phase 6 | Binds net metering tracking to Customer profile and Project. | Reference integrity test. | Planned |
-| `REQ-MOD17-03` | Net Metering / Subsidy | DISCOM Office Identification | Phase 14 | Phase 6 | Records DISCOM name, circle, division, and local subdivision office. | DISCOM hierarchy schema test. | Planned |
-| `REQ-MOD17-04` | Net Metering / Subsidy | Application Submission Date | Phase 14 | Phase 6 | Records date when formal net metering application was filed. | Date validation test. | Planned |
-| `REQ-MOD17-05` | Net Metering / Subsidy | Regulatory Document Checklist | Phase 26 | Phase 6 | Verifies upload of Electricity Bill, Single Line Diagram (SLD), and Aadhaar/KYC. | Document completeness checklist test. | Planned |
-| `REQ-MOD17-06` | Net Metering / Subsidy | DISCOM Feasibility & Site Inspection | Phase 14 | Phase 6 | Tracks utility inspection date, feasibility approval, and demand note payment. | Milestone progression test. | Planned |
-| `REQ-MOD17-07` | Net Metering / Subsidy | Bi-Directional Meter Installation | Phase 14 | Phase 6 | Records net meter work order, meter serial number, testing, and install date. | Meter installation record test. | Planned |
-| `REQ-MOD17-08` | Net Metering / Subsidy | Subsidy Application Lifecycle | Phase 14 | Phase 6 | Tracks subsidy: Eligible -> Applied -> Claimed -> Disbursed to Customer -> Rejected. | Subsidy state machine test. | Planned |
-| `REQ-MOD17-09` | Net Metering / Subsidy | Liaison Remarks & Action Notes | Phase 14 | Phase 6 | Captures notes on DISCOM officer interactions and demand note status. | Remarks schema test. | Planned |
-| `REQ-MOD17-10` | Net Metering / Subsidy | Subsidy Eligibility Verification | Phase 14 | Phase 6 | Verifies rooftop residential ownership and consumer name match against bill. | Eligibility rule validator test. | Planned |
-| `REQ-MOD17-11` | Net Metering / Subsidy | DISCOM Escalation Reminders | Phase 29 | Phase 6 | Automated reminders to liaison officer if utility inspection exceeds 15 days. | Scheduled reminder cron test. | Planned |
+| `REQ-MOD17-01` | Net Metering / Subsidy | Utility Application Number | Phase 14 | Phase 7A | Sequential NMA-YYYY-NNNNN and registration ID. | Atomic sequence and schema validation test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-02` | Net Metering / Subsidy | Customer & Project Association | Phase 14 | Phase 7A | Binds net metering tracking to Customer profile and Project. | Reference integrity and customer portal isolation test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-03` | Net Metering / Subsidy | DISCOM Office Identification | Phase 14 | Phase 7A | Records DISCOM name, circle, division, and subdivision. | DISCOM hierarchy schema test (`netMetering_subsidy.test.ts`). | Verified |
+| `REQ-MOD17-04` | Net Metering / Subsidy | Application Submission Date | Phase 14 | Phase 7A | Records date when formal net metering application was filed. | Date validation test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-05` | Net Metering / Subsidy | Regulatory Document Checklist | Phase 26 | Phase 7A | Verifies upload & review of Electricity Bill, SLD, KYC, and reports. | Document gate blocking transition test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-06` | Net Metering / Subsidy | DISCOM Feasibility & Site Inspection | Phase 14 | Phase 7A | Tracks utility inspection date, feasibility approval, and demand note payment in paise. | Inspection and feasibility update test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-07` | Net Metering / Subsidy | Bi-Directional Meter Installation | Phase 14 | Phase 7A | Records net meter work order, serial number, install date, and readings. | Meter installation test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-08` | Net Metering / Subsidy | Subsidy Application Lifecycle | Phase 14 | Phase 7A | Tracks subsidy: Eligible -> Applied -> Sanctioned -> Disbursed (integer paise ledger). | Subsidy state machine & disbursement test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-09` | Net Metering / Subsidy | Liaison Remarks & Action Notes | Phase 14 | Phase 7A | Captures notes on DISCOM interactions, demand notes, and rejection reasons. | Remarks and status history test (`phase7a.test.ts`). | Verified |
+| `REQ-MOD17-10` | Net Metering / Subsidy | Subsidy Eligibility Verification | Phase 14 | Phase 7A | Verifies scheme eligibility status, verification notes, and scheme versions. | Eligibility rule validator test (`netMetering_subsidy.test.ts`). | Verified |
+| `REQ-MOD17-11` | Net Metering / Subsidy | DISCOM Escalation Reminders | Phase 29 | Phase 7A | Automated deduplicated reminders for inspections, documents, and installations. | Reminder deduplication and dispatch test (`phase7a.test.ts`). | Verified |
 
 ### Module 18: Payment Management
 

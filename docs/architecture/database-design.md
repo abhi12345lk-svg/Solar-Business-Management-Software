@@ -910,6 +910,170 @@ interface IProjectInstallationChecklist {
 // Indexes: { projectId: 1, templateVersion: 1 } (compound unique)
 ```
 
+#### `net_metering_applications` (Phase 7A)
+Official utility net-metering lifecycle, inspections, bi-directional meter installation, and document gates.
+```typescript
+interface INetMeteringApplication {
+  _id: ObjectId;
+  applicationNumber: string;      // e.g. "NMA-2026-00001" (unique, indexed)
+  projectId: ObjectId;            // Ref -> projects._id (indexed)
+  customerId: ObjectId;           // Ref -> customers._id (indexed)
+  orderId?: ObjectId;             // Ref -> orders._id
+  discomName: string;
+  division?: string;
+  subdivision?: string;
+  consumerNumber?: string;
+  sanctionedLoadKw?: number;
+  solarCapacityKwp?: number;
+  applicationReferenceNumber?: string;
+  submissionDate?: Date;
+  status: 
+    | 'DRAFT'
+    | 'DOCUMENTS_PENDING'
+    | 'READY_TO_SUBMIT'
+    | 'SUBMITTED'
+    | 'UNDER_REVIEW'
+    | 'INSPECTION_SCHEDULED'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'CANCELLED';
+  rejectionReason?: string;
+  approvedDate?: Date;
+  assignedTo?: ObjectId;          // Ref -> users._id
+  assignedTeam?: string;
+  technicalFeasibility?: {
+    isFeasible?: boolean;
+    approvalDate?: Date;
+    demandNoteAmountPaise?: number; // Integer paise
+    demandNotePaidDate?: Date;
+    demandNotePaymentRef?: string;
+  };
+  inspection?: {
+    scheduledDate?: Date;
+    inspectorName?: string;
+    inspectorPhone?: string;
+    outcome?: 'PENDING' | 'PASSED' | 'FAILED' | 'RESCHEDULE_REQUIRED';
+    inspectionDate?: Date;
+    remarks?: string;
+  };
+  meterInstallation?: {
+    workOrderNumber?: string;
+    meterSerialNumber?: string;
+    installedAt?: Date;
+    installedBy?: string;
+    oldMeterFinalReading?: number;
+    newMeterInitialReading?: number;
+    testedAndCommissioned?: boolean;
+    remarks?: string;
+  };
+  documentRequirements: Array<{
+    documentType: string;         // e.g. ELECTRICITY_BILL, AADHAAR_CARD, SINGLE_LINE_DIAGRAM
+    isMandatory: boolean;
+    status: 'REQUIRED' | 'UPLOADED' | 'UNDER_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'RESUBMISSION_REQUIRED';
+    storageKey?: string;          // Private object storage key
+    fileName?: string;
+    uploadedAt?: Date;
+    reviewedBy?: ObjectId;        // Ref -> users._id
+    reviewedAt?: Date;
+    reviewNotes?: string;
+  }>;
+  statusHistory: Array<{
+    status: string;
+    changedAt: Date;
+    changedBy: ObjectId;          // Ref -> users._id
+    reason?: string;
+    notes?: string;
+  }>;
+  internalNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { applicationNumber: 1 } (unique), { projectId: 1, discomName: 1 }, { customerId: 1 }, { status: 1 }, { assignedTo: 1 }
+```
+
+#### `subsidy_applications` (Phase 7A)
+Government subsidy claims (PM Surya Ghar Muft Bijli Yojana, State Rooftop Subsidy), DBT tracking, and multi-installment disbursement ledger.
+```typescript
+interface ISubsidyApplication {
+  _id: ObjectId;
+  applicationNumber: string;      // e.g. "SUB-2026-00001" (unique, indexed)
+  projectId: ObjectId;            // Ref -> projects._id (indexed)
+  customerId: ObjectId;           // Ref -> customers._id (indexed)
+  schemeName: string;             // e.g. "PM_SURYA_GHAR_MUFT_BIJLI_YOJANA"
+  schemeVersion?: string;
+  effectivePeriod?: {
+    startDate?: Date;
+    endDate?: Date;
+  };
+  eligibilityStatus: 'PENDING_VERIFICATION' | 'ELIGIBLE' | 'INELIGIBLE';
+  eligibilityNotes?: string;
+  verifiedBy?: ObjectId;          // Ref -> users._id
+  verifiedAt?: Date;
+  nationalPortalApplicationNumber?: string; // e.g. Portal registration ID (sparse unique)
+  submissionDate?: Date;
+  acknowledgmentNumber?: string;
+  estimatedAmountPaise: number;   // Integer paise
+  requestedAmountPaise: number;   // Integer paise
+  approvedAmountPaise: number;    // Integer paise (must not exceed requestedAmountPaise)
+  disbursedAmountPaise: number;   // Integer paise (must not exceed approvedAmountPaise)
+  remainingAmountPaise: number;   // Integer paise
+  status: 
+    | 'ELIGIBLE'
+    | 'DOCUMENTS_PENDING'
+    | 'READY_TO_APPLY'
+    | 'APPLIED'
+    | 'UNDER_REVIEW'
+    | 'APPROVED'
+    | 'SANCTIONED'
+    | 'DISBURSED'
+    | 'REJECTED'
+    | 'CANCELLED';
+  rejectionReason?: string;
+  sanctionReference?: string;
+  sanctionDate?: Date;
+  disbursements: Array<{
+    _id: ObjectId;
+    installmentNumber: number;
+    amountPaise: number;          // Integer paise
+    disbursedAt: Date;
+    disbursementMode: 'DIRECT_BENEFIT_TRANSFER' | 'BANK_TRANSFER' | 'CHEQUE' | 'ADJUSTMENT';
+    utrNumber?: string;           // Bank transaction UTR
+    disbursedToAccount?: {
+      accountHolderName?: string;
+      accountNumberMasked?: string;
+      bankName?: string;
+      ifscCode?: string;
+    };
+    recordedBy: ObjectId;         // Ref -> users._id
+    notes?: string;
+    idempotencyKey?: string;      // Concurrency duplicate guard (sparse unique)
+  }>;
+  documentRequirements: Array<{
+    documentType: string;
+    isMandatory: boolean;
+    status: 'REQUIRED' | 'UPLOADED' | 'UNDER_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'RESUBMISSION_REQUIRED';
+    storageKey?: string;
+    fileName?: string;
+    uploadedAt?: Date;
+    reviewedBy?: ObjectId;
+    reviewedAt?: Date;
+    reviewNotes?: string;
+  }>;
+  statusHistory: Array<{
+    status: string;
+    changedAt: Date;
+    changedBy: ObjectId;
+    reason?: string;
+    notes?: string;
+  }>;
+  assignedTo?: ObjectId;
+  internalNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { applicationNumber: 1 } (unique), { nationalPortalApplicationNumber: 1 } (sparse unique), { projectId: 1 }, { customerId: 1 }, { status: 1 }, { 'disbursements.idempotencyKey': 1 } (sparse unique)
+```
+
 ---
 
 ### 3.5 Financial Ledgers & Commercial Records
@@ -1069,9 +1233,8 @@ All state modifications on critical business records (Quotations, Orders, Invoic
 | **Phase 5** | Mod 11: Purchases | `PurchaseOrder`, `PurchaseInvoice` | `vendorId -> Vendor`, `orderId -> Order` | `poNumber` (unique), `vendorId` | PO approval limit guard (>₹25k requires Admin) | Product, SequenceService |
 | **Phase 5** | Mod 12: Vendors | `Vendor` | Standalone supplier directory | `vendorCode` (unique), `gstin` | Procurement department scope | Shared Primitives |
 | **Phase 6** | Mod 13: Project Governance | `Project`, `ProjectStage` | `orderId -> Order`, `managerId -> User` | `projectCode` (unique), `orderId` | Linear stage gates; supervisor signoff | Order, SequenceService |
-| **Phase 6** | Mod 14: Quality & Installation | `InstallationChecklist`, `ElectricalTestRecord` | `projectId -> Project`, `crewLeadId -> User` | `projectId`, `stageId` | Geo-tagged timestamped photo proof | Project |
-| **Phase 6** | Mod 15: Net Metering | `NetMeteringApplication` | `projectId -> Project`, `discomId` | `discomApplicationNumber` (sparse unique) | Utility milestone date tracking | Project |
-| **Phase 6** | Mod 16: Subsidy (Surya Ghar) | `SubsidyApplication` | `projectId -> Project`, `customerId -> Customer` | `nationalPortalId` (sparse unique) | Direct Benefit Transfer (DBT) status tracking | Project, Customer |
+| **Phase 7A** | Mod 15/17: Net Metering | `NetMeteringApplication` | `projectId -> Project`, `customerId -> Customer` | `applicationNumber` (unique), `{ projectId, discomName }` | Utility lifecycle, feasibility, demand note in paise, inspections, meter install | **Verified & Passing (14 Tests)** |
+| **Phase 7A** | Mod 16/17: Subsidy Tracking | `SubsidyApplication` | `projectId -> Project`, `customerId -> Customer` | `applicationNumber` (unique), `nationalPortalApplicationNumber` (sparse unique) | Integer paise balance, invariants (disbursed <= approved <= requested), idempotency-keyed disbursement ledger | **Verified & Passing (14 Tests)** |
 | **Phase 6** | Mod 17: Documents & Storage | `Document` | `entityId`, `entityType`, `uploadedBy -> User` | `storageKey` (unique), `{ entityType, entityId }` | Private S3 key; short-lived signed URLs | User, Customer |
 | **Phase 7** | Mod 18: Invoices & Payments | `Invoice`, `PaymentReceipt`, `CustomerLedgerEntry` | `orderId -> Order`, `customerId -> Customer` | `invoiceNumber` (unique), `receiptNumber` (unique) | Integer paise; append-only running ledger with reversals | Order, SequenceService |
 | **Phase 7** | Mod 19: Expenses | `Expense` | `projectId -> Project`, `submittedBy -> User` | `expenseNumber` (unique), `projectId` | Anti-self approval; manager threshold check | Project, SequenceService |

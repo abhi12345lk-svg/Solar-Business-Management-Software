@@ -18,7 +18,9 @@ import {
   FileText,
   PackageCheck,
   Receipt,
-  FolderKanban
+  FolderKanban,
+  Zap,
+  Landmark
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -173,6 +175,34 @@ export const AppLayout: React.FC = () => {
                   >
                     <FolderKanban className="w-4 h-4 mr-1.5 text-solar-500" />
                     <span>Projects</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/net-metering"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Zap className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Net Metering</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/subsidies"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Landmark className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Subsidies</span>
                   </NavLink>
 
                   <NavLink

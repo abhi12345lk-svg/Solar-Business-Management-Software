@@ -53,7 +53,9 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.GOODS_RECEIPT]: 'GRN',
   [SequenceEntityType.VENDOR_INVOICE]: 'VINV',
   [SequenceEntityType.TASK]: 'TSK',
-  [SequenceEntityType.MATERIAL_DISPATCH]: 'DSP'
+  [SequenceEntityType.MATERIAL_DISPATCH]: 'DSP',
+  [SequenceEntityType.NET_METERING]: 'NMA',
+  [SequenceEntityType.SUBSIDY]: 'SUB'
 };
 
 const DEFAULT_PADDING = 5;

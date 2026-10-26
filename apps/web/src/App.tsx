@@ -25,6 +25,8 @@ import { PurchaseOrdersPage } from './pages/PurchaseOrdersPage.js';
 import { PurchaseOrderDetailPage } from './pages/PurchaseOrderDetailPage.js';
 import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
 import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
+import { NetMeteringPage } from './pages/NetMeteringPage.js';
+import { SubsidyPage } from './pages/SubsidyPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -135,6 +137,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <ProjectDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="net-metering"
+            element={
+              <ProtectedRoute>
+                <NetMeteringPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="subsidies"
+            element={
+              <ProtectedRoute>
+                <SubsidyPage />
               </ProtectedRoute>
             }
           />

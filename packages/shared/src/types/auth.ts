@@ -63,6 +63,15 @@ export const ALL_PERMISSIONS = [
   'evidence:upload',
   'evidence:read',
 
+  // Net Metering & Subsidy
+  'net_metering:create',
+  'net_metering:read',
+  'net_metering:update',
+  'subsidy:create',
+  'subsidy:read',
+  'subsidy:update',
+  'subsidy:disburse',
+
   // Product Catalog
   'catalog:read',
   'catalog:create',
@@ -196,7 +205,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'grn:read',
     'vendor_invoice:create',
     'vendor_invoice:read',
-    'vendor_invoice:update'
+    'vendor_invoice:update',
+    'net_metering:create',
+    'net_metering:read',
+    'net_metering:update',
+    'subsidy:create',
+    'subsidy:read',
+    'subsidy:update',
+    'subsidy:disburse'
   ],
   [UserRole.SALES_EXECUTIVE]: [
     'lead:create',
@@ -217,7 +233,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'order:read',
     'order:cancel',
     'catalog:read',
-    'warehouse:read'
+    'warehouse:read',
+    'net_metering:read',
+    'subsidy:read'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -251,7 +269,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'evidence:upload',
     'evidence:read',
     'customer:read',
-    'inv:read'
+    'inv:read',
+    'net_metering:read',
+    'net_metering:update'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -269,7 +289,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'order:read',
     'customer:read',
     'quote:read',
-    'inv:read'
+    'inv:read',
+    'subsidy:read',
+    'subsidy:update',
+    'subsidy:disburse'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',

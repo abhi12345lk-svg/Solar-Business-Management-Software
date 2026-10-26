@@ -176,7 +176,22 @@ graph TD
 
 ---
 
-### Phase 7: Financial Management (Payments, Expenses, Costing, Profitability & Reports)
+### Phase 7A: Net Metering & Government Subsidy Tracking (Module 17)
+*   **Focus:** DISCOM net-metering applications, document verification gates, technical feasibility & demand note tracking (integer paise), inspection scheduling & outcome recording, bi-directional net meter installation tracking, government subsidy claim tracking (PM Surya Ghar Muft Bijli Yojana, State Rooftop Subsidy), eligibility validation, integer-paise financial balances, concurrency-safe disbursement ledger with unique idempotency keys, deduplicated workflow reminders, honest audit logs, and customer portal isolation.
+*   **Entry Criteria:** Phase 6 Operations verified.
+*   **Phase 7A Status (Completed & Verified):**
+    *   `NetMeteringApplication` Mongoose model & `NetMeteringService`: Atomic sequence numbering (`NMA-YYYY-NNNNN`), DISCOM hierarchy tracking, validated status transitions (`DRAFT` → `DOCUMENTS_PENDING` → `READY_TO_SUBMIT` → `SUBMITTED` → `UNDER_REVIEW` → `INSPECTION_SCHEDULED` → `APPROVED` / `REJECTED` / `CANCELLED`), technical feasibility & demand note amount in integer paise, field inspection scheduling & outcome recording, bi-directional meter installation tracking, document completeness gate blocking submission if required documents are missing or rejected, and full status history audit timeline.
+    *   `SubsidyApplication` Mongoose model & `SubsidyService`: Atomic sequence numbering (`SUB-YYYY-NNNNN`), scheme configuration, integer-paise financial balances (`requestedAmountPaise`, `approvedAmountPaise`, `disbursedAmountPaise`, `remainingAmountPaise`), invariants (`approved <= requested`, `disbursed <= approved`), state machine (`ELIGIBLE` → `DOCUMENTS_PENDING` → `READY_TO_APPLY` → `APPLIED` → `UNDER_REVIEW` → `APPROVED` → `SANCTIONED` → `DISBURSED` / `REJECTED`), concurrency-safe multi-installment disbursement ledger with unique `idempotencyKey` and UTR references.
+    *   Regulatory Document Requirements: 12 standardized document types with review workflow (`REQUIRED`, `UPLOADED`, `UNDER_REVIEW`, `ACCEPTED`, `REJECTED`, `EXPIRED`, `RESUBMISSION_REQUIRED`) and short-lived private access URLs (300s TTL).
+    *   Workflow Reminders & Honest Audit: `NotificationReminderService` with scheduled reminder deduplication (`${entityType}:${entityId}:${reminderType}:${date}`) and honest delivery status reporting (`SIMULATED_LOG_ONLY` in development/staging).
+    *   Customer Portal Isolation: `/api/v1/customer-portal/projects/:id/net-metering` and `/subsidy` ensuring customers can only access their own records.
+    *   Operational Web Interface (`apps/web`): Dedicated `NetMeteringPage` and `SubsidyPage` registers; `NetMeteringTab` and `SubsidyTab` components integrated into `ProjectDetailPage.tsx`; updated navigation in `AppLayout.tsx` and routes in `App.tsx`.
+*   **Acceptance Criteria:** Missing/rejected documents hard-block submission; non-negative integer paise strictly enforced; disbursed amount cannot exceed approved amount; duplicate disbursements rejected via idempotency keys; customer portal enforces multi-tenant boundary; all 325 automated tests pass.
+*   **Test Gate:** 325 automated tests passing with 0 failures across `@ins-solar/shared` (135 tests), `@ins-solar/api` (164 tests), and `@ins-solar/web` (26 tests).
+
+---
+
+### Phase 7B: Financial Management (Payments, Expenses, Costing, Profitability & Reports)
 *   **Focus:** Cash collections (advances, partial payments), duplicate payment submission prevention, payment receipt PDF vouchers, project-level expense logging with tiered approvals, real-time project costing and gross margin analytics, and exportable business reports.
 *   **Entry Criteria:** Phase 6 Operations verified.
 *   **Deliverables:**

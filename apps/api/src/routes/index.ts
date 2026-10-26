@@ -21,6 +21,8 @@ import { projectTaskRouter } from './projectTask.routes.js';
 import { customerProjectRouter } from './customerProject.routes.js';
 import { materialDispatchRouter } from './materialDispatch.routes.js';
 import { checklistTemplateRouter, projectChecklistRouter } from './checklist.routes.js';
+import { netMeteringRouter } from './netMetering.routes.js';
+import { subsidyRouter } from './subsidy.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -59,6 +61,8 @@ apiRouter.use('/projects', projectChecklistRouter);
 apiRouter.use('/tasks', projectTaskRouter);
 apiRouter.use('/dispatches', materialDispatchRouter);
 apiRouter.use('/checklists', checklistTemplateRouter);
+apiRouter.use('/net-metering', netMeteringRouter);
+apiRouter.use('/subsidies', subsidyRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)

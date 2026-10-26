@@ -21,6 +21,7 @@ import {
   PauseCircle,
   Check,
   XCircle,
+  AlertCircle,
   Plus,
   Layers,
   Zap,
@@ -31,13 +32,15 @@ import {
   ChevronRight,
   ShieldAlert,
   FileSpreadsheet,
-  AlertCircle,
   Truck,
-  ClipboardCheck
+  ClipboardCheck,
+  Landmark
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
 import { InstallationChecklistTab } from '../components/project/InstallationChecklistTab.js';
+import { NetMeteringTab } from '../components/project/NetMeteringTab.js';
+import { SubsidyTab } from '../components/project/SubsidyTab.js';
 
 interface ProjectDetail {
   _id: string;
@@ -162,7 +165,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'milestones' | 'tasks' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'net-metering' | 'subsidy' | 'milestones' | 'tasks' | 'history'>('overview');
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -693,6 +696,30 @@ export const ProjectDetailPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('net-metering')}
+          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+            activeTab === 'net-metering'
+              ? 'border-solar-600 text-solar-600 font-semibold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Net Metering</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('subsidy')}
+          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+            activeTab === 'subsidy'
+              ? 'border-solar-600 text-solar-600 font-semibold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Landmark className="w-4 h-4" />
+          <span>Subsidy</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('milestones')}
           className={`pb-3 border-b-2 flex items-center space-x-2 ${
             activeTab === 'milestones'
@@ -1129,6 +1156,16 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Tab: Installation Checklist */}
       {activeTab === 'checklist' && (
         <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
+      )}
+
+      {/* Tab: Net Metering */}
+      {activeTab === 'net-metering' && (
+        <NetMeteringTab projectId={project._id} isTerminal={isTerminal} />
+      )}
+
+      {/* Tab: Subsidy Tracking */}
+      {activeTab === 'subsidy' && (
+        <SubsidyTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
       {/* Tab 4: Stage History & Activity */}
