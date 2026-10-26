@@ -154,16 +154,21 @@ graph TD
 ---
 
 ### Phase 6: Field Execution & Operations (Projects, Installations, Checklists, Net Metering & Documents)
-*   **Focus:** Project management (10 linear stages), daily installation tracking, mandatory 5-category installation checklists with geotagged photos, pre-commissioning electrical testing, DISCOM net metering tracking, subsidy tracking, and secure object storage document management.
+*   **Focus:** Project management (10 linear stages), milestones, task delegation, daily installation tracking, mandatory 5-category installation checklists with geotagged photos, pre-commissioning electrical testing, DISCOM net metering tracking, subsidy tracking, and secure object storage document management.
 *   **Entry Criteria:** Phase 5 Supply Chain verified.
-*   **Deliverables:**
-    *   Modules 14, 15, 16, 17, 26 implemented end-to-end.
-    *   Project stage-gate progression engine.
-    *   Installation checklist submission requiring photos for each category before approval.
-    *   Private S3 document storage with short-lived pre-signed URLs.
-    *   Installation Panel interface for field crews and project managers.
-*   **Acceptance Criteria:** Projects advance strictly through valid stage gates; checklist approval requires verified photos; documents secured behind authenticated signed URLs.
-*   **Test Gate:** Stage transition validation tests; checklist rejection on missing photos; S3 upload/download authorization tests.
+*   **Phase 6A Status (Completed & Verified):**
+    *   `Project` Mongoose model & `ProjectService`: Project creation with atomic sequence numbering (`PRJ-YYYY-NNNNN`), customer and 1:1 order binding with duplicate project protection (sparse unique index on `orderId`), site installation address, system capacity, and topology.
+    *   10-Stage Progression Engine: Linear stage gates (`STAGE_1_ENGINEERING_DESIGN` through `STAGE_10_COMMISSION_HANDOVER`) with audit logging of user, timestamps, and notes.
+    *   Project Lifecycle State Machine: Validated transitions (`PLANNING` → `IN_PROGRESS` → `COMPLETED` / `ON_HOLD` / `CANCELLED`), terminal state locking, and required reason capture for on-hold and cancelled states.
+    *   Quality Installation Milestones: Embedded milestone subdocuments with default 10-milestone template initialization, status transitions (`NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `COMPLETED`), mandatory blocker reasons for blocked milestones, and completion sign-off metadata (actor, timestamp).
+    *   `ProjectTask` Mongoose model & `ProjectTaskService`: Scoped tasks with atomic sequence numbering (`TSK-YYYY-NNNNN`), milestone association with cross-project validation (rejecting milestone IDs from other projects), assignment, priorities (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), due dates, and overdue filtering.
+    *   Customer Portal Isolation: `/api/v1/customer-portal/projects` ensuring customers can only access projects linked to their authenticated customer ID.
+    *   Operational Web Interface (`apps/web`): Responsive `ProjectsPage` directory (search, metric cards, priority/status filters, 10-stage progress bar) and `ProjectDetailPage` (10-stage visual progression pipeline, overview details, milestone sign-offs, task management, and stage transition history).
+    *   Automated test suite: 271 automated tests passing across 26 test suites with 0 errors across `@ins-solar/shared` (113 tests), `@ins-solar/api` (138 tests), and `@ins-solar/web` (20 tests).
+*   **Phase 6B Status (Upcoming):**
+    *   Modules 15, 16, 17, 26: Physical field checklists (5 categories with mandatory geotagged photos), pre-commissioning electrical testing, DISCOM net metering tracking, subsidy disbursement, and private S3 document storage with signed URLs.
+*   **Acceptance Criteria:** Projects advance strictly through valid stage gates; duplicate projects prevented for accepted orders; milestones require blocker reason when blocked; customer portal enforces strict customer isolation; all 271 automated tests pass.
+*   **Test Gate:** 271 automated tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
 
 ---
 

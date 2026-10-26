@@ -704,18 +704,26 @@ interface IVendorInvoice {
 ### 3.4 Project Operations & Field Execution
 
 #### `projects`
-Operational execution lifecycle for confirmed customer installations.
+Operational execution lifecycle for confirmed customer installations and milestone management.
 ```typescript
 interface IProject {
   _id: ObjectId;
-  projectCode: string;           // e.g. "PRJ-2026-00034" (unique, indexed)
-  orderId: ObjectId;             // Ref -> orders._id (unique 1:1 binding)
-  customerId: ObjectId;          // Ref -> customers._id
-  siteId: ObjectId;              // Ref -> sites._id
-  systemCapacityKw: number;
-  systemTopology: 'ON_GRID' | 'OFF_GRID' | 'HYBRID';
-  projectManagerId: ObjectId;    // Ref -> users._id
-  allocatedTeamCrewIds: ObjectId[]; // Array of users._id
+  projectCode: string;           // e.g. "PRJ-2026-00001" (unique, indexed)
+  name: string;                  // Project Title
+  customerId: ObjectId;          // Ref -> customers._id (indexed)
+  orderId?: ObjectId;            // Ref -> orders._id (sparse unique 1:1 binding)
+  siteAddress?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  systemCapacityKwp?: number;
+  systemTopology?: 'ON_GRID' | 'OFF_GRID' | 'HYBRID';
+  projectManagerId?: ObjectId;   // Ref -> users._id (indexed)
+  teamMemberIds?: ObjectId[];    // Array of users._id
   
   currentStage: 
     | 'STAGE_1_ENGINEERING_DESIGN'
@@ -731,20 +739,63 @@ interface IProject {
 
   stageHistory: Array<{
     stage: string;
-    startedAt: Date;
-    completedAt?: Date;
-    approvedByUserId?: ObjectId;
-    remarks?: string;
+    transitionedAt: Date;
+    transitionedBy: ObjectId;   // Ref -> users._id
+    notes?: string;
   }>;
 
-  scheduledStartDate: Date;
-  scheduledCompletionDate: Date;
-  actualCommissioningDate?: Date;
-  overallStatus: 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+  milestones: Array<{
+    _id: ObjectId;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    plannedStartDate?: Date;
+    targetDueDate?: Date;
+    actualCompletionDate?: Date;
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED';
+    blockerReason?: string;
+    completedBy?: ObjectId;     // Ref -> users._id
+    completedAt?: Date;
+  }>;
+
+  status: 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  plannedStartDate?: Date;
+  targetCompletionDate?: Date;
+  actualCompletionDate?: Date;
+  statusChangeReason?: string;
+  notes?: string;
+  createdBy: ObjectId;           // Ref -> users._id
+  updatedBy?: ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
-// Indexes: { projectCode: 1 } (unique), { orderId: 1 } (unique), { projectManagerId: 1 }, { overallStatus: 1 }
+// Indexes: { projectCode: 1 } (unique), { orderId: 1 } (sparse unique), { customerId: 1 }, { status: 1 }, { currentStage: 1 }, { projectManagerId: 1 }
+```
+
+#### `project_tasks`
+Scoped operational tasks with milestone linkage, assignee, due date, and overdue indexing.
+```typescript
+interface IProjectTask {
+  _id: ObjectId;
+  taskCode: string;              // e.g. "TSK-2026-00001" (unique, indexed)
+  projectId: ObjectId;           // Ref -> projects._id (indexed)
+  milestoneId?: ObjectId;        // Ref -> projects.milestones._id (verified belonging to project)
+  title: string;
+  description?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED';
+  dueDate?: Date;
+  blockerReason?: string;
+  assignedUserId?: ObjectId;     // Ref -> users._id (indexed)
+  completedAt?: Date;
+  completedBy?: ObjectId;        // Ref -> users._id
+  createdBy: ObjectId;           // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { taskCode: 1 } (unique), { projectId: 1, status: 1 }, { assignedUserId: 1, status: 1 }, { dueDate: 1 }, { milestoneId: 1 }
 ```
 
 #### `installation_checklists`

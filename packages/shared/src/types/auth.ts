@@ -52,6 +52,8 @@ export const ALL_PERMISSIONS = [
   'project:read',
   'project:update',
   'project:stage_advance',
+  'project:milestone_manage',
+  'project:task_manage',
 
   // Product Catalog
   'catalog:read',
@@ -144,6 +146,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'project:read',
     'project:update',
     'project:stage_advance',
+    'project:milestone_manage',
+    'project:task_manage',
     'catalog:read',
     'catalog:create',
     'catalog:update',
@@ -223,6 +227,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'project:read',
     'project:update',
     'project:stage_advance',
+    'project:milestone_manage',
+    'project:task_manage',
     'customer:read',
     'inv:read'
   ],

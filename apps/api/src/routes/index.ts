@@ -16,6 +16,9 @@ import { vendorRouter } from './vendor.routes.js';
 import { purchaseOrderRouter } from './purchaseOrder.routes.js';
 import { goodsReceiptRouter } from './goodsReceipt.routes.js';
 import { vendorInvoiceRouter } from './vendorInvoice.routes.js';
+import { projectRouter } from './project.routes.js';
+import { projectTaskRouter } from './projectTask.routes.js';
+import { customerProjectRouter } from './customerProject.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -49,6 +52,9 @@ apiRouter.use('/vendors', vendorRouter);
 apiRouter.use('/purchase-orders', purchaseOrderRouter);
 apiRouter.use('/goods-receipts', goodsReceiptRouter);
 apiRouter.use('/vendor-invoices', vendorInvoiceRouter);
+apiRouter.use('/projects', projectRouter);
+apiRouter.use('/tasks', projectTaskRouter);
+apiRouter.use('/customer-portal/projects', customerProjectRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)
 if (config.NODE_ENV !== 'production') {

@@ -17,7 +17,8 @@ import {
   Building2,
   FileText,
   PackageCheck,
-  Receipt
+  Receipt,
+  FolderKanban
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -158,6 +159,20 @@ export const AppLayout: React.FC = () => {
                   >
                     <ShoppingCart className="w-4 h-4 mr-1.5 text-solar-500" />
                     <span>Orders</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/projects"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <FolderKanban className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Projects</span>
                   </NavLink>
 
                   <NavLink

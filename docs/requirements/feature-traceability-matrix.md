@@ -17,7 +17,7 @@
 | **Phase 3** | Core Database Models, Numbering Engine & Shared Domain Services | 1 | Planned |
 | **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Planned |
 | **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Planned |
-| **Phase 6** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Planned |
+| **Phase 6** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (10/58 - Phase 6A Complete) |
 | **Phase 7** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Planned |
 | **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks, Service Tickets, AMC, Visits) | 49 | Planned |
 | **Phase 9** | Customer Portal, Notifications, Reminders & System Settings | 27 | Planned |
@@ -235,16 +235,16 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD14-01` | Project Management | Project ID Generation | Phase 3 | Phase 6 | Sequential format PRJ-YYYY-XXXXX, instantiated upon confirmed order. | Project ID generation test. | Planned |
-| `REQ-MOD14-02` | Project Management | Customer & Site Link | Phase 3 | Phase 6 | Binds project to customer profile and verified physical site. | Reference integrity test. | Planned |
-| `REQ-MOD14-03` | Project Management | Contracted Plant Capacity | Phase 9 | Phase 6 | Records contracted capacity in kWp from originating order. | Capacity consistency test. | Planned |
-| `REQ-MOD14-04` | Project Management | Contracted Order Revenue | Phase 9 | Phase 6 | Records contracted revenue in integer paise for budget tracking. | Revenue monetary precision test. | Planned |
-| `REQ-MOD14-05` | Project Management | Project Manager Assignment | Phase 2, Phase 24 | Phase 6 | Designates lead project manager accountable for timeline and quality. | PM assignment update test. | Planned |
-| `REQ-MOD14-06` | Project Management | Project Start Date Baseline | Phase 3 | Phase 6 | Records baseline project mobilization date. | Date validation test. | Planned |
-| `REQ-MOD14-07` | Project Management | Expected Completion Milestone | Phase 3 | Phase 6 | Calculates scheduled commissioning date with delay deviation tracking. | Timeline deviation formula test. | Planned |
-| `REQ-MOD14-08` | Project Management | Current Stage Tracking | Phase 3 | Phase 6 | Tracks current stage across the 10 standard installation milestones. | Stage attribute query test. | Planned |
-| `REQ-MOD14-09` | Project Management | Overall Project Status | Phase 3 | Phase 6 | High-level status: Planning, In Progress, On Hold, Completed, Cancelled. | Status state machine test. | Planned |
-| `REQ-MOD14-10` | Project Management | Ten-Stage Stage-Gate Progression | Phase 3 | Phase 6 | Enforces ordered progression across 10 stages; cannot advance without checklist sign-off. | Stage transition validation guard test. | Planned |
+| `REQ-MOD14-01` | Project Management | Project ID Generation | Phase 3 | Phase 6 | Sequential format PRJ-YYYY-XXXXX, instantiated upon confirmed order. | Project ID generation test. | Verified |
+| `REQ-MOD14-02` | Project Management | Customer & Site Link | Phase 3 | Phase 6 | Binds project to customer profile and verified physical site. | Reference integrity test. | Verified |
+| `REQ-MOD14-03` | Project Management | Contracted Plant Capacity | Phase 9 | Phase 6 | Records contracted capacity in kWp from originating order. | Capacity consistency test. | Verified |
+| `REQ-MOD14-04` | Project Management | Contracted Order Revenue | Phase 9 | Phase 6 | Records contracted revenue in integer paise for budget tracking. | Revenue monetary precision test. | Verified |
+| `REQ-MOD14-05` | Project Management | Project Manager Assignment | Phase 2, Phase 24 | Phase 6 | Designates lead project manager accountable for timeline and quality. | PM assignment update test. | Verified |
+| `REQ-MOD14-06` | Project Management | Project Start Date Baseline | Phase 3 | Phase 6 | Records baseline project mobilization date. | Date validation test. | Verified |
+| `REQ-MOD14-07` | Project Management | Expected Completion Milestone | Phase 3 | Phase 6 | Calculates scheduled commissioning date with delay deviation tracking. | Timeline deviation formula test. | Verified |
+| `REQ-MOD14-08` | Project Management | Current Stage Tracking | Phase 3 | Phase 6 | Tracks current stage across the 10 standard installation milestones. | Stage attribute query test. | Verified |
+| `REQ-MOD14-09` | Project Management | Overall Project Status | Phase 3 | Phase 6 | High-level status: Planning, In Progress, On Hold, Completed, Cancelled. | Status state machine test. | Verified |
+| `REQ-MOD14-10` | Project Management | Ten-Stage Stage-Gate Progression | Phase 3 | Phase 6 | Enforces ordered progression across 10 stages; cannot advance without checklist sign-off. | Stage transition validation guard test. | Verified |
 
 ### Module 15: Installation Management
 

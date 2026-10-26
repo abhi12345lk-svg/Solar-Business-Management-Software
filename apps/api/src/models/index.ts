@@ -22,3 +22,5 @@ export * from './Vendor.js';
 export * from './PurchaseOrder.js';
 export * from './GoodsReceipt.js';
 export * from './VendorInvoice.js';
+export * from './Project.js';
+export * from './ProjectTask.js';

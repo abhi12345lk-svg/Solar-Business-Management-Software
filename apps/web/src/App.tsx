@@ -17,6 +17,8 @@ import { QuotationsPage } from './pages/QuotationsPage.js';
 import { QuotationDetailPage } from './pages/QuotationDetailPage.js';
 import { OrdersPage } from './pages/OrdersPage.js';
 import { OrderDetailPage } from './pages/OrderDetailPage.js';
+import { ProjectsPage } from './pages/ProjectsPage.js';
+import { ProjectDetailPage } from './pages/ProjectDetailPage.js';
 import { InventoryPage } from './pages/InventoryPage.js';
 import { VendorsPage } from './pages/VendorsPage.js';
 import { PurchaseOrdersPage } from './pages/PurchaseOrdersPage.js';
@@ -117,6 +119,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <OrderDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="projects"
+            element={
+              <ProtectedRoute>
+                <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="projects/:id"
+            element={
+              <ProtectedRoute>
+                <ProjectDetailPage />
               </ProtectedRoute>
             }
           />

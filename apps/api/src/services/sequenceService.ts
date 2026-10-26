@@ -51,7 +51,8 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.WAREHOUSE]: 'WH',
   [SequenceEntityType.VENDOR]: 'VEN',
   [SequenceEntityType.GOODS_RECEIPT]: 'GRN',
-  [SequenceEntityType.VENDOR_INVOICE]: 'VINV'
+  [SequenceEntityType.VENDOR_INVOICE]: 'VINV',
+  [SequenceEntityType.TASK]: 'TSK'
 };
 
 const DEFAULT_PADDING = 5;
