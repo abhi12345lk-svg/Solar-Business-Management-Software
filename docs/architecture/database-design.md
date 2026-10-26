@@ -784,7 +784,7 @@ interface IProjectTask {
   title: string;
   description?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED';
+  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'CANCELLED';
   dueDate?: Date;
   blockerReason?: string;
   assignedUserId?: ObjectId;     // Ref -> users._id (indexed)
@@ -798,33 +798,116 @@ interface IProjectTask {
 // Indexes: { taskCode: 1 } (unique), { projectId: 1, status: 1 }, { assignedUserId: 1, status: 1 }, { dueDate: 1 }, { milestoneId: 1 }
 ```
 
-#### `installation_checklists`
-Quality gates and photographic evidence per project stage.
+#### `material_dispatches` (Phase 6B)
+Physical inventory issue slips from warehouse stock to project installation site.
 ```typescript
-interface IInstallationChecklist {
+interface IMaterialDispatch {
   _id: ObjectId;
-  projectId: ObjectId;           // Ref -> projects._id
-  category: 'SITE_PREPARATION' | 'STRUCTURE_MOUNTING' | 'PANEL_INSTALLATION' | 'INVERTER_ELECTRICAL' | 'EARTHING_SAFETY';
-  checklistItems: Array<{
-    itemKey: string;             // e.g. "torque_verified", "dc_polarity_checked"
-    title: string;
-    passed: boolean;
-    measuredValue?: string;      // e.g. "1.8 Ohms", "620V Voc"
-    remarks?: string;
+  dispatchNumber: string;         // e.g. "DSP-2026-00001" (unique, indexed)
+  projectId: ObjectId;            // Ref -> projects._id (indexed)
+  orderId?: ObjectId;             // Ref -> orders._id
+  sourceWarehouseId: ObjectId;     // Ref -> warehouses._id (indexed)
+  destinationSiteAddress?: {
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  };
+  lineItems: Array<{
+    productId: ObjectId;          // Ref -> products._id
+    requestedQuantity: number;
+    issuedQuantity: number;
+    serialNumbers?: string[];
+    stockMovementId?: ObjectId;   // Ref -> stock_movements._id
   }>;
-  photos: Array<{
-    documentId: ObjectId;        // Ref -> documents._id
-    caption: string;
-    uploadedAt: Date;
-  }>;
-  inspectedByUserId: ObjectId;   // Ref -> users._id
-  approvedByProjectManagerId?: ObjectId;
-  isApproved: boolean;
-  approvedAt?: Date;
+  status: 'DRAFT' | 'DISPATCHED' | 'CANCELLED';
+  dispatchedBy: ObjectId;         // Ref -> users._id
+  dispatchedAt: Date;
+  cancelledBy?: ObjectId;         // Ref -> users._id
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  notes?: string;
+  idempotencyKey?: string;        // Client idempotency key (sparse unique)
   createdAt: Date;
   updatedAt: Date;
 }
-// Indexes: { projectId: 1, category: 1 } (unique compound)
+// Indexes: { dispatchNumber: 1 } (unique), { projectId: 1 }, { sourceWarehouseId: 1 }, { status: 1 }, { idempotencyKey: 1 } (sparse unique)
+```
+
+#### `installation_checklist_templates` (Phase 6B)
+Standardized, versioned 5-category quality and safety inspection templates.
+```typescript
+interface IInstallationChecklistTemplate {
+  _id: ObjectId;
+  templateCode: string;          // e.g. "CKT-STANDARD-ROOFTOP"
+  name: string;
+  version: number;               // Sequential template version integer
+  categories: Array<{
+    category: 
+      | 'SITE_READINESS_SAFETY'
+      | 'STRUCTURE_MODULE_MOUNTING'
+      | 'DC_WIRING_EARTHING'
+      | 'INVERTER_AC_PROTECTION'
+      | 'TESTING_COMMISSIONING_HANDOVER';
+    title: string;
+    items: Array<{
+      itemCode: string;          // e.g. "CHK-01-01"
+      description: string;
+      isRequired: boolean;       // Mandatory vs Optional
+      requiresEvidence: boolean; // Must attach photo before PASSED
+    }>;
+  }>;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { templateCode: 1, version: 1 } (compound unique)
+```
+
+#### `project_installation_checklists` (Phase 6B)
+Project-specific inspection instance snapshotted from template with photo evidence subdocuments.
+```typescript
+interface IProjectInstallationChecklist {
+  _id: ObjectId;
+  projectId: ObjectId;           // Ref -> projects._id (indexed)
+  templateCode: string;
+  templateVersion: number;
+  categories: Array<{
+    category: string;
+    title: string;
+    items: Array<{
+      _id: ObjectId;
+      itemCode: string;
+      description: string;
+      isRequired: boolean;
+      requiresEvidence: boolean;
+      status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PASSED' | 'FAILED' | 'BLOCKED';
+      notes?: string;
+      failureReason?: string;    // Required if FAILED
+      blockerReason?: string;    // Required if BLOCKED
+      inspectedAt?: Date;
+      inspectedBy?: ObjectId;    // Ref -> users._id
+      evidence: Array<{
+        _id: ObjectId;
+        storageKey: string;      // Private object key (evidence/{proj}/{item}/{file})
+        fileName: string;
+        fileSizeBytes: number;
+        mimeType: string;
+        caption?: string;
+        latitude?: number;       // Validated -90 to 90
+        longitude?: number;      // Validated -180 to 180
+        uploadedAt: Date;
+        uploadedBy: ObjectId;    // Ref -> users._id
+      }>;
+    }>;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { projectId: 1, templateVersion: 1 } (compound unique)
 ```
 
 ---

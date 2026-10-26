@@ -17,5 +17,7 @@ export * from './schemas/order.js';
 export * from './schemas/inventory.js';
 export * from './schemas/procurement.js';
 export * from './schemas/project.js';
+export * from './schemas/dispatch.js';
+export * from './schemas/checklist.js';
 export * from './schemas/auth.js';
 export * from './constants/index.js';

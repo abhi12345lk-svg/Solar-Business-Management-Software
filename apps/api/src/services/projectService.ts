@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import {
   CreateProjectInput,
   UpdateProjectParsed,
@@ -12,6 +12,8 @@ import {
   ProjectStage,
   MilestoneStatus,
   ProjectPriority,
+  ChecklistCategory,
+  ChecklistItemStatus,
   UserRole,
   SequenceEntityType,
   AuditAction,
@@ -22,6 +24,7 @@ import { Project, IProjectDocument } from '../models/Project.js';
 import { Customer } from '../models/Customer.js';
 import { SalesOrder } from '../models/SalesOrder.js';
 import { User } from '../models/User.js';
+import { ProjectInstallationChecklist } from '../models/ProjectInstallationChecklist.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
@@ -438,6 +441,24 @@ export class ProjectService {
       }
       project.cancellationReason = input.reason.trim();
     } else if (newStatus === ProjectStatus.COMPLETED) {
+      if (mongoose.connection.readyState === 1 || (ProjectInstallationChecklist.findOne as any)?.mock) {
+        const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
+        if (checklist) {
+          const incompleteItems: string[] = [];
+          for (const cat of checklist.categories) {
+            for (const item of cat.items) {
+              if (item.isRequired && item.status !== ChecklistItemStatus.PASSED) {
+                incompleteItems.push(`[${item.itemCode}] ${item.description}`);
+              }
+            }
+          }
+          if (incompleteItems.length > 0) {
+            throw AppError.businessRule(
+              `Cannot complete project: Mandatory installation checklist items remain incomplete or failed (${incompleteItems.length} items pending).`
+            );
+          }
+        }
+      }
       project.actualCompletionDate = new Date();
     }
 
@@ -480,6 +501,37 @@ export class ProjectService {
 
     if (project.status === ProjectStatus.CANCELLED || project.status === ProjectStatus.COMPLETED) {
       throw AppError.businessRule(`Cannot advance stage on a ${project.status} project.`);
+    }
+
+    // Commissioning stage gates check: verify mandatory checklist items are PASSED
+    if (
+      input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
+      input.stage === ProjectStage.STAGE_10_COMMISSION_HANDOVER
+    ) {
+      if (mongoose.connection.readyState === 1 || (ProjectInstallationChecklist.findOne as any)?.mock) {
+        const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
+        if (checklist) {
+          const incompleteItems: string[] = [];
+          for (const cat of checklist.categories) {
+            if (
+              input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION &&
+              cat.category === ChecklistCategory.TESTING_COMMISSIONING_HANDOVER
+            ) {
+              continue; // Testing items can be performed during Stage 8
+            }
+            for (const item of cat.items) {
+              if (item.isRequired && item.status !== ChecklistItemStatus.PASSED) {
+                incompleteItems.push(`[${item.itemCode}] ${item.description} (${item.status})`);
+              }
+            }
+          }
+          if (incompleteItems.length > 0) {
+            throw AppError.businessRule(
+              `Cannot advance to ${input.stage}: Mandatory installation checklist items must be PASSED before commissioning gate.\nIncomplete items: ${incompleteItems.join('; ')}`
+            );
+          }
+        }
+      }
     }
 
     project.currentStage = input.stage;

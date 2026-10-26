@@ -13,6 +13,7 @@ import {
 } from '@ins-solar/shared';
 import { ProjectService } from '../services/projectService.js';
 import { ProjectTaskService } from '../services/projectTaskService.js';
+import { MaterialDispatchService } from '../services/materialDispatchService.js';
 import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
@@ -324,6 +325,43 @@ projectRouter.post(
 
       const task = await ProjectTaskService.createTask(req.params.id as string, parseResult.data, user, context);
       return sendSuccess(req, res, task, 201);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/projects/:id/dispatches
+ * List dispatches for project.
+ */
+projectRouter.get(
+  '/:id/dispatches',
+  requirePermission('dispatch:read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await MaterialDispatchService.getDispatches({
+        projectId: req.params.id as string,
+        ...req.query
+      });
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/projects/:id/materials
+ * Get contracted vs dispatched material breakdown for project.
+ */
+projectRouter.get(
+  '/:id/materials',
+  requirePermission('project:read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await MaterialDispatchService.getProjectMaterialSummary(req.params.id as string);
+      return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);
     }

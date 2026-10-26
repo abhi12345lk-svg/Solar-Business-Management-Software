@@ -17,12 +17,12 @@
 | **Phase 3** | Core Database Models, Numbering Engine & Shared Domain Services | 1 | Planned |
 | **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Planned |
 | **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Planned |
-| **Phase 6** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (10/58 - Phase 6A Complete) |
+| **Phase 6** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (20/58 - Phase 6A & 6B Complete) |
 | **Phase 7** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Planned |
 | **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks, Service Tickets, AMC, Visits) | 49 | Planned |
 | **Phase 9** | Customer Portal, Notifications, Reminders & System Settings | 27 | Planned |
 | **Phase 10** | Full Integration, E2E Testing, Security Hardening, Backup Drills & Production Go-Live | 8 | Planned |
-| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **20 Verified, 334 Planned** |
+| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **30 Verified, 324 Planned** |
 
 ---
 
@@ -198,7 +198,7 @@
 | `REQ-MOD11-10` | Inventory Management | Installation-Site Stock Balance | Phase 14 | Phase 5 | Tracks staged hardware physically delivered to customer rooftop site. | Site stock balance ledger test. | Planned |
 | `REQ-MOD11-11` | Inventory Management | Employee / Team-Issued Stock | Phase 24 | Phase 5 | Tracks tools, consumables, and parts issued into technician custody. | Technician bag balance test. | Planned |
 | `REQ-MOD11-12` | Inventory Management | Stock Reservation Lifecycle | Phase 9 | Phase 5 | Reserves stock on Order -> Consumes on Dispatch / Releases on Order Cancel. | Two-phase reservation lifecycle test. | Verified |
-| `REQ-MOD11-13` | Inventory Management | Material Issue Slip Authorization | Phase 2 | Phase 5 | Generates formal issue slip requiring storekeeper and technician sign-off. | Material issue authorization test. | Planned |
+| `REQ-MOD11-13` | Inventory Management | Material Issue Slip Authorization | Phase 2 | Phase 5 | Generates formal issue slip requiring storekeeper and technician sign-off. | Material issue authorization test. | Verified |
 | `REQ-MOD11-14` | Inventory Management | Anti-Negative Stock Concurrency Guard | Phase 3 | Phase 5 | Blocks material issue if available stock is deficient; atomic update prevents negative stock. | High-concurrency race condition unit test. | Verified |
 | `REQ-MOD11-15` | Inventory Management | Hardware Serial Number Tracking | Phase 6, Phase 8 | Phase 5 | Captures module barcodes, inverter serials, and battery BMS IDs on dispatch. | Serial number uniqueness and asset link test. | Verified |
 
@@ -265,15 +265,15 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD16-01` | Installation Checklist & QA | Site Preparation Checklist | Phase 15 | Phase 6 | Verifies roof cleaned, obstacles removed, safety lines rigged, hazard signs posted. | Checklist item boolean validation test. | Planned |
-| `REQ-MOD16-02` | Installation Checklist & QA | Structure Quality Checklist | Phase 15 | Phase 6 | Verifies anchor torque calibration, tilt angle compliance, structural rigidity. | Structure QA item validation test. | Planned |
-| `REQ-MOD16-03` | Installation Checklist & QA | Panel Installation Checklist | Phase 15 | Phase 6 | Verifies zero cell micro-cracks, mid/end clamp positions, alignment tolerances. | Module QA item validation test. | Planned |
-| `REQ-MOD16-04` | Installation Checklist & QA | Inverter & Protection Checklist | Phase 15 | Phase 6 | Verifies IP weatherproofing, DC polarity check, AC breaker ratings, SPD status. | Inverter QA item validation test. | Planned |
-| `REQ-MOD16-05` | Installation Checklist & QA | AC / DC Wiring Checklist | Phase 15 | Phase 6 | Verifies UV cable conduit support, cable gland dressing, color coding compliance. | Wiring QA item validation test. | Planned |
-| `REQ-MOD16-06` | Installation Checklist & QA | Earthing & Lightning Checklist | Phase 15 | Phase 6 | Verifies separate array/inverter/LA earth pits and measured resistance under 5 Ohms. | Earthing QA item validation test. | Planned |
-| `REQ-MOD16-07` | Installation Checklist & QA | Safety & Warning Signs Checklist | Phase 15 | Phase 6 | Verifies dual supply caution notices, emergency shut-off labels, rubber mats. | Safety signage checklist test. | Planned |
-| `REQ-MOD16-08` | Installation Checklist & QA | Electrical Pre-Commissioning Testing | Phase 15 | Phase 6 | Mandatory capture of string Voc, Isc, and megger insulation test data. | Test readings data completeness test. | Planned |
-| `REQ-MOD16-09` | Installation Checklist & QA | Mandatory Geotagged Site Photos | Phase 15, Phase 26 | Phase 6 | Checklist cannot be approved without uploaded timestamped photos for each category. | Checklist submission rejection test if photos missing. | Planned |
+| `REQ-MOD16-01` | Installation Checklist & QA | Site Preparation Checklist | Phase 15 | Phase 6 | Verifies roof cleaned, obstacles removed, safety lines rigged, hazard signs posted. | Checklist item boolean validation test. | Verified |
+| `REQ-MOD16-02` | Installation Checklist & QA | Structure Quality Checklist | Phase 15 | Phase 6 | Verifies anchor torque calibration, tilt angle compliance, structural rigidity. | Structure QA item validation test. | Verified |
+| `REQ-MOD16-03` | Installation Checklist & QA | Panel Installation Checklist | Phase 15 | Phase 6 | Verifies zero cell micro-cracks, mid/end clamp positions, alignment tolerances. | Module QA item validation test. | Verified |
+| `REQ-MOD16-04` | Installation Checklist & QA | Inverter & Protection Checklist | Phase 15 | Phase 6 | Verifies IP weatherproofing, DC polarity check, AC breaker ratings, SPD status. | Inverter QA item validation test. | Verified |
+| `REQ-MOD16-05` | Installation Checklist & QA | AC / DC Wiring Checklist | Phase 15 | Phase 6 | Verifies UV cable conduit support, cable gland dressing, color coding compliance. | Wiring QA item validation test. | Verified |
+| `REQ-MOD16-06` | Installation Checklist & QA | Earthing & Lightning Checklist | Phase 15 | Phase 6 | Verifies separate array/inverter/LA earth pits and measured resistance under 5 Ohms. | Earthing QA item validation test. | Verified |
+| `REQ-MOD16-07` | Installation Checklist & QA | Safety & Warning Signs Checklist | Phase 15 | Phase 6 | Verifies dual supply caution notices, emergency shut-off labels, rubber mats. | Safety signage checklist test. | Verified |
+| `REQ-MOD16-08` | Installation Checklist & QA | Electrical Pre-Commissioning Testing | Phase 15 | Phase 6 | Mandatory capture of string Voc, Isc, and megger insulation test data. | Test readings data completeness test. | Verified |
+| `REQ-MOD16-09` | Installation Checklist & QA | Mandatory Geotagged Site Photos | Phase 15, Phase 26 | Phase 6 | Checklist cannot be approved without uploaded timestamped photos for each category. | Checklist submission rejection test if photos missing. | Verified |
 | `REQ-MOD16-10` | Installation Checklist & QA | Quality Lead Digital Sign-off | Phase 2 | Phase 6 | Digital approval locks checklist permanently against modifications. | Checklist lock immutability test. | Planned |
 
 ### Module 17: Net Metering / Subsidy

@@ -31,9 +31,13 @@ import {
   ChevronRight,
   ShieldAlert,
   FileSpreadsheet,
-  AlertCircle
+  AlertCircle,
+  Truck,
+  ClipboardCheck
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
+import { InstallationChecklistTab } from '../components/project/InstallationChecklistTab.js';
 
 interface ProjectDetail {
   _id: string;
@@ -124,7 +128,7 @@ interface ProjectTaskItem {
   title: string;
   description?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED';
+  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'CANCELLED';
   dueDate?: string;
   blockerReason?: string;
   assignedUserId?: {
@@ -158,7 +162,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'milestones' | 'tasks' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'milestones' | 'tasks' | 'history'>('overview');
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -453,8 +457,8 @@ export const ProjectDetailPage: React.FC = () => {
         return <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">In Progress</span>;
       case 'BLOCKED':
         return <span className="px-2 py-0.5 text-xs rounded bg-rose-100 text-rose-700 font-medium">Blocked</span>;
-      case 'DONE':
-        return <span className="px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700 font-medium">Done</span>;
+      case 'COMPLETED':
+        return <span className="px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700 font-medium">Completed</span>;
       case 'CANCELLED':
         return <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">Cancelled</span>;
       default:
@@ -662,6 +666,30 @@ export const ProjectDetailPage: React.FC = () => {
         >
           <FolderKanban className="w-4 h-4" />
           <span>Overview</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('dispatch')}
+          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+            activeTab === 'dispatch'
+              ? 'border-solar-600 text-solar-600 font-semibold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Truck className="w-4 h-4" />
+          <span>Material Dispatch</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('checklist')}
+          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+            activeTab === 'checklist'
+              ? 'border-solar-600 text-solar-600 font-semibold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          <span>Installation Checklist</span>
         </button>
 
         <button
@@ -981,7 +1009,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <option value="TODO">To Do</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="BLOCKED">Blocked</option>
-                <option value="DONE">Done</option>
+                <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
 
@@ -1016,7 +1044,7 @@ export const ProjectDetailPage: React.FC = () => {
                     const isOverdue =
                       task.dueDate &&
                       new Date(task.dueDate) < new Date() &&
-                      !['DONE', 'CANCELLED'].includes(task.status);
+                      !['COMPLETED', 'CANCELLED'].includes(task.status);
                     const linkedMilestone = project.milestones?.find((m) => m._id === task.milestoneId);
 
                     return (
@@ -1061,9 +1089,9 @@ export const ProjectDetailPage: React.FC = () => {
                         {/* Task Action Controls */}
                         {!isTerminal && (
                           <div className="flex items-center space-x-1.5 self-end md:self-center">
-                            {task.status !== 'DONE' && (
+                            {task.status !== 'COMPLETED' && (
                               <button
-                                onClick={() => handleQuickTaskStatus(task._id, 'DONE')}
+                                onClick={() => handleQuickTaskStatus(task._id, 'COMPLETED')}
                                 className="px-2.5 py-1 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700 font-medium"
                               >
                                 Complete
@@ -1091,6 +1119,16 @@ export const ProjectDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Tab: Material Dispatch */}
+      {activeTab === 'dispatch' && (
+        <MaterialDispatchTab projectId={project._id} isTerminal={isTerminal} />
+      )}
+
+      {/* Tab: Installation Checklist */}
+      {activeTab === 'checklist' && (
+        <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
       {/* Tab 4: Stage History & Activity */}

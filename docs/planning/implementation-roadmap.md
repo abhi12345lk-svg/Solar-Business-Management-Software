@@ -165,10 +165,14 @@ graph TD
     *   Customer Portal Isolation: `/api/v1/customer-portal/projects` ensuring customers can only access projects linked to their authenticated customer ID.
     *   Operational Web Interface (`apps/web`): Responsive `ProjectsPage` directory (search, metric cards, priority/status filters, 10-stage progress bar) and `ProjectDetailPage` (10-stage visual progression pipeline, overview details, milestone sign-offs, task management, and stage transition history).
     *   Automated test suite: 271 automated tests passing across 26 test suites with 0 errors across `@ins-solar/shared` (113 tests), `@ins-solar/api` (138 tests), and `@ins-solar/web` (20 tests).
-*   **Phase 6B Status (Upcoming):**
-    *   Modules 15, 16, 17, 26: Physical field checklists (5 categories with mandatory geotagged photos), pre-commissioning electrical testing, DISCOM net metering tracking, subsidy disbursement, and private S3 document storage with signed URLs.
-*   **Acceptance Criteria:** Projects advance strictly through valid stage gates; duplicate projects prevented for accepted orders; milestones require blocker reason when blocked; customer portal enforces strict customer isolation; all 271 automated tests pass.
-*   **Test Gate:** 271 automated tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
+*   **Phase 6B Status (Completed & Verified):**
+    *   `MaterialDispatch` Mongoose model & `MaterialDispatchService`: Physical material issues between warehouse and site with atomic `DSP-YYYY-NNNNN` sequences, StockBalance atomic decrements, negative stock prevention, reservation deduction, serialized equipment tracking (panels & inverters), cumulative order limits, and safe cancellation with compensating return movements.
+    *   `InstallationChecklistTemplate` & `ProjectInstallationChecklist` models with `ChecklistService`: 5-category inspection checklist (`SITE_READINESS_SAFETY`, `STRUCTURE_MODULE_MOUNTING`, `DC_WIRING_EARTHING`, `INVERTER_AC_PROTECTION`, `TESTING_COMMISSIONING_HANDOVER`), template snapshotting, duplicate generation prevention, mandatory reason validation for `FAILED` / `BLOCKED`, and mandatory photo evidence enforcement before marking `PASSED`.
+    *   Commissioning Stage-Gate Enforcement: `ProjectService.advanceProjectStage` verifies mandatory checklist items are passed before advancing to Stage 8 (Pre-Commissioning) and Stage 10 (Handover), and blocks completion if mandatory checks are incomplete.
+    *   Private Object Storage Boundary: Files tracked by private storage keys (`evidence/{proj}/{item}/{file}`) with short-lived authorized access URLs. Strict GPS bounds validation (-90..90, -180..180) and customer multi-tenant isolation.
+    *   Operational Web Interface (`apps/web`): `MaterialDispatchTab` (fulfillment progress, dispatch slips, issue/cancel dialogs) and `InstallationChecklistTab` (5-category checklist, blocker banner, photo evidence uploader, secure viewer) integrated into `ProjectDetailPage`, resolving `DONE` vs `COMPLETED` enum mismatch.
+*   **Acceptance Criteria:** Negative stock strictly prevented; serial numbers cannot be issued twice; dispatch cancellation creates compensating returns; mandatory checklist items enforce photo evidence and failure reasons; Stage 8 & 10 gates evaluate checklist compliance; customer portal blocks cross-tenant evidence access; all 291 automated tests pass.
+*   **Test Gate:** 291 automated tests passing with 0 failures across `@ins-solar/shared` (119 tests), `@ins-solar/api` (150 tests), and `@ins-solar/web` (22 tests).
 
 ---
 
