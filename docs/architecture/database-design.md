@@ -546,6 +546,159 @@ interface IStockMovement {
 // Indexes: { productId: 1, timestamp: -1 }, { movementCode: 1 } (unique), { referenceEntityId: 1 }
 ```
 
+#### `vendors`
+Supplier master catalog with commercial, tax, and banking details.
+```typescript
+interface IVendor {
+  _id: ObjectId;
+  vendorCode: string;             // e.g. "VEN-2026-00001" (unique, indexed)
+  name: string;                   // Legal firm name (indexed)
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: {
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  gstin?: string;                 // 15-char Indian GSTIN (sparse unique index)
+  pan?: string;                   // 10-char PAN
+  suppliedCategoryIds: ObjectId[];// Ref -> product_categories._id
+  suppliedProductIds: ObjectId[]; // Ref -> products._id
+  paymentTermsDays: number;       // Default net days (e.g. 30)
+  bankDetails?: {
+    accountName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  };
+  leadTimeDays?: number;
+  notes?: string;
+  isActive: boolean;
+  hasPurchaseHistory: boolean;    // Guard flag preventing deletion if purchase records exist
+  createdBy: ObjectId;            // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { vendorCode: 1 } (unique), { name: 1 }, { gstin: 1 } (sparse unique), { isActive: 1 }
+```
+
+#### `purchase_orders`
+Official procurement commitments with integer paise calculations and approval controls.
+```typescript
+interface IPurchaseOrder {
+  _id: ObjectId;
+  poNumber: string;               // e.g. "PO-2026-00001" (unique, indexed)
+  vendorId: ObjectId;             // Ref -> vendors._id (indexed)
+  destinationWarehouseId: ObjectId; // Ref -> warehouses._id (indexed)
+  orderDate: Date;
+  expectedDeliveryDate?: Date;
+  lineItems: Array<{
+    productId: ObjectId;          // Ref -> products._id
+    sku: string;
+    productName: string;
+    description?: string;
+    orderedQuantity: number;
+    uom: string;
+    unitPurchaseRatePaise: number;
+    discountAmountPaise: number;
+    taxRateBasisPoints: number;   // e.g. 1800 for 18%
+    subtotalPaise: number;
+    taxAmountPaise: number;
+    totalAmountPaise: number;
+    receivedQuantity: number;
+    rejectedQuantity: number;
+    outstandingQuantity: number;
+  }>;
+  subtotalPaise: number;
+  taxAmountPaise: number;
+  totalAmountPaise: number;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PARTIALLY_RECEIVED' | 'FULLY_RECEIVED' | 'CANCELLED';
+  approvalMetadata?: {
+    approvedBy: ObjectId;
+    approvedAt: Date;
+    decisionNotes?: string;
+  };
+  rejectionReason?: string;
+  cancellationReason?: string;
+  paymentTerms?: string;
+  deliveryTerms?: string;
+  notes?: string;
+  createdBy: ObjectId;            // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { poNumber: 1 } (unique), { vendorId: 1, status: 1 }, { destinationWarehouseId: 1 }, { status: 1, orderDate: -1 }
+```
+
+#### `goods_receipts`
+Official warehouse inbound intake notes recording accepted vs rejected quantities.
+```typescript
+interface IGoodsReceipt {
+  _id: ObjectId;
+  grnNumber: string;              // e.g. "GRN-2026-00001" (unique, indexed)
+  purchaseOrderId: ObjectId;      // Ref -> purchase_orders._id (indexed)
+  vendorId: ObjectId;             // Ref -> vendors._id
+  warehouseId: ObjectId;          // Ref -> warehouses._id (destination)
+  receiptDate: Date;
+  deliveryChallanNumber?: string;
+  vehicleNumber?: string;
+  lineItems: Array<{
+    productId: ObjectId;          // Ref -> products._id
+    sku: string;
+    productName: string;
+    orderedQuantity: number;
+    deliveredQuantity: number;
+    acceptedQuantity: number;     // Physical stock increment
+    rejectedQuantity: number;     // Never increments physical stock
+    outstandingQuantityAfter: number;
+    rejectionReason?: string;
+    serialNumbers?: string[];
+    stockMovementId?: ObjectId;   // Ref -> stock_movements._id
+  }>;
+  status: 'RECEIVED' | 'PARTIALLY_RECEIVED' | 'CANCELLED';
+  stockMovementIds: ObjectId[];   // Ref -> stock_movements._id
+  receivedBy: ObjectId;           // Ref -> users._id
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { grnNumber: 1 } (unique), { purchaseOrderId: 1 }, { vendorId: 1 }, { warehouseId: 1 }
+```
+
+#### `vendor_invoices`
+Accounts payable records with automated 3-way match reconciliation.
+```typescript
+interface IVendorInvoice {
+  _id: ObjectId;
+  vendorId: ObjectId;             // Ref -> vendors._id (indexed)
+  purchaseOrderId?: ObjectId;     // Ref -> purchase_orders._id (indexed)
+  vendorInvoiceNumber: string;    // Vendor invoice number
+  invoiceDate: Date;
+  dueDate?: Date;
+  subtotalPaise: number;
+  taxAmountPaise: number;
+  totalAmountPaise: number;
+  paidAmountPaise: number;
+  balancePayablePaise: number;
+  reconciliationStatus: 'PENDING' | 'RECONCILED' | 'DISPUTED';
+  discrepancyReason?: string;
+  status: 'RECORDED' | 'PARTIALLY_PAID' | 'PAID' | 'DISPUTED' | 'CANCELLED';
+  documentUrl?: string;
+  notes?: string;
+  createdBy: ObjectId;            // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { vendorId: 1, vendorInvoiceNumber: 1 } (compound unique), { purchaseOrderId: 1 }, { reconciliationStatus: 1 }, { status: 1 }
+```
+
 ---
 
 ### 3.4 Project Operations & Field Execution

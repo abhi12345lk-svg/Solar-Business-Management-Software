@@ -140,10 +140,16 @@ graph TD
     *   `ProductSerialNumber` model & `SerialNumberService`: High-value hardware serialization (solar panels, inverters) with uppercase-normalized uniqueness and full custody history.
     *   Operational Web Interface (`apps/web`): Responsive `OrdersPage` (with quotation-to-order converter), `OrderDetailPage` (with commercial snapshot review and reservation controls), and `InventoryPage` (multi-location balances, movement ledger, serial asset database, and operation action modals).
     *   Automated test suite: 215 automated tests passing with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
-*   **Phase 5B Scope (Next Pending Implementation Batch):**
-    *   Vendor master catalog, purchase orders (PO), inbound GRN receipt linking, and vendor accounts payable ledgers.
-*   **Acceptance Criteria:** Stock cannot fall below zero; physical issue is hard-blocked on shortages; order locks prices permanently against catalog changes; reservations and physical issues strictly decoupled.
-*   **Test Gate:** 215 automated tests passing across 21 test suites with 0 errors across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
+*   **Phase 5B Status (Completed & Verified):**
+    *   `Vendor` Mongoose model & `VendorService`: Supplier directory with sequential ID (`VEN-YYYY-NNNNN`), GSTIN/PAN uniqueness, supplied product/category links, contact details, and safe deactivation preserving purchase records.
+    *   `PurchaseOrder` Mongoose model & `PurchaseOrderService`: Inbound procurement with sequential ID (`PO-YYYY-NNNNN`), integer paise calculation, approval workflow with database-configurable threshold (`CompanySettings.poApprovalThresholdPaise`, default ₹25,000 / 2,500,000 paise awaiting owner confirmation flag), anti-self-approval enforcement, and immutable commercial terms preservation upon approval.
+    *   `GoodsReceipt` Mongoose model & `GoodsReceiptService`: Inbound warehouse intake note (`GRN-YYYY-NNNNN`), partial delivery support, cumulative over-delivery protection, and strict QA split between accepted and rejected quantities with discrepancy tracking.
+    *   Inventory Stock Ledger Integration: Accepted items physically increment `StockBalance` (`onHandQuantity` and `availableQuantity`) in the destination warehouse and generate immutable append-only `StockMovement` records (`RECEIPT`). Rejected quantities permanently audited in GRN and PO records but **never** increment physical stock.
+    *   Hardware Serialization on Intake: Panel and inverter serial numbers validated for enterprise-wide uniqueness and registered into `ProductSerialNumber`.
+    *   `VendorInvoice` Mongoose model & `VendorInvoiceService`: Payable claim registration with compound unique index `{ vendorId: 1, vendorInvoiceNumber: 1 }` preventing duplicate billing. Performs automated 3-way match reconciliation against purchase orders (`RECONCILED` vs `DISPUTED`).
+    *   Operational Web Interface (`apps/web`): Responsive screens for `VendorsPage`, `PurchaseOrdersPage`, `PurchaseOrderDetailPage`, `GoodsReceiptsPage`, and `VendorInvoicesPage`.
+*   **Acceptance Criteria:** Stock cannot fall below zero; physical issue is hard-blocked on shortages; order locks prices permanently against catalog changes; reservations and physical issues strictly decoupled; purchase orders enforce anti-self-approval; GRN rejected quantities never create inventory.
+*   **Test Gate:** 245 automated tests passing across 25 test suites with 0 errors across `@ins-solar/shared` (108 tests), `@ins-solar/api` (121 tests), and `@ins-solar/web` (16 tests).
 
 ---
 

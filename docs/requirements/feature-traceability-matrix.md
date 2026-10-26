@@ -188,7 +188,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `REQ-MOD11-01` | Inventory Management | Item Master Association | Phase 10 | Phase 5 | Every inventory record strictly binds to an active Product Master ID. | Product foreign key integrity test. | Verified |
 | `REQ-MOD11-02` | Inventory Management | Opening Stock Baseline | Phase 3 | Phase 5 | Captures audited opening stock balance at system launch or annual audit. | Opening stock audit ledger test. | Verified |
-| `REQ-MOD11-03` | Inventory Management | Stock In via Procurement | Phase 12 | Phase 5 | Increments physical stock atomically upon verified Goods Receipt Note (GRN). | GRN stock increment unit test. | Planned |
+| `REQ-MOD11-03` | Inventory Management | Stock In via Procurement | Phase 12 | Phase 5 | Increments physical stock atomically upon verified Goods Receipt Note (GRN). | GRN stock increment unit test. | Verified |
 | `REQ-MOD11-04` | Inventory Management | Stock Out via Material Dispatch | Phase 9, Phase 14 | Phase 5 | Decrements physical stock atomically upon verified material issue to project site. | Material dispatch decrement test. | Verified |
 | `REQ-MOD11-05` | Inventory Management | Used & Damaged Quantity Log | Phase 3 | Phase 5 | Logs damaged, defective, or field-consumed consumables with justification. | Stock write-off adjustment test. | Planned |
 | `REQ-MOD11-06` | Inventory Management | Real-Time Available Stock Calculation | Phase 3 | Phase 5 | Calculates Available Stock = Physical on Hand - Reserved Stock. | Available stock balance formula test. | Verified |
@@ -206,29 +206,29 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD12-01` | Purchase Management | Purchase Order ID Generation | Phase 3 | Phase 5 | Sequential format PO-YYYY-XXXXX, uniquely allocated. | PO sequence counter test. | Planned |
-| `REQ-MOD12-02` | Purchase Management | Vendor Relational Binding | Phase 13 | Phase 5 | Binds purchase order to registered vendor in Vendor Master. | Vendor reference integrity test. | Planned |
-| `REQ-MOD12-03` | Purchase Management | Purchase Date Capture | Phase 3 | Phase 5 | Records date of purchase order issuance. | Date schema test. | Planned |
-| `REQ-MOD12-04` | Purchase Management | Itemized Hardware Line Items | Phase 10 | Phase 5 | Captures products, specifications, and ordered quantities. | PO line items schema test. | Planned |
-| `REQ-MOD12-05` | Purchase Management | Quantity & Unit Ordered | Phase 10 | Phase 5 | Validates positive order quantity against standard UOM. | Positive boundary validation test. | Planned |
-| `REQ-MOD12-06` | Purchase Management | Agreed Purchase Unit Rate | Phase 3 | Phase 5 | Records negotiated acquisition unit price in integer paise. | Rate precision test. | Planned |
-| `REQ-MOD12-07` | Purchase Management | Input Tax Credit (ITC) GST | Phase 3 | Phase 5 | Calculates applicable purchase GST lines eligible for input tax credit. | Purchase tax calculation test. | Planned |
-| `REQ-MOD12-08` | Purchase Management | Gross Purchase Order Total | Phase 3 | Phase 5 | Computes Gross PO Value = Subtotal + Tax Lines in Paise. | PO total summation test. | Planned |
-| `REQ-MOD12-09` | Purchase Management | Accounts Payable Status | Phase 7 | Phase 5 | Tracks payment status: Unpaid, Partially Paid, Paid. | Payable status transition test. | Planned |
-| `REQ-MOD12-10` | Purchase Management | Purchase Invoice & GRN Verification | Phase 11, Phase 26 | Phase 5 | Uploads vendor tax invoice and creates Goods Receipt Note (GRN) matching items. | Three-way match (PO vs GRN vs Invoice) test. | Planned |
-| `REQ-MOD12-11` | Purchase Management | Purchase Approval Hierarchy | Phase 2 | Phase 5 | POs exceeding configured monetary threshold require Admin approval to release. | PO approval threshold gate test. | Planned |
+| `REQ-MOD12-01` | Purchase Management | Purchase Order ID Generation | Phase 3 | Phase 5 | Sequential format PO-YYYY-XXXXX, uniquely allocated. | PO sequence counter test. | Verified |
+| `REQ-MOD12-02` | Purchase Management | Vendor Relational Binding | Phase 13 | Phase 5 | Binds purchase order to registered vendor in Vendor Master. | Vendor reference integrity test. | Verified |
+| `REQ-MOD12-03` | Purchase Management | Purchase Date Capture | Phase 3 | Phase 5 | Records date of purchase order issuance. | Date schema test. | Verified |
+| `REQ-MOD12-04` | Purchase Management | Itemized Hardware Line Items | Phase 10 | Phase 5 | Captures products, specifications, and ordered quantities. | PO line items schema test. | Verified |
+| `REQ-MOD12-05` | Purchase Management | Quantity & Unit Ordered | Phase 10 | Phase 5 | Validates positive order quantity against standard UOM. | Positive boundary validation test. | Verified |
+| `REQ-MOD12-06` | Purchase Management | Agreed Purchase Unit Rate | Phase 3 | Phase 5 | Records negotiated acquisition unit price in integer paise. | Rate precision test. | Verified |
+| `REQ-MOD12-07` | Purchase Management | Input Tax Credit (ITC) GST | Phase 3 | Phase 5 | Calculates applicable purchase GST lines eligible for input tax credit. | Purchase tax calculation test. | Verified |
+| `REQ-MOD12-08` | Purchase Management | Gross Purchase Order Total | Phase 3 | Phase 5 | Computes Gross PO Value = Subtotal + Tax Lines in Paise. | PO total summation test. | Verified |
+| `REQ-MOD12-09` | Purchase Management | Accounts Payable Status | Phase 7 | Phase 5 | Tracks payment status: Unpaid, Partially Paid, Paid. | Payable status transition test. | Verified |
+| `REQ-MOD12-10` | Purchase Management | Purchase Invoice & GRN Verification | Phase 11, Phase 26 | Phase 5 | Uploads vendor tax invoice and creates Goods Receipt Note (GRN) matching items. | Three-way match (PO vs GRN vs Invoice) test. | Verified |
+| `REQ-MOD12-11` | Purchase Management | Purchase Approval Hierarchy | Phase 2 | Phase 5 | POs exceeding configured monetary threshold require Admin approval to release. | PO approval threshold gate test. | Verified |
 
 ### Module 13: Vendor Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD13-01` | Vendor Management | Vendor Legal Business Name | Phase 3 | Phase 5 | Records legal vendor firm name; validated against duplicates. | Vendor name uniqueness test. | Planned |
-| `REQ-MOD13-02` | Vendor Management | Contact Details & Person | Phase 3 | Phase 5 | Captures primary contact representative, phone, and business email. | Contact validation schema test. | Planned |
-| `REQ-MOD13-03` | Vendor Management | Registered Business Address | Phase 3 | Phase 5 | Captures vendor billing and warehouse dispatch address. | Address schema test. | Planned |
-| `REQ-MOD13-04` | Vendor Management | Vendor GSTIN & PAN | Phase 3 | Phase 5 | Validates 15-char Indian GSTIN and 10-char PAN for purchase tax compliance. | GSTIN checksum and PAN regex test. | Planned |
-| `REQ-MOD13-05` | Vendor Management | Products Supplied Mapping | Phase 10 | Phase 5 | Maps approved vendor to supplied component categories (e.g. Tier-1 Panels). | Category mapping relation test. | Planned |
-| `REQ-MOD13-06` | Vendor Management | Historical Purchase Orders Log | Phase 12 | Phase 5 | Consolidated view of all historical purchase orders placed with vendor. | Purchase order history query test. | Planned |
-| `REQ-MOD13-07` | Vendor Management | Accounts Payable Outstanding | Phase 7 | Phase 5 | Real-time calculation of net balance owed to vendor in integer paise. | Accounts payable balance test. | Planned |
+| `REQ-MOD13-01` | Vendor Management | Vendor Legal Business Name | Phase 3 | Phase 5 | Records legal vendor firm name; validated against duplicates. | Vendor name uniqueness test. | Verified |
+| `REQ-MOD13-02` | Vendor Management | Contact Details & Person | Phase 3 | Phase 5 | Captures primary contact representative, phone, and business email. | Contact validation schema test. | Verified |
+| `REQ-MOD13-03` | Vendor Management | Registered Business Address | Phase 3 | Phase 5 | Captures vendor billing and warehouse dispatch address. | Address schema test. | Verified |
+| `REQ-MOD13-04` | Vendor Management | Vendor GSTIN & PAN | Phase 3 | Phase 5 | Validates 15-char Indian GSTIN and 10-char PAN for purchase tax compliance. | GSTIN checksum and PAN regex test. | Verified |
+| `REQ-MOD13-05` | Vendor Management | Products Supplied Mapping | Phase 10 | Phase 5 | Maps approved vendor to supplied component categories (e.g. Tier-1 Panels). | Category mapping relation test. | Verified |
+| `REQ-MOD13-06` | Vendor Management | Historical Purchase Orders Log | Phase 12 | Phase 5 | Consolidated view of all historical purchase orders placed with vendor. | Purchase order history query test. | Verified |
+| `REQ-MOD13-07` | Vendor Management | Accounts Payable Outstanding | Phase 7 | Phase 5 | Real-time calculation of net balance owed to vendor in integer paise. | Accounts payable balance test. | Verified |
 | `REQ-MOD13-08` | Vendor Management | Disbursement Payment History | Phase 7 | Phase 5 | Ledger of bank disbursements, UTR numbers, and payment vouchers issued. | Disbursement ledger query test. | Planned |
 
 ### Module 14: Project Management

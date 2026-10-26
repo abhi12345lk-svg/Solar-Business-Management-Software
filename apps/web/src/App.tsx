@@ -18,6 +18,11 @@ import { QuotationDetailPage } from './pages/QuotationDetailPage.js';
 import { OrdersPage } from './pages/OrdersPage.js';
 import { OrderDetailPage } from './pages/OrderDetailPage.js';
 import { InventoryPage } from './pages/InventoryPage.js';
+import { VendorsPage } from './pages/VendorsPage.js';
+import { PurchaseOrdersPage } from './pages/PurchaseOrdersPage.js';
+import { PurchaseOrderDetailPage } from './pages/PurchaseOrderDetailPage.js';
+import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
+import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -120,6 +125,46 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <InventoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="vendors"
+            element={
+              <ProtectedRoute>
+                <VendorsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="purchase-orders"
+            element={
+              <ProtectedRoute>
+                <PurchaseOrdersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="purchase-orders/:id"
+            element={
+              <ProtectedRoute>
+                <PurchaseOrderDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="goods-receipts"
+            element={
+              <ProtectedRoute>
+                <GoodsReceiptsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="vendor-invoices"
+            element={
+              <ProtectedRoute>
+                <VendorInvoicesPage />
               </ProtectedRoute>
             }
           />

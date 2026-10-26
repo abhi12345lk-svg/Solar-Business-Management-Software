@@ -48,7 +48,10 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.STOCK_MOVEMENT]: 'STK',
   [SequenceEntityType.STOCK_RESERVATION]: 'RES',
   [SequenceEntityType.PRODUCT]: 'PROD',
-  [SequenceEntityType.WAREHOUSE]: 'WH'
+  [SequenceEntityType.WAREHOUSE]: 'WH',
+  [SequenceEntityType.VENDOR]: 'VEN',
+  [SequenceEntityType.GOODS_RECEIPT]: 'GRN',
+  [SequenceEntityType.VENDOR_INVOICE]: 'VINV'
 };
 
 const DEFAULT_PADDING = 5;

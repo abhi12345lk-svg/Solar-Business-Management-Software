@@ -18,3 +18,7 @@ export * from './StockBalance.js';
 export * from './StockMovement.js';
 export * from './StockReservation.js';
 export * from './ProductSerialNumber.js';
+export * from './Vendor.js';
+export * from './PurchaseOrder.js';
+export * from './GoodsReceipt.js';
+export * from './VendorInvoice.js';

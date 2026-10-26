@@ -85,6 +85,14 @@ export class AppError extends Error {
     return new AppError(409, ErrorCode.DUPLICATE_RESOURCE, message);
   }
 
+  static duplicateResource(message: string): AppError {
+    return new AppError(409, ErrorCode.DUPLICATE_RESOURCE, message);
+  }
+
+  static invalidStateTransition(message: string): AppError {
+    return new AppError(422, ErrorCode.INVALID_STATE_TRANSITION, message);
+  }
+
   static database(message = 'Database unavailable.'): AppError {
     return new AppError(503, ErrorCode.DATABASE_UNAVAILABLE, message);
   }

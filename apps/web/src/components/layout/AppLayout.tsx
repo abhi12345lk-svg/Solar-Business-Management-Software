@@ -13,7 +13,11 @@ import {
   Layers,
   FileSpreadsheet,
   ShoppingCart,
-  Boxes
+  Boxes,
+  Building2,
+  FileText,
+  PackageCheck,
+  Receipt
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -168,6 +172,62 @@ export const AppLayout: React.FC = () => {
                   >
                     <Boxes className="w-4 h-4 mr-1.5 text-solar-500" />
                     <span>Inventory</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/vendors"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Building2 className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Vendors</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/purchase-orders"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <FileText className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Purchase Orders</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/goods-receipts"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <PackageCheck className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Goods Receipt</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/vendor-invoices"
+                    className={({ isActive }) =>
+                      `inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-foreground'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <Receipt className="w-4 h-4 mr-1.5 text-solar-500" />
+                    <span>Invoices</span>
                   </NavLink>
                 </>
               )}

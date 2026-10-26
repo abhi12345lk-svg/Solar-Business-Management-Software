@@ -25,6 +25,8 @@ export interface ICompanySettingsDocument extends Document {
   sequencePrefixes: Record<string, string>;
   discountApprovalThresholdPercent: number;
   isDiscountThresholdConfirmedByOwner: boolean;
+  poApprovalThresholdPaise: number;
+  isPoThresholdConfirmedByOwner: boolean;
   isConfigured: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -117,6 +119,15 @@ const CompanySettingsSchema = new Schema<ICompanySettingsDocument>(
       max: 100
     },
     isDiscountThresholdConfirmedByOwner: {
+      type: Boolean,
+      default: false
+    },
+    poApprovalThresholdPaise: {
+      type: Number,
+      default: 2500000, // ₹25,000.00 in integer paise
+      min: 0
+    },
+    isPoThresholdConfirmedByOwner: {
       type: Boolean,
       default: false
     },
