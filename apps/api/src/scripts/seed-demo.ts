@@ -1,0 +1,388 @@
+import { dbManager } from '../db/connection.js';
+import {
+  User,
+  CompanySettings,
+  Customer,
+  ProductCategory,
+  Product,
+  Warehouse,
+  StockBalance,
+  Project,
+  ProjectInstallationChecklist,
+  NetMeteringApplication,
+  SubsidyApplication
+} from '../models/index.js';
+import {
+  UserRole,
+  ProjectPriority,
+  SolarTopology,
+  NetMeteringStatus,
+  NetMeteringInspectionOutcome,
+  SubsidyScheme,
+  DisbursementMode,
+  ApplicationDocumentStatus,
+  UnitOfMeasurement
+} from '@ins-solar/shared';
+import { ProjectService } from '../services/projectService.js';
+import { NetMeteringService } from '../services/netMeteringService.js';
+import { SubsidyService } from '../services/subsidyService.js';
+import { ChecklistService } from '../services/checklistService.js';
+
+export async function seedDemoData(): Promise<void> {
+  await dbManager.connect();
+
+  try {
+    // 1. Get Superadmin
+    let admin = await User.findOne({ email: 'admin@inssolar.com' });
+    if (!admin) {
+      admin = await User.findOne({ role: UserRole.SUPERADMIN });
+    }
+    if (!admin) {
+      console.error('Please run bootstrap:admin first before seeding demo data.');
+      return;
+    }
+    const adminUser = {
+      userId: admin._id.toString(),
+      role: admin.role,
+      department: admin.department
+    };
+
+    // 2. Company Settings
+    const existingSettings = await CompanySettings.findOne();
+    if (!existingSettings) {
+      await CompanySettings.create({
+        companyName: 'INS Solar Solutions Pvt Ltd',
+        registrationNumber: 'U40106RJ2026PTC099881',
+        gstin: '08AAAAA0000A1Z5',
+        pan: 'AAAAA0000A',
+        registeredAddress: {
+          addressLine1: 'Plot 42, Solar Tech Park, Sitapura',
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          postalCode: '302022',
+          country: 'India'
+        },
+        contactEmail: 'contact@inssolar.com',
+        contactPhone: '+911412555555',
+        fiscalYearStartMonth: 4,
+        prefixes: {
+          customer: 'CUST',
+          quotation: 'QT',
+          order: 'ORD',
+          project: 'PRJ',
+          invoice: 'INV',
+          receipt: 'REC'
+        },
+        poApprovalThresholdPaise: 2500000,
+        maxDiscountPercentageWithoutApproval: 5.0,
+        createdBy: admin._id
+      });
+      console.log('✓ Company settings seeded.');
+    }
+
+    // 3. Central Warehouse
+    let warehouse = await Warehouse.findOne({ code: 'WH-JAIPUR-01' });
+    if (!warehouse) {
+      warehouse = await Warehouse.create({
+        code: 'WH-JAIPUR-01',
+        name: 'Central Depot Jaipur',
+        type: 'CENTRAL_DEPOT',
+        address: {
+          addressLine1: 'Warehouse C-12, Sitapura Industrial Area',
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          postalCode: '302022',
+          country: 'India'
+        },
+        isActive: true,
+        createdBy: admin._id
+      });
+      console.log('✓ Central warehouse seeded.');
+    }
+
+    // 4. Product Categories & Products
+    let panelCat = await ProductCategory.findOne({ code: 'CAT-PANELS' });
+    if (!panelCat) {
+      panelCat = await ProductCategory.create({
+        code: 'CAT-PANELS',
+        name: 'Solar PV Modules',
+        description: 'Tier-1 High Efficiency Monocrystalline PV Modules',
+        isActive: true,
+        createdBy: admin._id
+      });
+    }
+
+    let inverterCat = await ProductCategory.findOne({ code: 'CAT-INVERTERS' });
+    if (!inverterCat) {
+      inverterCat = await ProductCategory.create({
+        code: 'CAT-INVERTERS',
+        name: 'Solar Inverters',
+        description: 'Grid-Tied String & Hybrid Inverters',
+        isActive: true,
+        createdBy: admin._id
+      });
+    }
+
+    let panel = await Product.findOne({ skuNormalized: 'PANEL-MONO-550W' });
+    if (!panel) {
+      panel = await Product.create({
+        productCode: 'PROD-2026-00001',
+        sku: 'PANEL-MONO-550W',
+        skuNormalized: 'PANEL-MONO-550W',
+        name: '550Wp Mono Perc Solar Panel',
+        description: 'High efficiency Half-Cut Bifacial Monocrystalline Module with 25-yr warranty',
+        categoryId: panelCat._id,
+        brand: 'Waaree',
+        model: 'WXS-550',
+        productType: 'PANEL',
+        uom: UnitOfMeasurement.NOS,
+        standardPurchaseRatePaise: 1100000,
+        standardSellingRatePaise: 1350000,
+        taxProfileCode: 'GST_12',
+        minimumStockThreshold: 10,
+        isActive: true,
+        createdBy: admin._id
+      });
+    }
+
+    let inverter = await Product.findOne({ skuNormalized: 'INV-GRID-5KW' });
+    if (!inverter) {
+      inverter = await Product.create({
+        productCode: 'PROD-2026-00002',
+        sku: 'INV-GRID-5KW',
+        skuNormalized: 'INV-GRID-5KW',
+        name: '5kW Single Phase On-Grid Inverter',
+        description: 'Dual MPPT, IP65 waterproof on-grid solar string inverter with Wi-Fi',
+        categoryId: inverterCat._id,
+        brand: 'Solis',
+        model: 'S5-GR1P5K',
+        productType: 'INVERTER',
+        uom: UnitOfMeasurement.SETS,
+        standardPurchaseRatePaise: 3500000,
+        standardSellingRatePaise: 4200000,
+        taxProfileCode: 'GST_12',
+        minimumStockThreshold: 5,
+        isActive: true,
+        createdBy: admin._id
+      });
+    }
+
+    // Stock Balances
+    const existingBalance = await StockBalance.findOne({ productId: panel._id });
+    if (!existingBalance) {
+      await StockBalance.create({
+        productId: panel._id,
+        warehouseId: warehouse._id,
+        onHandQuantity: 120,
+        reservedQuantity: 0,
+        availableQuantity: 120
+      });
+      await StockBalance.create({
+        productId: inverter._id,
+        warehouseId: warehouse._id,
+        onHandQuantity: 30,
+        reservedQuantity: 0,
+        availableQuantity: 30
+      });
+      console.log('✓ Hardware inventory catalog seeded.');
+    }
+
+    // 5. Customer Ramesh Sharma
+    let customer = await Customer.findOne({ primaryPhone: '+919829012345' });
+    if (!customer) {
+      customer = await Customer.create({
+        customerCode: 'CUST-2026-00001',
+        name: 'Ramesh Sharma',
+        type: 'INDIVIDUAL',
+        primaryPhone: '+919829012345',
+        email: 'ramesh.sharma@example.com',
+        status: 'ACTIVE',
+        isActive: true,
+        billingAddress: {
+          addressLine1: 'B-14, Vaishali Nagar',
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          postalCode: '302021',
+          country: 'India'
+        },
+        installationAddress: {
+          addressLine1: 'B-14, Vaishali Nagar',
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          postalCode: '302021',
+          country: 'India'
+        }
+      });
+      console.log('✓ Customer Ramesh Sharma created.');
+    }
+
+    // 6. Project
+    let project: any = await Project.findOne({ customerId: customer._id });
+    if (!project) {
+      project = await ProjectService.createProject(
+        {
+          customerId: customer._id.toString(),
+          name: '5.5 kWp Residential Rooftop Solar Plant',
+          systemCapacityKwp: 5.5,
+          systemTopology: SolarTopology.ON_GRID,
+          priority: ProjectPriority.HIGH,
+          plannedStartDate: new Date().toISOString(),
+          targetCompletionDate: new Date(Date.now() + 86400000 * 30).toISOString(),
+          siteAddress: {
+            addressLine1: 'B-14, Vaishali Nagar',
+            city: 'Jaipur',
+            state: 'Rajasthan',
+            postalCode: '302021',
+            country: 'India'
+          },
+          notes: 'Customer approved 10x 550W panels with 5kW string inverter.'
+        },
+        adminUser,
+        { correlationId: 'seed-demo' }
+      );
+      console.log(`✓ Project ${project.projectCode} created.`);
+    }
+
+    if (!project) {
+      throw new Error('Project creation failed');
+    }
+
+    // 7. Installation Checklist
+    let checklist: any = await ProjectInstallationChecklist.findOne({ projectId: project._id });
+    if (!checklist) {
+      checklist = await ChecklistService.generateProjectChecklist(project._id.toString(), undefined, adminUser);
+      console.log('✓ 5-Category Installation Checklist generated.');
+    }
+
+    // 8. Net Metering Application (Phase 7A)
+    let netMetering: any = await NetMeteringApplication.findOne({ projectId: project._id });
+    if (!netMetering) {
+      netMetering = await NetMeteringService.createApplication(
+        {
+          projectId: project._id.toString(),
+          discomName: 'JVVNL (Jaipur Vidyut Vitran Nigam Ltd)',
+          division: 'Jaipur City Circle',
+          subdivision: 'Vaishali Nagar AEN-1',
+          consumerNumber: '1102/4482/91',
+          sanctionedLoadKw: 5.0,
+          proposedCapacityKw: 5.5,
+          notes: 'Rooftop net metering application filed with JVVNL'
+        },
+        adminUser
+      );
+
+      // Upload and approve mandatory documents so it can advance
+      for (const doc of netMetering.documents) {
+        if (doc.isRequired) {
+          doc.status = ApplicationDocumentStatus.ACCEPTED;
+          doc.fileName = `${doc.documentType.toLowerCase()}.pdf`;
+          doc.storageKey = `evidence/documents/${netMetering.applicationNumber}/${doc.fileName}`;
+          doc.reviewedBy = admin._id;
+          doc.reviewedAt = new Date();
+        }
+      }
+      netMetering.status = NetMeteringStatus.INSPECTION_SCHEDULED;
+      netMetering.submissionDate = new Date('2026-10-21');
+      netMetering.applicationReferenceNumber = 'JVVNL/RTS/2026/09941';
+      netMetering.technicalFeasibility = {
+        isFeasible: true,
+        approvalDate: new Date('2026-10-23'),
+        demandNoteAmountPaise: 250000, // ₹2,500
+        demandNotePaidDate: new Date('2026-10-24'),
+        demandNotePaymentRef: 'UPI/629910041289'
+      };
+      netMetering.inspection = {
+        scheduledDate: new Date(Date.now() + 86400000 * 2), // 2 days ahead
+        inspectorName: 'Er. Rajesh Meena (AEN)',
+        inspectorPhone: '+919414002345',
+        outcome: NetMeteringInspectionOutcome.PENDING,
+        remarks: 'Joint site inspection scheduled for solar plant verification.'
+      };
+      await netMetering.save();
+      console.log(`✓ Net Metering Application ${netMetering.applicationNumber} created & scheduled.`);
+    }
+
+    // 9. Subsidy Application (Phase 7A)
+    let subsidy: any = await SubsidyApplication.findOne({ projectId: project._id });
+    if (!subsidy) {
+      subsidy = await SubsidyService.createApplication(
+        {
+          projectId: project._id.toString(),
+          schemeName: SubsidyScheme.PM_SURYA_GHAR_MUFT_BIJLI_YOJANA,
+          schemeVersion: '2024-2027 Guidelines v2',
+          portalApplicationNumber: 'PMSG-RJ-2026-449102',
+          systemCapacityKw: 5.5,
+          estimatedAmountPaise: 7800000,
+          requestedAmountPaise: 7800000, // ₹78,000
+          notes: 'Rooftop solar subsidy claim for 5.5 kWp system'
+        },
+        adminUser
+      );
+
+      // Mark required documents accepted
+      for (const doc of subsidy.documents) {
+        if (doc.isRequired) {
+          doc.status = ApplicationDocumentStatus.ACCEPTED;
+          doc.fileName = `${doc.documentType.toLowerCase()}.pdf`;
+          doc.storageKey = `evidence/documents/${subsidy.applicationNumber}/${doc.fileName}`;
+          doc.reviewedBy = admin._id;
+          doc.reviewedAt = new Date();
+        }
+      }
+      await subsidy.save();
+
+      // Record Sanction
+      subsidy = await SubsidyService.recordSanction(
+        subsidy._id.toString(),
+        {
+          approvedAmountPaise: 7800000,
+          sanctionReference: 'MNRE/DBT/2026/SNC-0982',
+          sanctionDate: new Date('2026-10-24')
+        },
+        adminUser
+      );
+
+      // Record First Partial Disbursement (₹50,000)
+      subsidy = await SubsidyService.recordDisbursement(
+        subsidy._id.toString(),
+        {
+          amountPaise: 5000000, // ₹50,000
+          disbursementReference: 'SBIN20261025881923',
+          paymentMode: DisbursementMode.DIRECT_BENEFIT_TRANSFER,
+          recipientAccount: 'SBI A/C XXXX4489 (Ramesh Sharma)',
+          disbursedAt: new Date('2026-10-25'),
+          notes: 'Tranche 1 DBT credited to consumer SBI account.',
+          idempotencyKey: 'IDEMP-SUB-2026-00001-INST1'
+        },
+        adminUser
+      );
+      console.log(`✓ Subsidy Application ${subsidy.applicationNumber} sanctioned and 1st DBT tranche recorded.`);
+    }
+
+    console.log('\n======================================================');
+    console.log('  INS SOLAR BUSINESS MANAGEMENT SYSTEM — DEMO READY!  ');
+    console.log('======================================================');
+    console.log('  Web Portal:    http://localhost:5173');
+    console.log('  API Server:    http://localhost:4000/api/v1');
+    console.log('  Login Email:   admin@inssolar.com');
+    console.log('  Password:      Admin@Solar2026!');
+    console.log('------------------------------------------------------');
+    console.log('  Available Modules:');
+    console.log('  • Projects:        http://localhost:5173/projects');
+    console.log('  • Net Metering:    http://localhost:5173/net-metering');
+    console.log('  • Subsidies:       http://localhost:5173/subsidies');
+    console.log('  • Inventory:       http://localhost:5173/inventory');
+    console.log('  • Quotations:      http://localhost:5173/quotations');
+    console.log('  • CRM Leads:       http://localhost:5173/leads');
+    console.log('======================================================\n');
+  } finally {
+    await dbManager.disconnect();
+  }
+}
+
+seedDemoData()
+  .then(() => process.exit(0))
+  .catch(err => {
+    console.error('Seed demo failed:', err);
+    process.exit(1);
+  });

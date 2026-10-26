@@ -9,7 +9,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "dev": "concurrently -n API,WEB -c cyan,magenta npm:dev:api npm:dev:web",
     "dev:api": "npm run dev --workspace=@ins-solar/api",
     "dev:web": "npm run dev --workspace=@ins-solar/web",
     "build": "npm run build --workspace=@ins-solar/shared && npm run build --workspace=@ins-solar/api && npm run build --workspace=@ins-solar/web",
@@ -22,6 +22,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "audit:security": "npm audit --omit=dev --audit-level=high",
     "bootstrap:admin": "npm run bootstrap:admin --workspace=@ins-solar/api",
+    "seed:demo": "tsx apps/api/src/scripts/seed-demo.ts",
     "ci": "npm run typecheck && npm run test && npm run build"
   },
   "overrides": {
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
+    "concurrently": "^10.0.6",
     "eslint": "^9.21.0",
     "prettier": "^3.5.2",
     "typescript": "^5.7.3"

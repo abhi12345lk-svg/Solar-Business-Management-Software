@@ -133,7 +133,7 @@ export class SubsidyService {
       effectivePeriod: input.effectivePeriod?.trim(),
       portalApplicationNumber: input.portalApplicationNumber?.trim(),
       submissionDate: input.submissionDate ? new Date(input.submissionDate) : undefined,
-      systemCapacityKw: input.systemCapacityKw,
+      systemCapacityKw: input.systemCapacityKw ?? (project as any).systemCapacityKwp,
       estimatedAmountPaise: input.estimatedAmountPaise,
       requestedAmountPaise: input.requestedAmountPaise,
       approvedAmountPaise: 0,
