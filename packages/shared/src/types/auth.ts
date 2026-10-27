@@ -102,6 +102,18 @@ export const ALL_PERMISSIONS = [
   'payment:reverse',
   'payment:receipt_read',
 
+  // Expense Management
+  'expense:create',
+  'expense:read',
+  'expense:approve',
+  'expense:pay',
+  'expense:cancel',
+
+  // Project Budget & Costing
+  'project:budget_create',
+  'project:budget_approve',
+  'project:cost_read',
+
   // Procurement & Vendor Management
   'vendor:create',
   'vendor:read',
@@ -235,7 +247,15 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'subsidy:create',
     'subsidy:read',
     'subsidy:update',
-    'subsidy:disburse'
+    'subsidy:disburse',
+    'expense:create',
+    'expense:read',
+    'expense:approve',
+    'expense:pay',
+    'expense:cancel',
+    'project:budget_create',
+    'project:budget_approve',
+    'project:cost_read'
   ],
   [UserRole.SALES_EXECUTIVE]: [
     'lead:create',
@@ -258,7 +278,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'catalog:read',
     'warehouse:read',
     'net_metering:read',
-    'subsidy:read'
+    'subsidy:read',
+    'expense:create',
+    'expense:read'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -294,7 +316,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'customer:read',
     'inv:read',
     'net_metering:read',
-    'net_metering:update'
+    'net_metering:update',
+    'expense:create',
+    'expense:read',
+    'project:cost_read'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -321,7 +346,15 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'inv:read',
     'subsidy:read',
     'subsidy:update',
-    'subsidy:disburse'
+    'subsidy:disburse',
+    'expense:create',
+    'expense:read',
+    'expense:approve',
+    'expense:pay',
+    'expense:cancel',
+    'project:budget_create',
+    'project:budget_approve',
+    'project:cost_read'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',

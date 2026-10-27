@@ -100,6 +100,7 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     icon: Banknote,
     items: [
       { to: '/payments', label: 'Customer Payments', description: 'Realization, order allocations & sequences', icon: Banknote },
+      { to: '/expenses', label: 'Expenses Register', description: 'Operational expenses & project costing', icon: Receipt },
       { to: '/customer-portal/payments', label: 'Client Payments Portal', description: 'Customer receipts & statement view', icon: Receipt }
     ]
   }

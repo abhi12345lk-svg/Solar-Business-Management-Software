@@ -220,6 +220,19 @@ graph TD
 
 ---
 
+### Phase 8B: Expense Management, Project Costing & Profitability
+*   **Focus:** Operational expense management, atomic numbering (`EXP-YYYY-NNNNN`), company approval thresholds (> ₹5,000 / 500,000 paise), anti-self-approval enforcement, disbursement recording, cancellation audit trail, project cost ledger compilation without double-counting (dispatched materials + direct project expenses; POs/GRNs/VendorInvoices excluded), project budget versioning (`project_budgets`) with automatic superseding of prior versions, budget-vs-actual variance analysis, and operational profitability estimation with non-statutory legal disclaimer.
+*   **Status (Completed & Verified):**
+    *   `Expense` Mongoose model & `ExpenseService`: Atomic sequence numbering (`EXP-YYYY-NNNNN`), positive integer paise precision (`amountPaise`, `taxAmountPaise`, `totalAmountPaise`, `paidAmountPaise`), status lifecycle (`DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `CANCELLED`), company threshold evaluation via `CompanySettings.expenseApprovalThresholdPaise`, anti-self-approval validation preventing submitters from approving their own expenses, payment disbursement recording (`UNPAID` → `PAID`), and cancellation with mandatory audit reasoning.
+    *   `ProjectBudget` Mongoose model & `ProjectProfitabilityService`: Versioned budget baseline management (`version = max(existing) + 1`), positive integer paise category planned amounts (materials, labor, equipment, permits, logistics, contingency, other), formal manager approval lifecycle, and automatic superseding of prior active versions (`supersededByBudgetVersion`).
+    *   Authoritative Project Cost Ledger & Anti-Double-Counting Rules: Materials consumed derive strictly from `MaterialDispatch` in `DISPATCHED` status multiplied by `Product.standardPurchaseRatePaise`; direct project expenses derive strictly from `Expense` in `APPROVED` or `PAID` status. Strictly excludes PO commitments, GRN warehouse receipts, and vendor invoice payable claims.
+    *   Revenue & Profitability Engine: Calculates contracted sales order value (`netTotalPaise`), confirmed customer collections (`PaymentAllocation`), outstanding receivables, total recorded cost, estimated gross profit and margin %, operational progress revenue based on physical milestone completion percentage, and category budget-vs-actual variance.
+    *   Web User Interface (`apps/web`): Dedicated `ExpensesPage` (`/expenses`) with financial KPI cards, multi-criteria filters, and action modals (Record, Approve, Reject, Disburse Payment, Cancel, Detail/Audit); embedded `ProjectCostingTab` in `ProjectDetailPage.tsx` featuring financial KPIs, budget-vs-actual variance comparison, line-by-line cost ledger, budget version manager modal, and prominent non-statutory accounting disclaimer; navigation item under `Finance & Accounts` in `AppLayout.tsx`.
+*   **Acceptance Criteria:** Anti-self-approval strictly enforced (HTTP 403); threshold > ₹5,000 forces manager approval; zero double-counting against POs/GRNs/VendorInvoices; integer paise preserved throughout; non-statutory disclaimer rendered on all costing views; full monorepo quality gates pass.
+*   **Test Gate:** 389 automated tests passing with 0 failures across `@ins-solar/shared` (135 tests), `@ins-solar/api` (213 tests, including 15 Phase 8B tests), and `@ins-solar/web` (41 tests, including 4 Phase 8B tests).
+
+---
+
 ### Phase 9: Customer Portal, Notifications, Reminders & System Settings
 *   **Focus:** External Customer Portal (isolated project tracker, quotation acceptance, bill upload, invoices), in-app notification center, transactional emails, configurable WhatsApp templates, automated chron-based reminder engine, and global settings/masters console.
 *   **Entry Criteria:** Phase 8 After-Sales verified.

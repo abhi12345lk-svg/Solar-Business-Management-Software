@@ -316,32 +316,32 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD19-01` | Expense Management | Expense Incurred Date | Phase 3 | Phase 7 | Records date cost was incurred. | Date schema test. | Planned |
-| `REQ-MOD19-02` | Expense Management | Expense Category Classification | Phase 3 | Phase 7 | Classifies category: Travel/Fuel, Freight, Crane, Civil, Labor, Liaison, Consumables. | Category enum validation test. | Planned |
-| `REQ-MOD19-03` | Expense Management | Project Attribution vs Overhead | Phase 14 | Phase 7 | Links directly to Project ID or flags as General Company Overhead. | Attribution schema validation test. | Planned |
-| `REQ-MOD19-04` | Expense Management | Claimant Employee / Vendor Link | Phase 2, Phase 13 | Phase 7 | Binds expense to employee claiming reimbursement or vendor being paid. | Claimant reference test. | Planned |
-| `REQ-MOD19-05` | Expense Management | Expense Description Narrative | Phase 3 | Phase 7 | Detailed business justification for the expenditure. | Text field schema test. | Planned |
-| `REQ-MOD19-06` | Expense Management | Expense Amount in Integer Paise | Phase 3 | Phase 7 | Enforces positive integer paise representation. | Numeric currency boundary test. | Planned |
-| `REQ-MOD19-07` | Expense Management | Disbursement Payment Mode | Phase 3 | Phase 7 | Categorizes mode: Company Card, Bank Transfer, Petty Cash, Employee Reimbursement. | Disbursement mode enum test. | Planned |
-| `REQ-MOD19-08` | Expense Management | Administrative Remarks | Phase 3 | Phase 7 | Internal accounts notes regarding reimbursement status. | Remarks schema test. | Planned |
-| `REQ-MOD19-09` | Expense Management | Receipt Voucher Attachment | Phase 26 | Phase 7 | Uploads photo/scan of vendor cash bill or fuel voucher to private S3. | Receipt attachment upload test. | Planned |
-| `REQ-MOD19-10` | Expense Management | Tiered Approval Hierarchy | Phase 2 | Phase 7 | Expenses exceeding configured limit (e.g. ₹5,000) require manager approval before payout. | Expense approval workflow test. | Planned |
+| `REQ-MOD19-01` | Expense Management | Expense Incurred Date | Phase 3 | Phase 8B | Records date cost was incurred. | `phase8b.test.ts` expense creation date test | Verified |
+| `REQ-MOD19-02` | Expense Management | Expense Category Classification | Phase 3 | Phase 8B | Classifies category: Materials, Site Survey, Civil Work, Labor, Logistics, Permits, Tools, AMC, Travel, Utilities, Marketing, Misc. | `phase8b.test.ts` expense category enum test | Verified |
+| `REQ-MOD19-03` | Expense Management | Project Attribution vs Overhead | Phase 14 | Phase 8B | Links directly to Project ID or flags as General Company Overhead. | `phase8b.test.ts` project attribution test | Verified |
+| `REQ-MOD19-04` | Expense Management | Claimant Employee / Vendor Link | Phase 2, Phase 13 | Phase 8B | Binds expense to employee claiming reimbursement or vendor being paid. | `phase8b.test.ts` submittedBy and vendorId test | Verified |
+| `REQ-MOD19-05` | Expense Management | Expense Description Narrative | Phase 3 | Phase 8B | Detailed business justification for the expenditure. | `phase8b.test.ts` description schema test | Verified |
+| `REQ-MOD19-06` | Expense Management | Expense Amount in Integer Paise | Phase 3 | Phase 8B | Enforces positive integer paise representation without floating point math. | `phase8b.test.ts` integer paise amount test | Verified |
+| `REQ-MOD19-07` | Expense Management | Disbursement Payment Mode | Phase 3 | Phase 8B | Categorizes mode: Company Card, Bank Transfer, Petty Cash, Employee Reimbursement, UPI, Cash. | `phase8b.test.ts` disbursement payment test | Verified |
+| `REQ-MOD19-08` | Expense Management | Administrative Remarks | Phase 3 | Phase 8B | Approval notes, rejection reasons, and cancellation reasons recorded with audit history. | `phase8b.test.ts` rejection & cancellation audit test | Verified |
+| `REQ-MOD19-09` | Expense Management | Receipt Voucher Attachment | Phase 26 | Phase 8B | Uploads photo/scan of vendor cash bill or fuel voucher to object storage. | `phase8b.test.ts` receiptUrl schema test | Verified |
+| `REQ-MOD19-10` | Expense Management | Tiered Approval Hierarchy | Phase 2 | Phase 8B | Expenses exceeding configured limit (> ₹5,000) mandate manager approval; anti-self-approval enforced. | `phase8b.test.ts` threshold & anti-self-approval test | Verified |
 
 ### Module 20: Project Costing & Profit
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD20-01` | Project Costing & Profit | Landed Solar Panel Cost | Phase 11, Phase 14 | Phase 7 | Aggregates actual landed acquisition cost of modules issued to project in Paise. | Panel cost aggregation test. | Planned |
-| `REQ-MOD20-02` | Project Costing & Profit | Landed Inverter Cost | Phase 11, Phase 14 | Phase 7 | Aggregates actual acquisition cost of inverters issued to project in Paise. | Inverter cost aggregation test. | Planned |
-| `REQ-MOD20-03` | Project Costing & Profit | Landed Structure Cost | Phase 11, Phase 14 | Phase 7 | Aggregates landed cost of rails, clamps, fasteners, and steel structure in Paise. | Structure cost aggregation test. | Planned |
-| `REQ-MOD20-04` | Project Costing & Profit | Subcontractor & Internal Labor | Phase 19 | Phase 7 | Aggregates installation contractor fees and internal labor allocations in Paise. | Labor cost roll-up test. | Planned |
-| `REQ-MOD20-05` | Project Costing & Profit | Freight & Staged Logistics Cost | Phase 19 | Phase 7 | Aggregates transport, crane, and loading/unloading costs in Paise. | Logistics cost roll-up test. | Planned |
-| `REQ-MOD20-06` | Project Costing & Profit | Installation & Civil Material Cost | Phase 19 | Phase 7 | Aggregates cement, sand, masonry, and civil foundation expenditures in Paise. | Civil expense roll-up test. | Planned |
-| `REQ-MOD20-07` | Project Costing & Profit | Other Incidental Project Expenses | Phase 19 | Phase 7 | Sums all approved project-attributed incidentals and liaison fees in Paise. | Incidental cost roll-up test. | Planned |
-| `REQ-MOD20-08` | Project Costing & Profit | Total Actual Project Cost | Phase 19 | Phase 7 | Total Cost = Panel + Inverter + Structure + Labor + Freight + Civil + Incidentals. | Total cost formula calculation test. | Planned |
-| `REQ-MOD20-09` | Project Costing & Profit | Net Contracted Sale Value | Phase 9 | Phase 7 | Extracts contracted sale value (excluding net tax pass-throughs) in Paise. | Sale value extraction test. | Planned |
-| `REQ-MOD20-10` | Project Costing & Profit | Gross Profit & Margin Percentage | Phase 7 | Phase 7 | Computes Profit = Sale Value - Total Cost; Margin % = (Profit / Sale Value) * 100. | Margin percentage calculation test. | Planned |
-| `REQ-MOD20-11` | Project Costing & Profit | Estimated vs Actual Cost Variance | Phase 7 | Phase 7 | Compares estimated quotation BOM cost against actual landed execution cost; flags variance. | Cost variance formula and alert test. | Planned |
+| `REQ-MOD20-01` | Project Costing & Profit | Landed Solar Panel Cost | Phase 11, Phase 14 | Phase 8B | Aggregates landed acquisition cost of modules issued via MaterialDispatch in Paise. | `phase8b.test.ts` cost ledger materials test | Verified |
+| `REQ-MOD20-02` | Project Costing & Profit | Landed Inverter Cost | Phase 11, Phase 14 | Phase 8B | Aggregates actual acquisition cost of inverters issued via MaterialDispatch in Paise. | `phase8b.test.ts` cost ledger materials test | Verified |
+| `REQ-MOD20-03` | Project Costing & Profit | Landed Structure Cost | Phase 11, Phase 14 | Phase 8B | Aggregates landed cost of rails, clamps, fasteners, and steel structure in Paise. | `phase8b.test.ts` cost ledger materials test | Verified |
+| `REQ-MOD20-04` | Project Costing & Profit | Subcontractor & Internal Labor | Phase 19 | Phase 8B | Aggregates installation contractor fees and internal labor allocations in Paise. | `phase8b.test.ts` direct project expenses test | Verified |
+| `REQ-MOD20-05` | Project Costing & Profit | Freight & Staged Logistics Cost | Phase 19 | Phase 8B | Aggregates transport, crane, and loading/unloading costs in Paise. | `phase8b.test.ts` direct project expenses test | Verified |
+| `REQ-MOD20-06` | Project Costing & Profit | Installation & Civil Material Cost | Phase 19 | Phase 8B | Aggregates cement, sand, masonry, and civil foundation expenditures in Paise. | `phase8b.test.ts` direct project expenses test | Verified |
+| `REQ-MOD20-07` | Project Costing & Profit | Other Incidental Project Expenses | Phase 19 | Phase 8B | Sums all approved project-attributed incidentals and liaison fees in Paise. | `phase8b.test.ts` direct project expenses test | Verified |
+| `REQ-MOD20-08` | Project Costing & Profit | Total Actual Project Cost | Phase 19 | Phase 8B | Total Cost = Dispatched Materials (Product Standard Rate) + Approved/Paid Direct Expenses. | `phase8b.test.ts` total recorded cost test | Verified |
+| `REQ-MOD20-09` | Project Costing & Profit | Net Contracted Sale Value | Phase 9 | Phase 8B | Extracts contracted sale value from accepted SalesOrder.netTotalPaise. | `phase8b.test.ts` sales order value extraction test | Verified |
+| `REQ-MOD20-10` | Project Costing & Profit | Gross Profit & Margin Percentage | Phase 7 | Phase 8B | Computes Profit = Sale Value - Total Cost; Margin % = (Profit / Sale Value) * 100 with disclaimer. | `phase8b.test.ts` margin percentage derivation test | Verified |
+| `REQ-MOD20-11` | Project Costing & Profit | Estimated vs Actual Cost Variance | Phase 7 | Phase 8B | Compares versioned ProjectBudget category amounts against actual incurred cost; flags variance. | `phase8b.test.ts` budget vs actual variance test | Verified |
 
 ### Module 21: Service / Complaint Management
 

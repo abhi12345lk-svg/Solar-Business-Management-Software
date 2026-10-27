@@ -34,6 +34,7 @@ import { ServiceVisitsPage } from './pages/ServiceVisitsPage.js';
 import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
 import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
+import { ExpensesPage } from './pages/ExpensesPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -256,6 +257,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <PaymentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="expenses"
+            element={
+              <ProtectedRoute>
+                <ExpensesPage />
               </ProtectedRoute>
             }
           />

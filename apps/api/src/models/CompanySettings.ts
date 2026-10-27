@@ -27,6 +27,8 @@ export interface ICompanySettingsDocument extends Document {
   isDiscountThresholdConfirmedByOwner: boolean;
   poApprovalThresholdPaise: number;
   isPoThresholdConfirmedByOwner: boolean;
+  expenseApprovalThresholdPaise: number;
+  isExpenseThresholdConfirmedByOwner: boolean;
   isConfigured: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -109,7 +111,8 @@ const CompanySettingsSchema = new Schema<ICompanySettingsDocument>(
         [SequenceEntityType.PAYMENT_RECEIPT]: 'REC',
         [SequenceEntityType.SERVICE_TICKET]: 'TKT',
         [SequenceEntityType.AMC_CONTRACT]: 'AMC',
-        [SequenceEntityType.STOCK_MOVEMENT]: 'STK'
+        [SequenceEntityType.STOCK_MOVEMENT]: 'STK',
+        [SequenceEntityType.EXPENSE]: 'EXP'
       }
     },
     discountApprovalThresholdPercent: {
@@ -128,6 +131,15 @@ const CompanySettingsSchema = new Schema<ICompanySettingsDocument>(
       min: 0
     },
     isPoThresholdConfirmedByOwner: {
+      type: Boolean,
+      default: false
+    },
+    expenseApprovalThresholdPaise: {
+      type: Number,
+      default: 500000, // ₹5,000.00 in integer paise
+      min: 0
+    },
+    isExpenseThresholdConfirmedByOwner: {
       type: Boolean,
       default: false
     },

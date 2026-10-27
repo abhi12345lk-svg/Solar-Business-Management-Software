@@ -35,3 +35,5 @@ export * from './AnnualMaintenanceContract.js';
 export * from './ServiceVisit.js';
 export * from './CustomerPayment.js';
 export * from './PaymentAllocation.js';
+export * from './Expense.js';
+export * from './ProjectBudget.js';

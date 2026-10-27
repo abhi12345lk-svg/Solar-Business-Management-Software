@@ -35,7 +35,8 @@ import {
   Truck,
   ClipboardCheck,
   Landmark,
-  LifeBuoy
+  LifeBuoy,
+  DollarSign
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
@@ -43,6 +44,7 @@ import { InstallationChecklistTab } from '../components/project/InstallationChec
 import { NetMeteringTab } from '../components/project/NetMeteringTab.js';
 import { SubsidyTab } from '../components/project/SubsidyTab.js';
 import { ServiceAmcTab } from '../components/project/ServiceAmcTab.js';
+import { ProjectCostingTab } from '../components/project/ProjectCostingTab.js';
 
 interface ProjectDetail {
   _id: string;
@@ -167,7 +169,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'net-metering' | 'subsidy' | 'service-amc' | 'milestones' | 'tasks' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'net-metering' | 'subsidy' | 'service-amc' | 'milestones' | 'tasks' | 'history' | 'costing'>('overview');
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -734,6 +736,18 @@ export const ProjectDetailPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('costing')}
+          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+            activeTab === 'costing'
+              ? 'border-solar-600 text-solar-600 font-semibold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <DollarSign className="w-4 h-4" />
+          <span>Costing & Profitability</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('milestones')}
           className={`pb-3 border-b-2 flex items-center space-x-2 ${
             activeTab === 'milestones'
@@ -1185,6 +1199,11 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Tab: Service, Warranties & AMC */}
       {activeTab === 'service-amc' && (
         <ServiceAmcTab projectId={project._id} isTerminal={isTerminal} />
+      )}
+
+      {/* Tab: Project Costing & Profitability */}
+      {activeTab === 'costing' && (
+        <ProjectCostingTab projectId={project._id} />
       )}
 
       {/* Tab 4: Stage History & Activity */}

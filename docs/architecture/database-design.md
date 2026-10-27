@@ -1462,3 +1462,98 @@ interface IPaymentAllocation {
 // - { idempotencyKey: 1 } (sparse, unique)
 ```
 
+---
+
+## 9. Expense Management & Project Costing (Phase 8B)
+
+### 9.1 `expenses`
+Operational expenses, receipts, manager approval workflows, and disbursement tracking.
+```typescript
+interface IExpense {
+  _id: ObjectId;
+  expenseNumber: string;                 // Unique: EXP-YYYY-NNNNN (SequenceService)
+  category: ExpenseCategory;             // MATERIALS, SITE_SURVEY, CIVIL_WORK, INSTALLATION_LABOR, LOGISTICS_TRANSPORT, PERMITS_APPROVALS, TOOLS_CONSUMABLES, COMMISSIONING, AMC_SERVICE, TRAVEL_STAY, OFFICE_UTILITIES, MARKETING_SALES, MISCELLANEOUS
+  expenseDate: Date;                     // Date expense was incurred
+  amountPaise: number;                   // Base amount in integer paise (Positive, e.g. ₹5,000 = 500000)
+  taxAmountPaise: number;                // Tax amount in integer paise (>= 0)
+  totalAmountPaise: number;              // Total amount in integer paise (amountPaise + taxAmountPaise)
+  currency: string;                      // Default "INR"
+  description: string;                   // Purpose / detailed narrative
+  vendorId?: ObjectId;                   // Optional Ref: Vendor
+  payeeName?: string;                    // Free-text payee / recipient name
+  projectId?: ObjectId;                  // Optional Ref: Project (Indexed for project costing)
+  salesOrderId?: ObjectId;               // Optional Ref: SalesOrder
+  paymentMethod: ExpensePaymentMethod;   // CASH, BANK_TRANSFER, UPI, COMPANY_CARD, PETTY_CASH, REIMBURSEMENT
+  paymentStatus: ExpensePaymentStatus;   // UNPAID, PAID, PARTIAL
+  paidAmountPaise: number;               // Cumulative disbursed amount in integer paise
+  paymentDate?: Date;                    // Disbursement date
+  paymentReference?: string;             // UTR, Cheque #, transaction ref
+  disbursedBy?: ObjectId;                // Ref: User
+  status: ExpenseStatus;                 // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED
+  requiresApproval: boolean;             // True if amountPaise > companySettings.expenseApprovalThresholdPaise
+  submittedBy: ObjectId;                 // Ref: User (Anti-self-approval enforced against approver)
+  submittedAt: Date;
+  approvedBy?: ObjectId;                 // Ref: User
+  approvedAt?: Date;
+  approvalNotes?: string;
+  rejectedBy?: ObjectId;                 // Ref: User
+  rejectedAt?: Date;
+  rejectionReason?: string;
+  cancelledBy?: ObjectId;                // Ref: User
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  receiptUrl?: string;                   // Evidence storage key or URL
+  tags?: string[];
+  idempotencyKey?: string;               // Replay prevention token
+  statusHistory: Array<{
+    fromStatus: string;
+    toStatus: string;
+    changedAt: Date;
+    changedBy: ObjectId;
+    notes?: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { expenseNumber: 1 } (unique)
+// - { idempotencyKey: 1 } (sparse, unique)
+// - { projectId: 1, status: 1 }
+// - { status: 1, expenseDate: -1 }
+// - { category: 1 }
+// - { submittedBy: 1 }
+```
+
+### 9.2 `project_budgets`
+Versioned project cost baselines and category budget limits.
+```typescript
+interface IProjectBudget {
+  _id: ObjectId;
+  projectId: ObjectId;                  // Ref: Project (Indexed)
+  version: number;                       // Sequential positive integer (1, 2, 3...)
+  status: ProjectBudgetStatus;           // DRAFT, APPROVED, SUPERSEDED, REJECTED
+  materialsBudgetPaise: number;          // Planned hardware/materials cost in integer paise
+  laborBudgetPaise: number;              // Planned installation and field labor cost
+  equipmentBudgetPaise: number;          // Planned machinery, crane, and tool rental cost
+  permitsBudgetPaise: number;            // Planned DISCOM and statutory approval fees
+  logisticsBudgetPaise: number;          // Planned freight and transport cost
+  contingencyBudgetPaise: number;        // Planned contingency reserve
+  otherBudgetPaise: number;              // Planned miscellaneous cost
+  totalBudgetPaise: number;              // Sum of all category planned budgets (integer paise)
+  currency: string;                      // Default "INR"
+  notes?: string;                        // Revision explanation
+  createdBy: ObjectId;                   // Ref: User
+  approvedBy?: ObjectId;                 // Ref: User
+  approvedAt?: Date;
+  approvalNotes?: string;
+  effectiveDate: Date;
+  supersededByBudgetVersion?: number;    // Links to successor approved version
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { projectId: 1, version: 1 } (unique)
+// - { projectId: 1, status: 1 }
+```
+
+
