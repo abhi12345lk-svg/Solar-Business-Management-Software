@@ -29,3 +29,7 @@ export * from './InstallationChecklistTemplate.js';
 export * from './ProjectInstallationChecklist.js';
 export * from './NetMeteringApplication.js';
 export * from './SubsidyApplication.js';
+export * from './ServiceComplaint.js';
+export * from './WarrantyClaim.js';
+export * from './AnnualMaintenanceContract.js';
+export * from './ServiceVisit.js';

@@ -55,7 +55,9 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.TASK]: 'TSK',
   [SequenceEntityType.MATERIAL_DISPATCH]: 'DSP',
   [SequenceEntityType.NET_METERING]: 'NMA',
-  [SequenceEntityType.SUBSIDY]: 'SUB'
+  [SequenceEntityType.SUBSIDY]: 'SUB',
+  [SequenceEntityType.SERVICE_VISIT]: 'VIS',
+  [SequenceEntityType.WARRANTY_CLAIM]: 'CLM'
 };
 
 const DEFAULT_PADDING = 5;

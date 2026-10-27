@@ -27,6 +27,11 @@ import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
 import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
 import { NetMeteringPage } from './pages/NetMeteringPage.js';
 import { SubsidyPage } from './pages/SubsidyPage.js';
+import { ComplaintsPage } from './pages/ComplaintsPage.js';
+import { WarrantiesPage } from './pages/WarrantiesPage.js';
+import { AmcPage } from './pages/AmcPage.js';
+import { ServiceVisitsPage } from './pages/ServiceVisitsPage.js';
+import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -201,6 +206,46 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <VendorInvoicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="complaints"
+            element={
+              <ProtectedRoute>
+                <ComplaintsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="warranties"
+            element={
+              <ProtectedRoute>
+                <WarrantiesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="amc"
+            element={
+              <ProtectedRoute>
+                <AmcPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="service-visits"
+            element={
+              <ProtectedRoute>
+                <ServiceVisitsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customer-portal/service"
+            element={
+              <ProtectedRoute>
+                <CustomerServicePortalPage />
               </ProtectedRoute>
             }
           />

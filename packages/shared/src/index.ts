@@ -21,5 +21,6 @@ export * from './schemas/dispatch.js';
 export * from './schemas/checklist.js';
 export * from './schemas/netMetering.js';
 export * from './schemas/subsidy.js';
+export * from './schemas/service.js';
 export * from './schemas/auth.js';
 export * from './constants/index.js';

@@ -448,7 +448,7 @@ export async function seedDemoData(): Promise<void> {
           pinCode: '302019',
           street: 'C-45, Mansarovar'
         },
-        source: LeadSource.DIRECT_CALL,
+        source: LeadSource.COLD_CALL,
         solarRequirement: SolarRequirement.RESIDENTIAL,
         estimatedCapacityKw: 3,
         status: LeadStatus.NEW,
@@ -584,7 +584,7 @@ export async function seedDemoData(): Promise<void> {
           totalDiscountPaise: 0,
           totalTaxPaise: 13200000,
           totalAmountPaise: 123200000,
-          status: PurchaseOrderStatus.COMPLETED,
+          status: PurchaseOrderStatus.FULLY_RECEIVED,
           approval: {
             requiresApproval: true,
             approvalThresholdPaise: 2500000,

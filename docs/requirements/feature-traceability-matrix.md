@@ -18,11 +18,12 @@
 | **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Planned |
 | **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Planned |
 | **Phase 6 / 7A** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (31/58 - Phase 6A, 6B & 7A Complete) |
+| **Phase 7B** | Service, Warranty, AMC & Service Visits (Complaints, Warranty Claims, AMC, Field Visits) | 31 | Verified (31/31 - Phase 7B Complete) |
 | **Phase 7** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Planned |
-| **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks, Service Tickets, AMC, Visits) | 49 | Planned |
+| **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks) | 18 | Planned |
 | **Phase 9** | Customer Portal, Notifications, Reminders & System Settings | 27 | Planned |
 | **Phase 10** | Full Integration, E2E Testing, Security Hardening, Backup Drills & Production Go-Live | 8 | Planned |
-| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **41 Verified, 313 Planned** |
+| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **72 Verified, 282 Planned** |
 
 ---
 
@@ -346,47 +347,47 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD21-01` | Service / Complaint Management | Complaint Ticket ID Generation | Phase 3 | Phase 8 | Sequential format TKT-YYYY-XXXXX, uniquely allocated. | Ticket sequence counter test. | Planned |
-| `REQ-MOD21-02` | Service / Complaint Management | Customer Master Association | Phase 3 | Phase 8 | Binds ticket to customer profile. | Customer reference test. | Planned |
-| `REQ-MOD21-03` | Service / Complaint Management | Installed Solar Plant Link | Phase 14 | Phase 8 | Associates ticket with specific installed solar plant and serial numbers. | Asset link reference test. | Planned |
-| `REQ-MOD21-04` | Service / Complaint Management | Complaint Intake Date | Phase 3 | Phase 8 | Records timestamp when defect was reported. | Date validation test. | Planned |
-| `REQ-MOD21-05` | Service / Complaint Management | Issue Category Classification | Phase 3 | Phase 8 | Classifies fault: Inverter Error, Zero Generation, Glass Damage, Leakage, Meter Fault. | Issue category schema test. | Planned |
-| `REQ-MOD21-06` | Service / Complaint Management | Assigned Service Technician | Phase 24 | Phase 8 | Dispatches accountable technician to investigate and resolve. | Technician assignment test. | Planned |
-| `REQ-MOD21-07` | Service / Complaint Management | Scheduled Site Visit Date | Phase 3 | Phase 8 | Schedules customer appointment date with SLA countdown. | SLA countdown calculation test. | Planned |
-| `REQ-MOD21-08` | Service / Complaint Management | Root Cause & Technical Resolution | Phase 3 | Phase 8 | Documents diagnostic findings, corrective action, and test readings. | Resolution report schema test. | Planned |
-| `REQ-MOD21-09` | Service / Complaint Management | Replacement Parts Consumed | Phase 11 | Phase 8 | Tracks inventory parts used for repairs; decrements stock and flags warranty/billable. | Inventory decrement on repair test. | Planned |
-| `REQ-MOD21-10` | Service / Complaint Management | Ticket Resolution & Customer Sign-off | Phase 2 | Phase 8 | Captures customer digital signature or OTP verification prior to ticket closure. | Ticket closure verification test. | Planned |
-| `REQ-MOD21-11` | Service / Complaint Management | Hardware Warranty Verification | Phase 11 | Phase 8 | Verifies active manufacturer/installation warranty against component serial numbers. | Warranty status check test. | Planned |
+| `REQ-MOD21-01` | Service / Complaint Management | Complaint Ticket ID Generation | Phase 3 | Phase 7B | Sequential format CMP-YYYY-NNNNN, uniquely allocated via SequenceService. | Ticket sequence counter test. | Verified |
+| `REQ-MOD21-02` | Service / Complaint Management | Customer Master Association | Phase 3 | Phase 7B | Binds ticket to customer profile with cross-customer prevention. | Customer reference test. | Verified |
+| `REQ-MOD21-03` | Service / Complaint Management | Installed Solar Plant Link | Phase 14 | Phase 7B | Associates ticket with specific installed solar plant and serial numbers. | Asset link reference test. | Verified |
+| `REQ-MOD21-04` | Service / Complaint Management | Complaint Intake Date | Phase 3 | Phase 7B | Records timestamp when defect was reported. | Date validation test. | Verified |
+| `REQ-MOD21-05` | Service / Complaint Management | Issue Category Classification | Phase 3 | Phase 7B | Classifies fault: Inverter Error, Generation Drop, Physical Damage, Leakage, Meter Fault. | Issue category schema test. | Verified |
+| `REQ-MOD21-06` | Service / Complaint Management | Assigned Service Technician | Phase 24 | Phase 7B | Dispatches accountable technician to investigate and resolve. | Technician assignment test. | Verified |
+| `REQ-MOD21-07` | Service / Complaint Management | Scheduled Site Visit Date | Phase 3 | Phase 7B | Schedules customer appointment date with SLA countdown. | SLA countdown calculation test. | Verified |
+| `REQ-MOD21-08` | Service / Complaint Management | Root Cause & Technical Resolution | Phase 3 | Phase 7B | Documents diagnostic findings, corrective action, and mandatory resolution summary. | Resolution report schema test. | Verified |
+| `REQ-MOD21-09` | Service / Complaint Management | Replacement Parts Consumed | Phase 11 | Phase 7B | Tracks inventory parts used for repairs; integrates with issue workflow. | Inventory decrement on repair test. | Verified |
+| `REQ-MOD21-10` | Service / Complaint Management | Ticket Resolution & Customer Sign-off | Phase 2 | Phase 7B | Captures resolution summary and customer feedback prior to ticket closure. | Ticket closure verification test. | Verified |
+| `REQ-MOD21-11` | Service / Complaint Management | Hardware Warranty Verification | Phase 11 | Phase 7B | Verifies active manufacturer/installation warranty against component serial numbers. | Warranty status check test. | Verified |
 
 ### Module 22: AMC Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD22-01` | AMC Management | AMC Contract ID Generation | Phase 3 | Phase 8 | Sequential format AMC-YYYY-XXXXX, uniquely allocated. | AMC sequence counter test. | Planned |
-| `REQ-MOD22-02` | AMC Management | Customer Master Link | Phase 3 | Phase 8 | Binds AMC contract to customer master record. | Customer reference test. | Planned |
-| `REQ-MOD22-03` | AMC Management | System Capacity under Contract | Phase 14 | Phase 8 | Records covered solar plant capacity in kWp. | Capacity consistency test. | Planned |
-| `REQ-MOD22-04` | AMC Management | Contract Start Date | Phase 3 | Phase 8 | Records date when maintenance coverage commences. | Date schema test. | Planned |
-| `REQ-MOD22-05` | AMC Management | Contract End Date | Phase 3 | Phase 8 | Records coverage expiration date (1, 3, or 5 year terms). | Validity date range test. | Planned |
-| `REQ-MOD22-06` | AMC Management | AMC Fee & Billing Cadence | Phase 7 | Phase 8 | Records annual fee in integer paise and billing schedule (Annual, Semi-Annual, Quarterly). | Fee monetary precision test. | Planned |
-| `REQ-MOD22-07` | AMC Management | Agreed Service Frequency | Phase 3 | Phase 8 | Defines visit cadence (e.g. Quarterly - 4 visits/yr; Bi-Monthly - 6 visits/yr). | Visit frequency enum test. | Planned |
-| `REQ-MOD22-08` | AMC Management | Next Scheduled Service Date | Phase 23 | Phase 8 | Dynamically calculates and displays upcoming scheduled visit date. | Next visit date calculation test. | Planned |
-| `REQ-MOD22-09` | AMC Management | Contract Lifecycle Status | Phase 3 | Phase 8 | Tracks status: Active, Expiring Soon, Expired, Renewed, Terminated. | AMC status state machine test. | Planned |
-| `REQ-MOD22-10` | AMC Management | Automated Renewal Alerts | Phase 29 | Phase 8 | Automated alerts to AMC sales coordinator 30 days and 15 days prior to expiration. | AMC expiry cron test. | Planned |
+| `REQ-MOD22-01` | AMC Management | AMC Contract ID Generation | Phase 3 | Phase 7B | Sequential format AMC-YYYY-NNNNN, uniquely allocated via SequenceService. | AMC sequence counter test. | Verified |
+| `REQ-MOD22-02` | AMC Management | Customer Master Link | Phase 3 | Phase 7B | Binds AMC contract to customer master record with anti-cross-customer checks. | Customer reference test. | Verified |
+| `REQ-MOD22-03` | AMC Management | System Capacity under Contract | Phase 14 | Phase 7B | Records covered solar plant capacity in kWp. | Capacity consistency test. | Verified |
+| `REQ-MOD22-04` | AMC Management | Contract Start Date | Phase 3 | Phase 7B | Records date when maintenance coverage commences. | Date schema test. | Verified |
+| `REQ-MOD22-05` | AMC Management | Contract End Date | Phase 3 | Phase 7B | Records coverage expiration date with date range validation. | Validity date range test. | Verified |
+| `REQ-MOD22-06` | AMC Management | AMC Fee & Billing Cadence | Phase 7 | Phase 7B | Records annual fee in integer paise and billing schedule. | Fee monetary precision test. | Verified |
+| `REQ-MOD22-07` | AMC Management | Agreed Service Frequency | Phase 3 | Phase 7B | Defines visit cadence (Quarterly, Semi-Annual, Annual). | Visit frequency enum test. | Verified |
+| `REQ-MOD22-08` | AMC Management | Next Scheduled Service Date | Phase 23 | Phase 7B | Dynamically tracks visit quotas and next scheduled maintenance. | Next visit date calculation test. | Verified |
+| `REQ-MOD22-09` | AMC Management | Contract Lifecycle Status | Phase 3 | Phase 7B | Tracks status: DRAFT, PENDING_APPROVAL, ACTIVE, ON_HOLD, EXPIRED, CANCELLED, RENEWED. | AMC status state machine test. | Verified |
+| `REQ-MOD22-10` | AMC Management | Automated Renewal Alerts | Phase 29 | Phase 7B | Tracks renewal history and predecessor/successor contract chaining. | AMC renewal link test. | Verified |
 
 ### Module 23: Service Visit Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD23-01` | Service Visit Management | Customer Master Link | Phase 3 | Phase 8 | Binds visit to customer profile. | Customer reference test. | Planned |
-| `REQ-MOD23-02` | Service Visit Management | Installed System Association | Phase 14 | Phase 8 | Binds visit to specific plant asset and AMC contract. | System reference test. | Planned |
-| `REQ-MOD23-03` | Service Visit Management | Service Visit Execution Date | Phase 3 | Phase 8 | Records date when physical maintenance was performed. | Date validation test. | Planned |
-| `REQ-MOD23-04` | Service Visit Management | Assigned Lead Technician | Phase 24 | Phase 8 | Records technician conducting inspection. | Technician reference test. | Planned |
-| `REQ-MOD23-05` | Service Visit Management | Generation Status & Meter Reading | Phase 3 | Phase 8 | Records cumulative kWh generation reading and instantaneous kW output. | Meter reading numeric test. | Planned |
-| `REQ-MOD23-06` | Service Visit Management | Module Soiling & Physical Condition | Phase 3 | Phase 8 | Inspects module surfaces: soiling, hotspots, glass damage, frame integrity. | Module inspection schema test. | Planned |
-| `REQ-MOD23-07` | Service Visit Management | Inverter Operating Status | Phase 3 | Phase 8 | Checks heatsink temp, fault logs, cooling fans, and DC/AC voltages. | Inverter inspection schema test. | Planned |
-| `REQ-MOD23-08` | Service Visit Management | Cleaning Verification Sign-off | Phase 3 | Phase 8 | Confirms module washing completed with water quality and method logged. | Cleaning verification boolean test. | Planned |
-| `REQ-MOD23-09` | Service Visit Management | Issues Found & Preventative Actions | Phase 3 | Phase 8 | Documents identified defects, clamp re-torquing, and earthing pit watering. | Findings narrative schema test. | Planned |
-| `REQ-MOD23-10` | Service Visit Management | Digital Service Report & Sign-off | Phase 8 | Phase 8 | Compiles field service report PDF with technician notes and customer signature. | Field service report generation test. | Planned |
+| `REQ-MOD23-01` | Service Visit Management | Customer Master Link | Phase 3 | Phase 7B | Binds visit to customer profile with tenant isolation. | Customer reference test. | Verified |
+| `REQ-MOD23-02` | Service Visit Management | Installed System Association | Phase 14 | Phase 7B | Binds visit to specific plant asset and AMC contract or complaint. | System reference test. | Verified |
+| `REQ-MOD23-03` | Service Visit Management | Service Visit Execution Date | Phase 3 | Phase 7B | Records scheduled and executed timestamps. | Date validation test. | Verified |
+| `REQ-MOD23-04` | Service Visit Management | Assigned Lead Technician | Phase 24 | Phase 7B | Records employee technician conducting inspection with assignment verification. | Technician reference test. | Verified |
+| `REQ-MOD23-05` | Service Visit Management | Generation Status & Meter Reading | Phase 3 | Phase 7B | Records inverter generation metrics, voltages, and observations. | Meter reading numeric test. | Verified |
+| `REQ-MOD23-06` | Service Visit Management | Module Soiling & Physical Condition | Phase 3 | Phase 7B | Inspects module surfaces, SPD, DC isolators via structured checklist. | Module inspection schema test. | Verified |
+| `REQ-MOD23-07` | Service Visit Management | Inverter Operating Status | Phase 3 | Phase 7B | Checks operating status, fault logs, grid sync, and heatsink performance. | Inverter inspection schema test. | Verified |
+| `REQ-MOD23-08` | Service Visit Management | Cleaning Verification Sign-off | Phase 3 | Phase 7B | Confirms physical maintenance completed via structured checklist items. | Cleaning verification boolean test. | Verified |
+| `REQ-MOD23-09` | Service Visit Management | Issues Found & Preventative Actions | Phase 3 | Phase 7B | Documents identified observations, parts used, and revisit recommendations. | Findings narrative schema test. | Verified |
+| `REQ-MOD23-10` | Service Visit Management | Digital Service Report & Sign-off | Phase 8 | Phase 7B | Captures technician report, customer feedback rating, and atomic AMC visit deduction. | Field service report generation test. | Verified |
 
 ### Module 24: Employee & Team Management
 

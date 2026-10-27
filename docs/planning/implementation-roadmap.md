@@ -191,18 +191,18 @@ graph TD
 
 ---
 
-### Phase 7B: Financial Management (Payments, Expenses, Costing, Profitability & Reports)
-*   **Focus:** Cash collections (advances, partial payments), duplicate payment submission prevention, payment receipt PDF vouchers, project-level expense logging with tiered approvals, real-time project costing and gross margin analytics, and exportable business reports.
-*   **Entry Criteria:** Phase 6 Operations verified.
-*   **Deliverables:**
-    *   Modules 1, 18, 19, 20, 27 implemented end-to-end.
-    *   Payment ledger with idempotency safeguards and running balance tracking.
-    *   Project costing engine computing actual landed hardware + labor + expense costs.
-    *   Cost variance analysis (Estimated BOM vs Actual Cost).
-    *   Executive Dashboard and Reports & Analytics module with CSV/Excel exports.
-    *   Accounts Panel interface for finance staff.
-*   **Acceptance Criteria:** Duplicate payments prevented via idempotency keys; project profit and margin percentages accurately calculated; reports export valid CSV/Excel.
-*   **Test Gate:** Financial ledger reconciliation unit tests; idempotency concurrency tests; report calculation accuracy tests.
+### Phase 7B: Service Complaints, Hardware Warranties, AMC & Service Visits
+*   **Focus:** Post-commissioning customer support, break-fix ticketing with SLA tracking, hardware asset warranty bounds & RMA claim tracking, Annual Maintenance Contracts (AMC) with atomic included-visit quota deductions, field technician visit execution & checklists, customer portal service isolation, and deduplicated notification reminders.
+*   **Entry Criteria:** Phase 7A Net Metering & Subsidies verified.
+*   **Phase 7B Status (Completed & Verified):**
+    *   `ServiceComplaint` Mongoose model & `ServiceComplaintService`: Atomic sequence numbering (`CMP-YYYY-NNNNN`), cross-customer & cross-project verification, validated state machine (`OPEN` → `TRIAGED` → `ASSIGNED` → `VISIT_SCHEDULED` → `IN_PROGRESS` → `RESOLVED` → `CLOSED`), alternate flows (`AWAITING_CUSTOMER`, `AWAITING_PARTS`, `CANCELLED`, `REOPENED`), mandatory resolution summary, and server-side note confidentiality.
+    *   `WarrantyClaim` Mongoose model & `WarrantyService`: Hardware serial warranty bound calculation (`now >= startDate && now <= endDate`), atomic claim numbering (`CLM-YYYY-NNNNN`), duplicate pending claim prevention, manufacturer RMA decision recording (`APPROVED`, `REJECTED`, `PARTS_DISPATCHED`), and replacement serial tracking.
+    *   `AnnualMaintenanceContract` Mongoose model & `AmcService`: Atomic sequence numbering (`AMC-YYYY-NNNNN`), integer paise pricing, date window validation, formal approval gates, atomic included-visit consumption under high concurrency via MongoDB `$expr: { $lt: ['$consumedVisits', '$includedVisits'] }`, excess visit tracking (`chargeableVisits`), and successor contract renewal chaining.
+    *   `ServiceVisit` Mongoose model & `ServiceVisitService`: Atomic sequence numbering (`VIS-YYYY-NNNNN`), technician assignment, status lifecycle (`SCHEDULED` → `DISPATCHED` → `IN_PROGRESS` → `COMPLETED` / `CANCELLED` / `RESCHEDULED`), checklist item verification, parts required, customer feedback, revisit linking, and automatic AMC visit quota consumption upon completion.
+    *   Customer Portal Service Gateways: Isolated `/api/v1/customer-portal/service/*` endpoints for complaints, warranties, and AMC agreements, stripping internal notes from customer views.
+    *   Web User Interface (`apps/web`): Dedicated `ComplaintsPage`, `WarrantiesPage`, `AmcPage`, `ServiceVisitsPage`, and `CustomerServicePortalPage`; embedded `ServiceAmcTab` in `ProjectDetailPage.tsx`; Option A dropdown navigation in `AppLayout.tsx`; live Executive Console in `DashboardPage.tsx`.
+*   **Acceptance Criteria:** Cross-customer references strictly rejected; internal notes hidden from customers; atomic sequence generation enforced; integer paise preserved; AMC visit counters protected against concurrent over-consumption; all automated tests pass.
+*   **Test Gate:** 210 automated tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api` (178 tests, including 14 Phase 7B tests), and `@ins-solar/web` (32 tests, including 6 Phase 7B tests).
 
 ---
 

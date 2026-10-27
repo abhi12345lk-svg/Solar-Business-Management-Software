@@ -1239,13 +1239,147 @@ All state modifications on critical business records (Quotations, Orders, Invoic
 | **Phase 7** | Mod 18: Invoices & Payments | `Invoice`, `PaymentReceipt`, `CustomerLedgerEntry` | `orderId -> Order`, `customerId -> Customer` | `invoiceNumber` (unique), `receiptNumber` (unique) | Integer paise; append-only running ledger with reversals | Order, SequenceService |
 | **Phase 7** | Mod 19: Expenses | `Expense` | `projectId -> Project`, `submittedBy -> User` | `expenseNumber` (unique), `projectId` | Anti-self approval; manager threshold check | Project, SequenceService |
 | **Phase 7** | Mod 20: Project Costing | `ProjectCostEstimate`, `ActualCostEntry` | `projectId -> Project` | `projectId` (unique) | Estimated vs realized gross margin calculation | Project, Expense, PurchaseOrder |
-| **Phase 8** | Mod 21: Service Complaints | `ServiceTicket` | `customerId -> Customer`, `projectId -> Project` | `ticketNumber` (unique), `customerId` | SLA breach alerts; technician assignment | Customer, Project |
-| **Phase 8** | Mod 22: Warranty & Serials | `SerialNumber`, `WarrantyRecord`, `WarrantyClaim` | `productId -> Product`, `orderId -> Order` | `serialNumber` (unique), `orderId` | Serial lookup across manufacturer & installation warranties | Product, Order |
-| **Phase 8** | Mod 23: AMC Contracts | `AmcContract`, `AmcSchedule` | `customerId -> Customer`, `projectId -> Project` | `contractNumber` (unique), `customerId` | Preventive maintenance schedules & expiry alerts | Customer, Project |
-| **Phase 8** | Mod 24: Field Service Visits | `ServiceVisit`, `VisitReport` | `ticketId -> ServiceTicket`, `technicianId -> User` | `visitNumber` (unique), `ticketId` | Digital customer acknowledgment; spare part deduction | ServiceTicket, StockMovement |
+| **Phase 7B** | Mod 21: Service Complaints | `ServiceComplaint` | `customerId -> Customer`, `projectId -> Project` | `complaintNumber` (unique), `{ customerId, status }` | Strict state machine (`OPEN` to `CLOSED`); internal vs customer notes; sequence `CMP-YYYY-NNNNN` | **Verified & Passing (14 API Tests + 6 Web Tests)** |
+| **Phase 7B** | Mod 22: Warranty & Claims | `ProductSerialNumber` (ext), `WarrantyClaim` | `productId -> Product`, `serialNumberId -> ProductSerialNumber` | `claimNumber` (unique), `serialNumber` | Active warranty bounds; duplicate claim prevention; sequence `CLM-YYYY-NNNNN` | **Verified & Passing (14 API Tests + 6 Web Tests)** |
+| **Phase 7B** | Mod 23: AMC Contracts | `AnnualMaintenanceContract` | `customerId -> Customer`, `projectId -> Project` | `amcNumber` (unique), `{ customerId, status }` | Integer paise pricing; atomic visit quota deduction `$expr: { $lt: ['$consumedVisits', '$includedVisits'] }`; sequence `AMC-YYYY-NNNNN` | **Verified & Passing (14 API Tests + 6 Web Tests)** |
+| **Phase 7B** | Mod 24: Field Service Visits | `ServiceVisit` | `complaintId -> ServiceComplaint`, `amcId -> AnnualMaintenanceContract`, `assignedTechnicianId -> User` | `visitNumber` (unique), `{ assignedTechnicianId, scheduledDate }` | Checklist execution; parts used; feedback; sequence `VIS-YYYY-NNNNN` | **Verified & Passing (14 API Tests + 6 Web Tests)** |
 | **Phase 8** | Mod 25: Teams & Crews | `Team` | `leaderId -> User`, `members -> [User]` | `name` (unique) | Department assignment | User |
 | **Phase 8** | Mod 26: Tasks | `Task` | `assignedTo -> User`, `relatedEntityId` | `taskId` (unique), `assignedTo` | Milestone task dependencies & deadlines | User, Project |
 | **Phase 9** | Mod 27: Notifications | `Notification`, `NotificationTemplate` | `recipientId -> User/Customer` | `recipientId`, `isRead` | In-app notification center & dispatch logs | User, CustomerIdentity |
 | **Phase 9** | Mod 28: Reminders | `Reminder` | `assignedTo -> User`, `relatedEntityId` | `dueDate`, `isCompleted` | Automated background scheduler triggers | User, SequenceService |
 | **Phase 10** | Mod 1: Analytics & KPIs | `MetricSnapshot`, `KpiCache` | Aggregated read model | `metricKey`, `snapshotDate` | Background aggregation; read-only KPI dashboards | All Modules |
+
+---
+
+## 7. Phase 7B Database Collection Specifications
+
+### 7.1 `service_complaints`
+```typescript
+interface IServiceComplaint {
+  _id: ObjectId;
+  complaintNumber: string;               // Unique: CMP-YYYY-NNNNN
+  customerId: ObjectId;                  // Ref: Customer
+  projectId: ObjectId;                   // Ref: Project
+  orderId?: ObjectId;                    // Ref: SalesOrder
+  productId?: ObjectId;                  // Ref: Product
+  serialNumber?: string;                 // Asset Serial
+  title: string;
+  description: string;
+  category: ComplaintCategory;           // INVERTER_FAULT, GENERATION_DROP, PHYSICAL_DAMAGE, etc.
+  priority: ProjectPriority;             // LOW, MEDIUM, HIGH, CRITICAL
+  severity: ComplaintSeverity;           // MINOR, MAJOR, CRITICAL
+  status: ComplaintStatus;               // OPEN -> TRIAGED -> ASSIGNED -> VISIT_SCHEDULED -> IN_PROGRESS -> RESOLVED -> CLOSED
+  source: ComplaintSource;               // CUSTOMER_PORTAL, PHONE, WHATSAPP, EMAIL, INTERNAL_STAFF
+  reportedDate: Date;
+  preferredVisitTime?: string;
+  contactPreference?: 'PHONE' | 'WHATSAPP' | 'EMAIL';
+  assignedTechnicianId?: ObjectId;       // Ref: User
+  assignedTeam?: string;
+  isWarrantyCovered?: boolean;
+  warrantyRecordId?: ObjectId;
+  resolutionSummary?: string;
+  resolvedBy?: ObjectId;                 // Ref: User
+  resolvedAt?: Date;
+  reopenReason?: string;
+  reopenedAt?: Date;
+  reopenedBy?: ObjectId;
+  internalNotes?: IComplaintNote[];      // Confidential, stripped from customer portal
+  customerUpdates?: ICustomerUpdate[];   // Customer-visible milestones
+  attachments?: IComplaintAttachment[];  // Private evidence storage keys
+  statusHistory: IComplaintStatusTransition[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes: { complaintNumber: 1 } (unique), { customerId: 1, status: 1 }, { projectId: 1 }
+```
+
+### 7.2 `warranty_claims`
+```typescript
+interface IWarrantyClaim {
+  _id: ObjectId;
+  claimNumber: string;                   // Unique: CLM-YYYY-NNNNN
+  serialNumberId?: ObjectId;             // Ref: ProductSerialNumber
+  serialNumber: string;                  // Asset serial
+  productId?: ObjectId;                  // Ref: Product
+  projectId?: ObjectId;                  // Ref: Project
+  customerId?: ObjectId;                 // Ref: Customer
+  complaintId?: ObjectId;                // Ref: ServiceComplaint
+  manufacturerName: string;
+  supplierWarrantyReference?: string;
+  claimType: WarrantyClaimType;          // REPLACEMENT, REPAIR, CREDIT_NOTE
+  issueDescription: string;
+  status: WarrantyClaimStatus;           // SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, PARTS_DISPATCHED, COMPLETED
+  decisionNotes?: string;
+  decisionDate?: Date;
+  decisionBy?: ObjectId;
+  replacementSerialNumber?: string;
+  replacementDispatchedAt?: Date;
+  claimCostPaise?: number;               // Integer Paise
+  attachments?: string[];
+  history: Array<{ status: string; changedAt: Date; changedBy?: ObjectId; notes?: string }>;
+}
+// Indexes: { claimNumber: 1 } (unique), { serialNumber: 1, status: 1 }, { complaintId: 1 }
+```
+
+### 7.3 `annual_maintenance_contracts`
+```typescript
+interface IAnnualMaintenanceContract {
+  _id: ObjectId;
+  amcNumber: string;                     // Unique: AMC-YYYY-NNNNN
+  customerId: ObjectId;                  // Ref: Customer
+  projectId: ObjectId;                  // Ref: Project
+  planType: AmcPlanType;                 // BASIC_PREVENTIVE, COMPREHENSIVE, COMPREHENSIVE_WITH_SPARES
+  capacityKwp: number;
+  startDate: Date;
+  endDate: Date;
+  contractAmountPaise: number;           // Integer Paise (e.g. ₹25,000 = 2500000)
+  billingCadence: AmcBillingCadence;     // ANNUAL_UPFRONT, SEMI_ANNUAL, QUARTERLY
+  paymentStatus: AmcPaymentStatus;       // UNPAID, PARTIALLY_PAID, PAID
+  visitCadence: AmcVisitCadence;         // QUARTERLY, TRI_ANNUAL, SEMI_ANNUAL, ANNUAL
+  includedVisits: number;
+  consumedVisits: number;                // Atomically incremented via $expr guard
+  chargeableVisits: number;              // Incremented when included visits are exhausted
+  coveredEquipment: IAmcCoveredEquipment[];
+  scopeOfWork?: string;
+  exclusions?: string;
+  slaCommitments?: string;
+  status: AmcStatus;                     // DRAFT, PENDING_APPROVAL, ACTIVE, ON_HOLD, EXPIRED, CANCELLED, RENEWED
+  approvedBy?: ObjectId;
+  approvedAt?: Date;
+  cancellationReason?: string;
+  previousAmcId?: ObjectId;
+  successorAmcId?: ObjectId;
+  statusHistory: IAmcStatusTransition[];
+}
+// Indexes: { amcNumber: 1 } (unique), { customerId: 1, status: 1 }, { projectId: 1 }
+```
+
+### 7.4 `service_visits`
+```typescript
+interface IServiceVisit {
+  _id: ObjectId;
+  visitNumber: string;                   // Unique: VIS-YYYY-NNNNN
+  complaintId?: ObjectId;                // Ref: ServiceComplaint
+  amcId?: ObjectId;                      // Ref: AnnualMaintenanceContract
+  projectId: ObjectId;                  // Ref: Project
+  customerId: ObjectId;                  // Ref: Customer
+  assignedTechnicianId?: ObjectId;       // Ref: User
+  visitType: ServiceVisitType;           // BREAK_FIX_COMPLAINT, AMC_ROUTINE, WARRANTY_INSPECTION, COMMISSIONING_CHECK
+  scheduledDate: Date;
+  scheduledTimeSlot?: string;            // e.g. "10:00 AM - 01:00 PM"
+  status: ServiceVisitStatus;            // SCHEDULED, DISPATCHED, IN_PROGRESS, COMPLETED, CANCELLED, RESCHEDULED
+  purpose: string;
+  checklist: Array<{ item: string; completed: boolean; remarks?: string }>;
+  observations?: string;
+  workPerformed?: string;
+  partsUsed?: Array<{ productId?: ObjectId; serialNumber?: string; quantity: number; notes?: string }>;
+  customerFeedback?: { rating?: number; comments?: string; signedBy?: string };
+  isChargeable: boolean;
+  isFollowUpRequired: boolean;
+  followUpVisitId?: ObjectId;
+  evidenceKeys?: string[];
+  statusHistory: Array<{ fromStatus: string; toStatus: string; changedAt: Date; changedBy?: ObjectId; reason?: string }>;
+}
+// Indexes: { visitNumber: 1 } (unique), { assignedTechnicianId: 1, scheduledDate: 1 }, { complaintId: 1 }, { amcId: 1 }
+```
 

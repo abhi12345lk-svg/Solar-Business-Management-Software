@@ -23,6 +23,11 @@ import { materialDispatchRouter } from './materialDispatch.routes.js';
 import { checklistTemplateRouter, projectChecklistRouter } from './checklist.routes.js';
 import { netMeteringRouter } from './netMetering.routes.js';
 import { subsidyRouter } from './subsidy.routes.js';
+import { complaintRouter } from './complaint.routes.js';
+import { warrantyRouter } from './warranty.routes.js';
+import { amcRouter } from './amc.routes.js';
+import { serviceVisitRouter } from './serviceVisit.routes.js';
+import { customerServiceRouter } from './customerService.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -63,7 +68,12 @@ apiRouter.use('/dispatches', materialDispatchRouter);
 apiRouter.use('/checklists', checklistTemplateRouter);
 apiRouter.use('/net-metering', netMeteringRouter);
 apiRouter.use('/subsidies', subsidyRouter);
+apiRouter.use('/complaints', complaintRouter);
+apiRouter.use('/warranties', warrantyRouter);
+apiRouter.use('/amc', amcRouter);
+apiRouter.use('/service-visits', serviceVisitRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
+apiRouter.use('/customer-portal/service', customerServiceRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)
 if (config.NODE_ENV !== 'production') {

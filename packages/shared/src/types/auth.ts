@@ -112,11 +112,16 @@ export const ALL_PERMISSIONS = [
   'vendor_invoice:read',
   'vendor_invoice:update',
 
-  // Service & Warranty
+  // Service, Warranty & AMC
   'service:ticket_create',
   'service:ticket_read',
   'service:ticket_resolve',
   'service:amc_manage',
+  'service:visit_schedule',
+  'service:visit_execute',
+  'warranty:read',
+  'warranty:claim_create',
+  'warranty:claim_decide',
 
   // Security & Audit
   'audit:read',
@@ -191,6 +196,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:ticket_create',
     'service:ticket_read',
     'service:ticket_resolve',
+    'service:amc_manage',
+    'service:visit_schedule',
+    'service:visit_execute',
+    'warranty:read',
+    'warranty:claim_create',
+    'warranty:claim_decide',
     'settings:read',
     'vendor:create',
     'vendor:read',
@@ -299,12 +310,18 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:ticket_read',
     'service:ticket_resolve',
     'service:amc_manage',
+    'service:visit_schedule',
+    'service:visit_execute',
+    'warranty:read',
+    'warranty:claim_create',
     'customer:read'
   ],
   [UserRole.TECHNICIAN]: [
     'service:ticket_create',
     'service:ticket_read',
     'service:ticket_resolve',
+    'service:visit_execute',
+    'warranty:read',
     'customer:read'
   ],
   [UserRole.CUSTOMER]: []

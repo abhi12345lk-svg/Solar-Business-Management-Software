@@ -18,8 +18,20 @@ export interface ReminderPayload {
     | 'REJECTED_DOCUMENTS'
     | 'SUBSIDY_FOLLOWUP'
     | 'METER_INSTALLATION_DUE'
-    | 'APPLICATION_ACTION_OVERDUE';
-  entityType: 'NetMeteringApplication' | 'SubsidyApplication';
+    | 'APPLICATION_ACTION_OVERDUE'
+    | 'UPCOMING_SERVICE_VISIT'
+    | 'OVERDUE_SERVICE_VISIT'
+    | 'OPEN_COMPLAINT_SLA'
+    | 'WARRANTY_EXPIRY'
+    | 'AMC_RENEWAL';
+  entityType:
+    | 'NetMeteringApplication'
+    | 'SubsidyApplication'
+    | 'ServiceComplaint'
+    | 'WarrantyRecord'
+    | 'WarrantyClaim'
+    | 'AnnualMaintenanceContract'
+    | 'ServiceVisit';
   entityId: string;
   recipientEmail?: string;
   recipientPhone?: string;
