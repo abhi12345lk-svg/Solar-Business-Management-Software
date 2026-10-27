@@ -1556,4 +1556,70 @@ interface IProjectBudget {
 // - { projectId: 1, status: 1 }
 ```
 
+---
+
+## 10. Notification Center & Customer Portal Collections (Phase 9A)
+
+### 10.1 `notifications`
+Persistent centralized in-app and omnichannel notification ledger.
+```typescript
+interface INotification {
+  _id: ObjectId;
+  notificationNumber: string;            // Format: NTF-YYYY-NNNNN (Unique, Sequential)
+  recipientId: ObjectId;                 // Ref: Customer or User (Indexed)
+  recipientType: NotificationRecipientType; // CUSTOMER, EMPLOYEE (Indexed)
+  category: NotificationCategory;        // QUOTATION, PROJECT_MILESTONE, DOCUMENT, INSPECTION, PAYMENT, SERVICE_COMPLAINT, SERVICE_VISIT, WARRANTY_AMC, SYSTEM
+  eventType: string;                     // e.g. STAGE_COMPLETED, PAYMENT_RECEIVED, REVISION_READY
+  title: string;                         // Max 200 chars
+  message: string;                       // Max 2000 chars
+  entityType?: string;                   // Optional e.g. 'Project', 'Quotation', 'CustomerPayment'
+  entityId?: ObjectId;                   // Optional polymorphic reference
+  linkUrl?: string;                      // In-app deep link route
+  metadata?: Record<string, any>;        // Contextual payload
+  isRead: boolean;                       // Default false (Indexed)
+  readAt?: Date;                         // Timestamp of read acknowledgment
+  deliveryChannels: NotificationChannel[]; // IN_APP, EMAIL, SMS, WHATSAPP
+  deliveryStatus: NotificationDeliveryStatus; // PENDING, DISPATCHED_TO_GATEWAY, DELIVERED, SIMULATED_LOG_ONLY, FAILED
+  deliveryNotes?: string;                // Gateway dispatch trace or simulation note
+  dedupKey?: string;                     // Deterministic deduplication key: ${type}:${id}:${cat}:${event}:${entity}:${date}
+  scheduledFor?: Date;                   // Deferred dispatch time
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { notificationNumber: 1 } (unique)
+// - { recipientId: 1, recipientType: 1, isRead: 1, createdAt: -1 }
+// - { dedupKey: 1 } (sparse, unique)
+// - { category: 1 }
+// - { createdAt: -1 }
+```
+
+### 10.2 `notification_preferences`
+Multi-channel delivery preferences and category subscription toggles per recipient.
+```typescript
+interface INotificationPreference {
+  _id: ObjectId;
+  recipientId: ObjectId;                 // Ref: Customer or User (Indexed)
+  recipientType: NotificationRecipientType; // CUSTOMER, EMPLOYEE (Indexed)
+  channels: {
+    inApp: boolean;                      // Default true
+    email: boolean;                      // Default true
+    sms: boolean;                        // Default true
+    whatsapp: boolean;                   // Default true
+  };
+  categories: {
+    quotations: boolean;                 // Default true
+    projectMilestones: boolean;          // Default true
+    payments: boolean;                   // Default true
+    serviceAndWarranty: boolean;         // Default true
+    reminders: boolean;                  // Default true
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { recipientId: 1, recipientType: 1 } (unique)
+```
+
+
 

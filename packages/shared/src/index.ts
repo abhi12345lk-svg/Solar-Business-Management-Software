@@ -25,5 +25,6 @@ export * from './schemas/service.js';
 export * from './schemas/payment.js';
 export * from './schemas/expense.js';
 export * from './schemas/projectBudget.js';
+export * from './schemas/notification.js';
 export * from './schemas/auth.js';
 export * from './constants/index.js';

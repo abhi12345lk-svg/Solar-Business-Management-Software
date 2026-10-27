@@ -32,6 +32,7 @@ import { WarrantiesPage } from './pages/WarrantiesPage.js';
 import { AmcPage } from './pages/AmcPage.js';
 import { ServiceVisitsPage } from './pages/ServiceVisitsPage.js';
 import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
+import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
 import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
 import { ExpensesPage } from './pages/ExpensesPage.js';
@@ -249,6 +250,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CustomerServicePortalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customer-portal"
+            element={
+              <ProtectedRoute>
+                <CustomerPortalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="portal"
+            element={
+              <ProtectedRoute>
+                <CustomerPortalPage />
               </ProtectedRoute>
             }
           />

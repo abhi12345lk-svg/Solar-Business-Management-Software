@@ -32,6 +32,9 @@ import { paymentRouter } from './payment.routes.js';
 import { customerPaymentRouter } from './customerPayment.routes.js';
 import { expenseRouter } from './expense.routes.js';
 import { projectCostingRouter } from './projectCosting.routes.js';
+import { customerNotificationRouter } from './customerNotification.routes.js';
+import { customerDashboardRouter } from './customerDashboard.routes.js';
+import { notificationRouter } from './notification.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -79,9 +82,12 @@ apiRouter.use('/amc', amcRouter);
 apiRouter.use('/service-visits', serviceVisitRouter);
 apiRouter.use('/payments', paymentRouter);
 apiRouter.use('/expenses', expenseRouter);
+apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
 apiRouter.use('/customer-portal/service', customerServiceRouter);
 apiRouter.use('/customer-portal/payments', customerPaymentRouter);
+apiRouter.use('/customer-portal/notifications', customerNotificationRouter);
+apiRouter.use('/customer-portal/dashboard', customerDashboardRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)
 if (config.NODE_ENV !== 'production') {

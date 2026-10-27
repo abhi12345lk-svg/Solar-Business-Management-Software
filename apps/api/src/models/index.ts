@@ -37,3 +37,5 @@ export * from './CustomerPayment.js';
 export * from './PaymentAllocation.js';
 export * from './Expense.js';
 export * from './ProjectBudget.js';
+export * from './Notification.js';
+export * from './NotificationPreference.js';

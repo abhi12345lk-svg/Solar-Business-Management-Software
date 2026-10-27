@@ -27,7 +27,8 @@ import {
   FileCheck2,
   ChevronDown,
   Menu,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -91,6 +92,7 @@ const NAV_GROUPS: NavDropdownGroup[] = [
       { to: '/warranties', label: 'Warranties', description: 'Module & inverter asset warranties', icon: ShieldCheck },
       { to: '/amc', label: 'AMC Contracts', description: 'Preventive maintenance schedules', icon: FileCheck2 },
       { to: '/service-visits', label: 'Service Visits', description: 'Technician site visit reports & signoff', icon: Wrench },
+      { to: '/customer-portal', label: 'Customer Portal Hub', description: 'Unified customer self-service center', icon: Users },
       { to: '/customer-portal/service', label: 'Client Portal', description: 'Customer self-service ticket intake', icon: LifeBuoy }
     ]
   },
@@ -307,6 +309,21 @@ export const AppLayout: React.FC = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Notification Bell */}
+                <NavLink
+                  to="/customer-portal?tab=notifications"
+                  title="Notification Center"
+                  className={({ isActive }) =>
+                    `p-2 rounded-lg transition-colors border shrink-0 ${
+                      isActive
+                        ? 'bg-secondary text-foreground'
+                        : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
+                    }`
+                  }
+                >
+                  <Bell className="w-4 h-4 text-solar-500" />
+                </NavLink>
 
                 {/* MFA Quick Link */}
                 <NavLink

@@ -234,15 +234,22 @@ graph TD
 ---
 
 ### Phase 9: Customer Portal, Notifications, Reminders & System Settings
-*   **Focus:** External Customer Portal (isolated project tracker, quotation acceptance, bill upload, invoices), in-app notification center, transactional emails, configurable WhatsApp templates, automated chron-based reminder engine, and global settings/masters console.
-*   **Entry Criteria:** Phase 8 After-Sales verified.
-*   **Deliverables:**
-    *   Modules 28, 29, 30 and Customer Portal (`REQ-PNL-07`) implemented end-to-end.
-    *   Customer portal interface with magic link or credential authentication.
-    *   In-app notification center and database-backed job runner for reminders.
-    *   Global settings console for brands, pricing slabs, tax rules, and approval limits.
-*   **Acceptance Criteria:** Customers can only view their own projects/quotations; customer quotation acceptance triggers operational order alert; background reminders trigger reliably.
-*   **Test Gate:** Customer isolation security tests; notification event dispatch tests; reminder cron execution tests.
+*   **Focus:** External Customer Portal (isolated project tracker, quotation acceptance, bill upload, receipts), in-app notification center, multi-channel delivery preferences, automated reminder bridge, and global settings/masters console.
+*   **Entry Criteria:** Phase 8 After-Sales & Financials verified.
+*   **Phase 9A Status (Completed & Verified):**
+    *   `Notification` Mongoose model & `NotificationCenterService`: Centralized persistent audit ledger with atomic sequence numbering (`NTF-YYYY-NNNNN`), deterministic deduplication (`dedupKey`), honest delivery status reporting (`SIMULATED_LOG_ONLY` without external gateway, `DISPATCHED_TO_GATEWAY` with gateway), recipient type isolation (`CUSTOMER` vs `EMPLOYEE`), and safe fault-tolerant dispatch boundary.
+    *   `NotificationPreference` Mongoose model: Multi-channel delivery toggles (In-App, Email, SMS, WhatsApp) and category subscription filters evaluated prior to dispatch.
+    *   `NotificationReminderService` Persistent Integration: Operational reminder engine bridged directly into the persistent notification center.
+    *   Quotation Decision Safeguards: `QuotationService.customerDecision` strictly rejects expired (`validUntil < now`) or superseded (`REVISED`) quotation revisions.
+    *   Secure Customer Portal Endpoints: Record-level isolation under `/api/v1/customer-portal/*` (Dashboard, Notifications, Quotations, Payments, Service), deriving customer identity strictly from session with 401/403 guards.
+    *   Operational Payment Receipt Compliance: Operational payment receipt modal renders mandatory legal non-tax invoice disclaimer under GST law.
+    *   Unified Web Interface (`apps/web`): `CustomerPortalPage` (`/customer-portal` and `/portal`) providing Dashboard, My Projects (10-stage execution pipeline, checklist, net-metering, subsidy), Quotations (with digital accept/decline modal and legal declaration), Payments & Receipts, Service & AMC, Notification Center (inbox, category filters, unread counter, bulk mark-all-as-read), and Preferences.
+    *   Automated test suite: 409 automated tests passing across `@ins-solar/shared`, `@ins-solar/api` (including 15 Phase 9A tests in `phase9a.test.ts`), and `@ins-solar/web` (including 5 Phase 9A tests in `phase9aPages.test.tsx`).
+*   **Phase 9B Scope (Next Phase):**
+    *   Background reminder job runners & cron workers (stalled project stages, payment milestone due, warranty expiry).
+    *   Global system settings and master data management console (Module 30: brands, panel types, capacity brackets, rate cards, letterhead).
+*   **Acceptance Criteria:** Customers can only view their own projects, quotations, receipts; expired/superseded quote decisions rejected; unread counters and mark-as-read work atomically; all monorepo quality gates pass.
+*   **Test Gate:** 409 automated tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
 
 ---
 

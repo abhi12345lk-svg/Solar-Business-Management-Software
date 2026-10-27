@@ -112,7 +112,8 @@ const CompanySettingsSchema = new Schema<ICompanySettingsDocument>(
         [SequenceEntityType.SERVICE_TICKET]: 'TKT',
         [SequenceEntityType.AMC_CONTRACT]: 'AMC',
         [SequenceEntityType.STOCK_MOVEMENT]: 'STK',
-        [SequenceEntityType.EXPENSE]: 'EXP'
+        [SequenceEntityType.EXPENSE]: 'EXP',
+        [SequenceEntityType.NOTIFICATION]: 'NTF'
       }
     },
     discountApprovalThresholdPercent: {

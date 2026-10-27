@@ -59,7 +59,8 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.SERVICE_VISIT]: 'VIS',
   [SequenceEntityType.WARRANTY_CLAIM]: 'CLM',
   [SequenceEntityType.PAYMENT_ALLOCATION]: 'ALC',
-  [SequenceEntityType.EXPENSE]: 'EXP'
+  [SequenceEntityType.EXPENSE]: 'EXP',
+  [SequenceEntityType.NOTIFICATION]: 'NTF'
 };
 
 const DEFAULT_PADDING = 5;

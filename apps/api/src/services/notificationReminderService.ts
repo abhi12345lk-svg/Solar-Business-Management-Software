@@ -103,6 +103,43 @@ export class NotificationReminderService {
       `[NotificationReminderService] Reminder registered: ${record.reminderId} for ${payload.subject} (status: ${deliveryStatus})`
     );
 
+    // Bridge into persistent notification inbox if recipient is identifiable
+    try {
+      const recipientId = payload.metadata?.customerId || payload.metadata?.recipientId;
+      if (recipientId) {
+        const { NotificationCenterService } = await import('./notificationCenterService.js');
+        const { NotificationRecipientType, NotificationCategory } = await import('@ins-solar/shared');
+
+        let category = NotificationCategory.SYSTEM;
+        if (payload.reminderType.includes('INSPECTION') || payload.reminderType.includes('METER')) {
+          category = NotificationCategory.INSPECTION;
+        } else if (payload.reminderType.includes('DOCUMENTS')) {
+          category = NotificationCategory.DOCUMENT;
+        } else if (payload.reminderType.includes('SERVICE_VISIT')) {
+          category = NotificationCategory.SERVICE_VISIT;
+        } else if (payload.reminderType.includes('COMPLAINT')) {
+          category = NotificationCategory.SERVICE_COMPLAINT;
+        } else if (payload.reminderType.includes('WARRANTY') || payload.reminderType.includes('AMC')) {
+          category = NotificationCategory.WARRANTY_AMC;
+        }
+
+        await NotificationCenterService.createNotification({
+          recipientId,
+          recipientType: (payload.metadata?.recipientType as any) || NotificationRecipientType.CUSTOMER,
+          category,
+          eventType: payload.reminderType,
+          title: payload.subject,
+          message: payload.message,
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          scheduledFor: payload.scheduledFor,
+          dedupKey: `reminder:${dedupKey}`
+        });
+      }
+    } catch (bridgeErr) {
+      logger.warn({ bridgeErr }, '[NotificationReminderService] Failed to persist reminder into notification center.');
+    }
+
     return record;
   }
 

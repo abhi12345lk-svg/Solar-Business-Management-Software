@@ -469,15 +469,15 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD29-01` | Notification & Reminders Engine | Follow-up Schedule Reminder | Phase 4 | Phase 9 | Dispatches reminder to sales executive 2 hours before scheduled customer call. | Follow-up reminder cron test. | Planned |
-| `REQ-MOD29-02` | Notification & Reminders Engine | Payment Milestone Due Reminder | Phase 18 | Phase 9 | Dispatches alert 3 days prior to payment due date and weekly on overdue balances. | Payment reminder event test. | Planned |
-| `REQ-MOD29-03` | Notification & Reminders Engine | Installation Stalled Stage Reminder | Phase 14 | Phase 9 | Daily digest to Project Managers highlighting projects stalled over 5 days in a stage. | Stalled stage alert cron test. | Planned |
-| `REQ-MOD29-04` | Notification & Reminders Engine | AMC Contract Expiry Reminder | Phase 22 | Phase 9 | Automated alerts 30 days and 15 days prior to maintenance contract expiration. | AMC expiry alert test. | Planned |
-| `REQ-MOD29-05` | Notification & Reminders Engine | Service Visit Due Reminder | Phase 23 | Phase 9 | Alerts service coordinator 3 days prior to scheduled quarterly cleaning visit. | Service due reminder test. | Planned |
-| `REQ-MOD29-06` | Notification & Reminders Engine | Low Stock Threshold Alert | Phase 11 | Phase 9 | Instant alert dispatched to Storekeeper when item stock breaches safety minimum. | Low stock event listener test. | Planned |
-| `REQ-MOD29-07` | Notification & Reminders Engine | In-App Real-time Notification Center | Phase 1 | Phase 9 | Dropdown notification center with unread counters, mark-as-read, and deep links. | Notification API and state test. | Planned |
-| `REQ-MOD29-08` | Notification & Reminders Engine | Transactional HTML Email Dispatcher | Phase 1 | Phase 9 | Dispatches responsive HTML emails for quotes, milestones, and payment vouchers. | Transactional mailer delivery test. | Planned |
-| `REQ-MOD29-09` | Notification & Reminders Engine | Configurable WhatsApp Webhook / API | Phase 1 | Phase 9 | Integrates with third-party WhatsApp provider to dispatch pre-approved templates. | WhatsApp provider adapter mock test. | Planned |
+| `REQ-MOD29-01` | Notification & Reminders Engine | Follow-up Schedule Reminder | Phase 4 | Phase 9A | Dispatches reminder to sales executive 2 hours before scheduled customer call. | Verified in `phase9a.test.ts` & `NotificationReminderService`. | Verified |
+| `REQ-MOD29-02` | Notification & Reminders Engine | Payment Milestone Due Reminder | Phase 18 | Phase 9A | Dispatches alert 3 days prior to payment due date and weekly on overdue balances. | Verified in `phase9a.test.ts` & `NotificationReminderService`. | Verified |
+| `REQ-MOD29-03` | Notification & Reminders Engine | Installation Stalled Stage Reminder | Phase 14 | Phase 9B | Daily digest to Project Managers highlighting projects stalled over 5 days in a stage. | Stalled stage alert cron test. | Planned |
+| `REQ-MOD29-04` | Notification & Reminders Engine | AMC Contract Expiry Reminder | Phase 22 | Phase 9A | Automated alerts 30 days and 15 days prior to maintenance contract expiration. | Verified in `phase9a.test.ts` & `NotificationReminderService`. | Verified |
+| `REQ-MOD29-05` | Notification & Reminders Engine | Service Visit Due Reminder | Phase 23 | Phase 9A | Alerts service coordinator 3 days prior to scheduled quarterly cleaning visit. | Verified in `phase9a.test.ts` & `NotificationReminderService`. | Verified |
+| `REQ-MOD29-06` | Notification & Reminders Engine | Low Stock Threshold Alert | Phase 11 | Phase 9B | Instant alert dispatched to Storekeeper when item stock breaches safety minimum. | Low stock event listener test. | Planned |
+| `REQ-MOD29-07` | Notification & Reminders Engine | In-App Real-time Notification Center | Phase 1 | Phase 9A | Dropdown/hub notification center with unread counters, mark-as-read, and deep links. | Verified in `phase9a.test.ts` & `phase9aPages.test.tsx`. | Verified |
+| `REQ-MOD29-08` | Notification & Reminders Engine | Transactional HTML Email Dispatcher | Phase 1 | Phase 9A | Dispatches responsive HTML emails for quotes, milestones, and payment vouchers. | Verified in `phase9a.test.ts` (simulated gateway log). | Verified |
+| `REQ-MOD29-09` | Notification & Reminders Engine | Configurable WhatsApp Webhook / API | Phase 1 | Phase 9A | Integrates with third-party WhatsApp provider to dispatch pre-approved templates. | Verified in `phase9a.test.ts` (simulated gateway log). | Verified |
 
 ### Module 30: Settings & Master Data Management
 
@@ -508,7 +508,7 @@
 | `REQ-PNL-04` | Accounts Panel Scope | Accounts Panel | Phase 10 | Restricted to Payments, Expenses, Purchase Orders, Vendor Payables, and Project Costing. | Accounts route guard blocking operational configs. | Planned |
 | `REQ-PNL-05` | Service Panel Scope | Service Panel | Phase 10 | Restricted to Break-fix Complaints, AMC Contracts, and Scheduled Service Visits. | Service route guard blocking sales/purchases. | Planned |
 | `REQ-PNL-06` | Inventory Panel Scope | Inventory Panel | Phase 10 | Restricted to Item Master, Multi-Location Stock, GRN Receipts, Issuances, and Stock Alerts. | Inventory route guard verifying stock isolation. | Planned |
-| `REQ-PNL-07` | Secure Customer Portal Scope | Secure Customer Portal | Phase 9 | External portal for customers: view project milestones, download quotes, upload KYC, view receipts. | Security test verifying strict customer data isolation. | Planned |
+| `REQ-PNL-07` | Secure Customer Portal Scope | Secure Customer Portal | Phase 9A | External portal for customers: view project milestones, download quotes, upload KYC, view receipts. | Verified in `phase9a.test.ts` & `phase9aPages.test.tsx`. | Verified |
 
 ---
 
@@ -527,14 +527,14 @@
 | `REQ-BIZ-09` | RBAC with Department Heads | Individual credentials, departmental supervisory scopes, custom permission overrides. | Phase 2 | Verified in `security.test.ts` (Scenarios 2, 4, 9, 17). | Verified |
 | `REQ-BIZ-10` | English-Language Interface | All internal panels, customer portal interfaces, and transactional documents in English. | Phase 1 | Verified in Phase 1 (`App.test.tsx`). | Verified |
 | `REQ-BIZ-11` | Low-Cost Managed Hosting | Monolith architecture deployable to low-cost Linux VPS + Atlas M0/M10. | Phase 1 | Verified in Phase 1 build pipeline. | Verified |
-| `REQ-BIZ-12` | Secure Customer Portal | Authenticated portal for customers to inspect milestone progress and documents. | Phase 9 | Customer portal integration test. | Planned |
-| `REQ-BIZ-13` | Customer Self-Service Actions | Customers can digitally accept/reject proposals and upload KYC files. | Phase 9 | Customer action security validation test. | Planned |
+| `REQ-BIZ-12` | Secure Customer Portal | Authenticated portal for customers to inspect milestone progress and documents. | Phase 9A | Verified in `phase9a.test.ts` & `phase9aPages.test.tsx`. | Verified |
+| `REQ-BIZ-13` | Customer Self-Service Actions | Customers can digitally accept/reject proposals and upload KYC files. | Phase 9A | Verified in `phase9a.test.ts` & `phase9aPages.test.tsx`. | Verified |
 | `REQ-BIZ-14` | Assisted Quotation Preparation | Manual proposal configuration with automated tax and subtotal computation. | Phase 4 | Quotation calculation accuracy test. | Planned |
 | `REQ-BIZ-15` | Flexible Cash Flow Management | Handles advances, partial payments, multiple receipts, and running balances. | Phase 7 | Payment ledger allocation test. | Planned |
 | `REQ-BIZ-16` | Stage-Gated Installation Governance | Linear stage progression with mandatory photo & checklist gates before advancement. | Phase 6 | Stage transition guard test. | Planned |
 | `REQ-BIZ-17` | Serial Number & Warranty Tracking | Captures module, inverter, and battery serials tied to warranty records. | Phase 5 | Serial uniqueness and warranty query test. | Planned |
 | `REQ-BIZ-18` | Pragmatic Net Metering / Subsidy | Internal milestone tracking; no direct scraping of utility portals. | Phase 6 | DISCOM milestone tracking test. | Planned |
-| `REQ-BIZ-19` | Omnichannel Notification Dispatch | In-app notification center, transactional emails, and optional WhatsApp templates. | Phase 9 | Notification dispatcher test. | Planned |
+| `REQ-BIZ-19` | Omnichannel Notification Dispatch | In-app notification center, transactional emails, and optional WhatsApp templates. | Phase 9A | Verified in `phase9a.test.ts` & `phase9aPages.test.tsx`. | Verified |
 | `REQ-BIZ-20` | Operational Accounts Scope | Focuses on collections, expenses, POs, payables, receivables, and project margins. | Phase 7 | Project gross margin calculation test. | Planned |
 | `REQ-BIZ-21` | Greenfield Data Inception | System starts with clean master data; legacy migration out of scope. | Phase 3 | Master seed verification test. | Planned |
 | `REQ-BIZ-22` | Private Object Storage Architecture | Private S3 storage with short-lived pre-signed URLs (TTL <= 15 min). | Phase 1 | Verified in Phase 1 (`env.test.ts`). | Verified |

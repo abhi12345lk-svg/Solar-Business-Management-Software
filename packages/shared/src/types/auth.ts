@@ -146,7 +146,11 @@ export const ALL_PERMISSIONS = [
 
   // Settings & Masters
   'settings:read',
-  'settings:manage'
+  'settings:manage',
+
+  // Notifications
+  'notification:read',
+  'notification:manage'
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
@@ -255,7 +259,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'expense:cancel',
     'project:budget_create',
     'project:budget_approve',
-    'project:cost_read'
+    'project:cost_read',
+    'notification:read',
+    'notification:manage'
   ],
   [UserRole.SALES_EXECUTIVE]: [
     'lead:create',
@@ -280,7 +286,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'net_metering:read',
     'subsidy:read',
     'expense:create',
-    'expense:read'
+    'expense:read',
+    'notification:read'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -292,7 +299,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'customer:update',
     'quote:create',
     'quote:read',
-    'quote:update'
+    'quote:update',
+    'notification:read'
   ],
   [UserRole.SURVEYOR]: [
     'survey:create',
@@ -300,7 +308,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'survey:update',
     'survey:upload_photos',
     'customer:read',
-    'lead:read'
+    'lead:read',
+    'notification:read'
   ],
   [UserRole.INSTALLATION_CREW]: [
     'project:read',
@@ -319,7 +328,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'net_metering:update',
     'expense:create',
     'expense:read',
-    'project:cost_read'
+    'project:cost_read',
+    'notification:read'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -354,7 +364,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'expense:cancel',
     'project:budget_create',
     'project:budget_approve',
-    'project:cost_read'
+    'project:cost_read',
+    'notification:read'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',
@@ -365,7 +376,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:visit_execute',
     'warranty:read',
     'warranty:claim_create',
-    'customer:read'
+    'customer:read',
+    'notification:read'
   ],
   [UserRole.TECHNICIAN]: [
     'service:ticket_create',
@@ -373,7 +385,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:ticket_resolve',
     'service:visit_execute',
     'warranty:read',
-    'customer:read'
+    'customer:read',
+    'notification:read'
   ],
   [UserRole.CUSTOMER]: []
 };
