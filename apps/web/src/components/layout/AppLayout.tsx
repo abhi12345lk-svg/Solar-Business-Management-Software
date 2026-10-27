@@ -134,7 +134,7 @@ export const AppLayout: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Top Header */}
       <header className="border-b bg-card sticky top-0 z-50 shadow-sm backdrop-blur-md bg-card/95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Left: Brand Logo & Title */}
           <Link to="/" className="flex items-center space-x-3 group shrink-0">
             <div className="w-10 h-10 rounded-lg bg-solar-500/10 border border-solar-500/30 flex items-center justify-center text-solar-600 group-hover:bg-solar-500/20 transition-colors">
@@ -142,34 +142,34 @@ export const AppLayout: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight text-foreground">
+                <span className="font-extrabold text-xl tracking-tight text-foreground whitespace-nowrap">
                   INS <span className="text-solar-600">SOLAR</span>
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-500/20">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-500/20 whitespace-nowrap">
                   Enterprise
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground hidden xl:block">
+              <p className="text-[11px] text-muted-foreground hidden xl:block whitespace-nowrap">
                 Solar Business Management System
               </p>
             </div>
           </Link>
 
           {/* Center: Categorized Dropdown Navigation (Desktop) */}
-          <div ref={navRef} className="hidden lg:flex items-center space-x-1 xl:space-x-1.5 ml-2 xl:ml-6">
+          <div ref={navRef} className="hidden lg:flex items-center space-x-1 xl:space-x-2 shrink-0">
             {/* Direct Dashboard Link */}
             <NavLink
               to="/"
               end
               className={({ isActive }) =>
-                `inline-flex items-center px-2.5 xl:px-3 py-1.5 rounded-md text-xs xl:text-sm font-medium transition-colors ${
+                `inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${
                   isActive
                     ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border border-solar-500/25'
                     : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                 }`
               }
             >
-              <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1.5 text-solar-500" />
+              <LayoutDashboard className="w-4 h-4 mr-1.5 text-solar-500 shrink-0" />
               <span>Dashboard</span>
             </NavLink>
 
@@ -183,7 +183,7 @@ export const AppLayout: React.FC = () => {
                 return (
                   <div
                     key={group.id}
-                    className="relative"
+                    className="relative shrink-0"
                     onMouseEnter={() => setOpenDropdown(group.id)}
                     onMouseLeave={() => setOpenDropdown(null)}
                   >
@@ -192,7 +192,7 @@ export const AppLayout: React.FC = () => {
                       aria-haspopup="true"
                       aria-expanded={isOpen}
                       onClick={() => setOpenDropdown(isOpen ? null : group.id)}
-                      className={`inline-flex items-center px-2.5 xl:px-3 py-1.5 rounded-md text-xs xl:text-sm font-medium transition-colors cursor-pointer select-none ${
+                      className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer select-none ${
                         active
                           ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border border-solar-500/25'
                           : isOpen
@@ -200,24 +200,24 @@ export const AppLayout: React.FC = () => {
                             : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                       }`}
                     >
-                      <GroupIcon className="w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1.5 text-solar-500 shrink-0" />
+                      <GroupIcon className="w-4 h-4 mr-1.5 text-solar-500 shrink-0" />
                       <span>{group.label}</span>
                       <ChevronDown
-                        className={`w-3.5 h-3.5 ml-1 transition-transform duration-200 ${
+                        className={`w-3.5 h-3.5 ml-1 shrink-0 transition-transform duration-200 ${
                           isOpen ? 'rotate-180 text-solar-600' : 'text-muted-foreground'
                         }`}
                       />
                     </button>
 
-                    {/* Dropdown Panel with Seamless Hover Bridge */}
+                    {/* Dropdown Panel with Seamless Hover Bridge & Solid Opaque Background */}
                     {isOpen && (
-                      <div className="absolute top-full left-0 pt-1.5 w-72 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="rounded-xl border bg-card/98 p-1.5 shadow-2xl ring-1 ring-black/10 backdrop-blur-lg">
-                          <div className="px-3 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b mb-1 flex items-center justify-between">
+                      <div className="absolute top-full left-0 pt-2 w-72 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="rounded-xl border border-border bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black/10 p-2">
+                          <div className="px-3 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b mb-1.5 flex items-center justify-between">
                             <span>{group.label}</span>
                             <GroupIcon className="w-3.5 h-3.5 text-solar-500" />
                           </div>
-                          <div className="space-y-0.5">
+                          <div className="space-y-1">
                             {group.items.map(item => {
                               const ItemIcon = item.icon;
                               const isItemActive = location.pathname.startsWith(item.to);
@@ -265,29 +265,29 @@ export const AppLayout: React.FC = () => {
             <NavLink
               to="/health"
               className={({ isActive }) =>
-                `inline-flex items-center px-2.5 xl:px-3 py-1.5 rounded-md text-xs xl:text-sm font-medium transition-colors ${
+                `inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${
                   isActive
                     ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border border-solar-500/25'
                     : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                 }`
               }
             >
-              <Activity className="w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1.5 text-emerald-500" />
+              <Activity className="w-4 h-4 mr-1.5 text-emerald-500 shrink-0" />
               <span>Health Status</span>
             </NavLink>
           </div>
 
           {/* Right: User Status Controls & Mobile Toggle */}
-          <div className="flex items-center space-x-2 xl:space-x-3">
+          <div className="flex items-center space-x-2 xl:space-x-3 shrink-0">
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-2 xl:space-x-2.5">
+              <div className="flex items-center space-x-2 xl:space-x-2.5 shrink-0">
                 {/* User Info Capsule */}
-                <div className="hidden md:flex items-center space-x-2 xl:space-x-2.5 px-2.5 xl:px-3 py-1 rounded-lg bg-secondary/60 border text-xs">
-                  <div className="w-6 h-6 xl:w-7 xl:h-7 rounded-full bg-solar-500/20 text-solar-700 dark:text-solar-300 font-bold flex items-center justify-center text-xs shrink-0">
+                <div className="hidden md:flex items-center space-x-2 xl:space-x-2.5 px-3 py-1.5 rounded-lg bg-secondary/60 border text-xs whitespace-nowrap shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-solar-500/20 text-solar-700 dark:text-solar-300 font-bold flex items-center justify-center text-xs shrink-0">
                     {user.firstName?.[0] || 'U'}
                     {user.lastName?.[0] || ''}
                   </div>
-                  <div className="flex flex-col text-left max-w-[120px] xl:max-w-[160px]">
+                  <div className="flex flex-col text-left max-w-[130px] xl:max-w-[180px]">
                     <span className="font-semibold text-foreground text-xs leading-none truncate">
                       {user.firstName} {user.lastName}
                     </span>
@@ -302,7 +302,7 @@ export const AppLayout: React.FC = () => {
                   to="/mfa-setup"
                   title="Security & MFA Setup"
                   className={({ isActive }) =>
-                    `p-2 rounded-md transition-colors border ${
+                    `p-2 rounded-lg transition-colors border shrink-0 ${
                       isActive
                         ? 'bg-secondary text-foreground'
                         : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
@@ -316,9 +316,9 @@ export const AppLayout: React.FC = () => {
                 <button
                   onClick={handleLogout}
                   title="Sign Out"
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-secondary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-xs font-semibold text-foreground transition-colors border shadow-xs cursor-pointer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-secondary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-xs font-semibold text-foreground transition-colors border shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-3.5 h-3.5 shrink-0" />
                   <span className="hidden sm:inline">Sign Out</span>
                 </button>
               </div>
