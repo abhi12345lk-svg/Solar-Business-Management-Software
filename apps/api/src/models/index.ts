@@ -39,3 +39,7 @@ export * from './Expense.js';
 export * from './ProjectBudget.js';
 export * from './Notification.js';
 export * from './NotificationPreference.js';
+export * from './EmployeeProfile.js';
+export * from './Team.js';
+export * from './DocumentModel.js';
+

@@ -150,7 +150,27 @@ export const ALL_PERMISSIONS = [
 
   // Notifications
   'notification:read',
-  'notification:manage'
+  'notification:manage',
+
+  // Employee & Team Management (Module 24)
+  'employee:read',
+  'employee:manage',
+  'team:read',
+  'team:manage',
+
+  // Unified Task Management (Module 25)
+  'task:read',
+  'task:create',
+  'task:update',
+  'task:assign',
+  'task:delete',
+
+  // Document Management (Module 26)
+  'document:read',
+  'document:upload',
+  'document:review',
+  'document:archive',
+  'document:delete'
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
@@ -261,7 +281,20 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'project:budget_approve',
     'project:cost_read',
     'notification:read',
-    'notification:manage'
+    'notification:manage',
+    'employee:read',
+    'employee:manage',
+    'team:read',
+    'team:manage',
+    'task:read',
+    'task:create',
+    'task:update',
+    'task:assign',
+    'task:delete',
+    'document:read',
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.SALES_EXECUTIVE]: [
     'lead:create',
@@ -287,7 +320,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'subsidy:read',
     'expense:create',
     'expense:read',
-    'notification:read'
+    'notification:read',
+    'task:read',
+    'task:create',
+    'task:update',
+    'document:read',
+    'document:upload'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -329,7 +367,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'expense:create',
     'expense:read',
     'project:cost_read',
-    'notification:read'
+    'notification:read',
+    'task:read',
+    'task:update',
+    'document:read',
+    'document:upload'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -365,7 +407,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'project:budget_create',
     'project:budget_approve',
     'project:cost_read',
-    'notification:read'
+    'notification:read',
+    'task:read',
+    'task:update',
+    'document:read',
+    'document:upload',
+    'document:review'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',
@@ -377,7 +424,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'warranty:read',
     'warranty:claim_create',
     'customer:read',
-    'notification:read'
+    'notification:read',
+    'task:read',
+    'task:update',
+    'document:read',
+    'document:upload'
   ],
   [UserRole.TECHNICIAN]: [
     'service:ticket_create',

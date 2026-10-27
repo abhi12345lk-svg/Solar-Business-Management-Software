@@ -1621,5 +1621,168 @@ interface INotificationPreference {
 // - { recipientId: 1, recipientType: 1 } (unique)
 ```
 
+---
+
+## 11. Employee, Team, Task & Document Management Collections (Phase 9B)
+
+### 11.1 `employee_profiles`
+Operational profile extension for internal staff (linked 1:1 to `users._id` without credential duplication).
+```typescript
+interface IEmployeeProfile {
+  _id: ObjectId;
+  userId: ObjectId;                      // Ref -> users._id (1:1, Indexed, Unique)
+  employeeCode: string;                  // Format: EMP-YYYY-NNNNN (Unique, Indexed)
+  department: Department;                // OPERATIONS, SALES, ENGINEERING, SERVICE, ACCOUNTS, MANAGEMENT
+  designation: string;                   // e.g. "Senior Solar Design Engineer"
+  teamId?: ObjectId;                     // Ref -> teams._id (Optional)
+  isTeamLead: boolean;                   // Default false
+  employmentStatus: EmploymentStatus;    // ACTIVE, ON_LEAVE, PROBATION, RESIGNED, TERMINATED
+  availability: EmployeeAvailability;    // AVAILABLE, BUSY, ON_LEAVE, FIELD_VISIT
+  joiningDate?: Date;
+  skills: string[];                      // Array of competency tags
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  notes?: string;
+  isActive: boolean;                     // Default true
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { employeeCode: 1 } (unique)
+// - { userId: 1 } (unique)
+// - { department: 1, isActive: 1 }
+// - { teamId: 1 }
+// - { employmentStatus: 1 }
+```
+
+### 11.2 `teams`
+Operational squads and crew units with role eligibility tags and crew leads.
+```typescript
+interface ITeam {
+  _id: ObjectId;
+  teamCode: string;                      // Format: TEM-YYYY-NNNNN (Unique, Indexed)
+  name: string;                          // Crew/Squad name (e.g. "South Delhi Installation Squad")
+  department: Department;                // OPERATIONS, SERVICE, ENGINEERING, SALES
+  purpose?: string;                      // Operational description
+  teamLeadId?: ObjectId;                 // Ref -> users._id
+  memberUserIds: ObjectId[];             // Array of Ref -> users._id
+  skills: string[];                      // Squad capabilities
+  eligibility: {
+    projectTasks: boolean;               // Eligible for milestone execution tasks
+    serviceVisits: boolean;              // Eligible for warranty/maintenance site dispatches
+  };
+  isActive: boolean;                     // Default true
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { teamCode: 1 } (unique)
+// - { name: 1 }
+// - { department: 1, isActive: 1 }
+// - { teamLeadId: 1 }
+```
+
+### 11.3 `project_tasks` (Unified Task Management)
+Unified operational task registry linking projects, milestones, installation checklists, service complaints, service visits, net metering steps, subsidies, or general work.
+```typescript
+interface IProjectTask {
+  _id: ObjectId;
+  taskCode: string;                      // Format: TSK-YYYY-NNNNN (Unique, Indexed)
+  projectId?: ObjectId;                  // Ref -> projects._id (Optional for general tasks)
+  milestoneId?: ObjectId;                // Sub-task of specific milestone
+  category: TaskCategory;                // PROJECT, INSTALLATION_CHECKLIST, SERVICE_COMPLAINT, SERVICE_VISIT, NET_METERING, SUBSIDY, DOCUMENT_REVIEW, GENERAL
+  teamId?: ObjectId;                     // Ref -> teams._id
+  relatedEntityType?: string;            // 'Project', 'Milestone', 'ServiceComplaint', 'ServiceVisit', 'NetMetering', 'Subsidy'
+  relatedEntityId?: ObjectId;            // Polymorphic ID
+  customerId?: ObjectId;                 // Ref -> customers._id (Guarded by cross-customer validation)
+  title: string;                         // Max 200 chars
+  description?: string;                  // Max 2000 chars
+  assignedUserId?: ObjectId;             // Ref -> users._id
+  priority: ProjectPriority;             // LOW, MEDIUM, HIGH, URGENT
+  status: ProjectTaskStatus;             // TODO, IN_PROGRESS, BLOCKED, COMPLETED, CANCELLED
+  dueDate?: Date;
+  followUpDate?: Date;
+  blockerReason?: string;                // Mandatory when status === 'BLOCKED'
+  completionNotes?: string;              // Captured upon COMPLETED transition
+  statusHistory: Array<{
+    fromStatus: string;
+    toStatus: string;
+    changedAt: Date;
+    changedBy: ObjectId;                 // Ref -> users._id
+    reason?: string;
+  }>;
+  reassignmentHistory: Array<{
+    fromUserId?: ObjectId;               // Ref -> users._id
+    toUserId: ObjectId;                  // Ref -> users._id
+    reassignedAt: Date;
+    reassignedBy: ObjectId;              // Ref -> users._id
+    reason: string;                      // Mandatory audit reason
+  }>;
+  completedAt?: Date;
+  completedBy?: ObjectId;                // Ref -> users._id
+  createdBy: ObjectId;                   // Ref -> users._id
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { taskCode: 1 } (unique)
+// - { projectId: 1, status: 1 }
+// - { assignedUserId: 1, dueDate: 1 }
+// - { teamId: 1, status: 1 }
+// - { relatedEntityType: 1, relatedEntityId: 1 }
+// - { customerId: 1, status: 1 }
+// - { dueDate: 1, status: 1 }
+// - { createdAt: -1 }
+```
+
+### 11.4 `documents`
+Private document vault storing metadata, version lineages, review workflows, and simulated/private storage keys.
+```typescript
+interface IDocumentRecord {
+  _id: ObjectId;
+  documentNumber: string;                // Format: DOC-YYYY-NNNNN (Sequential, Shared across versions)
+  originalFilename: string;              // Client-supplied filename
+  safeDisplayName: string;               // Sanitized display title
+  category: DocumentCategory;            // CUSTOMER_KYC, ELECTRICITY_BILL, PROPERTY_DEED, QUOTATION_PROPOSAL, SIGNED_CONTRACT, INSTALLATION_QUALITY, WARRANTY_CERTIFICATE, NET_METERING_DOC, SUBSIDY_DOC, SERVICE_REPORT, INTERNAL_OPERATIONAL, ENGINEERING_DRAWING, COMMISSIONING_REPORT, OTHER
+  accessClassification: DocumentAccessClassification; // INTERNAL_ONLY, CUSTOMER_VISIBLE, RESTRICTED
+  reviewStatus: DocumentReviewStatus;    // PENDING_REVIEW, ACCEPTED, REJECTED, RESUBMISSION_REQUIRED
+  reviewNotes?: string;
+  rejectionReason?: string;              // Mandatory (min 5 chars) on REJECTED / RESUBMISSION_REQUIRED
+  reviewedAt?: Date;
+  reviewActorId?: ObjectId;              // Ref -> users._id
+  storageKey: string;                    // Private path e.g. "documents/engineering_drawing/2026/DOC-2026-00001_v1_sld.pdf" (Unique)
+  storageStatus: DocumentStorageStatus;  // STORED_S3, STORED_LOCAL_PRIVATE, SIMULATED_STORAGE_ONLY
+  mimeType: string;                      // PDF, JPEG, PNG, WEBP, XLSX, DOCX, TXT, CSV (Validated)
+  fileSizeBytes: number;                 // Integer bytes (<= 25MB enforced)
+  checksumSha256?: string;               // Integrity hash
+  version: number;                       // 1, 2, 3...
+  previousVersionId?: ObjectId;          // Ref -> documents._id
+  isLatestVersion: boolean;              // Default true
+  customerId?: ObjectId;                 // Ref -> customers._id
+  projectId?: ObjectId;                  // Ref -> projects._id
+  relatedEntityType?: string;
+  relatedEntityId?: ObjectId;
+  expiryDate?: Date;
+  uploadedBy: ObjectId;                  // Ref -> users._id or customers._id
+  uploadedByType: 'EMPLOYEE' | 'CUSTOMER';
+  isArchived: boolean;                   // Default false
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { documentNumber: 1, version: -1 }
+// - { storageKey: 1 } (unique)
+// - { customerId: 1, accessClassification: 1, isArchived: 1 }
+// - { projectId: 1, isLatestVersion: 1 }
+// - { category: 1 }
+// - { reviewStatus: 1 }
+// - { createdAt: -1 }
+```
+
 
 

@@ -36,6 +36,10 @@ import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
 import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
 import { ExpensesPage } from './pages/ExpensesPage.js';
+import { EmployeesPage } from './pages/EmployeesPage.js';
+import { TeamsPage } from './pages/TeamsPage.js';
+import { TasksPage } from './pages/TasksPage.js';
+import { DocumentsPage } from './pages/DocumentsPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -290,6 +294,38 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CustomerPaymentsPortalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="employees"
+            element={
+              <ProtectedRoute>
+                <EmployeesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams"
+            element={
+              <ProtectedRoute>
+                <TeamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tasks"
+            element={
+              <ProtectedRoute>
+                <TasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="documents"
+            element={
+              <ProtectedRoute>
+                <DocumentsPage />
               </ProtectedRoute>
             }
           />

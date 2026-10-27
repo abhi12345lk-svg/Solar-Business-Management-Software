@@ -38,6 +38,7 @@ import {
   ArrowRight,
   ExternalLink,
   Send,
+  Download,
   XCircle,
   X,
   FileText,
@@ -147,18 +148,26 @@ const STAGE_LABELS: Record<string, { label: string; desc: string }> = {
 };
 
 export interface CustomerPortalPageProps {
-  defaultTab?: 'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES';
+  defaultTab?: 'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES' | 'DOCUMENTS';
 }
 
 export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultTab = 'DASHBOARD' }) => {
   const [searchParams] = useSearchParams();
   const urlTab = (searchParams.get('tab') || '').toUpperCase();
-  const validTabs = ['DASHBOARD', 'PROJECTS', 'QUOTATIONS', 'PAYMENTS', 'SERVICE', 'NOTIFICATIONS', 'PREFERENCES'];
+  const validTabs = ['DASHBOARD', 'PROJECTS', 'QUOTATIONS', 'PAYMENTS', 'SERVICE', 'NOTIFICATIONS', 'PREFERENCES', 'DOCUMENTS'];
   const initialTab = validTabs.includes(urlTab) ? urlTab : defaultTab;
 
   const [activeTab, setActiveTab] = useState<
-    'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES'
+    'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES' | 'DOCUMENTS'
   >(initialTab as any);
+
+  useEffect(() => {
+    if (urlTab && validTabs.includes(urlTab)) {
+      setActiveTab(urlTab as any);
+    } else if (defaultTab && validTabs.includes(defaultTab)) {
+      setActiveTab(defaultTab as any);
+    }
+  }, [urlTab, defaultTab]);
 
   // Loading & error states
   const [loading, setLoading] = useState(true);
@@ -181,6 +190,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
   const [warranties, setWarranties] = useState<any[]>([]);
   const [amcs, setAmcs] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
+  const [customerDocs, setCustomerDocs] = useState<any[]>([]);
 
   // Notifications State
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -308,11 +318,25 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
       } else if (tab === 'PREFERENCES') {
         const res = await apiClient<any>('/customer-portal/notifications/preferences');
         if (res) setPreferences(res);
+      } else if (tab === 'DOCUMENTS') {
+        const res = await apiClient<any>('/customer-portal/documents');
+        setCustomerDocs(res?.items || []);
       }
     } catch (err: any) {
       setError(err?.message || `Failed to load ${tab.toLowerCase()} data.`);
     }
   }, [selectedProjectId, notificationCategoryFilter, notificationReadFilter]);
+
+  const handleDownloadCustomerDoc = async (docId: string) => {
+    try {
+      const res = await apiClient<{ downloadUrl: string }>(`/customer-portal/documents/${docId}/access-url`);
+      if (res?.downloadUrl) {
+        window.open(res.downloadUrl, '_blank');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to generate document download link.');
+    }
+  };
 
   useEffect(() => {
     if (activeTab !== 'DASHBOARD') {
@@ -648,6 +672,18 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               {unreadCount}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('DOCUMENTS')}
+          className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors whitespace-nowrap ${
+            activeTab === 'DOCUMENTS'
+              ? 'bg-solar-500 text-white shadow-sm shadow-solar-500/20'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>My Documents</span>
         </button>
 
         <button
@@ -1688,6 +1724,101 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <span>Save Preferences</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 8: CUSTOMER DOCUMENTS VAULT */}
+      {activeTab === 'DOCUMENTS' && (
+        <div className="space-y-6">
+          <div className="bg-card border rounded-2xl p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-solar-500" />
+                  Verified Project & Compliance Documents
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Official engineering drawings, DISCOM net metering approvals, signed contracts, and manufacturer warranty cards.
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-3 py-1 bg-solar-500/10 text-solar-600 rounded-full border border-solar-500/20">
+                {customerDocs.length} Verified Files
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="p-12 text-center text-muted-foreground">Loading documents...</div>
+            ) : customerDocs.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="font-semibold text-foreground">No documents published yet.</p>
+                <p className="text-xs mt-1">
+                  Once your system design, commissioning tests, or NOC approvals are finalized, documents will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto mt-4">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 border-b text-muted-foreground font-semibold text-xs uppercase tracking-wider">
+                      <th className="py-3 px-4">Document Details</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Version</th>
+                      <th className="py-3 px-4">File Size</th>
+                      <th className="py-3 px-4">Published Date</th>
+                      <th className="py-3 px-4 text-right">Download</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {customerDocs.map((doc: any) => {
+                      const sizeMb = ((doc.fileSizeBytes || 0) / (1024 * 1024)).toFixed(2);
+                      return (
+                        <tr key={doc._id || doc.id} className="hover:bg-muted/30 transition">
+                          <td className="py-3.5 px-4">
+                            <div className="font-mono text-xs font-bold text-solar-600">
+                              {doc.documentNumber}
+                            </div>
+                            <div className="font-semibold text-foreground">
+                              {doc.safeDisplayName || doc.originalFilename}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-mono">{doc.originalFilename}</div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
+                              {doc.category ? doc.category.replace(/_/g, ' ') : 'General'}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">
+                            v{doc.version || 1}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">
+                            {sizeMb} MB
+                          </td>
+
+                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
+                            {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => handleDownloadCustomerDoc(doc._id || doc.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-solar-500 hover:bg-solar-600 text-white rounded-lg text-xs font-semibold transition shadow-sm"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

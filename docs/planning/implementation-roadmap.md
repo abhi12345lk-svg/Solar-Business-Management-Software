@@ -245,11 +245,14 @@ graph TD
     *   Operational Payment Receipt Compliance: Operational payment receipt modal renders mandatory legal non-tax invoice disclaimer under GST law.
     *   Unified Web Interface (`apps/web`): `CustomerPortalPage` (`/customer-portal` and `/portal`) providing Dashboard, My Projects (10-stage execution pipeline, checklist, net-metering, subsidy), Quotations (with digital accept/decline modal and legal declaration), Payments & Receipts, Service & AMC, Notification Center (inbox, category filters, unread counter, bulk mark-all-as-read), and Preferences.
     *   Automated test suite: 409 automated tests passing across `@ins-solar/shared`, `@ins-solar/api` (including 15 Phase 9A tests in `phase9a.test.ts`), and `@ins-solar/web` (including 5 Phase 9A tests in `phase9aPages.test.tsx`).
-*   **Phase 9B Scope (Next Phase):**
-    *   Background reminder job runners & cron workers (stalled project stages, payment milestone due, warranty expiry).
-    *   Global system settings and master data management console (Module 30: brands, panel types, capacity brackets, rate cards, letterhead).
-*   **Acceptance Criteria:** Customers can only view their own projects, quotations, receipts; expired/superseded quote decisions rejected; unread counters and mark-as-read work atomically; all monorepo quality gates pass.
-*   **Test Gate:** 409 automated tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
+*   **Phase 9B Status (Completed & Verified):**
+    *   **Module 24 (Employee & Team Management):** `EmployeeProfile` & `Team` Mongoose models linked 1:1 to `User` without duplicate credentials; atomic sequences `EMP-YYYY-NNNNN` & `TEM-YYYY-NNNNN`; live workload tracking (active tasks, visits, projects); safe deactivation preserving all audit and task histories with audited reassignment; crew eligibility flags (`projectTasks`, `serviceVisits`).
+    *   **Module 25 (Unified Task Management):** Extended `ProjectTask` to unify tasks across projects, milestones, installation checklists, service complaints, service visits, net-metering, subsidies, and document reviews; atomic sequence `TSK-YYYY-NNNNN`; status workflow with mandatory `blockerReason` for `BLOCKED` status and completion notes; reassignment audit history; server-side overdue filter consistency (`dueDate < now && status != COMPLETED && status != CANCELLED`).
+    *   **Module 26 (Private Document Management & Access Boundaries):** `DocumentModel` metadata vault with atomic sequence `DOC-YYYY-NNNNN`; MIME & file size validation (<=25MB); revision versioning (`version`, `previousVersionId`, `isLatestVersion`); review workflow with mandatory rejection reasons (min 5 chars); short-lived cryptographic HMAC signed URLs (TTL <= 15 min); simulated private storage fallback; strict customer portal document isolation (customer visible files only; foreign or internal files return 403 Forbidden).
+    *   **Frontend Web Interfaces (`apps/web`):** `EmployeesPage` (`/employees`), `TeamsPage` (`/teams`), `TasksPage` (`/tasks`), `DocumentsPage` (`/documents`), and customer portal `DOCUMENTS` tab in `CustomerPortalPage` (`/customer-portal?tab=DOCUMENTS`); navigation links in `AppLayout.tsx`.
+    *   **Automated test suite:** 16 automated backend tests in `phase9b.test.ts` (244 total passing across 20 test suites in `@ins-solar/api`), 5 frontend tests in `phase9bPages.test.tsx` (100% green, 0 failures), and 0 TypeScript errors across all workspaces.
+*   **Acceptance Criteria:** 1:1 employee linkage without duplicate auth; safe deactivation without historical task deletion; unified task tracking with blocker reasoning; cryptographic HMAC signed document URLs; customer portal document isolation; full monorepo quality gates pass.
+*   **Test Gate:** 244 automated API tests passing across 20 suites + 5 frontend tests passing with 0 failures across `@ins-solar/shared`, `@ins-solar/api`, and `@ins-solar/web`.
 
 ---
 

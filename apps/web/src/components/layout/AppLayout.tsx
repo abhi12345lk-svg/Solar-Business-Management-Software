@@ -28,7 +28,8 @@ import {
   ChevronDown,
   Menu,
   X,
-  Bell
+  Bell,
+  CheckSquare
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -67,8 +68,21 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     items: [
       { to: '/orders', label: 'Sales Orders', description: 'Confirmed customer contracts', icon: ShoppingCart },
       { to: '/projects', label: 'Projects', description: '10-Stage execution & checklist', icon: FolderKanban },
+      { to: '/tasks', label: 'Unified Tasks', description: 'Cross-functional task board & blockers', icon: CheckSquare },
+      { to: '/documents', label: 'Document Vault', description: 'Private documents, KYC & review gates', icon: FileText },
       { to: '/net-metering', label: 'Net Metering', description: 'DISCOM utility applications & inspections', icon: Zap },
       { to: '/subsidies', label: 'Subsidies', description: 'PM Surya Ghar & DBT claim tracking', icon: Landmark }
+    ]
+  },
+  {
+    id: 'workforce',
+    label: 'Team & HR',
+    icon: Users,
+    items: [
+      { to: '/employees', label: 'Employee Directory', description: 'Operational personnel, skills & workload', icon: Users },
+      { to: '/teams', label: 'Crews & Squads', description: 'Field installation crews & eligibility', icon: Users },
+      { to: '/tasks', label: 'My & Team Tasks', description: 'Unified assignments & deadlines', icon: CheckSquare },
+      { to: '/documents', label: 'Document Library', description: 'Centralized private file repository', icon: FileText }
     ]
   },
   {

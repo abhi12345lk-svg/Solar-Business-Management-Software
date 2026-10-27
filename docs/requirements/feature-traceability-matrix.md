@@ -14,16 +14,16 @@
 | :--- | :--- | :---: | :--- |
 | **Phase 1** | Foundation, Toolchain, Standard Middleware, Logging, Testing Setup | 5 | Verified (5/5) |
 | **Phase 2** | Auth, Sessions, RBAC, MFA, CSRF & Audit Logger | 15 | Verified (15/15) |
-| **Phase 3** | Core Database Models, Numbering Engine & Shared Domain Services | 1 | Planned |
-| **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Planned |
-| **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Planned |
-| **Phase 6 / 7A** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (31/58 - Phase 6A, 6B & 7A Complete) |
+| **Phase 3** | Core Database Models, Numbering Engine & Shared Domain Services | 1 | Verified (1/1) |
+| **Phase 4** | CRM Pipeline (Leads, Customers, Surveys, Solar Design, Quotations, PDFs) | 70 | Verified (70/70 - Phase 4 Complete) |
+| **Phase 5** | Supply Chain & Orders (Orders, Products, Multi-Location Inventory, Procurement, Vendors) | 67 | Verified (67/67 - Phase 5 Complete) |
+| **Phase 6 / 7A / 9B** | Execution & Field Ops (Projects, Installations, Checklists, Net Metering, Subsidy, Documents) | 58 | Partially Verified (41/58 - Phase 6A, 6B, 7A & 9B Module 26 Complete) |
 | **Phase 7B** | Service, Warranty, AMC & Service Visits (Complaints, Warranty Claims, AMC, Field Visits) | 31 | Verified (31/31 - Phase 7B Complete) |
-| **Phase 7** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Planned |
-| **Phase 8** | After-Sales & Teams (Employees, Teams, Tasks) | 18 | Planned |
-| **Phase 9** | Customer Portal, Notifications, Reminders & System Settings | 27 | Planned |
+| **Phase 8A / 8B** | Financial Management (Payments, Expenses, Costing, Profitability, Analytics) | 54 | Partially Verified (35/54 - Phase 8A & 8B Complete) |
+| **Phase 8 / 9B** | Operations & Teams (Employees, Teams, Tasks) | 18 | Verified (18/18 - Phase 9B Complete) |
+| **Phase 9A** | Customer Portal, Notifications, Reminders & System Settings | 27 | Partially Verified (17/27 - Phase 9A Complete) |
 | **Phase 10** | Full Integration, E2E Testing, Security Hardening, Backup Drills & Production Go-Live | 8 | Planned |
-| **Total Requirements** | **100% Granular Feature Coverage** | **354** | **72 Verified, 282 Planned** |
+| **Total Requirements** | **100% Granular Feature Coverage** | **361** | **264 Verified, 97 Planned** |
 
 ---
 
@@ -393,44 +393,44 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD24-01` | Employee & Team Management | Employee Legal Name | Phase 2 | Phase 8 | Captures full name and unique employee code EMP-XXXX. | Employee code uniqueness test. | Planned |
-| `REQ-MOD24-02` | Employee & Team Management | Designation & Hierarchy | Phase 2 | Phase 8 | Captures corporate designation and reporting line. | Designation schema test. | Planned |
-| `REQ-MOD24-03` | Employee & Team Management | Mobile & Contact Information | Phase 2 | Phase 8 | Captures E.164 phone, official email, and emergency contact details. | Contact validation schema test. | Planned |
-| `REQ-MOD24-04` | Employee & Team Management | Operating Department Assignment | Phase 2 | Phase 8 | Assigns employee to Admin, Sales, Ops, Accounts, Service, or Inventory. | Department enum validation test. | Planned |
-| `REQ-MOD24-05` | Employee & Team Management | Assigned Leads Workload | Phase 4 | Phase 8 | Dashboard visibility into active assigned leads and pipeline volume. | Workload query aggregation test. | Planned |
-| `REQ-MOD24-06` | Employee & Team Management | Assigned Projects Workload | Phase 14 | Phase 8 | Dashboard visibility into active installations managed by employee. | Project workload query test. | Planned |
-| `REQ-MOD24-07` | Employee & Team Management | Attendance & Availability Status | Phase 3 | Phase 8 | Tracks availability (Active, On Site, On Leave) to prevent task assignment conflicts. | Availability guard test. | Planned |
-| `REQ-MOD24-08` | Employee & Team Management | Employee Performance Metrics | Phase 27 | Phase 8 | Calculates leads converted, surveys completed within SLA, and projects delivered. | Performance KPI formula test. | Planned |
-| `REQ-MOD24-09` | Employee & Team Management | Field Installation Team Grouping | Phase 15 | Phase 8 | Assembles technicians into specialized crews (e.g. Structure Crew, Electrical Crew). | Crew composition relationship test. | Planned |
+| `REQ-MOD24-01` | Employee & Team Management | Employee Legal Name & Code | Phase 2 | Phase 9B | Captures full name, email, phone, and atomic sequential code EMP-YYYY-NNNNN linked to User. | `phase9b.test.ts` employee creation & sequence test | Verified |
+| `REQ-MOD24-02` | Employee & Team Management | Designation & Hierarchy | Phase 2 | Phase 9B | Captures corporate designation, department, and team assignment. | `phase9b.test.ts` employee schema test | Verified |
+| `REQ-MOD24-03` | Employee & Team Management | Mobile & Contact Information | Phase 2 | Phase 9B | Captures E.164 phone, official email, and emergency contact details. | `phase9b.test.ts` contact validation schema test | Verified |
+| `REQ-MOD24-04` | Employee & Team Management | Operating Department Assignment | Phase 2 | Phase 9B | Assigns employee to MANAGEMENT, SALES, DESIGN, OPERATIONS, ELECTRICAL, CIVIL, SERVICE, WAREHOUSE, ACCOUNTS, HR. | `phase9b.test.ts` department enum validation test | Verified |
+| `REQ-MOD24-05` | Employee & Team Management | Assigned Leads & Tasks Workload | Phase 4 | Phase 9B | Live aggregation of active assigned tasks, service visits, and managed projects. | `phase9b.test.ts` workload calculation test | Verified |
+| `REQ-MOD24-06` | Employee & Team Management | Assigned Projects Workload | Phase 14 | Phase 9B | Directory visibility into active installations and projects managed by employee. | `phase9bPages.test.tsx` employee directory metrics test | Verified |
+| `REQ-MOD24-07` | Employee & Team Management | Attendance & Availability Status | Phase 3 | Phase 9B | Tracks status (AVAILABLE, ON_LEAVE, ON_SITE, BUSY) and safe deactivation with required reassignment. | `phase9b.test.ts` employee deactivation & reassignment test | Verified |
+| `REQ-MOD24-08` | Employee & Team Management | Employee Performance Metrics | Phase 27 | Phase 9B | Tracks completed tasks, executed visits, and active workload counts across operations. | `phase9b.test.ts` workload metrics query test | Verified |
+| `REQ-MOD24-09` | Employee & Team Management | Field Installation Team Grouping | Phase 15 | Phase 9B | Assembles technicians into teams with leader, members, and atomic team code TEM-YYYY-NNNNN. | `phase9b.test.ts` team creation and members test | Verified |
 
 ### Module 25: Task Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD25-01` | Task Management | Task Title & Description | Phase 3 | Phase 8 | Captures clear operational deliverable with narrative description. | Task schema validation test. | Planned |
-| `REQ-MOD25-02` | Task Management | Assigned Employee Accountability | Phase 24 | Phase 8 | Binds task execution to designated employee. | User assignment test. | Planned |
-| `REQ-MOD25-03` | Task Management | Relational Project / Lead Link | Phase 4, Phase 14 | Phase 8 | Links task directly to a Lead, Customer, Project, or Purchase Order. | Contextual reference integrity test. | Planned |
-| `REQ-MOD25-04` | Task Management | Priority Matrix Classification | Phase 3 | Phase 8 | Classifies priority: Low, Medium, High, Urgent. | Priority enum test. | Planned |
-| `REQ-MOD25-05` | Task Management | Task Start Date Baseline | Phase 3 | Phase 8 | Records scheduled mobilization date. | Start date validation test. | Planned |
-| `REQ-MOD25-06` | Task Management | Task Due Date & Countdown | Phase 3 | Phase 8 | Sets deadline with automated countdown indicator. | Due date boundary test. | Planned |
-| `REQ-MOD25-07` | Task Management | Kanban Workflow Status | Phase 3 | Phase 8 | Transitions across: To Do -> In Progress -> Under Review -> Completed. | Kanban state transition test. | Planned |
-| `REQ-MOD25-08` | Task Management | Remarks & Activity Comment Thread | Phase 3 | Phase 8 | Supports internal comments and file attachments. | Comment append test. | Planned |
-| `REQ-MOD25-09` | Task Management | Overdue Task Escalation | Phase 29 | Phase 8 | Triggers escalation notification to department head when task passes due date. | Overdue task escalation cron test. | Planned |
+| `REQ-MOD25-01` | Task Management | Task Title & Description | Phase 3 | Phase 9B | Captures operational deliverable title, detailed description, and atomic sequence code TSK-YYYY-NNNNN. | `phase9b.test.ts` unified task creation test | Verified |
+| `REQ-MOD25-02` | Task Management | Assigned Employee Accountability | Phase 24 | Phase 9B | Binds task execution to designated employee user and team with reassignment history and reasons. | `phase9b.test.ts` task assignment & reassignment test | Verified |
+| `REQ-MOD25-03` | Task Management | Relational Project / Lead Link | Phase 4, Phase 14 | Phase 9B | Links task to Project, Milestone, Checklist, Complaint, Visit, Net Metering, Subsidy, Document, or General. | `phase9b.test.ts` polymorphic entity link & cross-customer integrity test | Verified |
+| `REQ-MOD25-04` | Task Management | Priority Matrix Classification | Phase 3 | Phase 9B | Classifies priority: LOW, MEDIUM, HIGH, URGENT. | `phase9b.test.ts` task priority enum test | Verified |
+| `REQ-MOD25-05` | Task Management | Task Start Date Baseline | Phase 3 | Phase 9B | Records scheduled start date and timeline baseline. | `phase9b.test.ts` task start date schema test | Verified |
+| `REQ-MOD25-06` | Task Management | Task Due Date & Countdown | Phase 3 | Phase 9B | Sets deadline with consistent overdue filter (dueDate < now && status != COMPLETED && status != CANCELLED). | `phase9b.test.ts` overdue filter test | Verified |
+| `REQ-MOD25-07` | Task Management | Kanban Workflow Status | Phase 3 | Phase 9B | Transitions across: TODO -> IN_PROGRESS -> BLOCKED -> COMPLETED -> CANCELLED with mandatory blocker reason. | `phase9b.test.ts` status transition & blockerReason validation test | Verified |
+| `REQ-MOD25-08` | Task Management | Remarks & Activity Comment Thread | Phase 3 | Phase 9B | Supports completion notes, blocker reasons, and status transition audit history. | `phase9b.test.ts` status history & notes test | Verified |
+| `REQ-MOD25-09` | Task Management | Overdue Task Escalation | Phase 29 | Phase 9B | API and UI query filters for overdue tasks with alert badges and notifications. | `phase9bPages.test.tsx` tasks page overdue filter test | Verified |
 
 ### Module 26: Document Management
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD26-01` | Document Management | Customer Documents Category | Phase 3 | Phase 6 | Categorizes KYC, application forms, and customer letters. | Document categorization test. | Planned |
-| `REQ-MOD26-02` | Document Management | Government ID Proof Storage | Phase 3 | Phase 6 | Uploads Aadhaar, PAN, Voter ID with MIME validation and checksum hashing. | File MIME type validation test. | Planned |
-| `REQ-MOD26-03` | Document Management | Electricity Utility Bill Storage | Phase 3 | Phase 6 | Stores historical electricity bills linked to Site Survey. | Electricity bill document test. | Planned |
-| `REQ-MOD26-04` | Document Management | Property & Roof Ownership Deeds | Phase 3 | Phase 6 | Stores property tax receipts and roof lease agreements. | Property document link test. | Planned |
-| `REQ-MOD26-05` | Document Management | Quotation Proposal Archives | Phase 8 | Phase 6 | Stores generated and signed proposal PDFs. | Quotation document archive test. | Planned |
-| `REQ-MOD26-06` | Document Management | Signed EPC Legal Agreement | Phase 9 | Phase 6 | Stores formal signed turnkey contracts and work orders. | Legal agreement upload test. | Planned |
-| `REQ-MOD26-07` | Document Management | Installation Quality Documentation | Phase 16 | Phase 6 | Stores checklist sign-offs, megger reports, and SLD drawings. | Installation documentation test. | Planned |
-| `REQ-MOD26-08` | Document Management | Hardware Warranty Certificates | Phase 10 | Phase 6 | Stores module 25-yr and inverter 5/10-yr warranty cards. | Warranty document association test. | Planned |
-| `REQ-MOD26-09` | Document Management | Private Object Storage Architecture | Phase 1 | Phase 6 | Enforces private S3 bucket storage with zero direct public HTTP access. | S3 bucket private policy check test. | Planned |
-| `REQ-MOD26-10` | Document Management | Short-Lived Signed URL Access | Phase 2 | Phase 6 | Issues pre-signed URLs with TTL <= 15 min only to verified authenticated sessions. | Pre-signed URL expiry security test. | Planned |
+| `REQ-MOD26-01` | Document Management | Customer Documents Category | Phase 3 | Phase 9B | Categorizes KYC, identity, utility bills, drawings, commissioning reports, proposals, and contracts. | `phase9b.test.ts` document category & classification test | Verified |
+| `REQ-MOD26-02` | Document Management | Government ID Proof Storage | Phase 3 | Phase 9B | Uploads customer ID proofs with MIME validation, secure storage keys, and classification. | `phase9b.test.ts` document metadata & MIME test | Verified |
+| `REQ-MOD26-03` | Document Management | Electricity Utility Bill Storage | Phase 3 | Phase 9B | Stores utility bills linked to Customer or Project with safe display names and versions. | `phase9b.test.ts` document entity link test | Verified |
+| `REQ-MOD26-04` | Document Management | Property & Roof Ownership Deeds | Phase 3 | Phase 9B | Stores property deeds and site documents with version tracking and review workflow. | `phase9b.test.ts` document versioning test | Verified |
+| `REQ-MOD26-05` | Document Management | Quotation Proposal Archives | Phase 8 | Phase 9B | Stores proposal PDFs and EPC contracts with review status (PENDING_REVIEW, ACCEPTED, REJECTED). | `phase9b.test.ts` document review workflow test | Verified |
+| `REQ-MOD26-06` | Document Management | Signed EPC Legal Agreement | Phase 9 | Phase 9B | Stores formal signed agreements with rejection reason validation (min 5 chars). | `phase9b.test.ts` review rejection reason validation test | Verified |
+| `REQ-MOD26-07` | Document Management | Installation Quality Documentation | Phase 16 | Phase 9B | Stores commissioning reports, SLDs, and engineering drawings. | `phase9b.test.ts` document categories test | Verified |
+| `REQ-MOD26-08` | Document Management | Hardware Warranty Certificates | Phase 10 | Phase 9B | Stores warranty cards and certificates linked to projects and customers. | `phase9b.test.ts` document customer link test | Verified |
+| `REQ-MOD26-09` | Document Management | Private Object Storage Architecture | Phase 1 | Phase 9B | Enforces private storage with simulated/S3 boundary and zero public access. | `phase9b.test.ts` private storage key & signed URL test | Verified |
+| `REQ-MOD26-10` | Document Management | Short-Lived Signed URL Access | Phase 2 | Phase 9B | Generates short-lived HMAC-signed URLs (TTL <= 15 min) and strictly enforces customer portal isolation (403 on internal docs). | `phase9b.test.ts` customer portal document isolation test | Verified |
 
 ### Module 27: Reports & Analytics
 
