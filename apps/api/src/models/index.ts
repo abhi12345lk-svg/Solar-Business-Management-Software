@@ -33,3 +33,5 @@ export * from './ServiceComplaint.js';
 export * from './WarrantyClaim.js';
 export * from './AnnualMaintenanceContract.js';
 export * from './ServiceVisit.js';
+export * from './CustomerPayment.js';
+export * from './PaymentAllocation.js';

@@ -18,6 +18,7 @@ import {
   FileText,
   PackageCheck,
   Receipt,
+  Banknote,
   FolderKanban,
   Zap,
   Landmark,
@@ -91,6 +92,15 @@ const NAV_GROUPS: NavDropdownGroup[] = [
       { to: '/amc', label: 'AMC Contracts', description: 'Preventive maintenance schedules', icon: FileCheck2 },
       { to: '/service-visits', label: 'Service Visits', description: 'Technician site visit reports & signoff', icon: Wrench },
       { to: '/customer-portal/service', label: 'Client Portal', description: 'Customer self-service ticket intake', icon: LifeBuoy }
+    ]
+  },
+  {
+    id: 'finance',
+    label: 'Finance & Accounts',
+    icon: Banknote,
+    items: [
+      { to: '/payments', label: 'Customer Payments', description: 'Realization, order allocations & sequences', icon: Banknote },
+      { to: '/customer-portal/payments', label: 'Client Payments Portal', description: 'Customer receipts & statement view', icon: Receipt }
     ]
   }
 ];

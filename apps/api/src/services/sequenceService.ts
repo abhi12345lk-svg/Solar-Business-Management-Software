@@ -57,7 +57,8 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.NET_METERING]: 'NMA',
   [SequenceEntityType.SUBSIDY]: 'SUB',
   [SequenceEntityType.SERVICE_VISIT]: 'VIS',
-  [SequenceEntityType.WARRANTY_CLAIM]: 'CLM'
+  [SequenceEntityType.WARRANTY_CLAIM]: 'CLM',
+  [SequenceEntityType.PAYMENT_ALLOCATION]: 'ALC'
 };
 
 const DEFAULT_PADDING = 5;

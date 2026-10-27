@@ -297,20 +297,20 @@
 
 | Req ID | Module / Area | Exact Feature / Business Rule | Dependencies | Planned Phase | Acceptance Criteria | Required Test | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `REQ-MOD18-01` | Payment Management | Payment Receipt ID Generation | Phase 3 | Phase 7 | Sequential format REC-YYYY-XXXXX, uniquely allocated. | Receipt sequence counter test. | Planned |
-| `REQ-MOD18-02` | Payment Management | Customer Master Binding | Phase 3 | Phase 7 | Binds payment receipt to customer master record. | Customer reference test. | Planned |
-| `REQ-MOD18-03` | Payment Management | Project / Order Attribution | Phase 9, Phase 14 | Phase 7 | Allocates payment to specific Project ID or Order ID. | Project allocation test. | Planned |
-| `REQ-MOD18-04` | Payment Management | Invoice Reference Link | Phase 7 | Phase 7 | Links payment receipt to Proforma Invoice or Tax Invoice. | Invoice foreign key test. | Planned |
-| `REQ-MOD18-05` | Payment Management | Payment Amount in Integer Paise | Phase 3 | Phase 7 | Enforces positive integer paise representation without floating point math. | Positive integer currency test. | Planned |
-| `REQ-MOD18-06` | Payment Management | Payment Realization Date | Phase 3 | Phase 7 | Records date when funds were received or cleared in company account. | Date validation test. | Planned |
-| `REQ-MOD18-07` | Payment Management | Payment Mode Classification | Phase 3 | Phase 7 | Categorizes mode: NEFT/RTGS, UPI/IMPS, Cheque, Online Gateway, Cash. | Payment mode enum validation test. | Planned |
-| `REQ-MOD18-08` | Payment Management | Collector / Received By Identity | Phase 2 | Phase 7 | Records authenticated staff member who logged the transaction. | User reference audit test. | Planned |
-| `REQ-MOD18-09` | Payment Management | Running Project Balance | Phase 9 | Phase 7 | Dynamically computes remaining unpaid balance on Project/Order. | Ledger balance formula test. | Planned |
-| `REQ-MOD18-10` | Payment Management | Payment Clearance Status | Phase 3 | Phase 7 | Tracks status: Pending Clearance, Cleared, Bounced, Refunded. | Status state machine test. | Planned |
-| `REQ-MOD18-11` | Payment Management | Advances & Partial Installments | Phase 9 | Phase 7 | Handles multiple milestone installments against a single order. | Partial payment allocation test. | Planned |
-| `REQ-MOD18-12` | Payment Management | Refunds & Reversal Vouchers | Phase 2 | Phase 7 | Requires Admin approval; creates balancing reversal entries without deleting originals. | Immutability reversal audit test. | Planned |
-| `REQ-MOD18-13` | Payment Management | Duplicate Submission Prevention | Phase 1 | Phase 7 | Requires client Idempotency-Key and unique bank UTR index; rejects duplicate submissions. | Concurrency duplicate payment rejection test. | Planned |
-| `REQ-MOD18-14` | Payment Management | Downloadable Payment Voucher PDF | Phase 1, Phase 8 | Phase 7 | Compiles branded downloadable receipt PDF with transaction UTR and company seal. | Receipt PDF compiler test. | Planned |
+| `REQ-MOD18-01` | Payment Management | Payment Receipt ID Generation | Phase 3 | Phase 8A | Sequential format REC-YYYY-NNNNN, uniquely allocated via SequenceService. | `phase8a.test.ts` atomic receipt sequence test | Verified |
+| `REQ-MOD18-02` | Payment Management | Customer Master Binding | Phase 3 | Phase 8A | Binds payment receipt to customer record with tenant boundary enforcement. | `phase8a.test.ts` customer reference test | Verified |
+| `REQ-MOD18-03` | Payment Management | Project / Order Attribution | Phase 9, Phase 14 | Phase 8A | Allocates verified payment to customer's Sales Orders with ALC-YYYY-NNNNN. | `phase8a.test.ts` order allocation test | Verified |
+| `REQ-MOD18-04` | Payment Management | Invoice / Order Reference Link | Phase 7 | Phase 8A | Links payment and allocations to authoritative Sales Order net totals. | `phase8a.test.ts` order receivables link test | Verified |
+| `REQ-MOD18-05` | Payment Management | Payment Amount in Integer Paise | Phase 3 | Phase 8A | Enforces positive integer paise representation without floating point math. | `phase8a.test.ts` integer paise boundary test | Verified |
+| `REQ-MOD18-06` | Payment Management | Payment Realization Date | Phase 3 | Phase 8A | Records date when funds were received and bank verification clearance date. | `phase8a.test.ts` date and verification test | Verified |
+| `REQ-MOD18-07` | Payment Management | Payment Mode Classification | Phase 3 | Phase 8A | Categorizes mode: BANK_TRANSFER, UPI, CHEQUE, NEFT_RTGS, IMPS, CASH, etc. | `phase8a.test.ts` payment method enum test | Verified |
+| `REQ-MOD18-08` | Payment Management | Collector / Received By Identity | Phase 2 | Phase 8A | Records authenticated staff member and logs audit event in AuditService. | `phase8a.test.ts` audit event logging test | Verified |
+| `REQ-MOD18-09` | Payment Management | Running Project Balance | Phase 9 | Phase 8A | Computes order collectible ceiling and customer receivables with 4-tier aging. | `phase8a.test.ts` aging receivables statement test | Verified |
+| `REQ-MOD18-10` | Payment Management | Payment Clearance Status | Phase 3 | Phase 8A | Tracks status: RECORDED, VERIFIED, REVERSED, REFUNDED with validated lifecycle. | `phase8a.test.ts` payment state machine test | Verified |
+| `REQ-MOD18-11` | Payment Management | Advances & Partial Installments | Phase 9 | Phase 8A | Handles multiple milestone allocations against orders with unallocated credit tracking. | `phase8a.test.ts` partial payment allocation test | Verified |
+| `REQ-MOD18-12` | Payment Management | Refunds & Reversal Vouchers | Phase 2 | Phase 8A | Reversal cascades to active allocations; unallocated refunds recorded with history. | `phase8a.test.ts` cascading reversal & refund test | Verified |
+| `REQ-MOD18-13` | Payment Management | Duplicate Submission Prevention | Phase 1 | Phase 8A | Enforces idempotency key protection and unique customer UTR index. | `phase8a.test.ts` idempotency & duplicate UTR test | Verified |
+| `REQ-MOD18-14` | Payment Management | Downloadable Payment Voucher PDF | Phase 1, Phase 8 | Phase 8A | Printable operational receipt document with legal non-tax invoice disclaimer. | `phase8a.test.ts`, `phase8aPages.test.tsx` receipt view test | Verified |
 
 ### Module 19: Expense Management
 

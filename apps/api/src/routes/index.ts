@@ -28,6 +28,8 @@ import { warrantyRouter } from './warranty.routes.js';
 import { amcRouter } from './amc.routes.js';
 import { serviceVisitRouter } from './serviceVisit.routes.js';
 import { customerServiceRouter } from './customerService.routes.js';
+import { paymentRouter } from './payment.routes.js';
+import { customerPaymentRouter } from './customerPayment.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -72,8 +74,10 @@ apiRouter.use('/complaints', complaintRouter);
 apiRouter.use('/warranties', warrantyRouter);
 apiRouter.use('/amc', amcRouter);
 apiRouter.use('/service-visits', serviceVisitRouter);
+apiRouter.use('/payments', paymentRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
 apiRouter.use('/customer-portal/service', customerServiceRouter);
+apiRouter.use('/customer-portal/payments', customerPaymentRouter);
 
 // Development/Test only tokens route (strictly unavailable in production)
 if (config.NODE_ENV !== 'production') {

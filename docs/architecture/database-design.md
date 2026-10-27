@@ -1383,3 +1383,82 @@ interface IServiceVisit {
 // Indexes: { visitNumber: 1 } (unique), { assignedTechnicianId: 1, scheduledDate: 1 }, { complaintId: 1 }, { amcId: 1 }
 ```
 
+---
+
+## 8. Customer Payments & Operational Receivables Ledger (Phase 8A)
+
+### 8.1 `customer_payments`
+```typescript
+interface ICustomerPayment {
+  _id: ObjectId;
+  receiptNumber: string;                 // Unique: REC-YYYY-NNNNN (SequenceService)
+  customerId: ObjectId;                  // Ref: Customer
+  amountPaise: number;                   // Integer Paise (Positive, e.g. ₹50,000 = 5000000)
+  paymentDate: Date;                     // Realization / intake date
+  paymentMethod: PaymentMethod;          // BANK_TRANSFER, UPI, CHEQUE, NEFT_RTGS, IMPS, CASH, PAYMENT_GATEWAY, DEMAND_DRAFT
+  transactionReference?: string;         // Unique per customer: Bank UTR, Cheque #, Gateway Txn ID
+  status: CustomerPaymentStatus;         // RECORDED, VERIFIED, REVERSED, REFUNDED
+  allocatedAmountPaise: number;          // Total actively allocated towards Sales Orders
+  unallocatedAmountPaise: number;        // Available credit for order allocation or refund
+  evidenceKey?: string;                  // Supporting bank deposit slip / screenshot storage key
+  notes?: string;                        // Public customer-visible notes
+  internalNotes?: string;                // Confidential accounts notes (strictly redacted on portal)
+  idempotencyKey?: string;               // Safe replay token
+  recordedBy: ObjectId;                  // Ref: User
+  verifiedBy?: ObjectId;                 // Ref: User
+  verifiedAt?: Date;
+  verificationNotes?: string;
+  reversedBy?: ObjectId;                 // Ref: User
+  reversedAt?: Date;
+  reversalReason?: string;
+  refundReference?: string;
+  refundedAt?: Date;
+  refundedBy?: ObjectId;                 // Ref: User
+  refundReason?: string;
+  refundAmountPaise?: number;
+  statusHistory: Array<{
+    fromStatus: string;
+    toStatus: string;
+    changedAt: Date;
+    changedBy: ObjectId;
+    notes?: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { receiptNumber: 1 } (unique)
+// - { customerId: 1, transactionReference: 1 } (sparse, unique where transactionReference is set)
+// - { idempotencyKey: 1 } (sparse, unique)
+// - { customerId: 1, status: 1 }
+// - { paymentDate: -1 }
+```
+
+### 8.2 `payment_allocations`
+```typescript
+interface IPaymentAllocation {
+  _id: ObjectId;
+  allocationNumber: string;              // Unique: ALC-YYYY-NNNNN (SequenceService)
+  paymentId: ObjectId;                   // Ref: CustomerPayment
+  salesOrderId: ObjectId;                // Ref: SalesOrder
+  customerId: ObjectId;                  // Ref: Customer (Enforces non-cross-customer invariant)
+  allocatedAmountPaise: number;          // Positive integer paise allocated to order
+  allocationDate: Date;
+  status: PaymentAllocationStatus;       // ACTIVE, REVERSED
+  allocatedBy: ObjectId;                 // Ref: User
+  notes?: string;
+  reversalReason?: string;
+  reversedBy?: ObjectId;                 // Ref: User
+  reversedAt?: Date;
+  idempotencyKey?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// Indexes:
+// - { allocationNumber: 1 } (unique)
+// - { paymentId: 1, status: 1 }
+// - { salesOrderId: 1, status: 1 }
+// - { customerId: 1 }
+// - { idempotencyKey: 1 } (sparse, unique)
+```
+

@@ -206,17 +206,17 @@ graph TD
 
 ---
 
-### Phase 8: After-Sales & Team Management (Employees, Teams, Tasks, Break-Fix, Warranty, AMC & Visits)
-*   **Focus:** Employee directory, team composition, task Kanban board, break-fix service tickets, warranty tracking (panel barcodes, inverter serials), recurring AMC contracts, and scheduled preventive maintenance visit logging.
-*   **Entry Criteria:** Phase 7 Financials verified.
-*   **Deliverables:**
-    *   Modules 21, 22, 23, 24, 25 implemented end-to-end.
-    *   Service complaint ticketing with SLA tracking and spare parts logging.
-    *   AMC schedule generator batch-creating quarterly/periodic visit records.
-    *   Field service visit report with customer signature capture.
-    *   Service Panel interface for maintenance technicians.
-*   **Acceptance Criteria:** AMC batch generator correctly provisions future service visits; spare parts consumed update inventory balances.
-*   **Test Gate:** Service ticket lifecycle tests; AMC visit batch scheduling unit test; warranty claim linkage test.
+### Phase 8A: Customer Payments, Receivables & Outstanding Management
+*   **Focus:** Operational customer payment intake, atomic sequence generation (`REC-YYYY-NNNNN`), bank clearance verification, multi-order payment allocation (`ALC-YYYY-NNNNN`), customer and order receivables ledgers, overdue aging analysis (0-30, 31-60, 61-90, >90 days), cascading payment reversals, unallocated credit refunds, printable operational payment receipts with statutory non-tax disclaimer, customer portal tenant isolation, and audit trail logging.
+*   **Status (Completed & Verified):**
+    *   `CustomerPayment` Mongoose model & `PaymentService`: Atomic receipt numbering (`REC-YYYY-NNNNN`), integer-paise financial precision (`amountPaise`, `allocatedAmountPaise`, `unallocatedAmountPaise`), idempotency replay protection, duplicate external UTR/cheque prevention, validated lifecycle (`RECORDED` → `VERIFIED` → `REVERSED` / `REFUNDED`), and status history preservation.
+    *   `PaymentAllocation` Mongoose model & `PaymentService`: Atomic allocation numbering (`ALC-YYYY-NNNNN`), strict anti-cross-customer boundary enforcement, atomic concurrency-safe deduction of unallocated quota via MongoDB `$expr: { $lte: [{ $add: ['$allocatedAmountPaise', input.allocatedAmountPaise] }, '$amountPaise'] }`, order collectible ceiling validation (`order.netTotalPaise - currentOrderAllocated`), allocation reversal restoring payment unallocated quota, and cascading payment reversal reconciling active allocations.
+    *   Receivables & Aging Engine: Authoritative server-side formulas for order-level receivables (`orderTotal - sum(activeAllocations)`), customer-level receivables, unallocated credit tracking, and 4-tier aging buckets (0–30, 31–60, 61–90, >90 days overdue). Excludes unverified and reversed transactions.
+    *   Printable Operational Receipt: Structured document with company details from `CompanySettings`, customer billing details, payment method, transaction reference, allocation breakdown table, remaining unallocated credit, and mandatory legal operational disclaimer: *"This document is an operational payment receipt confirming realization of customer funds... It does not constitute a statutory Tax Invoice under GST law."*
+    *   Customer Portal Security & Redaction: Tenant-scoped `/api/v1/customer-portal/payments/*` endpoints, strictly isolating customer payments and receipts while redacting confidential internal employee notes.
+    *   Web User Interface (`apps/web`): Enterprise `PaymentsPage` with KPI summary cards, multi-criteria filters, record payment modal, verify realization modal, order allocation modal, reverse payment modal, refund modal, and printable receipt preview; `CustomerPaymentsPortalPage` for client self-service; navigation item integrated under `Finance & Accounts` in `AppLayout.tsx`.
+*   **Acceptance Criteria:** Cross-customer allocations strictly rejected; integer paise preserved throughout; over-allocation prevented under concurrency; verified disclaimer on receipts; zero double-reversal permitted; full monorepo quality gates pass.
+*   **Test Gate:** 235 automated tests passing with 0 failures across `@ins-solar/shared` (135 tests), `@ins-solar/api` (198 tests, including 20 Phase 8A tests), and `@ins-solar/web` (37 tests, including 5 Phase 8A tests).
 
 ---
 
