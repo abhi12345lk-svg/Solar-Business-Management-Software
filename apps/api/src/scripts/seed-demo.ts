@@ -10,7 +10,12 @@ import {
   Project,
   ProjectInstallationChecklist,
   NetMeteringApplication,
-  SubsidyApplication
+  SubsidyApplication,
+  Lead,
+  LeadActivity,
+  SiteSurvey,
+  Vendor,
+  PurchaseOrder
 } from '../models/index.js';
 import {
   UserRole,
@@ -21,7 +26,15 @@ import {
   SubsidyScheme,
   DisbursementMode,
   ApplicationDocumentStatus,
-  UnitOfMeasurement
+  UnitOfMeasurement,
+  LeadStatus,
+  LeadSource,
+  LeadPriority,
+  SolarRequirement,
+  PurchaseOrderStatus,
+  RoofType,
+  ConnectionPhase,
+  SurveyStatus
 } from '@ins-solar/shared';
 import { ProjectService } from '../services/projectService.js';
 import { NetMeteringService } from '../services/netMeteringService.js';
@@ -357,6 +370,232 @@ export async function seedDemoData(): Promise<void> {
         adminUser
       );
       console.log(`✓ Subsidy Application ${subsidy.applicationNumber} sanctioned and 1st DBT tranche recorded.`);
+    }
+
+    // 10. CRM Leads & Follow-ups
+    let lead1 = await Lead.findOne({ prospectPhone: '+919829111222' });
+    if (!lead1) {
+      lead1 = await Lead.create({
+        leadCode: 'LEAD-2026-00001',
+        prospectName: 'Amit Verma',
+        prospectPhone: '+919829111222',
+        prospectEmail: 'amit.verma@example.com',
+        location: {
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          pinCode: '302020',
+          street: '12, Malviya Nagar'
+        },
+        source: LeadSource.WEBSITE,
+        solarRequirement: SolarRequirement.RESIDENTIAL,
+        estimatedCapacityKw: 5,
+        status: LeadStatus.SURVEY_SCHEDULED,
+        priority: LeadPriority.HIGH,
+        notes: 'Interested in 5kW rooftop solar under PM Surya Ghar Yojana.',
+        nextFollowUpDate: new Date(Date.now() + 86400000 * 2),
+        isActive: true,
+        createdBy: admin._id
+      });
+
+      await LeadActivity.create({
+        leadId: lead1._id,
+        activityType: 'CALL',
+        summary: 'Introductory requirement consultation call',
+        sentiment: 'HOT',
+        nextFollowUpDate: new Date(Date.now() + 86400000 * 2),
+        performedBy: admin._id,
+        createdAt: new Date()
+      });
+      console.log('✓ CRM Lead Amit Verma & follow-up created.');
+    }
+
+    let lead2 = await Lead.findOne({ prospectPhone: '+919829333444' });
+    if (!lead2) {
+      lead2 = await Lead.create({
+        leadCode: 'LEAD-2026-00002',
+        prospectName: 'SunTech Garments Pvt Ltd',
+        companyName: 'SunTech Garments Pvt Ltd',
+        prospectPhone: '+919829333444',
+        prospectEmail: 'procurement@suntechgarments.com',
+        location: {
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          pinCode: '302022',
+          street: 'Plot G-18, Sitapura Industrial Area'
+        },
+        source: LeadSource.REFERRAL,
+        solarRequirement: SolarRequirement.COMMERCIAL,
+        estimatedCapacityKw: 25,
+        status: LeadStatus.CONTACTED,
+        priority: LeadPriority.HIGH,
+        notes: 'High daytime energy consumption. Looking for 25kW On-Grid solar plant.',
+        isActive: true,
+        createdBy: admin._id
+      });
+      console.log('✓ Commercial Lead SunTech Garments created.');
+    }
+
+    let lead3 = await Lead.findOne({ prospectPhone: '+919829555666' });
+    if (!lead3) {
+      lead3 = await Lead.create({
+        leadCode: 'LEAD-2026-00003',
+        prospectName: 'Dr. Sunita Rao',
+        prospectPhone: '+919829555666',
+        prospectEmail: 'dr.sunita@example.com',
+        location: {
+          city: 'Jaipur',
+          state: 'Rajasthan',
+          pinCode: '302019',
+          street: 'C-45, Mansarovar'
+        },
+        source: LeadSource.DIRECT_CALL,
+        solarRequirement: SolarRequirement.RESIDENTIAL,
+        estimatedCapacityKw: 3,
+        status: LeadStatus.NEW,
+        priority: LeadPriority.MEDIUM,
+        notes: '3kW residential system enquiry for 2-floor bungalow.',
+        isActive: true,
+        createdBy: admin._id
+      });
+      console.log('✓ Residential Lead Dr. Sunita Rao created.');
+    }
+
+    // 11. Site Survey for Amit Verma
+    if (lead1) {
+      const existingSurvey = await SiteSurvey.findOne({ leadId: lead1._id });
+      if (!existingSurvey) {
+        await SiteSurvey.create({
+          surveyNumber: 'SRV-2026-00001',
+          leadId: lead1._id,
+          siteAddress: {
+            addressLine1: '12, Malviya Nagar',
+            city: 'Jaipur',
+            state: 'Rajasthan',
+            postalCode: '302020',
+            country: 'India'
+          },
+          roofType: RoofType.RCC_FLAT,
+          usableRoofAreaSqFt: 620,
+          grossRoofAreaSqFt: 850,
+          sanctionedLoadKw: 5.0,
+          connectionPhase: ConnectionPhase.SINGLE,
+          shadowAnalysisNotes: 'Small parapet wall on east, zero southern shadow.',
+          proposedCapacityKw: 5.0,
+          averageMonthlyBillPaise: 450000, // ₹4,500
+          status: SurveyStatus.COMPLETED,
+          completedDate: new Date(),
+          photos: [],
+          createdBy: admin._id
+        });
+        console.log('✓ Site Survey SRV-2026-00001 created.');
+      }
+    }
+
+    // 12. Vendors & Purchase Order
+    let vendor1 = await Vendor.findOne({ vendorCode: 'VEN-2026-00001' });
+    if (!vendor1) {
+      vendor1 = await Vendor.create({
+        vendorCode: 'VEN-2026-00001',
+        name: 'Waaree Energies Limited',
+        contactPerson: 'Vikas Singhal',
+        email: 'orders@waaree.com',
+        phone: '+912266440000',
+        address: {
+          addressLine1: '602, Western Edge I, Borivali East',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          postalCode: '400066',
+          country: 'India'
+        },
+        gstin: '27AAACW8891P1ZX',
+        pan: 'AAACW8891P',
+        suppliedCategoryIds: [panelCat._id],
+        suppliedProductIds: [panel._id],
+        paymentTermsDays: 30,
+        isActive: true,
+        hasPurchaseHistory: true,
+        createdBy: admin._id
+      });
+      console.log('✓ Vendor Waaree Energies Limited created.');
+    }
+
+    let vendor2 = await Vendor.findOne({ vendorCode: 'VEN-2026-00002' });
+    if (!vendor2) {
+      vendor2 = await Vendor.create({
+        vendorCode: 'VEN-2026-00002',
+        name: 'Solis Power India Pvt Ltd',
+        contactPerson: 'Anand Kulkarni',
+        email: 'sales.india@solisinverters.com',
+        phone: '+912067120000',
+        address: {
+          addressLine1: 'Magarpatta Cybercity, Tower 4',
+          city: 'Pune',
+          state: 'Maharashtra',
+          postalCode: '411028',
+          country: 'India'
+        },
+        gstin: '27AAACS1234D1Z5',
+        pan: 'AAACS1234D',
+        suppliedCategoryIds: [inverterCat._id],
+        suppliedProductIds: [inverter._id],
+        paymentTermsDays: 45,
+        isActive: true,
+        hasPurchaseHistory: false,
+        createdBy: admin._id
+      });
+      console.log('✓ Vendor Solis Power India created.');
+    }
+
+    // 13. Purchase Order
+    if (vendor1 && warehouse && panel) {
+      const existingPo = await PurchaseOrder.findOne({ poNumber: 'PO-2026-00001' });
+      if (!existingPo) {
+        const poLineItems = [
+          {
+            productId: panel._id,
+            sku: panel.sku,
+            productName: panel.name,
+            orderedQuantity: 100,
+            uom: UnitOfMeasurement.NOS,
+            unitPurchaseRatePaise: 1100000, // ₹11,000
+            discountPaise: 0,
+            taxableAmountPaise: 110000000, // ₹11,00,000
+            gstRate: 12,
+            cgstAmountPaise: 0,
+            sgstAmountPaise: 0,
+            igstAmountPaise: 13200000, // ₹1,32,000
+            totalTaxPaise: 13200000,
+            totalAmountPaise: 123200000, // ₹12,32,000
+            receivedQuantity: 100,
+            rejectedQuantity: 0,
+            outstandingQuantity: 0
+          }
+        ];
+
+        await PurchaseOrder.create({
+          poNumber: 'PO-2026-00001',
+          vendorId: vendor1._id,
+          destinationWarehouseId: warehouse._id,
+          orderDate: new Date('2026-10-15'),
+          expectedDeliveryDate: new Date('2026-10-22'),
+          lineItems: poLineItems,
+          isInterState: true,
+          subtotalPaise: 110000000,
+          totalDiscountPaise: 0,
+          totalTaxPaise: 13200000,
+          totalAmountPaise: 123200000,
+          status: PurchaseOrderStatus.COMPLETED,
+          approval: {
+            requiresApproval: true,
+            approvalThresholdPaise: 2500000,
+            approvedBy: admin._id,
+            approvedAt: new Date('2026-10-15')
+          },
+          revision: 1,
+          createdBy: admin._id
+        });
+        console.log('✓ Purchase Order PO-2026-00001 created.');
+      }
     }
 
     console.log('\n======================================================');
