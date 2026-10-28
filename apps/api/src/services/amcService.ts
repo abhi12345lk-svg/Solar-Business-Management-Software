@@ -90,7 +90,12 @@ export class AmcService {
   private static readonly VALID_TRANSITIONS: Record<AmcStatus, AmcStatus[]> = {
     [AmcStatus.DRAFT]: [AmcStatus.PENDING_APPROVAL, AmcStatus.ACTIVE, AmcStatus.CANCELLED],
     [AmcStatus.PENDING_APPROVAL]: [AmcStatus.ACTIVE, AmcStatus.DRAFT, AmcStatus.CANCELLED],
-    [AmcStatus.ACTIVE]: [AmcStatus.ON_HOLD, AmcStatus.EXPIRED, AmcStatus.CANCELLED, AmcStatus.RENEWED],
+    [AmcStatus.ACTIVE]: [
+      AmcStatus.ON_HOLD,
+      AmcStatus.EXPIRED,
+      AmcStatus.CANCELLED,
+      AmcStatus.RENEWED
+    ],
     [AmcStatus.ON_HOLD]: [AmcStatus.ACTIVE, AmcStatus.CANCELLED],
     [AmcStatus.EXPIRED]: [AmcStatus.RENEWED, AmcStatus.CANCELLED],
     [AmcStatus.CANCELLED]: [AmcStatus.DRAFT],
@@ -113,7 +118,7 @@ export class AmcService {
     // 2. Verify Customer
     const customerId = input.customerId || project.customerId.toString();
     if (project.customerId.toString() !== customerId) {
-      throw AppError.badRequest("Project customer does not match the provided customer ID.");
+      throw AppError.badRequest('Project customer does not match the provided customer ID.');
     }
 
     // 3. Date range validation
@@ -273,7 +278,9 @@ export class AmcService {
     if (userContext.isCustomer) {
       const custId = (amc.customerId as any)?._id?.toString() || amc.customerId?.toString();
       if (custId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's AMC contract.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's AMC contract."
+        );
       }
     }
 
@@ -289,7 +296,8 @@ export class AmcService {
     maybeActor?: UserContext
   ): Promise<IAnnualMaintenanceContractDocument> {
     const notes = typeof notesOrActor === 'string' ? notesOrActor : undefined;
-    const actor: UserContext = (typeof notesOrActor === 'object' && notesOrActor !== null ? notesOrActor : maybeActor) || {};
+    const actor: UserContext =
+      (typeof notesOrActor === 'object' && notesOrActor !== null ? notesOrActor : maybeActor) || {};
 
     const amc = await AnnualMaintenanceContract.findById(id);
     if (!amc) {
@@ -297,7 +305,9 @@ export class AmcService {
     }
 
     if (amc.status !== AmcStatus.DRAFT && amc.status !== AmcStatus.PENDING_APPROVAL) {
-      throw AppError.badRequest(`Cannot approve contract in '${amc.status}' status. Only DRAFT or PENDING_APPROVAL contracts can be approved.`);
+      throw AppError.badRequest(
+        `Cannot approve contract in '${amc.status}' status. Only DRAFT or PENDING_APPROVAL contracts can be approved.`
+      );
     }
 
     // Check again for overlapping active AMC on same project
@@ -322,7 +332,10 @@ export class AmcService {
     const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'Approver';
 
     amc.status = AmcStatus.ACTIVE;
-    amc.approvedBy = actor.userId && mongoose.Types.ObjectId.isValid(actor.userId) ? new mongoose.Types.ObjectId(actor.userId) : undefined;
+    amc.approvedBy =
+      actor.userId && mongoose.Types.ObjectId.isValid(actor.userId)
+        ? new mongoose.Types.ObjectId(actor.userId)
+        : undefined;
     amc.approvedAt = new Date();
 
     amc.statusHistory.push({
@@ -428,7 +441,9 @@ export class AmcService {
     }
 
     if (amc.status !== AmcStatus.ACTIVE) {
-      throw AppError.badRequest(`Cannot consume visit against AMC in '${amc.status}' status. Contract must be ACTIVE.`);
+      throw AppError.badRequest(
+        `Cannot consume visit against AMC in '${amc.status}' status. Contract must be ACTIVE.`
+      );
     }
 
     // Atomic conditional increment where consumedVisits < includedVisits

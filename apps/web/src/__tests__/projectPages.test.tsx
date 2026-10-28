@@ -225,7 +225,9 @@ describe('Phase 6A Frontend Operational Pages', () => {
     expect(screen.getByText(/Customer & Sales Order/i)).toBeInTheDocument();
     expect(screen.getByText('Apex Industries Ltd')).toBeInTheDocument();
     expect(screen.getByText('ORD-2026-00001')).toBeInTheDocument();
-    expect(screen.getByText('Plot 42, Sector 8, Industrial Estate, Ahmedabad, Gujarat 382481')).toBeInTheDocument();
+    expect(
+      screen.getByText('Plot 42, Sector 8, Industrial Estate, Ahmedabad, Gujarat 382481')
+    ).toBeInTheDocument();
 
     // Verify Action Controls for IN_PROGRESS status
     expect(screen.getByRole('button', { name: /Advance Stage/i })).toBeInTheDocument();

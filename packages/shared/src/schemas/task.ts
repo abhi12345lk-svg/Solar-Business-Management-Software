@@ -6,14 +6,32 @@ export const createUnifiedTaskSchema = z.object({
   description: z.string().max(2000).optional(),
   category: z.nativeEnum(TaskCategory).default(TaskCategory.GENERAL).optional(),
   priority: z.nativeEnum(ProjectPriority).default(ProjectPriority.MEDIUM).optional(),
-  assignedUserId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format').optional(),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid team ID format').optional(),
+  assignedUserId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format')
+    .optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid team ID format')
+    .optional(),
   dueDate: z.coerce.date().optional(),
-  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  milestoneId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  projectId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  milestoneId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   relatedEntityType: z.string().max(50).optional(),
-  relatedEntityId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional()
+  relatedEntityId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  customerId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional()
 });
 
 export const updateUnifiedTaskSchema = z.object({
@@ -21,8 +39,16 @@ export const updateUnifiedTaskSchema = z.object({
   description: z.string().max(2000).optional(),
   category: z.nativeEnum(TaskCategory).optional(),
   priority: z.nativeEnum(ProjectPriority).optional(),
-  assignedUserId: z.string().regex(/^[0-9a-fA-F]{24}$/).nullable().optional(),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/).nullable().optional(),
+  assignedUserId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .nullable()
+    .optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .nullable()
+    .optional(),
   dueDate: z.coerce.date().nullable().optional(),
   status: z.nativeEnum(ProjectTaskStatus).optional(),
   blockerReason: z.string().max(1000).optional(),
@@ -44,7 +70,10 @@ export const updateTaskStatusSchema = z
   })
   .refine(
     data => {
-      if (data.status === ProjectTaskStatus.BLOCKED && (!data.blockerReason || !data.blockerReason.trim())) {
+      if (
+        data.status === ProjectTaskStatus.BLOCKED &&
+        (!data.blockerReason || !data.blockerReason.trim())
+      ) {
         return false;
       }
       return true;
@@ -56,22 +85,43 @@ export const updateTaskStatusSchema = z
   );
 
 export const unifiedTaskFilterSchema = z.object({
-  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  milestoneId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  assignedUserId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  projectId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  milestoneId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  assignedUserId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   status: z.nativeEnum(ProjectTaskStatus).optional(),
   priority: z.nativeEnum(ProjectPriority).optional(),
   category: z.nativeEnum(TaskCategory).optional(),
   relatedEntityType: z.string().optional(),
-  relatedEntityId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  relatedEntityId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  customerId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   isOverdue: z
     .string()
     .optional()
     .transform(val => (val === undefined ? undefined : val === 'true')),
   search: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'dueDate', 'priority', 'status', 'title']).default('createdAt').optional(),
+  sortBy: z
+    .enum(['createdAt', 'dueDate', 'priority', 'status', 'title'])
+    .default('createdAt')
+    .optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
   page: z.coerce.number().int().min(1).default(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20).optional()

@@ -65,7 +65,8 @@ export class VendorInvoiceService {
         reconciliationNotes = `3-Way Match Discrepancy: Invoice amount (₹${(input.totalAmountPaise / 100).toFixed(2)}) differs from PO amount (₹${(expectedTotalPaise / 100).toFixed(2)}) by ₹${(discrepancyAmountPaise / 100).toFixed(2)}. Flagged for manual accountant review.`;
       } else {
         status = VendorInvoiceStatus.RECONCILED;
-        reconciliationNotes = '3-Way Match successful: Invoice totals perfectly match approved Purchase Order commercial terms.';
+        reconciliationNotes =
+          '3-Way Match successful: Invoice totals perfectly match approved Purchase Order commercial terms.';
       }
     }
 

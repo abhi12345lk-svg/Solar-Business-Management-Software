@@ -73,7 +73,9 @@ export const TasksPage: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
   // Status Modal Form State
-  const [nextStatus, setNextStatus] = useState<'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'CANCELLED'>('IN_PROGRESS');
+  const [nextStatus, setNextStatus] = useState<
+    'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'CANCELLED'
+  >('IN_PROGRESS');
   const [completionNotes, setCompletionNotes] = useState('');
   const [blockerReason, setBlockerReason] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
@@ -87,7 +89,9 @@ export const TasksPage: React.FC = () => {
   const [createTitle, setCreateTitle] = useState('');
   const [createDesc, setCreateDesc] = useState('');
   const [createCategory, setCreateCategory] = useState('PROJECT_EXECUTION');
-  const [createPriority, setCreatePriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
+  const [createPriority, setCreatePriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>(
+    'MEDIUM'
+  );
   const [createDueDate, setCreateDueDate] = useState('');
   const [createAssigneeId, setCreateAssigneeId] = useState('');
   const [createTeamId, setCreateTeamId] = useState('');
@@ -108,7 +112,9 @@ export const TasksPage: React.FC = () => {
       if (categoryFilter) queryParams.set('category', categoryFilter);
       if (isOverdueOnly) queryParams.set('isOverdue', 'true');
 
-      const res = await apiClient<{ items?: TaskItem[]; tasks?: TaskItem[] }>(`/tasks?${queryParams.toString()}`);
+      const res = await apiClient<{ items?: TaskItem[]; tasks?: TaskItem[] }>(
+        `/tasks?${queryParams.toString()}`
+      );
       setTasks(res?.items || res?.tasks || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load unified tasks.');
@@ -238,7 +244,14 @@ export const TasksPage: React.FC = () => {
   const totalCount = tasks.length;
   const inProgressCount = tasks.filter(t => t.status === 'IN_PROGRESS').length;
   const blockedCount = tasks.filter(t => t.status === 'BLOCKED').length;
-  const overdueCount = tasks.filter(t => t.isOverdue || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED' && t.status !== 'CANCELLED')).length;
+  const overdueCount = tasks.filter(
+    t =>
+      t.isOverdue ||
+      (t.dueDate &&
+        new Date(t.dueDate) < new Date() &&
+        t.status !== 'COMPLETED' &&
+        t.status !== 'CANCELLED')
+  ).length;
   const completedCount = tasks.filter(t => t.status === 'COMPLETED').length;
 
   return (
@@ -251,7 +264,8 @@ export const TasksPage: React.FC = () => {
             Unified Task Management
           </h1>
           <p className="text-sm text-gray-500">
-            Cross-functional operational tasks across projects, installation follow-ups, and service complaints.
+            Cross-functional operational tasks across projects, installation follow-ups, and service
+            complaints.
           </p>
         </div>
         <button
@@ -441,7 +455,9 @@ export const TasksPage: React.FC = () => {
                         </div>
                         <div className="font-semibold text-gray-900 line-clamp-1">{task.title}</div>
                         {task.description && (
-                          <div className="text-xs text-gray-500 line-clamp-1">{task.description}</div>
+                          <div className="text-xs text-gray-500 line-clamp-1">
+                            {task.description}
+                          </div>
                         )}
                         {task.blockerReason && (
                           <div className="text-xs text-red-600 font-medium mt-0.5">
@@ -467,10 +483,10 @@ export const TasksPage: React.FC = () => {
                             task.priority === 'URGENT'
                               ? 'bg-red-100 text-red-800'
                               : task.priority === 'HIGH'
-                              ? 'bg-amber-100 text-amber-800'
-                              : task.priority === 'MEDIUM'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-700'
+                                ? 'bg-amber-100 text-amber-800'
+                                : task.priority === 'MEDIUM'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-700'
                           }`}
                         >
                           {task.priority}
@@ -512,12 +528,12 @@ export const TasksPage: React.FC = () => {
                             task.status === 'COMPLETED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : task.status === 'IN_PROGRESS'
-                              ? 'bg-blue-100 text-blue-800'
-                              : task.status === 'BLOCKED'
-                              ? 'bg-red-100 text-red-800'
-                              : task.status === 'CANCELLED'
-                              ? 'bg-gray-200 text-gray-600'
-                              : 'bg-amber-100 text-amber-800'
+                                ? 'bg-blue-100 text-blue-800'
+                                : task.status === 'BLOCKED'
+                                  ? 'bg-red-100 text-red-800'
+                                  : task.status === 'CANCELLED'
+                                    ? 'bg-gray-200 text-gray-600'
+                                    : 'bg-amber-100 text-amber-800'
                           }`}
                         >
                           {task.status.replace(/_/g, ' ')}
@@ -783,9 +799,7 @@ export const TasksPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Category
-                  </label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
                   <select
                     value={createCategory}
                     onChange={e => setCreateCategory(e.target.value)}
@@ -802,9 +816,7 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Priority
-                  </label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Priority</label>
                   <select
                     value={createPriority}
                     onChange={e => setCreatePriority(e.target.value as any)}

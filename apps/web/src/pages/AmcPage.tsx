@@ -83,7 +83,8 @@ export const AmcPage: React.FC = () => {
     visitCadence: 'QUARTERLY',
     includedVisits: 4,
     billingCadence: 'ANNUAL',
-    scopeOfWork: 'Includes quarterly panel deep cleaning, inverter maintenance, thermography & earthing test.'
+    scopeOfWork:
+      'Includes quarterly panel deep cleaning, inverter maintenance, thermography & earthing test.'
   });
 
   const [renewForm, setRenewForm] = useState({
@@ -107,7 +108,8 @@ export const AmcPage: React.FC = () => {
       if (planFilter) query += `&planType=${encodeURIComponent(planFilter)}`;
 
       const res = await apiClient<any>(query);
-      const items = res?.items || res?.contracts || res?.amcs || res?.data?.items || res?.data?.contracts || [];
+      const items =
+        res?.items || res?.contracts || res?.amcs || res?.data?.items || res?.data?.contracts || [];
       const totalCount = res?.total ?? res?.data?.total ?? items.length;
       setContracts(items);
       setTotal(totalCount);
@@ -219,7 +221,9 @@ export const AmcPage: React.FC = () => {
               <FileCheck2 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Annual Maintenance Contracts (AMC)</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Annual Maintenance Contracts (AMC)
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Solar plant maintenance agreements, included visit quotas, and scheduled servicing
               </p>
@@ -385,9 +389,12 @@ export const AmcPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-medium text-foreground">{contract.customerId?.name || 'Customer'}</div>
+                      <div className="font-medium text-foreground">
+                        {contract.customerId?.name || 'Customer'}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {contract.projectId?.projectCode || 'N/A'} • {contract.projectId?.name || ''}
+                        {contract.projectId?.projectCode || 'N/A'} •{' '}
+                        {contract.projectId?.name || ''}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -396,8 +403,13 @@ export const AmcPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                      {contract.startDate ? new Date(contract.startDate).toISOString().split('T')[0] : 'N/A'} to{' '}
-                      {contract.endDate ? new Date(contract.endDate).toISOString().split('T')[0] : 'N/A'}
+                      {contract.startDate
+                        ? new Date(contract.startDate).toISOString().split('T')[0]
+                        : 'N/A'}{' '}
+                      to{' '}
+                      {contract.endDate
+                        ? new Date(contract.endDate).toISOString().split('T')[0]
+                        : 'N/A'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -411,7 +423,10 @@ export const AmcPage: React.FC = () => {
                             style={{
                               width: `${Math.min(
                                 100,
-                                Math.round((contract.consumedVisits / Math.max(1, contract.includedVisits)) * 100)
+                                Math.round(
+                                  (contract.consumedVisits / Math.max(1, contract.includedVisits)) *
+                                    100
+                                )
                               )}%`
                             }}
                           />
@@ -440,7 +455,8 @@ export const AmcPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-1.5">
-                        {(contract.status === 'DRAFT' || contract.status === 'PENDING_APPROVAL') && (
+                        {(contract.status === 'DRAFT' ||
+                          contract.status === 'PENDING_APPROVAL') && (
                           <button
                             onClick={() => {
                               setSelectedAmc(contract);
@@ -458,13 +474,17 @@ export const AmcPage: React.FC = () => {
                               setSelectedAmc(contract);
                               const endD = new Date(contract.endDate);
                               const newStart = new Date(endD.getTime() + 24 * 60 * 60 * 1000);
-                              const newEnd = new Date(newStart.getTime() + 365 * 24 * 60 * 60 * 1000);
+                              const newEnd = new Date(
+                                newStart.getTime() + 365 * 24 * 60 * 60 * 1000
+                              );
                               const startStr = newStart.toISOString().split('T')[0] || '';
                               const endStr = newEnd.toISOString().split('T')[0] || '';
                               setRenewForm({
                                 startDate: startStr,
                                 endDate: endStr,
-                                contractAmountRupees: Math.round(contract.contractAmountPaise / 100),
+                                contractAmountRupees: Math.round(
+                                  contract.contractAmountPaise / 100
+                                ),
                                 includedVisits: contract.includedVisits,
                                 notes: `Successor renewal of ${contract.amcNumber}`
                               });
@@ -557,7 +577,9 @@ export const AmcPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Plan Type *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Plan Type *
+                  </label>
                   <select
                     value={createForm.planType}
                     onChange={e => setCreateForm({ ...createForm, planType: e.target.value })}
@@ -565,7 +587,9 @@ export const AmcPage: React.FC = () => {
                   >
                     <option value="BASIC">Basic (Preventive Only)</option>
                     <option value="STANDARD">Standard (Quarterly + Spares Discount)</option>
-                    <option value="COMPREHENSIVE">Comprehensive (All Inverter & Panel Spares)</option>
+                    <option value="COMPREHENSIVE">
+                      Comprehensive (All Inverter & Panel Spares)
+                    </option>
                     <option value="PREMIUM">Premium (24/7 SLA + Dedicated Tech)</option>
                   </select>
                 </div>
@@ -578,7 +602,9 @@ export const AmcPage: React.FC = () => {
                     required
                     min={0}
                     value={createForm.contractAmountRupees}
-                    onChange={e => setCreateForm({ ...createForm, contractAmountRupees: Number(e.target.value) })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, contractAmountRupees: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -586,7 +612,9 @@ export const AmcPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Start Date *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Start Date *
+                  </label>
                   <input
                     type="date"
                     required
@@ -596,7 +624,9 @@ export const AmcPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">End Date *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    End Date *
+                  </label>
                   <input
                     type="date"
                     required
@@ -633,14 +663,18 @@ export const AmcPage: React.FC = () => {
                     required
                     min={1}
                     value={createForm.includedVisits}
-                    onChange={e => setCreateForm({ ...createForm, includedVisits: Number(e.target.value) })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, includedVisits: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Scope of Work</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Scope of Work
+                </label>
                 <textarea
                   rows={2}
                   value={createForm.scopeOfWork}
@@ -688,8 +722,8 @@ export const AmcPage: React.FC = () => {
 
             <form onSubmit={handleApproveAmc} className="space-y-4 text-sm">
               <p className="text-xs text-muted-foreground">
-                Confirming activation will commit INS Solar to the agreed service-level maintenance schedule and
-                activate the {selectedAmc.includedVisits}-visit quota.
+                Confirming activation will commit INS Solar to the agreed service-level maintenance
+                schedule and activate the {selectedAmc.includedVisits}-visit quota.
               </p>
 
               <div>
@@ -745,7 +779,9 @@ export const AmcPage: React.FC = () => {
             <form onSubmit={handleRenewAmc} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">New Start Date *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    New Start Date *
+                  </label>
                   <input
                     type="date"
                     required
@@ -755,7 +791,9 @@ export const AmcPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">New End Date *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    New End Date *
+                  </label>
                   <input
                     type="date"
                     required
@@ -768,31 +806,41 @@ export const AmcPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Renewal Price (₹)</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Renewal Price (₹)
+                  </label>
                   <input
                     type="number"
                     required
                     min={0}
                     value={renewForm.contractAmountRupees}
-                    onChange={e => setRenewForm({ ...renewForm, contractAmountRupees: Number(e.target.value) })}
+                    onChange={e =>
+                      setRenewForm({ ...renewForm, contractAmountRupees: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Included Visits</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Included Visits
+                  </label>
                   <input
                     type="number"
                     required
                     min={1}
                     value={renewForm.includedVisits}
-                    onChange={e => setRenewForm({ ...renewForm, includedVisits: Number(e.target.value) })}
+                    onChange={e =>
+                      setRenewForm({ ...renewForm, includedVisits: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Renewal Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Renewal Notes
+                </label>
                 <textarea
                   rows={2}
                   value={renewForm.notes}

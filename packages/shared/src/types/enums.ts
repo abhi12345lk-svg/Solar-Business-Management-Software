@@ -907,9 +907,3 @@ export enum EmployeeAvailability {
   BUSY = 'BUSY',
   ON_LEAVE = 'ON_LEAVE'
 }
-
-
-
-
-
-

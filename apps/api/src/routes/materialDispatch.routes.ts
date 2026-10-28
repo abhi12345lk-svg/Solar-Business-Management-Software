@@ -39,7 +39,11 @@ materialDispatchRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const dispatch = await MaterialDispatchService.createDispatch(parseResult.data, user, context);
+      const dispatch = await MaterialDispatchService.createDispatch(
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, dispatch, 201);
     } catch (err) {
       return next(err);

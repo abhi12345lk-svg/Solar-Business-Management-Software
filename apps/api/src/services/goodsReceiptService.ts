@@ -11,7 +11,11 @@ import {
   ActorType,
   UserRole
 } from '@ins-solar/shared';
-import { GoodsReceipt, IGoodsReceiptDocument, IGoodsReceiptLineItem } from '../models/GoodsReceipt.js';
+import {
+  GoodsReceipt,
+  IGoodsReceiptDocument,
+  IGoodsReceiptLineItem
+} from '../models/GoodsReceipt.js';
 import { PurchaseOrder } from '../models/PurchaseOrder.js';
 import { StockBalance } from '../models/StockBalance.js';
 import { StockMovement } from '../models/StockMovement.js';
@@ -74,9 +78,7 @@ export class GoodsReceiptService {
     const grnNumber = grnSeq.formattedNumber;
 
     for (const receiptItem of input.lineItems) {
-      const poLine = po.lineItems.find(
-        line => line.productId.toString() === receiptItem.productId
-      );
+      const poLine = po.lineItems.find(line => line.productId.toString() === receiptItem.productId);
 
       if (!poLine) {
         throw AppError.validation(
@@ -146,7 +148,9 @@ export class GoodsReceiptService {
             const normalizedSerial = rawSerial.trim().toUpperCase();
 
             // Check duplicate serial
-            const existingSerial = await ProductSerialNumber.findOne({ serialNumber: normalizedSerial });
+            const existingSerial = await ProductSerialNumber.findOne({
+              serialNumber: normalizedSerial
+            });
             if (existingSerial) {
               throw AppError.duplicateResource(
                 `Serial number '${normalizedSerial}' is already registered in the system.`

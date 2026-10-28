@@ -265,4 +265,7 @@ NetMeteringApplicationSchema.index({ discomName: 1, consumerNumber: 1 });
 
 export const NetMeteringApplication =
   (mongoose.models.NetMeteringApplication as mongoose.Model<INetMeteringApplicationDocument>) ||
-  mongoose.model<INetMeteringApplicationDocument>('NetMeteringApplication', NetMeteringApplicationSchema);
+  mongoose.model<INetMeteringApplicationDocument>(
+    'NetMeteringApplication',
+    NetMeteringApplicationSchema
+  );

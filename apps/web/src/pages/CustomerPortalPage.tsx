@@ -148,17 +148,43 @@ const STAGE_LABELS: Record<string, { label: string; desc: string }> = {
 };
 
 export interface CustomerPortalPageProps {
-  defaultTab?: 'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES' | 'DOCUMENTS';
+  defaultTab?:
+    | 'DASHBOARD'
+    | 'PROJECTS'
+    | 'QUOTATIONS'
+    | 'PAYMENTS'
+    | 'SERVICE'
+    | 'NOTIFICATIONS'
+    | 'PREFERENCES'
+    | 'DOCUMENTS';
 }
 
-export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultTab = 'DASHBOARD' }) => {
+export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
+  defaultTab = 'DASHBOARD'
+}) => {
   const [searchParams] = useSearchParams();
   const urlTab = (searchParams.get('tab') || '').toUpperCase();
-  const validTabs = ['DASHBOARD', 'PROJECTS', 'QUOTATIONS', 'PAYMENTS', 'SERVICE', 'NOTIFICATIONS', 'PREFERENCES', 'DOCUMENTS'];
+  const validTabs = [
+    'DASHBOARD',
+    'PROJECTS',
+    'QUOTATIONS',
+    'PAYMENTS',
+    'SERVICE',
+    'NOTIFICATIONS',
+    'PREFERENCES',
+    'DOCUMENTS'
+  ];
   const initialTab = validTabs.includes(urlTab) ? urlTab : defaultTab;
 
   const [activeTab, setActiveTab] = useState<
-    'DASHBOARD' | 'PROJECTS' | 'QUOTATIONS' | 'PAYMENTS' | 'SERVICE' | 'NOTIFICATIONS' | 'PREFERENCES' | 'DOCUMENTS'
+    | 'DASHBOARD'
+    | 'PROJECTS'
+    | 'QUOTATIONS'
+    | 'PAYMENTS'
+    | 'SERVICE'
+    | 'NOTIFICATIONS'
+    | 'PREFERENCES'
+    | 'DOCUMENTS'
   >(initialTab as any);
 
   useEffect(() => {
@@ -239,7 +265,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
       const [dashRes, notifRes, unreadRes, prefsRes] = await Promise.all([
         apiClient<any>('/customer-portal/dashboard').catch(() => null),
         apiClient<any>('/customer-portal/notifications?limit=20').catch(() => ({ items: [] })),
-        apiClient<any>('/customer-portal/notifications/unread-count').catch(() => ({ unreadCount: 0 })),
+        apiClient<any>('/customer-portal/notifications/unread-count').catch(() => ({
+          unreadCount: 0
+        })),
         apiClient<any>('/customer-portal/notifications/preferences').catch(() => null)
       ]);
 
@@ -271,65 +299,72 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
   }, [fetchDashboardData]);
 
   // Fetch specific tab data when activated
-  const fetchTabData = useCallback(async (tab: string) => {
-    try {
-      setError(null);
-      if (tab === 'PROJECTS') {
-        const res = await apiClient<any>('/customer-portal/projects');
-        setProjects(res?.items || []);
-        if (res?.items?.length > 0 && !selectedProjectId) {
-          setSelectedProjectId(res.items[0]._id || res.items[0].id);
+  const fetchTabData = useCallback(
+    async (tab: string) => {
+      try {
+        setError(null);
+        if (tab === 'PROJECTS') {
+          const res = await apiClient<any>('/customer-portal/projects');
+          setProjects(res?.items || []);
+          if (res?.items?.length > 0 && !selectedProjectId) {
+            setSelectedProjectId(res.items[0]._id || res.items[0].id);
+          }
+        } else if (tab === 'QUOTATIONS') {
+          const res = await apiClient<any>('/customer-portal/quotations');
+          setQuotations(res?.data || res || []);
+        } else if (tab === 'PAYMENTS') {
+          const [payRes, recRes] = await Promise.all([
+            apiClient<any>('/customer-portal/payments'),
+            apiClient<any>('/customer-portal/payments/receivables')
+          ]);
+          setPayments(Array.isArray(payRes) ? payRes : payRes?.items || payRes?.data?.items || []);
+          setReceivables(recRes?.data || recRes || null);
+        } else if (tab === 'SERVICE') {
+          const [compRes, warRes, amcRes, visRes] = await Promise.all([
+            apiClient<any>('/customer-portal/service/complaints'),
+            apiClient<any>('/customer-portal/service/warranties'),
+            apiClient<any>('/customer-portal/service/amc'),
+            apiClient<any>('/customer-portal/service/visits')
+          ]);
+          setComplaints(compRes?.items || compRes?.complaints || compRes?.data?.items || []);
+          setWarranties(
+            warRes?.items || warRes?.equipment || warRes?.warranties || warRes?.data?.items || []
+          );
+          setAmcs(amcRes?.items || amcRes?.contracts || amcRes?.amcs || amcRes?.data?.items || []);
+          setVisits(visRes?.items || visRes?.visits || visRes?.data?.items || []);
+        } else if (tab === 'NOTIFICATIONS') {
+          const params = new URLSearchParams();
+          if (notificationCategoryFilter !== 'ALL') {
+            params.append('category', notificationCategoryFilter);
+          }
+          if (notificationReadFilter === 'UNREAD') {
+            params.append('isRead', 'false');
+          } else if (notificationReadFilter === 'READ') {
+            params.append('isRead', 'true');
+          }
+          const res = await apiClient<any>(`/customer-portal/notifications?${params.toString()}`);
+          setNotifications(res?.items || []);
+          const unreadRes = await apiClient<any>('/customer-portal/notifications/unread-count');
+          setUnreadCount(unreadRes?.unreadCount || 0);
+        } else if (tab === 'PREFERENCES') {
+          const res = await apiClient<any>('/customer-portal/notifications/preferences');
+          if (res) setPreferences(res);
+        } else if (tab === 'DOCUMENTS') {
+          const res = await apiClient<any>('/customer-portal/documents');
+          setCustomerDocs(res?.items || []);
         }
-      } else if (tab === 'QUOTATIONS') {
-        const res = await apiClient<any>('/customer-portal/quotations');
-        setQuotations(res?.data || res || []);
-      } else if (tab === 'PAYMENTS') {
-        const [payRes, recRes] = await Promise.all([
-          apiClient<any>('/customer-portal/payments'),
-          apiClient<any>('/customer-portal/payments/receivables')
-        ]);
-        setPayments(Array.isArray(payRes) ? payRes : (payRes?.items || payRes?.data?.items || []));
-        setReceivables(recRes?.data || recRes || null);
-      } else if (tab === 'SERVICE') {
-        const [compRes, warRes, amcRes, visRes] = await Promise.all([
-          apiClient<any>('/customer-portal/service/complaints'),
-          apiClient<any>('/customer-portal/service/warranties'),
-          apiClient<any>('/customer-portal/service/amc'),
-          apiClient<any>('/customer-portal/service/visits')
-        ]);
-        setComplaints(compRes?.items || compRes?.complaints || compRes?.data?.items || []);
-        setWarranties(warRes?.items || warRes?.equipment || warRes?.warranties || warRes?.data?.items || []);
-        setAmcs(amcRes?.items || amcRes?.contracts || amcRes?.amcs || amcRes?.data?.items || []);
-        setVisits(visRes?.items || visRes?.visits || visRes?.data?.items || []);
-      } else if (tab === 'NOTIFICATIONS') {
-        const params = new URLSearchParams();
-        if (notificationCategoryFilter !== 'ALL') {
-          params.append('category', notificationCategoryFilter);
-        }
-        if (notificationReadFilter === 'UNREAD') {
-          params.append('isRead', 'false');
-        } else if (notificationReadFilter === 'READ') {
-          params.append('isRead', 'true');
-        }
-        const res = await apiClient<any>(`/customer-portal/notifications?${params.toString()}`);
-        setNotifications(res?.items || []);
-        const unreadRes = await apiClient<any>('/customer-portal/notifications/unread-count');
-        setUnreadCount(unreadRes?.unreadCount || 0);
-      } else if (tab === 'PREFERENCES') {
-        const res = await apiClient<any>('/customer-portal/notifications/preferences');
-        if (res) setPreferences(res);
-      } else if (tab === 'DOCUMENTS') {
-        const res = await apiClient<any>('/customer-portal/documents');
-        setCustomerDocs(res?.items || []);
+      } catch (err: any) {
+        setError(err?.message || `Failed to load ${tab.toLowerCase()} data.`);
       }
-    } catch (err: any) {
-      setError(err?.message || `Failed to load ${tab.toLowerCase()} data.`);
-    }
-  }, [selectedProjectId, notificationCategoryFilter, notificationReadFilter]);
+    },
+    [selectedProjectId, notificationCategoryFilter, notificationReadFilter]
+  );
 
   const handleDownloadCustomerDoc = async (docId: string) => {
     try {
-      const res = await apiClient<{ downloadUrl: string }>(`/customer-portal/documents/${docId}/access-url`);
+      const res = await apiClient<{ downloadUrl: string }>(
+        `/customer-portal/documents/${docId}/access-url`
+      );
       if (res?.downloadUrl) {
         window.open(res.downloadUrl, '_blank');
       }
@@ -350,9 +385,15 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
       setProjectDetailLoading(true);
       const [proj, dispatches, netMet, subsidy] = await Promise.all([
         apiClient<any>(`/customer-portal/projects/${projectId}`),
-        apiClient<any>(`/customer-portal/projects/${projectId}/dispatches`).catch(() => ({ items: [] })),
-        apiClient<any>(`/customer-portal/projects/${projectId}/net-metering`).catch(() => ({ items: [] })),
-        apiClient<any>(`/customer-portal/projects/${projectId}/subsidy`).catch(() => ({ items: [] }))
+        apiClient<any>(`/customer-portal/projects/${projectId}/dispatches`).catch(() => ({
+          items: []
+        })),
+        apiClient<any>(`/customer-portal/projects/${projectId}/net-metering`).catch(() => ({
+          items: []
+        })),
+        apiClient<any>(`/customer-portal/projects/${projectId}/subsidy`).catch(() => ({
+          items: []
+        }))
       ]);
 
       setSelectedProjectDetail({
@@ -441,9 +482,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
   const handleMarkRead = async (notifId: string) => {
     try {
       await apiClient(`/customer-portal/notifications/${notifId}/read`, { method: 'PATCH' });
-      setNotifications(prev =>
-        prev.map(n => (n.id === notifId ? { ...n, isRead: true } : n))
-      );
+      setNotifications(prev => prev.map(n => (n.id === notifId ? { ...n, isRead: true } : n)));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err: any) {
       setError(err?.message || 'Failed to mark notification as read.');
@@ -532,7 +571,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Live installation progress, commercial proposals, payment receipts, warranties, and notification center.
+              Live installation progress, commercial proposals, payment receipts, warranties, and
+              notification center.
             </p>
           </div>
         </div>
@@ -575,7 +615,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-destructive/80 hover:text-destructive">
+          <button
+            onClick={() => setError(null)}
+            className="text-destructive/80 hover:text-destructive"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -587,7 +630,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-700/80 hover:text-emerald-700">
+          <button
+            onClick={() => setActionSuccess(null)}
+            className="text-emerald-700/80 hover:text-emerald-700"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -666,9 +712,13 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
           <Bell className="w-4 h-4" />
           <span>Notification Center</span>
           {unreadCount > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'NOTIFICATIONS' ? 'bg-white text-solar-600' : 'bg-solar-500 text-white'
-            }`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'NOTIFICATIONS'
+                  ? 'bg-white text-solar-600'
+                  : 'bg-solar-500 text-white'
+              }`}
+            >
               {unreadCount}
             </span>
           )}
@@ -709,12 +759,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <span>Active Plants</span>
                 <FolderKanban className="w-4 h-4 text-solar-500" />
               </div>
-              <div className="mt-2 text-2xl font-bold text-foreground">
-                {projects.length}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Turnkey installation projects
-              </p>
+              <div className="mt-2 text-2xl font-bold text-foreground">{projects.length}</div>
+              <p className="mt-1 text-xs text-muted-foreground">Turnkey installation projects</p>
             </div>
 
             <div className="bg-card border rounded-xl p-5 shadow-sm">
@@ -725,9 +771,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <div className="mt-2 text-2xl font-bold text-foreground">
                 {quotations.filter(q => q.status === 'SENT' || q.status === 'APPROVED').length}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Awaiting digital acceptance
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Awaiting digital acceptance</p>
             </div>
 
             <div className="bg-card border rounded-xl p-5 shadow-sm">
@@ -736,10 +780,16 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <Banknote className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="mt-2 text-2xl font-bold text-foreground">
-                ₹{(((receivables?.totalOutstandingPaise ?? receivables?.outstandingPaise ?? 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                ₹
+                {(
+                  (receivables?.totalOutstandingPaise ?? receivables?.outstandingPaise ?? 0) / 100
+                ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Total realized: ₹{(((receivables?.totalAllocatedPaise ?? receivables?.totalReceivedPaise ?? 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                Total realized: ₹
+                {(
+                  (receivables?.totalAllocatedPaise ?? receivables?.totalReceivedPaise ?? 0) / 100
+                ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </p>
             </div>
 
@@ -748,12 +798,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <span>Unread Alerts</span>
                 <Bell className="w-4 h-4 text-indigo-500" />
               </div>
-              <div className="mt-2 text-2xl font-bold text-foreground">
-                {unreadCount}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Milestone & service reminders
-              </p>
+              <div className="mt-2 text-2xl font-bold text-foreground">{unreadCount}</div>
+              <p className="mt-1 text-xs text-muted-foreground">Milestone & service reminders</p>
             </div>
           </div>
 
@@ -785,15 +831,25 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-solar-600">{projects[0]!.projectCode}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted font-medium">{projects[0]!.systemTopology}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted font-medium">{projects[0]!.systemCapacityKwp} kWp</span>
+                    <span className="text-sm font-semibold text-solar-600">
+                      {projects[0]!.projectCode}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted font-medium">
+                      {projects[0]!.systemTopology}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted font-medium">
+                      {projects[0]!.systemCapacityKwp} kWp
+                    </span>
                   </div>
                   <h3 className="text-lg font-bold text-foreground mt-0.5">{projects[0]!.name}</h3>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-muted-foreground font-semibold">Overall Installation Progress</div>
-                  <div className="text-xl font-bold text-solar-600">{projects[0]!.progressPercent}%</div>
+                  <div className="text-xs text-muted-foreground font-semibold">
+                    Overall Installation Progress
+                  </div>
+                  <div className="text-xl font-bold text-solar-600">
+                    {projects[0]!.progressPercent}%
+                  </div>
                 </div>
               </div>
 
@@ -812,7 +868,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                     {STAGE_LABELS[projects[0]!.currentStage]?.label || projects[0]!.currentStage}
                   </div>
                   <div className="text-muted-foreground mt-0.5">
-                    {STAGE_LABELS[projects[0]!.currentStage]?.desc || 'Stage execution in progress.'}
+                    {STAGE_LABELS[projects[0]!.currentStage]?.desc ||
+                      'Stage execution in progress.'}
                   </div>
                 </div>
               </div>
@@ -919,10 +976,15 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <span className="text-xs font-semibold text-solar-600">{selectedProjectDetail.projectCode}</span>
-                    <h2 className="text-xl font-bold text-foreground mt-0.5">{selectedProjectDetail.name}</h2>
+                    <span className="text-xs font-semibold text-solar-600">
+                      {selectedProjectDetail.projectCode}
+                    </span>
+                    <h2 className="text-xl font-bold text-foreground mt-0.5">
+                      {selectedProjectDetail.name}
+                    </h2>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {selectedProjectDetail.siteAddress?.addressLine1}, {selectedProjectDetail.siteAddress?.city},{' '}
+                      {selectedProjectDetail.siteAddress?.addressLine1},{' '}
+                      {selectedProjectDetail.siteAddress?.city},{' '}
                       {selectedProjectDetail.siteAddress?.state}
                     </p>
                   </div>
@@ -958,16 +1020,20 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                             isCurrent
                               ? 'bg-solar-500 text-white font-bold shadow-md shadow-solar-500/20 border-solar-600'
                               : isDone
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-semibold'
-                              : 'bg-muted/30 border-muted text-muted-foreground'
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-semibold'
+                                : 'bg-muted/30 border-muted text-muted-foreground'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-wider">Step {idx + 1}</span>
+                            <span className="text-[10px] uppercase tracking-wider">
+                              Step {idx + 1}
+                            </span>
                             {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
                             {isCurrent && <Clock className="w-3.5 h-3.5" />}
                           </div>
-                          <div className="line-clamp-2 leading-tight">{info.label.split(': ')[1]}</div>
+                          <div className="line-clamp-2 leading-tight">
+                            {info.label.split(': ')[1]}
+                          </div>
                         </div>
                       );
                     })}
@@ -983,11 +1049,16 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 </h3>
 
                 {selectedProjectDetail.milestones?.length === 0 ? (
-                  <div className="text-xs text-muted-foreground py-4">No milestones registered yet.</div>
+                  <div className="text-xs text-muted-foreground py-4">
+                    No milestones registered yet.
+                  </div>
                 ) : (
                   <div className="divide-y text-xs">
                     {selectedProjectDetail.milestones.map((m: any) => (
-                      <div key={m._id || m.id} className="py-3 flex items-start justify-between gap-4">
+                      <div
+                        key={m._id || m.id}
+                        className="py-3 flex items-start justify-between gap-4"
+                      >
                         <div className="space-y-0.5">
                           <div className="font-semibold text-foreground flex items-center space-x-2">
                             <span>{m.name}</span>
@@ -996,16 +1067,18 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                                 m.status === 'COMPLETED'
                                   ? 'bg-emerald-500/10 text-emerald-600'
                                   : m.status === 'IN_PROGRESS'
-                                  ? 'bg-solar-500/10 text-solar-600'
-                                  : m.status === 'BLOCKED'
-                                  ? 'bg-destructive/10 text-destructive'
-                                  : 'bg-muted text-muted-foreground'
+                                    ? 'bg-solar-500/10 text-solar-600'
+                                    : m.status === 'BLOCKED'
+                                      ? 'bg-destructive/10 text-destructive'
+                                      : 'bg-muted text-muted-foreground'
                               }`}
                             >
                               {m.status}
                             </span>
                           </div>
-                          {m.description && <p className="text-muted-foreground">{m.description}</p>}
+                          {m.description && (
+                            <p className="text-muted-foreground">{m.description}</p>
+                          )}
                         </div>
                         <div className="text-right text-[11px] text-muted-foreground shrink-0">
                           {m.completedAt ? (
@@ -1013,7 +1086,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                               Done on {new Date(m.completedAt).toLocaleDateString('en-IN')}
                             </span>
                           ) : m.targetDueDate ? (
-                            <span>Due by {new Date(m.targetDueDate).toLocaleDateString('en-IN')}</span>
+                            <span>
+                              Due by {new Date(m.targetDueDate).toLocaleDateString('en-IN')}
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -1076,9 +1151,12 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                               {sub.status}
                             </span>
                           </div>
-                          <div className="text-muted-foreground">App #: {sub.applicationNumber}</div>
+                          <div className="text-muted-foreground">
+                            App #: {sub.applicationNumber}
+                          </div>
                           <div className="font-medium text-foreground">
-                            Claim: ₹{((sub.requestedAmountPaise || 0) / 100).toLocaleString('en-IN')}
+                            Claim: ₹
+                            {((sub.requestedAmountPaise || 0) / 100).toLocaleString('en-IN')}
                           </div>
                         </div>
                       ))}
@@ -1129,8 +1207,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                               isAccepted
                                 ? 'bg-emerald-500/10 text-emerald-600'
                                 : isRejected
-                                ? 'bg-destructive/10 text-destructive'
-                                : 'bg-solar-500/10 text-solar-600'
+                                  ? 'bg-destructive/10 text-destructive'
+                                  : 'bg-solar-500/10 text-solar-600'
                             }`}
                           >
                             {quote.status}
@@ -1139,7 +1217,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                         <div className="text-xs text-muted-foreground flex items-center space-x-4">
                           <span>Capacity: {quote.systemCapacityKwp} kWp</span>
                           <span>Topology: {quote.systemTopology}</span>
-                          <span>Valid Until: {new Date(quote.validUntil).toLocaleDateString('en-IN')}</span>
+                          <span>
+                            Valid Until: {new Date(quote.validUntil).toLocaleDateString('en-IN')}
+                          </span>
                         </div>
                       </div>
 
@@ -1147,7 +1227,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Net Investment</div>
                           <div className="text-lg font-bold text-solar-600">
-                            ₹{((quote.netTotalPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹
+                            {((quote.netTotalPaise || 0) / 100).toLocaleString('en-IN', {
+                              minimumFractionDigits: 2
+                            })}
                           </div>
                         </div>
 
@@ -1192,21 +1275,36 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
           {receivables && (
             <div className="bg-card border rounded-xl p-6 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <div className="text-xs text-muted-foreground font-semibold">Total Contract Value</div>
+                <div className="text-xs text-muted-foreground font-semibold">
+                  Total Contract Value
+                </div>
                 <div className="text-xl font-bold text-foreground mt-1">
-                  ₹{((receivables.totalOrderValuePaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹
+                  {((receivables.totalOrderValuePaise || 0) / 100).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                  })}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground font-semibold">Total Realized Collections</div>
+                <div className="text-xs text-muted-foreground font-semibold">
+                  Total Realized Collections
+                </div>
                 <div className="text-xl font-bold text-emerald-600 mt-1">
-                  ₹{((receivables.totalAllocatedPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹
+                  {((receivables.totalAllocatedPaise || 0) / 100).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                  })}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground font-semibold">Current Outstanding Balance</div>
+                <div className="text-xs text-muted-foreground font-semibold">
+                  Current Outstanding Balance
+                </div>
                 <div className="text-xl font-bold text-solar-600 mt-1">
-                  ₹{((receivables.totalOutstandingPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹
+                  {((receivables.totalOutstandingPaise || 0) / 100).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                  })}
                 </div>
               </div>
             </div>
@@ -1226,14 +1324,21 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             ) : (
               <div className="divide-y text-xs">
                 {payments.map(p => (
-                  <div key={p._id || p.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div
+                    key={p._id || p.id}
+                    className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-bold text-foreground">{p.receiptNumber || p.paymentNumber}</span>
+                        <span className="font-bold text-foreground">
+                          {p.receiptNumber || p.paymentNumber}
+                        </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600">
                           {p.status}
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-muted">{p.paymentMethod}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-muted">
+                          {p.paymentMethod}
+                        </span>
                       </div>
                       <div className="text-muted-foreground">
                         Date: {new Date(p.paymentDate).toLocaleDateString('en-IN')}
@@ -1245,7 +1350,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Amount Paid</div>
                         <div className="text-sm font-bold text-emerald-600">
-                          ₹{((p.amountPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹
+                          {((p.amountPaise || 0) / 100).toLocaleString('en-IN', {
+                            minimumFractionDigits: 2
+                          })}
                         </div>
                       </div>
 
@@ -1292,11 +1400,16 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             </h4>
 
             {complaints.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">No complaints registered. Your system is running smoothly!</p>
+              <p className="text-xs text-muted-foreground py-4">
+                No complaints registered. Your system is running smoothly!
+              </p>
             ) : (
               <div className="space-y-3">
                 {complaints.map(c => (
-                  <div key={c._id || c.id} className="p-4 rounded-lg border bg-muted/20 space-y-2 text-xs">
+                  <div
+                    key={c._id || c.id}
+                    className="p-4 rounded-lg border bg-muted/20 space-y-2 text-xs"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-foreground">{c.ticketNumber}</span>
@@ -1304,7 +1417,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                           {c.status}
                         </span>
                       </div>
-                      <span className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('en-IN')}</span>
+                      <span className="text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleDateString('en-IN')}
+                      </span>
                     </div>
                     <div className="font-semibold text-foreground">{c.title}</div>
                     <p className="text-muted-foreground">{c.description}</p>
@@ -1332,8 +1447,13 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {warranties.map(w => (
-                  <div key={w._id || w.id} className="p-3.5 rounded-lg border bg-muted/20 space-y-1 text-xs">
-                    <div className="font-semibold text-foreground">{w.productName || w.componentType}</div>
+                  <div
+                    key={w._id || w.id}
+                    className="p-3.5 rounded-lg border bg-muted/20 space-y-1 text-xs"
+                  >
+                    <div className="font-semibold text-foreground">
+                      {w.productName || w.componentType}
+                    </div>
                     <div className="text-muted-foreground">Serial: {w.serialNumber}</div>
                     <div className="text-[11px] text-emerald-600 font-medium">
                       Valid through: {new Date(w.warrantyEndDate).toLocaleDateString('en-IN')}
@@ -1352,13 +1472,22 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             </h4>
 
             {amcs.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">No active annual maintenance contracts.</p>
+              <p className="text-xs text-muted-foreground py-2">
+                No active annual maintenance contracts.
+              </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {amcs.map(a => (
-                  <div key={a._id || a.id} className="p-3.5 rounded-lg border bg-muted/20 space-y-1 text-xs">
-                    <div className="font-semibold text-foreground">{a.contractNumber || 'AMC Contract'}</div>
-                    <div className="text-muted-foreground">Tier: {a.contractType || 'Comprehensive'}</div>
+                  <div
+                    key={a._id || a.id}
+                    className="p-3.5 rounded-lg border bg-muted/20 space-y-1 text-xs"
+                  >
+                    <div className="font-semibold text-foreground">
+                      {a.contractNumber || 'AMC Contract'}
+                    </div>
+                    <div className="text-muted-foreground">
+                      Tier: {a.contractType || 'Comprehensive'}
+                    </div>
                     <div className="text-[11px] text-solar-600 font-medium">Status: {a.status}</div>
                   </div>
                 ))}
@@ -1374,19 +1503,34 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             </h4>
 
             {visits.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">No scheduled or completed technician visits.</p>
+              <p className="text-xs text-muted-foreground py-2">
+                No scheduled or completed technician visits.
+              </p>
             ) : (
               <div className="space-y-2">
                 {visits.map(v => (
-                  <div key={v._id || v.id} className="p-3 rounded-lg border bg-muted/10 flex items-center justify-between text-xs">
+                  <div
+                    key={v._id || v.id}
+                    className="p-3 rounded-lg border bg-muted/10 flex items-center justify-between text-xs"
+                  >
                     <div>
-                      <div className="font-semibold text-foreground">{v.visitType || 'Site Inspection'}</div>
-                      <div className="text-muted-foreground">{v.technicianName ? `Technician: ${v.technicianName}` : 'Technician assigned'}</div>
+                      <div className="font-semibold text-foreground">
+                        {v.visitType || 'Site Inspection'}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {v.technicianName
+                          ? `Technician: ${v.technicianName}`
+                          : 'Technician assigned'}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary">{v.status}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary">
+                        {v.status}
+                      </span>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString('en-IN') : 'Scheduled'}
+                        {v.scheduledDate
+                          ? new Date(v.scheduledDate).toLocaleDateString('en-IN')
+                          : 'Scheduled'}
                       </div>
                     </div>
                   </div>
@@ -1554,7 +1698,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                     <Bell className="w-4 h-4 text-solar-500" />
                     <div>
                       <div className="font-semibold text-foreground">In-App Notifications</div>
-                      <div className="text-muted-foreground">Portal inbox notifications and badge counter</div>
+                      <div className="text-muted-foreground">
+                        Portal inbox notifications and badge counter
+                      </div>
                     </div>
                   </div>
                   <input
@@ -1575,7 +1721,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                     <Mail className="w-4 h-4 text-indigo-500" />
                     <div>
                       <div className="font-semibold text-foreground">Email Notifications</div>
-                      <div className="text-muted-foreground">Detailed commercial and project milestone emails</div>
+                      <div className="text-muted-foreground">
+                        Detailed commercial and project milestone emails
+                      </div>
                     </div>
                   </div>
                   <input
@@ -1596,7 +1744,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                     <Smartphone className="w-4 h-4 text-emerald-500" />
                     <div>
                       <div className="font-semibold text-foreground">SMS Alerts</div>
-                      <div className="text-muted-foreground">Urgent technician arrival and OTP messages</div>
+                      <div className="text-muted-foreground">
+                        Urgent technician arrival and OTP messages
+                      </div>
                     </div>
                   </div>
                   <input
@@ -1617,7 +1767,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                     <MessageSquare className="w-4 h-4 text-emerald-600" />
                     <div>
                       <div className="font-semibold text-foreground">WhatsApp Messages</div>
-                      <div className="text-muted-foreground">Automated installation updates and proposal links</div>
+                      <div className="text-muted-foreground">
+                        Automated installation updates and proposal links
+                      </div>
                     </div>
                   </div>
                   <input
@@ -1643,8 +1795,12 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <div className="space-y-2 text-xs">
                 <label className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 cursor-pointer">
                   <div>
-                    <div className="font-semibold text-foreground">Commercial Proposals & Quotes</div>
-                    <div className="text-muted-foreground">Proposal readiness and revision expiry warnings</div>
+                    <div className="font-semibold text-foreground">
+                      Commercial Proposals & Quotes
+                    </div>
+                    <div className="text-muted-foreground">
+                      Proposal readiness and revision expiry warnings
+                    </div>
                   </div>
                   <input
                     type="checkbox"
@@ -1661,8 +1817,12 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
 
                 <label className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 cursor-pointer">
                   <div>
-                    <div className="font-semibold text-foreground">Project Milestones & Field Progress</div>
-                    <div className="text-muted-foreground">Dispatch notices, roof mounting, and DISCOM sync</div>
+                    <div className="font-semibold text-foreground">
+                      Project Milestones & Field Progress
+                    </div>
+                    <div className="text-muted-foreground">
+                      Dispatch notices, roof mounting, and DISCOM sync
+                    </div>
                   </div>
                   <input
                     type="checkbox"
@@ -1680,7 +1840,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <label className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 cursor-pointer">
                   <div>
                     <div className="font-semibold text-foreground">Payments & Receipts</div>
-                    <div className="text-muted-foreground">Bank realization receipts and statements</div>
+                    <div className="text-muted-foreground">
+                      Bank realization receipts and statements
+                    </div>
                   </div>
                   <input
                     type="checkbox"
@@ -1698,11 +1860,17 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <label className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 cursor-pointer">
                   <div>
                     <div className="font-semibold text-foreground">Service, Warranty & AMC</div>
-                    <div className="text-muted-foreground">Technician visit schedules and warranty expiration alerts</div>
+                    <div className="text-muted-foreground">
+                      Technician visit schedules and warranty expiration alerts
+                    </div>
                   </div>
                   <input
                     type="checkbox"
-                    checked={Boolean(preferences.categories?.serviceAndWarranty ?? (preferences.categories as any)?.warranties ?? true)}
+                    checked={Boolean(
+                      preferences.categories?.serviceAndWarranty ??
+                      (preferences.categories as any)?.warranties ??
+                      true
+                    )}
                     onChange={e =>
                       setPreferences(prev => ({
                         ...prev,
@@ -1739,7 +1907,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                   Verified Project & Compliance Documents
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Official engineering drawings, DISCOM net metering approvals, signed contracts, and manufacturer warranty cards.
+                  Official engineering drawings, DISCOM net metering approvals, signed contracts,
+                  and manufacturer warranty cards.
                 </p>
               </div>
               <span className="text-xs font-semibold px-3 py-1 bg-solar-500/10 text-solar-600 rounded-full border border-solar-500/20">
@@ -1754,7 +1923,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 <FileText className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
                 <p className="font-semibold text-foreground">No documents published yet.</p>
                 <p className="text-xs mt-1">
-                  Once your system design, commissioning tests, or NOC approvals are finalized, documents will appear here.
+                  Once your system design, commissioning tests, or NOC approvals are finalized,
+                  documents will appear here.
                 </p>
               </div>
             ) : (
@@ -1782,7 +1952,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                             <div className="font-semibold text-foreground">
                               {doc.safeDisplayName || doc.originalFilename}
                             </div>
-                            <div className="text-xs text-muted-foreground font-mono">{doc.originalFilename}</div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {doc.originalFilename}
+                            </div>
                           </td>
 
                           <td className="py-3.5 px-4">
@@ -1831,7 +2003,8 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <div>
                 <h3 className="text-lg font-bold text-foreground">Digital Proposal Acceptance</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Confirm digital acceptance of proposal revision {targetQuote.fullQuotationCode || targetQuote.quotationNumber}.
+                  Confirm digital acceptance of proposal revision{' '}
+                  {targetQuote.fullQuotationCode || targetQuote.quotationNumber}.
                 </p>
               </div>
               <button
@@ -1845,22 +2018,32 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
             <div className="p-3.5 rounded-xl bg-muted/40 border space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Plant Capacity:</span>
-                <span className="font-semibold">{targetQuote.systemCapacityKwp} kWp ({targetQuote.systemTopology})</span>
+                <span className="font-semibold">
+                  {targetQuote.systemCapacityKwp} kWp ({targetQuote.systemTopology})
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Agreed Value:</span>
                 <span className="font-bold text-emerald-600">
-                  ₹{((targetQuote.netTotalPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹
+                  {((targetQuote.netTotalPaise || 0) / 100).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                  })}
                 </span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
-              I hereby accept quotation {targetQuote.quotationNumber || targetQuote.fullQuotationCode} (Revision {targetQuote.revisionNumber}) and authorize INS Solar to proceed with system procurement and site execution under the specified commercial terms.
+              I hereby accept quotation{' '}
+              {targetQuote.quotationNumber || targetQuote.fullQuotationCode} (Revision{' '}
+              {targetQuote.revisionNumber}) and authorize INS Solar to proceed with system
+              procurement and site execution under the specified commercial terms.
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Acceptance Remarks (Optional)</label>
+              <label className="text-xs font-semibold text-foreground">
+                Acceptance Remarks (Optional)
+              </label>
               <textarea
                 value={acceptanceNotes}
                 onChange={e => setAcceptanceNotes(e.target.value)}
@@ -1884,7 +2067,11 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 disabled={submittingDecision}
                 className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center space-x-1.5"
               >
-                {submittingDecision ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {submittingDecision ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
                 <span>Confirm Acceptance</span>
               </button>
             </div>
@@ -1938,7 +2125,11 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 disabled={submittingDecision || !rejectionReason.trim()}
                 className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-white text-xs font-semibold flex items-center space-x-1.5"
               >
-                {submittingDecision ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                {submittingDecision ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5" />
+                )}
                 <span>Decline Proposal</span>
               </button>
             </div>
@@ -1952,10 +2143,15 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
           <div className="bg-card border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between border-b pb-4">
               <div>
-                <span className="text-xs font-semibold text-solar-600">Official Operational Receipt</span>
+                <span className="text-xs font-semibold text-solar-600">
+                  Official Operational Receipt
+                </span>
                 <h3 className="text-xl font-bold text-foreground">{receiptData.receiptNumber}</h3>
               </div>
-              <button onClick={() => setShowReceiptModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1965,7 +2161,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
               <p className="leading-relaxed">
                 <span className="font-bold">Operational Document Notice: </span>
-                This document is an operational payment receipt confirming realization of customer funds against solar plant installation milestones. It does not constitute a statutory Tax Invoice under GST law.
+                This document is an operational payment receipt confirming realization of customer
+                funds against solar plant installation milestones. It does not constitute a
+                statutory Tax Invoice under GST law.
               </p>
             </div>
 
@@ -1987,14 +2185,21 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                 </div>
                 <div>
                   <span className="text-muted-foreground">Bank Reference / UTR:</span>
-                  <div className="font-semibold text-foreground">{receiptData.transactionReference || 'N/A'}</div>
+                  <div className="font-semibold text-foreground">
+                    {receiptData.transactionReference || 'N/A'}
+                  </div>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                <span className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm">Total Realized Amount:</span>
+                <span className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm">
+                  Total Realized Amount:
+                </span>
                 <span className="text-xl font-bold text-emerald-600">
-                  ₹{((receiptData.amountPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹
+                  {((receiptData.amountPaise || 0) / 100).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2
+                  })}
                 </span>
               </div>
             </div>
@@ -2031,7 +2236,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                   Register a defect or generation issue for prompt technician dispatch.
                 </p>
               </div>
-              <button onClick={() => setShowComplaintModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowComplaintModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2088,7 +2296,9 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                   required
                   rows={3}
                   value={complaintForm.description}
-                  onChange={e => setComplaintForm({ ...complaintForm, description: e.target.value })}
+                  onChange={e =>
+                    setComplaintForm({ ...complaintForm, description: e.target.value })
+                  }
                   placeholder="Please describe symptoms, unusual noises, error codes, or physical damage observed."
                   className="w-full mt-1 p-2.5 rounded-lg bg-background border focus:outline-none focus:ring-2 focus:ring-solar-500"
                 />
@@ -2107,7 +2317,11 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({ defaultT
                   disabled={submittingComplaint}
                   className="px-4 py-2 rounded-lg bg-solar-500 hover:bg-solar-600 text-white text-xs font-semibold flex items-center space-x-1.5"
                 >
-                  {submittingComplaint ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {submittingComplaint ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
                   <span>Submit Ticket</span>
                 </button>
               </div>

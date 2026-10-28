@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Receipt,
-  Search,
-  Plus,
-  CheckCircle2,
-  AlertTriangle,
-  Clock
-} from 'lucide-react';
+import { Receipt, Search, Plus, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface VendorInvoiceItem {
@@ -212,7 +205,11 @@ export function VendorInvoicesPage() {
           </span>
         );
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{status}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -226,7 +223,8 @@ export function VendorInvoicesPage() {
             Vendor Invoices & Payables
           </h1>
           <p className="text-muted-foreground text-sm">
-            Record supplier tax invoices, perform automated 3-way matching against POs & GRNs, and monitor accounts payable balances.
+            Record supplier tax invoices, perform automated 3-way matching against POs & GRNs, and
+            monitor accounts payable balances.
           </p>
         </div>
         <button
@@ -251,7 +249,9 @@ export function VendorInvoicesPage() {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Status:</label>
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Filter Status:
+          </label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -310,7 +310,9 @@ export function VendorInvoicesPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-foreground">{inv.vendorId?.name || '—'}</div>
-                      <div className="text-xs font-mono text-muted-foreground">{inv.vendorId?.vendorCode}</div>
+                      <div className="text-xs font-mono text-muted-foreground">
+                        {inv.vendorId?.vendorCode}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-mono text-xs">
                       {inv.purchaseOrderId?.poNumber || 'Direct / None'}
@@ -319,10 +321,16 @@ export function VendorInvoicesPage() {
                       {new Date(inv.invoiceDate).toLocaleDateString('en-IN')}
                     </td>
                     <td className="py-3 px-4 font-semibold text-foreground">
-                      ₹{(inv.totalAmountPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹
+                      {(inv.totalAmountPaise / 100).toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                      })}
                     </td>
                     <td className="py-3 px-4 font-semibold text-primary">
-                      ₹{(inv.balancePayablePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹
+                      {(inv.balancePayablePaise / 100).toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                      })}
                     </td>
                     <td className="py-3 px-4">
                       {getStatusBadge(inv.status)}
@@ -402,9 +410,15 @@ export function VendorInvoicesPage() {
                       setFormData({
                         ...formData,
                         purchaseOrderId: pId,
-                        subtotalInr: matchedPO ? matchedPO.subtotalPaise / 100 : formData.subtotalInr,
-                        taxAmountInr: matchedPO ? matchedPO.totalTaxPaise / 100 : formData.taxAmountInr,
-                        totalAmountInr: matchedPO ? matchedPO.totalAmountPaise / 100 : formData.totalAmountInr
+                        subtotalInr: matchedPO
+                          ? matchedPO.subtotalPaise / 100
+                          : formData.subtotalInr,
+                        taxAmountInr: matchedPO
+                          ? matchedPO.totalTaxPaise / 100
+                          : formData.taxAmountInr,
+                        totalAmountInr: matchedPO
+                          ? matchedPO.totalAmountPaise / 100
+                          : formData.totalAmountInr
                       });
                     }}
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none text-xs"
@@ -429,7 +443,9 @@ export function VendorInvoicesPage() {
                     required
                     placeholder="e.g. INV-99012"
                     value={formData.vendorInvoiceNumber}
-                    onChange={e => setFormData({ ...formData, vendorInvoiceNumber: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, vendorInvoiceNumber: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none font-mono text-xs"
                   />
                 </div>
@@ -449,38 +465,50 @@ export function VendorInvoicesPage() {
 
               <div className="grid grid-cols-3 gap-2 p-3 rounded-lg border border-border bg-secondary/20">
                 <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">Subtotal (₹)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                    Subtotal (₹)
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     required
                     value={formData.subtotalInr}
-                    onChange={e => handleSubtotalChange(Number(e.target.value), formData.taxAmountInr)}
+                    onChange={e =>
+                      handleSubtotalChange(Number(e.target.value), formData.taxAmountInr)
+                    }
                     className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">Tax (₹)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                    Tax (₹)
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     required
                     value={formData.taxAmountInr}
-                    onChange={e => handleSubtotalChange(formData.subtotalInr, Number(e.target.value))}
+                    onChange={e =>
+                      handleSubtotalChange(formData.subtotalInr, Number(e.target.value))
+                    }
                     className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">Total Payable (₹)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                    Total Payable (₹)
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     required
                     value={formData.totalAmountInr}
-                    onChange={e => setFormData({ ...formData, totalAmountInr: Number(e.target.value) })}
+                    onChange={e =>
+                      setFormData({ ...formData, totalAmountInr: Number(e.target.value) })
+                    }
                     className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs font-bold text-foreground"
                   />
                 </div>
@@ -526,31 +554,52 @@ export function VendorInvoicesPage() {
           <div className="w-full max-w-md bg-card rounded-xl border border-border shadow-xl p-6 space-y-4">
             <h2 className="text-lg font-bold text-foreground">Reconciliation Review</h2>
             <div className="p-3 rounded-lg border border-border bg-secondary/20 text-xs space-y-1">
-              <div>Invoice: <span className="font-mono font-medium">{selectedInvoice.vendorInvoiceNumber}</span></div>
-              <div>Vendor: <span className="font-medium">{selectedInvoice.vendorId?.name}</span></div>
-              <div>Billed Amount: <span className="font-semibold">₹{(selectedInvoice.totalAmountPaise / 100).toFixed(2)}</span></div>
+              <div>
+                Invoice:{' '}
+                <span className="font-mono font-medium">{selectedInvoice.vendorInvoiceNumber}</span>
+              </div>
+              <div>
+                Vendor: <span className="font-medium">{selectedInvoice.vendorId?.name}</span>
+              </div>
+              <div>
+                Billed Amount:{' '}
+                <span className="font-semibold">
+                  ₹{(selectedInvoice.totalAmountPaise / 100).toFixed(2)}
+                </span>
+              </div>
               {selectedInvoice.purchaseOrderId && (
-                <div>PO Agreed: <span className="font-semibold">₹{(selectedInvoice.purchaseOrderId.totalAmountPaise / 100).toFixed(2)}</span></div>
+                <div>
+                  PO Agreed:{' '}
+                  <span className="font-semibold">
+                    ₹{(selectedInvoice.purchaseOrderId.totalAmountPaise / 100).toFixed(2)}
+                  </span>
+                </div>
               )}
             </div>
 
             <form onSubmit={handleReconcileSubmit} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Reconciliation Status</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Reconciliation Status
+                </label>
                 <select
                   value={reconcileStatus}
                   onChange={e => setReconcileStatus(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none text-xs"
                 >
                   <option value="RECONCILED">RECONCILED (Approved for Payable Ledger)</option>
-                  <option value="DISPUTED">DISPUTED (Hold for Credit Note / Rate Correction)</option>
+                  <option value="DISPUTED">
+                    DISPUTED (Hold for Credit Note / Rate Correction)
+                  </option>
                   <option value="RECORDED">RECORDED (Pending QA/Delivery verification)</option>
                   <option value="CANCELLED">CANCELLED (Duplicate or Void)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Auditor / Accountant Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Auditor / Accountant Notes
+                </label>
                 <textarea
                   rows={3}
                   value={reconcileNotes}

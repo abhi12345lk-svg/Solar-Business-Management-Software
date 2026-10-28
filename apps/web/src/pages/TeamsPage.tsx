@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Users,
-  Search,
-  Plus,
-  AlertCircle,
-  CheckCircle2,
-  Wrench,
-  FolderKanban
-} from 'lucide-react';
+import { Users, Search, Plus, AlertCircle, CheckCircle2, Wrench, FolderKanban } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface TeamItem {
@@ -282,7 +274,9 @@ export const TeamsPage: React.FC = () => {
         <div className="p-12 bg-white rounded-xl border border-gray-200 text-center text-gray-500">
           <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
           <p className="font-medium text-gray-700">No teams found matching the filters.</p>
-          <p className="text-sm text-gray-400">Click &apos;Create New Crew/Team&apos; to register one.</p>
+          <p className="text-sm text-gray-400">
+            Click &apos;Create New Crew/Team&apos; to register one.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -296,7 +290,9 @@ export const TeamsPage: React.FC = () => {
               <div
                 key={team._id}
                 className={`bg-white rounded-xl border ${
-                  team.isActive ? 'border-gray-200 shadow-sm' : 'border-gray-200 bg-gray-50/70 opacity-75'
+                  team.isActive
+                    ? 'border-gray-200 shadow-sm'
+                    : 'border-gray-200 bg-gray-50/70 opacity-75'
                 } p-5 space-y-4 hover:shadow-md transition flex flex-col justify-between`}
               >
                 <div className="space-y-3">
@@ -430,9 +426,7 @@ export const TeamsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Department
-                </label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Department</label>
                 <select
                   value={deptInput}
                   onChange={e => setDeptInput(e.target.value)}

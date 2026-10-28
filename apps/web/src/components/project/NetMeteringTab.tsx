@@ -79,7 +79,10 @@ interface NetMeteringApp {
   createdAt: string;
 }
 
-export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTerminal = false }) => {
+export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
+  projectId,
+  isTerminal = false
+}) => {
   const [applications, setApplications] = useState<NetMeteringApp[]>([]);
   const [selectedApp, setSelectedApp] = useState<NetMeteringApp | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,9 +141,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient<any>(
-        `/net-metering?projectId=${projectId}`
-      );
+      const res = await apiClient<any>(`/net-metering?projectId=${projectId}`);
       const apps = res.applications || res.data?.applications || (Array.isArray(res) ? res : []);
       setApplications(apps);
       if (apps.length > 0) {
@@ -301,7 +302,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
       CANCELLED: 'bg-gray-100 text-gray-700 border-gray-300'
     };
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[status] || styles.DRAFT}`}>
+      <span
+        className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[status] || styles.DRAFT}`}
+      >
         {status.replace(/_/g, ' ')}
       </span>
     );
@@ -337,7 +340,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
             <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="font-bold hover:text-emerald-900 ml-4">
+          <button
+            onClick={() => setSuccessMsg(null)}
+            className="font-bold hover:text-emerald-900 ml-4"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -373,9 +379,12 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
           <div className="w-12 h-12 rounded-full bg-solar-50 border border-solar-200 text-solar-600 flex items-center justify-center mx-auto">
             <Zap className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">No Net Metering Application Filed</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            No Net Metering Application Filed
+          </h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Grid synchronization requires a formal application with the state DISCOM. Initiate the application to track documents and inspections.
+            Grid synchronization requires a formal application with the state DISCOM. Initiate the
+            application to track documents and inspections.
           </p>
           {!isTerminal && (
             <button
@@ -387,202 +396,223 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
             </button>
           )}
         </div>
-      ) : selectedApp && (
-        <div className="space-y-6">
-          {/* Main Info Card */}
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3">
-              <div>
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg font-extrabold text-foreground tracking-tight">
-                    {selectedApp.applicationNumber}
-                  </span>
-                  {getStatusBadge(selectedApp.status)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  DISCOM: <strong className="text-foreground">{selectedApp.discomName}</strong> | Consumer Connection:{' '}
-                  <strong className="text-foreground">{selectedApp.consumerNumber}</strong>
-                </p>
-              </div>
-
-              {/* Action Buttons for Lifecycle */}
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedApp.status === 'DRAFT' && (
-                  <button
-                    onClick={() => handleAdvanceStatus('READY_TO_SUBMIT')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    Check & Mark Ready to Submit
-                  </button>
-                )}
-                {selectedApp.status === 'READY_TO_SUBMIT' && (
-                  <button
-                    onClick={() => handleAdvanceStatus('SUBMITTED')}
-                    className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
-                  >
-                    Mark as Submitted
-                  </button>
-                )}
-                {['SUBMITTED', 'UNDER_REVIEW'].includes(selectedApp.status) && (
-                  <button
-                    onClick={() => setShowInspectionModal(true)}
-                    className="px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-semibold hover:bg-cyan-700 transition-colors flex items-center"
-                  >
-                    <Calendar className="w-3.5 h-3.5 mr-1" />
-                    Schedule Inspection
-                  </button>
-                )}
-                {selectedApp.status === 'INSPECTION_SCHEDULED' && (
-                  <button
-                    onClick={() => setShowOutcomeModal(true)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center"
-                  >
-                    <FileCheck className="w-3.5 h-3.5 mr-1" />
-                    Record Inspection Outcome
-                  </button>
-                )}
-                {selectedApp.status === 'APPROVED' && !selectedApp.meterInstallation?.meterInstalled && (
-                  <button
-                    onClick={() => setShowMeterModal(true)}
-                    className="px-3 py-1.5 rounded-lg bg-solar-600 text-white text-xs font-semibold hover:bg-solar-700 transition-colors flex items-center"
-                  >
-                    <Gauge className="w-3.5 h-3.5 mr-1" />
-                    Install Net Meter
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Application Overview Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Sanctioned Load</span>
-                <p className="font-bold text-foreground text-sm">{selectedApp.sanctionedLoadKw || 0} kW</p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Proposed Solar Capacity</span>
-                <p className="font-bold text-foreground text-sm">{selectedApp.proposedCapacityKw || 0} kW</p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">DISCOM Application Ref</span>
-                <p className="font-bold text-foreground text-sm">
-                  {selectedApp.discomApplicationNumber || 'Pending Filing'}
-                </p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Net Meter Status</span>
-                <p className="font-bold text-foreground text-sm">
-                  {selectedApp.meterInstallation?.meterInstalled ? (
-                    <span className="text-emerald-600 flex items-center">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                      Installed ({selectedApp.meterInstallation.meterNumber})
-                    </span>
-                  ) : (
-                    <span className="text-amber-600">Pending Installation</span>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Inspection Outcome Alert if Present */}
-            {selectedApp.inspectionSchedule?.scheduledDate && (
-              <div className="p-4 bg-muted/30 border rounded-xl flex items-start justify-between text-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-solar-600" />
-                    <span className="font-bold text-foreground">DISCOM Inspection Schedule</span>
-                  </div>
-                  <p className="text-muted-foreground">
-                    Scheduled for:{' '}
-                    <strong>{new Date(selectedApp.inspectionSchedule.scheduledDate).toLocaleDateString()}</strong>
-                    {selectedApp.inspectionSchedule.officerName && ` with Officer ${selectedApp.inspectionSchedule.officerName}`}
-                  </p>
-                  {selectedApp.inspectionSchedule.outcome && (
-                    <p className="text-muted-foreground">
-                      Outcome:{' '}
-                      <span className={selectedApp.inspectionSchedule.outcome === 'PASSED' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-                        {selectedApp.inspectionSchedule.outcome}
-                      </span>
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Document Completeness Checklist */}
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-solar-600" />
-                  <span>Mandatory Interconnection Documents</span>
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  All documents must be verified and accepted before filing to the DISCOM portal.
-                </p>
-              </div>
-            </div>
-
-            <div className="divide-y text-xs">
-              {selectedApp.documents.map(doc => (
-                <div key={doc.id} className="py-3 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-foreground">{doc.title}</span>
-                      {doc.isRequired && (
-                        <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
-                          REQUIRED
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-muted-foreground text-[11px]">
-                      Type: {doc.documentType} {doc.fileName && `| File: ${doc.fileName}`}
-                    </span>
-                    {doc.rejectionReason && (
-                      <p className="text-rose-600 text-[11px] font-medium">Rejection Reason: {doc.rejectionReason}</p>
-                    )}
-                  </div>
-
+      ) : (
+        selectedApp && (
+          <div className="space-y-6">
+            {/* Main Info Card */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3">
+                <div>
                   <div className="flex items-center space-x-3">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                        doc.status === 'ACCEPTED'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : doc.status === 'UPLOADED'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : doc.status === 'REJECTED'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}
-                    >
-                      {doc.status}
+                    <span className="text-lg font-extrabold text-foreground tracking-tight">
+                      {selectedApp.applicationNumber}
                     </span>
+                    {getStatusBadge(selectedApp.status)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    DISCOM: <strong className="text-foreground">{selectedApp.discomName}</strong> |
+                    Consumer Connection:{' '}
+                    <strong className="text-foreground">{selectedApp.consumerNumber}</strong>
+                  </p>
+                </div>
 
-                    {!isTerminal && (
+                {/* Action Buttons for Lifecycle */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedApp.status === 'DRAFT' && (
+                    <button
+                      onClick={() => handleAdvanceStatus('READY_TO_SUBMIT')}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Check & Mark Ready to Submit
+                    </button>
+                  )}
+                  {selectedApp.status === 'READY_TO_SUBMIT' && (
+                    <button
+                      onClick={() => handleAdvanceStatus('SUBMITTED')}
+                      className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                      Mark as Submitted
+                    </button>
+                  )}
+                  {['SUBMITTED', 'UNDER_REVIEW'].includes(selectedApp.status) && (
+                    <button
+                      onClick={() => setShowInspectionModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-semibold hover:bg-cyan-700 transition-colors flex items-center"
+                    >
+                      <Calendar className="w-3.5 h-3.5 mr-1" />
+                      Schedule Inspection
+                    </button>
+                  )}
+                  {selectedApp.status === 'INSPECTION_SCHEDULED' && (
+                    <button
+                      onClick={() => setShowOutcomeModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center"
+                    >
+                      <FileCheck className="w-3.5 h-3.5 mr-1" />
+                      Record Inspection Outcome
+                    </button>
+                  )}
+                  {selectedApp.status === 'APPROVED' &&
+                    !selectedApp.meterInstallation?.meterInstalled && (
                       <button
-                        onClick={() => {
-                          setUploadDocType(doc.documentType);
-                          setUploadFileForm({
-                            fileName: `${doc.documentType.toLowerCase()}.pdf`,
-                            storageKey: '',
-                            mimeType: 'application/pdf',
-                            fileSize: 1024 * 300
-                          });
-                          setShowUploadModal(true);
-                        }}
-                        className="px-2.5 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px] font-semibold flex items-center"
+                        onClick={() => setShowMeterModal(true)}
+                        className="px-3 py-1.5 rounded-lg bg-solar-600 text-white text-xs font-semibold hover:bg-solar-700 transition-colors flex items-center"
                       >
-                        <Upload className="w-3 h-3 mr-1" />
-                        {doc.storageKey ? 'Replace' : 'Upload'}
+                        <Gauge className="w-3.5 h-3.5 mr-1" />
+                        Install Net Meter
                       </button>
                     )}
+                </div>
+              </div>
+
+              {/* Application Overview Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Sanctioned Load</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {selectedApp.sanctionedLoadKw || 0} kW
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Proposed Solar Capacity</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {selectedApp.proposedCapacityKw || 0} kW
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">DISCOM Application Ref</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {selectedApp.discomApplicationNumber || 'Pending Filing'}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Net Meter Status</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {selectedApp.meterInstallation?.meterInstalled ? (
+                      <span className="text-emerald-600 flex items-center">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                        Installed ({selectedApp.meterInstallation.meterNumber})
+                      </span>
+                    ) : (
+                      <span className="text-amber-600">Pending Installation</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Inspection Outcome Alert if Present */}
+              {selectedApp.inspectionSchedule?.scheduledDate && (
+                <div className="p-4 bg-muted/30 border rounded-xl flex items-start justify-between text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-solar-600" />
+                      <span className="font-bold text-foreground">DISCOM Inspection Schedule</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Scheduled for:{' '}
+                      <strong>
+                        {new Date(
+                          selectedApp.inspectionSchedule.scheduledDate
+                        ).toLocaleDateString()}
+                      </strong>
+                      {selectedApp.inspectionSchedule.officerName &&
+                        ` with Officer ${selectedApp.inspectionSchedule.officerName}`}
+                    </p>
+                    {selectedApp.inspectionSchedule.outcome && (
+                      <p className="text-muted-foreground">
+                        Outcome:{' '}
+                        <span
+                          className={
+                            selectedApp.inspectionSchedule.outcome === 'PASSED'
+                              ? 'text-emerald-600 font-bold'
+                              : 'text-rose-600 font-bold'
+                          }
+                        >
+                          {selectedApp.inspectionSchedule.outcome}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Document Completeness Checklist */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-solar-600" />
+                    <span>Mandatory Interconnection Documents</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    All documents must be verified and accepted before filing to the DISCOM portal.
+                  </p>
+                </div>
+              </div>
+
+              <div className="divide-y text-xs">
+                {selectedApp.documents.map(doc => (
+                  <div key={doc.id} className="py-3 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-foreground">{doc.title}</span>
+                        {doc.isRequired && (
+                          <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
+                            REQUIRED
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-muted-foreground text-[11px]">
+                        Type: {doc.documentType} {doc.fileName && `| File: ${doc.fileName}`}
+                      </span>
+                      {doc.rejectionReason && (
+                        <p className="text-rose-600 text-[11px] font-medium">
+                          Rejection Reason: {doc.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                          doc.status === 'ACCEPTED'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : doc.status === 'UPLOADED'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : doc.status === 'REJECTED'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        {doc.status}
+                      </span>
+
+                      {!isTerminal && (
+                        <button
+                          onClick={() => {
+                            setUploadDocType(doc.documentType);
+                            setUploadFileForm({
+                              fileName: `${doc.documentType.toLowerCase()}.pdf`,
+                              storageKey: '',
+                              mimeType: 'application/pdf',
+                              fileSize: 1024 * 300
+                            });
+                            setShowUploadModal(true);
+                          }}
+                          className="px-2.5 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px] font-semibold flex items-center"
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          {doc.storageKey ? 'Replace' : 'Upload'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Create Application Modal */}
@@ -591,7 +621,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
           <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">File Net Metering Application</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -632,7 +665,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Consumer Connection / CA Number</label>
+                <label className="font-semibold text-foreground">
+                  Consumer Connection / CA Number
+                </label>
                 <input
                   type="text"
                   required
@@ -650,17 +685,23 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                     type="number"
                     step="0.1"
                     value={formData.sanctionedLoadKw}
-                    onChange={e => setFormData({ ...formData, sanctionedLoadKw: Number(e.target.value) })}
+                    onChange={e =>
+                      setFormData({ ...formData, sanctionedLoadKw: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Proposed Solar Capacity (kW)</label>
+                  <label className="font-semibold text-foreground">
+                    Proposed Solar Capacity (kW)
+                  </label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.proposedCapacityKw}
-                    onChange={e => setFormData({ ...formData, proposedCapacityKw: Number(e.target.value) })}
+                    onChange={e =>
+                      setFormData({ ...formData, proposedCapacityKw: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
@@ -685,7 +726,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                >
                   Create Application
                 </button>
               </div>
@@ -699,8 +743,13 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
-              <h3 className="font-bold text-sm text-foreground">Schedule DISCOM Field Inspection</h3>
-              <button onClick={() => setShowInspectionModal(false)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-bold text-sm text-foreground">
+                Schedule DISCOM Field Inspection
+              </h3>
+              <button
+                onClick={() => setShowInspectionModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -711,7 +760,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                   type="datetime-local"
                   required
                   value={inspectionForm.scheduledDate}
-                  onChange={e => setInspectionForm({ ...inspectionForm, scheduledDate: e.target.value })}
+                  onChange={e =>
+                    setInspectionForm({ ...inspectionForm, scheduledDate: e.target.value })
+                  }
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 />
               </div>
@@ -720,7 +771,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 <input
                   type="text"
                   value={inspectionForm.officerName}
-                  onChange={e => setInspectionForm({ ...inspectionForm, officerName: e.target.value })}
+                  onChange={e =>
+                    setInspectionForm({ ...inspectionForm, officerName: e.target.value })
+                  }
                   placeholder="e.g. Mr. S. K. Patil"
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 />
@@ -730,7 +783,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 <input
                   type="text"
                   value={inspectionForm.officerContact}
-                  onChange={e => setInspectionForm({ ...inspectionForm, officerContact: e.target.value })}
+                  onChange={e =>
+                    setInspectionForm({ ...inspectionForm, officerContact: e.target.value })
+                  }
                   placeholder="+91..."
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 />
@@ -753,7 +808,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-semibold"
+                >
                   Confirm Schedule
                 </button>
               </div>
@@ -768,7 +826,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Inspection Outcome</h3>
-              <button onClick={() => setShowOutcomeModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowOutcomeModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -826,7 +887,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 <button
                   type="submit"
                   className={`px-4 py-2 text-white rounded-lg font-semibold ${
-                    outcomeForm.outcome === 'PASSED' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                    outcomeForm.outcome === 'PASSED'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-rose-600 hover:bg-rose-700'
                   }`}
                 >
                   Save Outcome
@@ -843,7 +906,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Bi-Directional Net Meter</h3>
-              <button onClick={() => setShowMeterModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowMeterModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -871,28 +937,44 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Initial Import Reading (kWh)</label>
+                  <label className="font-semibold text-foreground">
+                    Initial Import Reading (kWh)
+                  </label>
                   <input
                     type="number"
                     step="0.1"
                     value={meterForm.initialImportReadingKwh}
-                    onChange={e => setMeterForm({ ...meterForm, initialImportReadingKwh: Number(e.target.value) })}
+                    onChange={e =>
+                      setMeterForm({
+                        ...meterForm,
+                        initialImportReadingKwh: Number(e.target.value)
+                      })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Initial Export Reading (kWh)</label>
+                  <label className="font-semibold text-foreground">
+                    Initial Export Reading (kWh)
+                  </label>
                   <input
                     type="number"
                     step="0.1"
                     value={meterForm.initialExportReadingKwh}
-                    onChange={e => setMeterForm({ ...meterForm, initialExportReadingKwh: Number(e.target.value) })}
+                    onChange={e =>
+                      setMeterForm({
+                        ...meterForm,
+                        initialExportReadingKwh: Number(e.target.value)
+                      })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Commissioning Engineer / Tested By</label>
+                <label className="font-semibold text-foreground">
+                  Commissioning Engineer / Tested By
+                </label>
                 <input
                   type="text"
                   value={meterForm.testedBy}
@@ -909,7 +991,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                >
                   Save Meter Installation
                 </button>
               </div>
@@ -923,8 +1008,13 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
-              <h3 className="font-bold text-sm text-foreground">Upload Document: {uploadDocType}</h3>
-              <button onClick={() => setShowUploadModal(false)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-bold text-sm text-foreground">
+                Upload Document: {uploadDocType}
+              </h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -952,7 +1042,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 </select>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Files are stored securely with authorized access verification. Permanent public URLs are never generated.
+                Files are stored securely with authorized access verification. Permanent public URLs
+                are never generated.
               </p>
               <div className="flex justify-end space-x-2 pt-2 border-t">
                 <button
@@ -962,7 +1053,10 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({ projectId, isTer
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                >
                   Upload & Verify
                 </button>
               </div>

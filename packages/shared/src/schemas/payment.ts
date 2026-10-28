@@ -7,15 +7,15 @@
 
 import { z } from 'zod';
 import { PositiveMoneyPaiseSchema } from './money.js';
-import {
-  PaymentMethod,
-  CustomerPaymentStatus
-} from '../types/enums.js';
+import { PaymentMethod, CustomerPaymentStatus } from '../types/enums.js';
 
 export const recordPaymentSchema = z.object({
   customerId: z.string().min(1, 'Customer reference is required.'),
   amountPaise: PositiveMoneyPaiseSchema,
-  paymentDate: z.coerce.date().optional().default(() => new Date()),
+  paymentDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date()),
   paymentMethod: z.nativeEnum(PaymentMethod, {
     errorMap: () => ({ message: 'Invalid payment method specified.' })
   }),
@@ -29,7 +29,10 @@ export const recordPaymentSchema = z.object({
 
 export const verifyPaymentSchema = z.object({
   verificationNotes: z.string().trim().max(1000).optional(),
-  verifiedDate: z.coerce.date().optional().default(() => new Date())
+  verifiedDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date())
 });
 
 export const allocatePaymentSchema = z.object({
@@ -50,7 +53,10 @@ export const reversePaymentSchema = z.object({
 export const refundPaymentSchema = z.object({
   refundAmountPaise: PositiveMoneyPaiseSchema,
   refundReference: z.string().trim().min(1, 'Refund reference or UTR is required.').max(100),
-  refundDate: z.coerce.date().optional().default(() => new Date()),
+  refundDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date()),
   refundReason: z.string().trim().min(3, 'A valid refund reason is required.').max(500)
 });
 

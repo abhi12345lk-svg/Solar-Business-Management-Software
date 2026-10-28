@@ -140,7 +140,9 @@ export class ExpenseService {
       submittedBy: actorId,
       approvedBy: requiresApproval ? undefined : actorId,
       approvedAt: requiresApproval ? undefined : new Date(),
-      approvalNotes: requiresApproval ? undefined : 'Auto-approved below company approval threshold',
+      approvalNotes: requiresApproval
+        ? undefined
+        : 'Auto-approved below company approval threshold',
       idempotencyKey: input.idempotencyKey?.trim() || undefined,
       statusHistory: initialHistory
     });
@@ -283,7 +285,10 @@ export class ExpenseService {
       );
     }
 
-    if (expense.status !== ExpenseStatus.PENDING_APPROVAL && expense.status !== ExpenseStatus.DRAFT) {
+    if (
+      expense.status !== ExpenseStatus.PENDING_APPROVAL &&
+      expense.status !== ExpenseStatus.DRAFT
+    ) {
       throw AppError.badRequest(
         `Cannot approve expense in ${expense.status} status. Only PENDING_APPROVAL or DRAFT expenses can be approved.`
       );
@@ -343,9 +348,7 @@ export class ExpenseService {
     }
 
     if (expense.status === ExpenseStatus.PAID || expense.status === ExpenseStatus.CANCELLED) {
-      throw AppError.badRequest(
-        `Cannot reject expense in ${expense.status} status.`
-      );
+      throw AppError.badRequest(`Cannot reject expense in ${expense.status} status.`);
     }
 
     const actorId = actor.userId
@@ -481,7 +484,10 @@ export class ExpenseService {
       throw AppError.notFound(`Expense with ID ${id} not found.`);
     }
 
-    if (expense.status === ExpenseStatus.PAID || expense.paymentStatus === ExpensePaymentStatus.PAID) {
+    if (
+      expense.status === ExpenseStatus.PAID ||
+      expense.paymentStatus === ExpensePaymentStatus.PAID
+    ) {
       throw AppError.badRequest(
         'Cannot cancel an expense that has already been paid. A payment reversal or credit adjustment is required.'
       );

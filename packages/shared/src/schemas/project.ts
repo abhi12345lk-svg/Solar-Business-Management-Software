@@ -18,11 +18,33 @@ export const createProjectSchema = z
   .object({
     name: z.string().trim().min(3, 'Project name must be at least 3 characters').max(150),
     customerId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid customer ID'),
-    orderId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid order ID').optional().or(z.literal('')),
-    quotationId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid quotation ID').optional().or(z.literal('')),
-    solarDesignId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid solar design ID').optional().or(z.literal('')),
-    projectManagerId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid project manager ID').optional().or(z.literal('')),
-    teamMemberIds: z.array(z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid team member ID')).optional(),
+    orderId: z
+      .string()
+      .trim()
+      .regex(OBJECT_ID_REGEX, 'Invalid order ID')
+      .optional()
+      .or(z.literal('')),
+    quotationId: z
+      .string()
+      .trim()
+      .regex(OBJECT_ID_REGEX, 'Invalid quotation ID')
+      .optional()
+      .or(z.literal('')),
+    solarDesignId: z
+      .string()
+      .trim()
+      .regex(OBJECT_ID_REGEX, 'Invalid solar design ID')
+      .optional()
+      .or(z.literal('')),
+    projectManagerId: z
+      .string()
+      .trim()
+      .regex(OBJECT_ID_REGEX, 'Invalid project manager ID')
+      .optional()
+      .or(z.literal('')),
+    teamMemberIds: z
+      .array(z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid team member ID'))
+      .optional(),
     siteAddress: z
       .object({
         addressLine1: z.string().trim().min(1, 'Address Line 1 is required'),
@@ -35,8 +57,14 @@ export const createProjectSchema = z
       .optional(),
     systemCapacityKwp: z.number().positive('System capacity must be greater than 0').optional(),
     systemTopology: z.nativeEnum(SolarTopology).optional(),
-    plannedStartDate: z.string().or(z.date()).transform(val => new Date(val)),
-    targetCompletionDate: z.string().or(z.date()).transform(val => new Date(val)),
+    plannedStartDate: z
+      .string()
+      .or(z.date())
+      .transform(val => new Date(val)),
+    targetCompletionDate: z
+      .string()
+      .or(z.date())
+      .transform(val => new Date(val)),
     priority: z.nativeEnum(ProjectPriority).optional().default(ProjectPriority.MEDIUM),
     notes: z.string().trim().max(2000).optional(),
     applyDefaultMilestones: z.boolean().optional().default(true)
@@ -54,9 +82,22 @@ export const createProjectSchema = z
 
 export const updateProjectSchema = z
   .object({
-    name: z.string().trim().min(3, 'Project name must be at least 3 characters').max(150).optional(),
-    projectManagerId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid project manager ID').optional().or(z.literal('')).nullable(),
-    teamMemberIds: z.array(z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid team member ID')).optional(),
+    name: z
+      .string()
+      .trim()
+      .min(3, 'Project name must be at least 3 characters')
+      .max(150)
+      .optional(),
+    projectManagerId: z
+      .string()
+      .trim()
+      .regex(OBJECT_ID_REGEX, 'Invalid project manager ID')
+      .optional()
+      .or(z.literal(''))
+      .nullable(),
+    teamMemberIds: z
+      .array(z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid team member ID'))
+      .optional(),
     siteAddress: z
       .object({
         addressLine1: z.string().trim().min(1, 'Address Line 1 is required'),
@@ -69,8 +110,16 @@ export const updateProjectSchema = z
       .optional(),
     systemCapacityKwp: z.number().positive('System capacity must be greater than 0').optional(),
     systemTopology: z.nativeEnum(SolarTopology).optional(),
-    plannedStartDate: z.string().or(z.date()).transform(val => new Date(val)).optional(),
-    targetCompletionDate: z.string().or(z.date()).transform(val => new Date(val)).optional(),
+    plannedStartDate: z
+      .string()
+      .or(z.date())
+      .transform(val => new Date(val))
+      .optional(),
+    targetCompletionDate: z
+      .string()
+      .or(z.date())
+      .transform(val => new Date(val))
+      .optional(),
     priority: z.nativeEnum(ProjectPriority).optional(),
     notes: z.string().trim().max(2000).optional()
   })
@@ -128,9 +177,22 @@ export const createMilestoneSchema = z.object({
   name: z.string().trim().min(2, 'Milestone name must be at least 2 characters').max(150),
   description: z.string().trim().max(1000).optional(),
   displayOrder: z.number().int().min(0).optional(),
-  plannedStartDate: z.string().or(z.date()).transform(val => new Date(val)).optional(),
-  dueDate: z.string().or(z.date()).transform(val => new Date(val)).optional(),
-  assignedUserId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid user ID').optional().or(z.literal(''))
+  plannedStartDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val))
+    .optional(),
+  dueDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val))
+    .optional(),
+  assignedUserId: z
+    .string()
+    .trim()
+    .regex(OBJECT_ID_REGEX, 'Invalid user ID')
+    .optional()
+    .or(z.literal(''))
 });
 
 export const updateMilestoneSchema = createMilestoneSchema.partial();
@@ -143,7 +205,10 @@ export const updateMilestoneStatusSchema = z
   })
   .refine(
     data => {
-      if (data.status === MilestoneStatus.BLOCKED && (!data.blockerReason || data.blockerReason.trim().length === 0)) {
+      if (
+        data.status === MilestoneStatus.BLOCKED &&
+        (!data.blockerReason || data.blockerReason.trim().length === 0)
+      ) {
         return false;
       }
       return true;
@@ -160,10 +225,24 @@ export const updateMilestoneStatusSchema = z
 export const createProjectTaskSchema = z.object({
   title: z.string().trim().min(2, 'Task title must be at least 2 characters').max(200),
   description: z.string().trim().max(2000).optional(),
-  milestoneId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid milestone ID').optional().or(z.literal('')),
-  assignedUserId: z.string().trim().regex(OBJECT_ID_REGEX, 'Invalid assigned user ID').optional().or(z.literal('')),
+  milestoneId: z
+    .string()
+    .trim()
+    .regex(OBJECT_ID_REGEX, 'Invalid milestone ID')
+    .optional()
+    .or(z.literal('')),
+  assignedUserId: z
+    .string()
+    .trim()
+    .regex(OBJECT_ID_REGEX, 'Invalid assigned user ID')
+    .optional()
+    .or(z.literal('')),
   priority: z.nativeEnum(ProjectPriority).optional().default(ProjectPriority.MEDIUM),
-  dueDate: z.string().or(z.date()).transform(val => new Date(val)).optional()
+  dueDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val))
+    .optional()
 });
 
 export const updateProjectTaskSchema = z.object({
@@ -173,7 +252,12 @@ export const updateProjectTaskSchema = z.object({
   assignedUserId: z.string().trim().regex(OBJECT_ID_REGEX).optional().nullable(),
   priority: z.nativeEnum(ProjectPriority).optional(),
   status: z.nativeEnum(ProjectTaskStatus).optional(),
-  dueDate: z.string().or(z.date()).transform(val => new Date(val)).optional().nullable()
+  dueDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val))
+    .optional()
+    .nullable()
 });
 
 export const projectTaskFilterSchema = PaginationQuerySchema.extend({

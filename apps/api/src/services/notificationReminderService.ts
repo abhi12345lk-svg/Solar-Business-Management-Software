@@ -66,9 +66,7 @@ export class NotificationReminderService {
   /**
    * Dispatches or schedules a reminder with deduplication and honest delivery status.
    */
-  public static async scheduleOrSendReminder(
-    payload: ReminderPayload
-  ): Promise<ReminderRecord> {
+  public static async scheduleOrSendReminder(payload: ReminderPayload): Promise<ReminderRecord> {
     const dedupKey = this.getDedupKey(payload);
 
     if (reminderRegistry.has(dedupKey)) {
@@ -108,7 +106,8 @@ export class NotificationReminderService {
       const recipientId = payload.metadata?.customerId || payload.metadata?.recipientId;
       if (recipientId) {
         const { NotificationCenterService } = await import('./notificationCenterService.js');
-        const { NotificationRecipientType, NotificationCategory } = await import('@ins-solar/shared');
+        const { NotificationRecipientType, NotificationCategory } =
+          await import('@ins-solar/shared');
 
         let category = NotificationCategory.SYSTEM;
         if (payload.reminderType.includes('INSPECTION') || payload.reminderType.includes('METER')) {
@@ -119,13 +118,17 @@ export class NotificationReminderService {
           category = NotificationCategory.SERVICE_VISIT;
         } else if (payload.reminderType.includes('COMPLAINT')) {
           category = NotificationCategory.SERVICE_COMPLAINT;
-        } else if (payload.reminderType.includes('WARRANTY') || payload.reminderType.includes('AMC')) {
+        } else if (
+          payload.reminderType.includes('WARRANTY') ||
+          payload.reminderType.includes('AMC')
+        ) {
           category = NotificationCategory.WARRANTY_AMC;
         }
 
         await NotificationCenterService.createNotification({
           recipientId,
-          recipientType: (payload.metadata?.recipientType as any) || NotificationRecipientType.CUSTOMER,
+          recipientType:
+            (payload.metadata?.recipientType as any) || NotificationRecipientType.CUSTOMER,
           category,
           eventType: payload.reminderType,
           title: payload.subject,
@@ -137,7 +140,10 @@ export class NotificationReminderService {
         });
       }
     } catch (bridgeErr) {
-      logger.warn({ bridgeErr }, '[NotificationReminderService] Failed to persist reminder into notification center.');
+      logger.warn(
+        { bridgeErr },
+        '[NotificationReminderService] Failed to persist reminder into notification center.'
+      );
     }
 
     return record;
@@ -149,10 +155,7 @@ export class NotificationReminderService {
   public static getRemindersForEntity(entityType: string, entityId: string): ReminderRecord[] {
     const results: ReminderRecord[] = [];
     for (const record of reminderRegistry.values()) {
-      if (
-        record.payload.entityType === entityType &&
-        record.payload.entityId === entityId
-      ) {
+      if (record.payload.entityType === entityType && record.payload.entityId === entityId) {
         results.push(record);
       }
     }

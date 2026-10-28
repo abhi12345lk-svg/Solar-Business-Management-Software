@@ -3,10 +3,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import {
-  createProjectBudgetSchema,
-  approveProjectBudgetSchema
-} from '@ins-solar/shared';
+import { createProjectBudgetSchema, approveProjectBudgetSchema } from '@ins-solar/shared';
 import { ProjectProfitabilityService } from '../services/projectProfitabilityService.js';
 import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
@@ -26,7 +23,9 @@ projectCostingRouter.get(
   requirePermission('project:cost_read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await ProjectProfitabilityService.getCostLedger(req.params.projectId as string);
+      const result = await ProjectProfitabilityService.getCostLedger(
+        req.params.projectId as string
+      );
       return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);
@@ -43,7 +42,9 @@ projectCostingRouter.get(
   requirePermission('project:cost_read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await ProjectProfitabilityService.getProjectProfitability(req.params.projectId as string);
+      const result = await ProjectProfitabilityService.getProjectProfitability(
+        req.params.projectId as string
+      );
       return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);
@@ -60,7 +61,9 @@ projectCostingRouter.get(
   requirePermission('project:cost_read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await ProjectProfitabilityService.getProjectBudgets(req.params.projectId as string);
+      const result = await ProjectProfitabilityService.getProjectBudgets(
+        req.params.projectId as string
+      );
       return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);

@@ -227,7 +227,9 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     await waitFor(() => {
       expect(screen.getByText('INS Solar Solutions Pvt Ltd')).toBeInTheDocument();
       expect(screen.getByText(/Notice of Fund Realization:/i)).toBeInTheDocument();
-      expect(screen.getByText(/does not constitute a statutory Tax Invoice under GST law/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/does not constitute a statutory Tax Invoice under GST law/i)
+      ).toBeInTheDocument();
       expect(screen.getByText('Print Receipt')).toBeInTheDocument();
     });
   });

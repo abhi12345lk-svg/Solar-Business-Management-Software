@@ -424,10 +424,13 @@ export const PaymentsPage: React.FC = () => {
             <div className="p-2 bg-solar-500/10 rounded-lg text-solar-600">
               <Banknote className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Customer Payments & Receivables Ledger</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Customer Payments & Receivables Ledger
+            </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Operational realization, atomic receipt sequences, order allocations, and receivables aging statements.
+            Operational realization, atomic receipt sequences, order allocations, and receivables
+            aging statements.
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -453,7 +456,9 @@ export const PaymentsPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold mt-2 text-foreground">{formatINR(totalVerifiedPaise)}</p>
-          <span className="text-xs text-muted-foreground mt-1 block">Active realized customer funds</span>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Active realized customer funds
+          </span>
         </div>
 
         <div className="bg-card border rounded-xl p-5 shadow-sm">
@@ -465,8 +470,12 @@ export const PaymentsPage: React.FC = () => {
               <Split className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold mt-2 text-foreground">{formatINR(totalAllocatedPaise)}</p>
-          <span className="text-xs text-muted-foreground mt-1 block">Applied towards sales milestones</span>
+          <p className="text-2xl font-bold mt-2 text-foreground">
+            {formatINR(totalAllocatedPaise)}
+          </p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Applied towards sales milestones
+          </span>
         </div>
 
         <div className="bg-card border rounded-xl p-5 shadow-sm">
@@ -478,8 +487,12 @@ export const PaymentsPage: React.FC = () => {
               <RotateCcw className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold mt-2 text-foreground">{formatINR(totalUnallocatedPaise)}</p>
-          <span className="text-xs text-muted-foreground mt-1 block">Available for future allocations or refund</span>
+          <p className="text-2xl font-bold mt-2 text-foreground">
+            {formatINR(totalUnallocatedPaise)}
+          </p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Available for future allocations or refund
+          </span>
         </div>
 
         <div className="bg-card border rounded-xl p-5 shadow-sm">
@@ -492,7 +505,9 @@ export const PaymentsPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold mt-2 text-foreground">{total}</p>
-          <span className="text-xs text-muted-foreground mt-1 block">Payments & adjustments on register</span>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Payments & adjustments on register
+          </span>
         </div>
       </div>
 
@@ -573,7 +588,9 @@ export const PaymentsPage: React.FC = () => {
           <div className="text-center p-12 text-muted-foreground">
             <Banknote className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-base font-semibold">No customer payment records found</p>
-            <p className="text-sm mt-1">Record inbound customer advances, milestones, or filter criteria.</p>
+            <p className="text-sm mt-1">
+              Record inbound customer advances, milestones, or filter criteria.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -605,7 +622,9 @@ export const PaymentsPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4">
                         <div>
-                          <p className="font-medium text-foreground">{payment.customerId?.name || 'Customer'}</p>
+                          <p className="font-medium text-foreground">
+                            {payment.customerId?.name || 'Customer'}
+                          </p>
                           <button
                             onClick={() => openCustomerStatement(payment.customerId?._id)}
                             className="text-xs text-solar-600 hover:underline flex items-center mt-0.5"
@@ -618,7 +637,9 @@ export const PaymentsPage: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-col">
                           <span>{new Date(payment.paymentDate).toLocaleDateString('en-IN')}</span>
-                          <span className="text-xs text-muted-foreground font-mono">{payment.paymentMethod}</span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {payment.paymentMethod}
+                          </span>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">
@@ -643,10 +664,10 @@ export const PaymentsPage: React.FC = () => {
                             isVerified
                               ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
                               : isRecorded
-                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
-                              : isRefunded
-                              ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
-                              : 'bg-destructive/10 text-destructive border border-destructive/20'
+                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                                : isRefunded
+                                  ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
+                                  : 'bg-destructive/10 text-destructive border border-destructive/20'
                           }`}
                         >
                           {payment.status}
@@ -717,7 +738,9 @@ export const PaymentsPage: React.FC = () => {
                               onClick={() => {
                                 setSelectedPayment(payment);
                                 setRefundForm({
-                                  refundAmountRupees: (payment.unallocatedAmountPaise / 100).toFixed(2),
+                                  refundAmountRupees: (
+                                    payment.unallocatedAmountPaise / 100
+                                  ).toFixed(2),
                                   refundReference: '',
                                   refundReason: ''
                                 });
@@ -743,7 +766,8 @@ export const PaymentsPage: React.FC = () => {
         {total > limit && (
           <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 text-xs">
             <span className="text-muted-foreground">
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} payments
+              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}{' '}
+              payments
             </span>
             <div className="flex items-center space-x-2">
               <button
@@ -853,14 +877,18 @@ export const PaymentsPage: React.FC = () => {
                     type="text"
                     placeholder="e.g. UTR20261025..."
                     value={recordForm.transactionReference}
-                    onChange={e => setRecordForm({ ...recordForm, transactionReference: e.target.value })}
+                    onChange={e =>
+                      setRecordForm({ ...recordForm, transactionReference: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1">Public Notes (Included on Receipt)</label>
+                <label className="block text-xs font-semibold mb-1">
+                  Public Notes (Included on Receipt)
+                </label>
                 <textarea
                   rows={2}
                   placeholder="e.g. Milestone 1 advance for rooftop solar installation"
@@ -872,7 +900,8 @@ export const PaymentsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold mb-1">
-                  Confidential Internal Notes <span className="text-muted-foreground font-normal">(Staff Only)</span>
+                  Confidential Internal Notes{' '}
+                  <span className="text-muted-foreground font-normal">(Staff Only)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -925,12 +954,16 @@ export const PaymentsPage: React.FC = () => {
           <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
             <h2 className="text-lg font-bold mb-2">Verify Customer Payment</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Confirm bank clearance for receipt <strong className="font-mono text-foreground">{selectedPayment.receiptNumber}</strong> of {formatINR(selectedPayment.amountPaise)}.
+              Confirm bank clearance for receipt{' '}
+              <strong className="font-mono text-foreground">{selectedPayment.receiptNumber}</strong>{' '}
+              of {formatINR(selectedPayment.amountPaise)}.
             </p>
 
             <form onSubmit={handleVerifyPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold mb-1">Verification Clearance Notes</label>
+                <label className="block text-xs font-semibold mb-1">
+                  Verification Clearance Notes
+                </label>
                 <textarea
                   rows={3}
                   required
@@ -970,7 +1003,14 @@ export const PaymentsPage: React.FC = () => {
           <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
             <h2 className="text-lg font-bold mb-1">Allocate Funds to Sales Order</h2>
             <p className="text-xs text-muted-foreground mb-4">
-              Receipt: <span className="font-mono text-foreground font-semibold">{selectedPayment.receiptNumber}</span> | Available Unallocated: <span className="text-emerald-600 font-semibold">{formatINR(selectedPayment.unallocatedAmountPaise)}</span>
+              Receipt:{' '}
+              <span className="font-mono text-foreground font-semibold">
+                {selectedPayment.receiptNumber}
+              </span>{' '}
+              | Available Unallocated:{' '}
+              <span className="text-emerald-600 font-semibold">
+                {formatINR(selectedPayment.unallocatedAmountPaise)}
+              </span>
             </p>
 
             <form onSubmit={handleAllocatePayment} className="space-y-4">
@@ -1050,7 +1090,10 @@ export const PaymentsPage: React.FC = () => {
               <h2 className="text-lg font-bold">Reverse Customer Payment</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Reversing receipt <strong className="font-mono text-foreground">{selectedPayment.receiptNumber}</strong> will automatically <strong>cascade-reverse all active order allocations</strong> and restore order outstanding balances.
+              Reversing receipt{' '}
+              <strong className="font-mono text-foreground">{selectedPayment.receiptNumber}</strong>{' '}
+              will automatically <strong>cascade-reverse all active order allocations</strong> and
+              restore order outstanding balances.
             </p>
 
             <form onSubmit={handleReversePayment} className="space-y-4">
@@ -1097,7 +1140,14 @@ export const PaymentsPage: React.FC = () => {
           <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
             <h2 className="text-lg font-bold mb-1">Refund Unallocated Credit</h2>
             <p className="text-xs text-muted-foreground mb-4">
-              Receipt: <span className="font-mono font-semibold text-foreground">{selectedPayment.receiptNumber}</span> | Maximum Available: <strong className="text-emerald-600">{formatINR(selectedPayment.unallocatedAmountPaise)}</strong>
+              Receipt:{' '}
+              <span className="font-mono font-semibold text-foreground">
+                {selectedPayment.receiptNumber}
+              </span>{' '}
+              | Maximum Available:{' '}
+              <strong className="text-emerald-600">
+                {formatINR(selectedPayment.unallocatedAmountPaise)}
+              </strong>
             </p>
 
             <form onSubmit={handleRefundPayment} className="space-y-4">
@@ -1112,7 +1162,9 @@ export const PaymentsPage: React.FC = () => {
                   max={(selectedPayment.unallocatedAmountPaise / 100).toFixed(2)}
                   required
                   value={refundForm.refundAmountRupees}
-                  onChange={e => setRefundForm({ ...refundForm, refundAmountRupees: e.target.value })}
+                  onChange={e =>
+                    setRefundForm({ ...refundForm, refundAmountRupees: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-semibold focus:outline-none focus:ring-2 focus:ring-solar-500/20"
                 />
               </div>
@@ -1180,13 +1232,23 @@ export const PaymentsPage: React.FC = () => {
                     <Banknote className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-extrabold tracking-tight">{receiptData.company?.companyName}</h2>
-                    <p className="text-xs text-muted-foreground">{receiptData.company?.legalEntityName}</p>
+                    <h2 className="text-xl font-extrabold tracking-tight">
+                      {receiptData.company?.companyName}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {receiptData.company?.legalEntityName}
+                    </p>
                   </div>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-2 space-y-0.5">
-                  <p>GSTIN: <span className="font-mono">{receiptData.company?.gstin}</span> | PAN: <span className="font-mono">{receiptData.company?.pan}</span></p>
-                  <p>Email: {receiptData.company?.contactEmail} | Phone: {receiptData.company?.contactPhone}</p>
+                  <p>
+                    GSTIN: <span className="font-mono">{receiptData.company?.gstin}</span> | PAN:{' '}
+                    <span className="font-mono">{receiptData.company?.pan}</span>
+                  </p>
+                  <p>
+                    Email: {receiptData.company?.contactEmail} | Phone:{' '}
+                    {receiptData.company?.contactPhone}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
@@ -1205,8 +1267,12 @@ export const PaymentsPage: React.FC = () => {
                 <span className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider block">
                   Received From (Customer)
                 </span>
-                <p className="font-bold text-sm text-foreground mt-0.5">{receiptData.customer?.name}</p>
-                <p className="text-muted-foreground mt-0.5">{receiptData.customer?.primaryPhone || '—'}</p>
+                <p className="font-bold text-sm text-foreground mt-0.5">
+                  {receiptData.customer?.name}
+                </p>
+                <p className="text-muted-foreground mt-0.5">
+                  {receiptData.customer?.primaryPhone || '—'}
+                </p>
                 <p className="text-muted-foreground">{receiptData.customer?.email || '—'}</p>
               </div>
               <div className="text-right">
@@ -1214,7 +1280,9 @@ export const PaymentsPage: React.FC = () => {
                   Payment Mode & Reference
                 </span>
                 <p className="font-medium text-foreground mt-0.5">{receiptData.paymentMethod}</p>
-                <p className="font-mono text-muted-foreground mt-0.5">Ref: {receiptData.transactionReference || 'N/A'}</p>
+                <p className="font-mono text-muted-foreground mt-0.5">
+                  Ref: {receiptData.transactionReference || 'N/A'}
+                </p>
                 <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded text-[11px] font-semibold">
                   Status: {receiptData.status}
                 </span>
@@ -1224,14 +1292,26 @@ export const PaymentsPage: React.FC = () => {
             {/* Realized Amount Block */}
             <div className="my-6 p-4 bg-muted/30 border rounded-xl flex items-center justify-between">
               <div>
-                <span className="text-xs font-medium text-muted-foreground">Total Realized Amount</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Total Realized Amount
+                </span>
                 <p className="text-3xl font-extrabold text-foreground mt-0.5">
                   {formatINR(receiptData.amountPaise)}
                 </p>
               </div>
               <div className="text-right text-xs space-y-1">
-                <p>Allocated: <strong className="text-emerald-600">{formatINR(receiptData.allocatedAmountPaise)}</strong></p>
-                <p>Unallocated Credit: <strong className="text-amber-600">{formatINR(receiptData.unallocatedAmountPaise)}</strong></p>
+                <p>
+                  Allocated:{' '}
+                  <strong className="text-emerald-600">
+                    {formatINR(receiptData.allocatedAmountPaise)}
+                  </strong>
+                </p>
+                <p>
+                  Unallocated Credit:{' '}
+                  <strong className="text-amber-600">
+                    {formatINR(receiptData.unallocatedAmountPaise)}
+                  </strong>
+                </p>
               </div>
             </div>
 
@@ -1256,8 +1336,12 @@ export const PaymentsPage: React.FC = () => {
                         <tr key={idx}>
                           <td className="py-2 px-3 font-mono">{a.allocationNumber}</td>
                           <td className="py-2 px-3 font-mono font-medium">{a.orderNumber}</td>
-                          <td className="py-2 px-3">{a.systemCapacityKwp ? `${a.systemCapacityKwp} kWp` : '—'}</td>
-                          <td className="py-2 px-3 text-right font-medium">{formatINR(a.allocatedAmountPaise)}</td>
+                          <td className="py-2 px-3">
+                            {a.systemCapacityKwp ? `${a.systemCapacityKwp} kWp` : '—'}
+                          </td>
+                          <td className="py-2 px-3 text-right font-medium">
+                            {formatINR(a.allocatedAmountPaise)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1313,7 +1397,9 @@ export const PaymentsPage: React.FC = () => {
                 <h2 className="text-xl font-bold">Customer Receivables & Aging Statement</h2>
                 {statementData?.customer && (
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Customer: <strong className="text-foreground">{statementData.customer.name}</strong> ({statementData.customer.customerCode || 'N/A'})
+                    Customer:{' '}
+                    <strong className="text-foreground">{statementData.customer.name}</strong> (
+                    {statementData.customer.customerCode || 'N/A'})
                   </p>
                 )}
               </div>
@@ -1335,20 +1421,36 @@ export const PaymentsPage: React.FC = () => {
                 {/* Summary Metrics */}
                 <div className="grid grid-cols-4 gap-3">
                   <div className="bg-muted/30 border rounded-lg p-3">
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">Total Invoiced</span>
-                    <p className="text-lg font-bold mt-1 text-foreground">{formatINR(statementData.totalOrderValuePaise)}</p>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Total Invoiced
+                    </span>
+                    <p className="text-lg font-bold mt-1 text-foreground">
+                      {formatINR(statementData.totalOrderValuePaise)}
+                    </p>
                   </div>
                   <div className="bg-muted/30 border rounded-lg p-3">
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">Total Realized</span>
-                    <p className="text-lg font-bold mt-1 text-emerald-600">{formatINR(statementData.totalAllocatedPaise)}</p>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Total Realized
+                    </span>
+                    <p className="text-lg font-bold mt-1 text-emerald-600">
+                      {formatINR(statementData.totalAllocatedPaise)}
+                    </p>
                   </div>
                   <div className="bg-muted/30 border rounded-lg p-3">
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">Unallocated Credit</span>
-                    <p className="text-lg font-bold mt-1 text-amber-600">{formatINR(statementData.totalUnallocatedCreditPaise)}</p>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Unallocated Credit
+                    </span>
+                    <p className="text-lg font-bold mt-1 text-amber-600">
+                      {formatINR(statementData.totalUnallocatedCreditPaise)}
+                    </p>
                   </div>
                   <div className="bg-muted/30 border rounded-lg p-3">
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">Net Outstanding</span>
-                    <p className="text-lg font-bold mt-1 text-destructive">{formatINR(statementData.totalOutstandingPaise)}</p>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Net Outstanding
+                    </span>
+                    <p className="text-lg font-bold mt-1 text-destructive">
+                      {formatINR(statementData.totalOutstandingPaise)}
+                    </p>
                   </div>
                 </div>
 
@@ -1359,25 +1461,33 @@ export const PaymentsPage: React.FC = () => {
                   </h4>
                   <div className="grid grid-cols-4 gap-2 text-center text-xs">
                     <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                      <span className="text-muted-foreground block text-[11px]">Current (0–30 Days)</span>
+                      <span className="text-muted-foreground block text-[11px]">
+                        Current (0–30 Days)
+                      </span>
                       <strong className="text-sm text-emerald-700 dark:text-emerald-300">
                         {formatINR(statementData.aging?.current0To30Paise)}
                       </strong>
                     </div>
                     <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                      <span className="text-muted-foreground block text-[11px]">31–60 Days Overdue</span>
+                      <span className="text-muted-foreground block text-[11px]">
+                        31–60 Days Overdue
+                      </span>
                       <strong className="text-sm text-amber-700 dark:text-amber-300">
                         {formatINR(statementData.aging?.overdue31To60Paise)}
                       </strong>
                     </div>
                     <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                      <span className="text-muted-foreground block text-[11px]">61–90 Days Overdue</span>
+                      <span className="text-muted-foreground block text-[11px]">
+                        61–90 Days Overdue
+                      </span>
                       <strong className="text-sm text-orange-700 dark:text-orange-300">
                         {formatINR(statementData.aging?.overdue61To90Paise)}
                       </strong>
                     </div>
                     <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <span className="text-muted-foreground block text-[11px]">&gt;90 Days Overdue</span>
+                      <span className="text-muted-foreground block text-[11px]">
+                        &gt;90 Days Overdue
+                      </span>
                       <strong className="text-sm text-destructive">
                         {formatINR(statementData.aging?.overdueAbove90Paise)}
                       </strong>
@@ -1406,18 +1516,28 @@ export const PaymentsPage: React.FC = () => {
                         {statementData.orders?.map(order => (
                           <tr key={order._id}>
                             <td className="py-2 px-3 font-mono font-medium">{order.orderNumber}</td>
-                            <td className="py-2 px-3">{order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-IN') : '—'}</td>
-                            <td className="py-2 px-3 text-right">{formatINR(order.netTotalPaise)}</td>
-                            <td className="py-2 px-3 text-right text-emerald-600">{formatINR(order.allocatedAmountPaise)}</td>
-                            <td className="py-2 px-3 text-right font-semibold text-destructive">{formatINR(order.outstandingBalancePaise)}</td>
+                            <td className="py-2 px-3">
+                              {order.orderDate
+                                ? new Date(order.orderDate).toLocaleDateString('en-IN')
+                                : '—'}
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              {formatINR(order.netTotalPaise)}
+                            </td>
+                            <td className="py-2 px-3 text-right text-emerald-600">
+                              {formatINR(order.allocatedAmountPaise)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-semibold text-destructive">
+                              {formatINR(order.outstandingBalancePaise)}
+                            </td>
                             <td className="py-2 px-3 text-center">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                                   order.paymentStatus === 'PAID'
                                     ? 'bg-emerald-500/10 text-emerald-600'
                                     : order.paymentStatus === 'PARTIALLY_PAID'
-                                    ? 'bg-amber-500/10 text-amber-600'
-                                    : 'bg-muted text-muted-foreground'
+                                      ? 'bg-amber-500/10 text-amber-600'
+                                      : 'bg-muted text-muted-foreground'
                                 }`}
                               >
                                 {order.paymentStatus}

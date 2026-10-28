@@ -68,8 +68,16 @@ export const vendorFilterSchema = PaginationQuerySchema.extend({
 export const poLineItemInputSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
   orderedQuantity: z.number().positive('Quantity must be greater than zero'),
-  unitPurchaseRatePaise: z.number().int().min(0, 'Purchase rate must be non-negative integer paise'),
-  discountPaise: z.number().int().min(0, 'Discount must be non-negative integer paise').optional().default(0),
+  unitPurchaseRatePaise: z
+    .number()
+    .int()
+    .min(0, 'Purchase rate must be non-negative integer paise'),
+  discountPaise: z
+    .number()
+    .int()
+    .min(0, 'Discount must be non-negative integer paise')
+    .optional()
+    .default(0),
   gstRate: z.number().min(0).max(100).optional().default(12),
   uom: z.nativeEnum(UnitOfMeasurement).optional(),
   notes: z.string().max(500).optional()
@@ -145,7 +153,10 @@ export const createVendorInvoiceSchema = z.object({
   dueDate: z.string().or(z.date()).optional(),
   subtotalPaise: z.number().int().min(0, 'Subtotal must be non-negative integer paise'),
   taxAmountPaise: z.number().int().min(0, 'Tax amount must be non-negative integer paise'),
-  totalAmountPaise: z.number().int().min(0, 'Total invoice amount must be non-negative integer paise'),
+  totalAmountPaise: z
+    .number()
+    .int()
+    .min(0, 'Total invoice amount must be non-negative integer paise'),
   notes: z.string().max(1000).optional(),
   documentUrl: z.string().url('Invalid document URL').optional().or(z.literal(''))
 });

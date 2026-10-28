@@ -17,50 +17,47 @@ export const documentRouter = Router();
  * GET /api/v1/documents/:id/download
  * Secure download endpoint verifying short-lived cryptographic HMAC signature.
  */
-documentRouter.get(
-  '/:id/download',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const documentId = req.params.id as string;
-      const { token, expires } = req.query;
+documentRouter.get('/:id/download', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const documentId = req.params.id as string;
+    const { token, expires } = req.query;
 
-      if (!token || !expires) {
-        return next(
-          AppError.forbidden('Missing required signed authorization token or expiry timestamp.')
-        );
-      }
-
-      const expiresNum = parseInt(expires as string, 10);
-      if (isNaN(expiresNum)) {
-        return next(AppError.validation('Invalid expiry timestamp.'));
-      }
-
-      const doc = await DocumentService.verifySignedDownloadToken(
-        documentId,
-        token as string,
-        expiresNum
+    if (!token || !expires) {
+      return next(
+        AppError.forbidden('Missing required signed authorization token or expiry timestamp.')
       );
-
-      // Set download headers
-      res.setHeader('Content-Type', doc.mimeType);
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(doc.originalFilename)}"`
-      );
-      res.setHeader('X-Document-Vault-Number', doc.documentNumber);
-      res.setHeader('X-Document-Storage-Status', doc.storageStatus);
-
-      // Since actual object storage is configured as SIMULATED_STORAGE_ONLY or local, stream safe metadata payload or buffer
-      const content = Buffer.from(
-        `%INS-SOLAR-SECURE-VAULT-CONTENT%\nDocument-Number: ${doc.documentNumber}\nOriginal-Filename: ${doc.originalFilename}\nStorage-Key: ${doc.storageKey}\nStorage-Status: ${doc.storageStatus}\nMIME: ${doc.mimeType}\nSize: ${doc.fileSizeBytes} bytes\nVersion: ${doc.version}\n`
-      );
-
-      return res.status(200).send(content);
-    } catch (err) {
-      return next(err);
     }
+
+    const expiresNum = parseInt(expires as string, 10);
+    if (isNaN(expiresNum)) {
+      return next(AppError.validation('Invalid expiry timestamp.'));
+    }
+
+    const doc = await DocumentService.verifySignedDownloadToken(
+      documentId,
+      token as string,
+      expiresNum
+    );
+
+    // Set download headers
+    res.setHeader('Content-Type', doc.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(doc.originalFilename)}"`
+    );
+    res.setHeader('X-Document-Vault-Number', doc.documentNumber);
+    res.setHeader('X-Document-Storage-Status', doc.storageStatus);
+
+    // Since actual object storage is configured as SIMULATED_STORAGE_ONLY or local, stream safe metadata payload or buffer
+    const content = Buffer.from(
+      `%INS-SOLAR-SECURE-VAULT-CONTENT%\nDocument-Number: ${doc.documentNumber}\nOriginal-Filename: ${doc.originalFilename}\nStorage-Key: ${doc.storageKey}\nStorage-Status: ${doc.storageStatus}\nMIME: ${doc.mimeType}\nSize: ${doc.fileSizeBytes} bytes\nVersion: ${doc.version}\n`
+    );
+
+    return res.status(200).send(content);
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 // All subsequent routes require staff session and employee status
 documentRouter.use(requireAuth);

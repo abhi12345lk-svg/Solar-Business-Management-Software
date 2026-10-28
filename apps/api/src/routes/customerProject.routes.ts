@@ -33,7 +33,9 @@ customerProjectRouter.get('/', async (req: Request, res: Response, next: NextFun
     const customerId = req.session.customer!.customerId;
 
     const projects = await Project.find({ customerId })
-      .select('projectCode name status currentStage systemCapacityKwp systemTopology plannedStartDate targetCompletionDate createdAt')
+      .select(
+        'projectCode name status currentStage systemCapacityKwp systemTopology plannedStartDate targetCompletionDate createdAt'
+      )
       .sort({ createdAt: -1 })
       .lean();
 
@@ -61,46 +63,59 @@ customerProjectRouter.get('/:id', async (req: Request, res: Response, next: Next
  * GET /api/v1/customer-portal/projects/:id/checklist
  * View inspection checklist for customer's own project.
  */
-customerProjectRouter.get('/:id/checklist', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const project = await ProjectService.getProjectById(req.params.id as string, customerId);
-    const checklist = await ChecklistService.getProjectChecklist(project._id.toString());
-    return sendSuccess(req, res, checklist);
-  } catch (err) {
-    return next(err);
+customerProjectRouter.get(
+  '/:id/checklist',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const project = await ProjectService.getProjectById(req.params.id as string, customerId);
+      const checklist = await ChecklistService.getProjectChecklist(project._id.toString());
+      return sendSuccess(req, res, checklist);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/projects/:id/dispatches
  * View material dispatches for customer's own project.
  */
-customerProjectRouter.get('/:id/dispatches', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const project = await ProjectService.getProjectById(req.params.id as string, customerId);
-    const result = await MaterialDispatchService.getDispatches({ projectId: project._id.toString() });
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+customerProjectRouter.get(
+  '/:id/dispatches',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const project = await ProjectService.getProjectById(req.params.id as string, customerId);
+      const result = await MaterialDispatchService.getDispatches({
+        projectId: project._id.toString()
+      });
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/projects/:id/materials
  * View material status summary for customer's own project.
  */
-customerProjectRouter.get('/:id/materials', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const project = await ProjectService.getProjectById(req.params.id as string, customerId);
-    const result = await MaterialDispatchService.getProjectMaterialSummary(project._id.toString());
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+customerProjectRouter.get(
+  '/:id/materials',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const project = await ProjectService.getProjectById(req.params.id as string, customerId);
+      const result = await MaterialDispatchService.getProjectMaterialSummary(
+        project._id.toString()
+      );
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/projects/:id/checklist/evidence/:evidenceId
@@ -137,7 +152,9 @@ customerProjectRouter.get(
         projectId: project._id,
         customerId
       })
-        .select('applicationNumber discomName consumerNumber status inspectionSchedule meterInstallation submissionDate createdAt')
+        .select(
+          'applicationNumber discomName consumerNumber status inspectionSchedule meterInstallation submissionDate createdAt'
+        )
         .sort({ createdAt: -1 })
         .lean();
       return sendSuccess(req, res, { items: applications, total: applications.length });
@@ -161,7 +178,9 @@ customerProjectRouter.get(
         projectId: project._id,
         customerId
       })
-        .select('applicationNumber schemeName systemCapacityKw requestedAmountPaise approvedAmountPaise disbursedAmountPaise status portalApplicationNumber createdAt')
+        .select(
+          'applicationNumber schemeName systemCapacityKw requestedAmountPaise approvedAmountPaise disbursedAmountPaise status portalApplicationNumber createdAt'
+        )
         .sort({ createdAt: -1 })
         .lean();
       return sendSuccess(req, res, { items: applications, total: applications.length });
@@ -252,4 +271,3 @@ customerProjectRouter.get(
     }
   }
 );
-

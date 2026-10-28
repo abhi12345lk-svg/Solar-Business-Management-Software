@@ -6,10 +6,7 @@
  */
 
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import {
-  ServiceVisitType,
-  ServiceVisitStatus
-} from '@ins-solar/shared';
+import { ServiceVisitType, ServiceVisitStatus } from '@ins-solar/shared';
 
 export interface IVisitChecklistItem {
   item: string;
@@ -85,7 +82,11 @@ export interface IServiceVisitDocument extends Document {
 const VisitChecklistItemSchema = new Schema<IVisitChecklistItem>(
   {
     item: { type: String, required: true, trim: true },
-    status: { type: String, enum: ['PASSED', 'FAILED', 'NOT_APPLICABLE'], default: 'NOT_APPLICABLE' },
+    status: {
+      type: String,
+      enum: ['PASSED', 'FAILED', 'NOT_APPLICABLE'],
+      default: 'NOT_APPLICABLE'
+    },
     notes: { type: String, trim: true }
   },
   { _id: false }

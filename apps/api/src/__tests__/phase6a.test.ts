@@ -146,7 +146,10 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
 
     it('rejects duplicate project creation for the same Sales Order', async () => {
       const orderId = new Types.ObjectId();
-      vi.spyOn(Customer, 'findById').mockResolvedValue({ _id: mockCustomerId, isActive: true } as any);
+      vi.spyOn(Customer, 'findById').mockResolvedValue({
+        _id: mockCustomerId,
+        isActive: true
+      } as any);
       vi.spyOn(SalesOrder, 'findById').mockResolvedValue({
         _id: orderId,
         orderNumber: 'ORD-2026-00001',
@@ -176,7 +179,10 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
 
     it('rejects order binding if the order belongs to a different customer', async () => {
       const orderId = new Types.ObjectId();
-      vi.spyOn(Customer, 'findById').mockResolvedValue({ _id: mockCustomerId, isActive: true } as any);
+      vi.spyOn(Customer, 'findById').mockResolvedValue({
+        _id: mockCustomerId,
+        isActive: true
+      } as any);
       vi.spyOn(SalesOrder, 'findById').mockResolvedValue({
         _id: orderId,
         orderNumber: 'ORD-2026-00001',
@@ -319,7 +325,9 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
       expect(updated.currentStage).toBe(ProjectStage.STAGE_2_NET_METERING_APPLY);
       expect(updated.status).toBe(ProjectStatus.IN_PROGRESS); // Auto-promoted to IN_PROGRESS
       expect(updated.stageHistory.length).toBe(1);
-      expect(updated.stageHistory[0]!.notes).toBe('Engineering layout signed off by lead engineer.');
+      expect(updated.stageHistory[0]!.notes).toBe(
+        'Engineering layout signed off by lead engineer.'
+      );
     });
   });
 
@@ -356,7 +364,10 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
       await ProjectService.updateMilestoneStatus(
         mockProjectDoc._id.toString(),
         milestoneId,
-        { status: MilestoneStatus.BLOCKED, blockerReason: 'Monsoon heavy rain prevented roof welding' },
+        {
+          status: MilestoneStatus.BLOCKED,
+          blockerReason: 'Monsoon heavy rain prevented roof welding'
+        },
         mockPmUser,
         mockContext
       );

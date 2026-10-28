@@ -175,7 +175,9 @@ describe('Phase 8A Integration: Customer Payments, Allocations & Receivables', (
   // 2. Duplicate Transaction Reference & Idempotency Key
   // --------------------------------------------------------------------------
   it('rejects duplicate external transaction reference for the same customer', async () => {
-    vi.spyOn(Customer, 'findById').mockReturnValue(makePopulateQuery({ _id: new Types.ObjectId(sampleCustomerId) }) as any);
+    vi.spyOn(Customer, 'findById').mockReturnValue(
+      makePopulateQuery({ _id: new Types.ObjectId(sampleCustomerId) }) as any
+    );
     vi.spyOn(CustomerPayment, 'findOne').mockResolvedValue({
       _id: new Types.ObjectId(),
       receiptNumber: 'REC-2026-00001',
@@ -205,7 +207,9 @@ describe('Phase 8A Integration: Customer Payments, Allocations & Receivables', (
       status: CustomerPaymentStatus.RECORDED
     };
 
-    vi.spyOn(Customer, 'findById').mockReturnValue(makePopulateQuery({ _id: new Types.ObjectId(sampleCustomerId) }) as any);
+    vi.spyOn(Customer, 'findById').mockReturnValue(
+      makePopulateQuery({ _id: new Types.ObjectId(sampleCustomerId) }) as any
+    );
     vi.spyOn(CustomerPayment, 'findOne').mockResolvedValue(existingPayment as any);
 
     const result = await PaymentService.recordPayment(
@@ -460,15 +464,12 @@ describe('Phase 8A Integration: Customer Payments, Allocations & Receivables', (
 
     expect(reversed.status).toBe(PaymentAllocationStatus.REVERSED);
     expect(reversed.reversalReason).toBe('Customer requested reallocation to battery order');
-    expect(CustomerPayment.findByIdAndUpdate).toHaveBeenCalledWith(
-      mockAllocation.paymentId,
-      {
-        $inc: {
-          allocatedAmountPaise: -5000000,
-          unallocatedAmountPaise: 5000000
-        }
+    expect(CustomerPayment.findByIdAndUpdate).toHaveBeenCalledWith(mockAllocation.paymentId, {
+      $inc: {
+        allocatedAmountPaise: -5000000,
+        unallocatedAmountPaise: 5000000
       }
-    );
+    });
   });
 
   it('rejects reversing an already reversed allocation', async () => {
@@ -744,7 +745,9 @@ describe('Phase 8A Integration: Customer Payments, Allocations & Receivables', (
     const res2 = await request(app).get(`/api/v1/payments/${sampleOrderId}`);
     expect(res2.status).toBe(401);
 
-    const res3 = await request(app).get(`/api/v1/payments/receivables/customers/${sampleCustomerId}`);
+    const res3 = await request(app).get(
+      `/api/v1/payments/receivables/customers/${sampleCustomerId}`
+    );
     expect(res3.status).toBe(401);
 
     const res4 = await request(app).get('/api/v1/customer-portal/payments');

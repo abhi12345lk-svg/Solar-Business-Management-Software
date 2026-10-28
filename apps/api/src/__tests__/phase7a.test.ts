@@ -70,7 +70,9 @@ describe('Phase 7A Integration: Net Metering & Subsidy Tracking', () => {
 
     vi.spyOn(Project, 'findById').mockResolvedValue(mockProject as any);
     vi.spyOn(Customer, 'findById').mockResolvedValue(mockCustomer as any);
-    vi.spyOn(NetMeteringApplication.prototype, 'save').mockImplementation(async function (this: any) {
+    vi.spyOn(NetMeteringApplication.prototype, 'save').mockImplementation(async function (
+      this: any
+    ) {
       this._id = new Types.ObjectId();
       return this;
     });
@@ -333,7 +335,9 @@ describe('Phase 7A Integration: Net Metering & Subsidy Tracking', () => {
         },
         adminUser
       )
-    ).rejects.toThrow(/Cannot record bi-directional meter installation before inspection has PASSED/);
+    ).rejects.toThrow(
+      /Cannot record bi-directional meter installation before inspection has PASSED/
+    );
   });
 
   // --------------------------------------------------------------------------
@@ -612,7 +616,9 @@ describe('Phase 7A Integration: Net Metering & Subsidy Tracking', () => {
         'doc-secret',
         { customerId: intruderCustomerId } // Foreign customer
       )
-    ).rejects.toThrow(/Access denied: You may only access documents for your own subsidy applications/);
+    ).rejects.toThrow(
+      /Access denied: You may only access documents for your own subsidy applications/
+    );
   });
 
   // --------------------------------------------------------------------------

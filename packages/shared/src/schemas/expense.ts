@@ -21,7 +21,10 @@ export const createExpenseSchema = z.object({
   description: z.string().trim().min(3, 'Description must be at least 3 characters.').max(500),
   amountPaise: PositiveMoneyPaiseSchema,
   taxAmountPaise: MoneyPaiseSchema.optional().default(0),
-  expenseDate: z.coerce.date().optional().default(() => new Date()),
+  expenseDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date()),
   vendorId: z.string().trim().optional(),
   payeeName: z.string().trim().max(120).optional(),
   projectId: z.string().trim().optional(),
@@ -58,7 +61,10 @@ export const payExpenseSchema = z.object({
     errorMap: () => ({ message: 'A valid payment mode is required.' })
   }),
   paymentReference: z.string().trim().min(2, 'Payment reference or UTR is required.').max(100),
-  paymentDate: z.coerce.date().optional().default(() => new Date()),
+  paymentDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date()),
   paidAmountPaise: PositiveMoneyPaiseSchema.optional(),
   notes: z.string().trim().max(500).optional()
 });

@@ -265,7 +265,9 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Vendor Invoices & Payables/i);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      /Vendor Invoices & Payables/i
+    );
 
     await waitFor(() => {
       expect(screen.getByText('INV-WAR-001')).toBeInTheDocument();

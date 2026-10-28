@@ -16,7 +16,9 @@ export const dispatchLineItemSchema = z.object({
 export const createMaterialDispatchSchema = z.object({
   projectId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Project ID'),
   sourceWarehouseId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Warehouse ID'),
-  lineItems: z.array(dispatchLineItemSchema).min(1, 'At least one line item is required for dispatch'),
+  lineItems: z
+    .array(dispatchLineItemSchema)
+    .min(1, 'At least one line item is required for dispatch'),
   vehicleNumber: z.string().trim().max(50).optional(),
   driverName: z.string().trim().max(100).optional(),
   driverPhone: z.string().trim().max(20).optional(),

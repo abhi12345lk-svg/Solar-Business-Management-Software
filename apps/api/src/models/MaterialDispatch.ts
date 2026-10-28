@@ -15,6 +15,7 @@ export interface IDispatchLineItem {
   issuedQuantity: number;
   serialNumbers?: string[];
   stockMovementId?: Types.ObjectId;
+  unitCostPaise?: number;
 }
 
 export interface IMaterialDispatchDocument extends Document {
@@ -69,6 +70,10 @@ const DispatchLineItemSchema = new Schema<IDispatchLineItem>(
     stockMovementId: {
       type: Schema.Types.ObjectId,
       ref: 'StockMovement'
+    },
+    unitCostPaise: {
+      type: Number,
+      min: 0
     }
   },
   { _id: true }

@@ -96,7 +96,9 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [lines, setLines] = useState<Array<{ productId: string; requestedQuantity: number; serialsText: string }>>([]);
+  const [lines, setLines] = useState<
+    Array<{ productId: string; requestedQuantity: number; serialsText: string }>
+  >([]);
 
   // Cancel Dispatch Modal State
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -111,7 +113,9 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
       const [dispatchesRes, summaryRes, warehousesRes] = await Promise.all([
         apiClient<MaterialDispatchItem[]>(`/dispatches?projectId=${projectId}`),
-        apiClient<{ materialSummary: MaterialSummaryItem[] }>(`/dispatches/projects/${projectId}/summary`),
+        apiClient<{ materialSummary: MaterialSummaryItem[] }>(
+          `/dispatches/projects/${projectId}/summary`
+        ),
         apiClient<WarehouseOption[]>('/warehouses')
       ]);
 
@@ -137,8 +141,8 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
     if (summary.length > 0) {
       setLines(
         summary
-          .filter((s) => s.remainingQuantity > 0)
-          .map((s) => ({
+          .filter(s => s.remainingQuantity > 0)
+          .map(s => ({
             productId: s.productId,
             requestedQuantity: s.remainingQuantity,
             serialsText: ''
@@ -151,7 +155,10 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
   };
 
   const handleAddLine = () => {
-    setLines([...lines, { productId: summary[0]?.productId || '', requestedQuantity: 1, serialsText: '' }]);
+    setLines([
+      ...lines,
+      { productId: summary[0]?.productId || '', requestedQuantity: 1, serialsText: '' }
+    ]);
   };
 
   const handleRemoveLine = (idx: number) => {
@@ -171,13 +178,13 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
     try {
       setSubmitting(true);
-      const lineItemsPayload = lines.map((l) => ({
+      const lineItemsPayload = lines.map(l => ({
         productId: l.productId,
         requestedQuantity: Number(l.requestedQuantity),
         serialNumbers: l.serialsText
           .split(/[\n,]/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
       }));
 
       await apiClient('/dispatches', {
@@ -281,16 +288,25 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
             BOM & Contracted Material Fulfillment
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {summary.map((item) => {
-              const percent = item.contractedQuantity > 0
-                ? Math.min(100, Math.round((item.totalIssuedQuantity / item.contractedQuantity) * 100))
-                : 0;
+            {summary.map(item => {
+              const percent =
+                item.contractedQuantity > 0
+                  ? Math.min(
+                      100,
+                      Math.round((item.totalIssuedQuantity / item.contractedQuantity) * 100)
+                    )
+                  : 0;
 
               return (
-                <div key={item.productId} className="bg-card border rounded-xl p-4 shadow-sm space-y-3">
+                <div
+                  key={item.productId}
+                  className="bg-card border rounded-xl p-4 shadow-sm space-y-3"
+                >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground line-clamp-1">{item.name}</h4>
+                      <h4 className="text-sm font-semibold text-foreground line-clamp-1">
+                        {item.name}
+                      </h4>
                       <p className="font-mono text-xs text-muted-foreground">SKU: {item.sku}</p>
                     </div>
                     <span
@@ -316,15 +332,21 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   <div className="grid grid-cols-3 text-center text-xs pt-1 border-t">
                     <div>
                       <span className="text-muted-foreground block text-[10px]">Contracted</span>
-                      <span className="font-semibold text-foreground">{item.contractedQuantity}</span>
+                      <span className="font-semibold text-foreground">
+                        {item.contractedQuantity}
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px]">Issued</span>
-                      <span className="font-semibold text-emerald-600">{item.totalIssuedQuantity}</span>
+                      <span className="font-semibold text-emerald-600">
+                        {item.totalIssuedQuantity}
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px]">Pending</span>
-                      <span className={`font-semibold ${item.remainingQuantity > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      <span
+                        className={`font-semibold ${item.remainingQuantity > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}
+                      >
                         {item.remainingQuantity}
                       </span>
                     </div>
@@ -348,11 +370,13 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
         {dispatches.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-sm space-y-1">
             <p>No material dispatches have been issued for this project yet.</p>
-            <p className="text-xs">Issue materials from warehouse inventory to begin site installation execution.</p>
+            <p className="text-xs">
+              Issue materials from warehouse inventory to begin site installation execution.
+            </p>
           </div>
         ) : (
           <div className="divide-y">
-            {dispatches.map((disp) => {
+            {dispatches.map(disp => {
               const isCancelled = disp.status === 'CANCELLED';
 
               return (
@@ -397,7 +421,8 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   {/* Warehouse & Vehicle Details */}
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                     <span>
-                      <strong className="text-foreground">Source Warehouse:</strong> {disp.sourceWarehouseId?.name} ({disp.sourceWarehouseId?.code})
+                      <strong className="text-foreground">Source Warehouse:</strong>{' '}
+                      {disp.sourceWarehouseId?.name} ({disp.sourceWarehouseId?.code})
                     </span>
                     {disp.vehicleNumber && (
                       <span>
@@ -425,13 +450,22 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                     </span>
                     <div className="space-y-1.5">
                       {disp.lineItems.map((li, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-1 border-b last:border-b-0">
+                        <div
+                          key={idx}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-1 border-b last:border-b-0"
+                        >
                           <div>
-                            <span className="font-semibold text-foreground">{li.productId?.name || 'Product'}</span>{' '}
-                            <span className="font-mono text-muted-foreground text-[11px]">({li.productId?.sku})</span>
+                            <span className="font-semibold text-foreground">
+                              {li.productId?.name || 'Product'}
+                            </span>{' '}
+                            <span className="font-mono text-muted-foreground text-[11px]">
+                              ({li.productId?.sku})
+                            </span>
                           </div>
                           <div className="flex items-center space-x-3 pt-1 sm:pt-0">
-                            <span className="font-bold text-foreground">Qty: {li.issuedQuantity}</span>
+                            <span className="font-bold text-foreground">
+                              Qty: {li.issuedQuantity}
+                            </span>
                             {li.serialNumbers && li.serialNumbers.length > 0 && (
                               <div className="flex items-center flex-wrap gap-1">
                                 {li.serialNumbers.map((sn, sIdx) => (
@@ -482,11 +516,11 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   <select
                     required
                     value={sourceWarehouseId}
-                    onChange={(e) => setSourceWarehouseId(e.target.value)}
+                    onChange={e => setSourceWarehouseId(e.target.value)}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   >
                     <option value="">Select Warehouse...</option>
-                    {warehouses.map((w) => (
+                    {warehouses.map(w => (
                       <option key={w._id} value={w._id}>
                         {w.name} ({w.code})
                       </option>
@@ -501,11 +535,10 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   <input
                     type="text"
                     value={vehicleNumber}
-                    onChange={(e) => setVehicleNumber(e.target.value)}
+                    onChange={e => setVehicleNumber(e.target.value)}
                     placeholder="e.g. GJ-01-AB-1234"
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
-                  >
-                  </input>
+                  ></input>
                 </div>
               </div>
 
@@ -517,7 +550,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   <input
                     type="text"
                     value={driverName}
-                    onChange={(e) => setDriverName(e.target.value)}
+                    onChange={e => setDriverName(e.target.value)}
                     placeholder="e.g. Rajesh Sharma"
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
@@ -530,7 +563,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   <input
                     type="text"
                     value={driverPhone}
-                    onChange={(e) => setDriverPhone(e.target.value)}
+                    onChange={e => setDriverPhone(e.target.value)}
                     placeholder="e.g. 9876543210"
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
@@ -559,7 +592,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                         <select
                           required
                           value={line.productId}
-                          onChange={(e) => {
+                          onChange={e => {
                             const newLines = [...lines];
                             newLines[idx]!.productId = e.target.value;
                             setLines(newLines);
@@ -567,7 +600,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                           className="w-full text-xs rounded border bg-background px-2.5 py-1.5 text-foreground"
                         >
                           <option value="">Select Product...</option>
-                          {summary.map((s) => (
+                          {summary.map(s => (
                             <option key={s.productId} value={s.productId}>
                               {s.name} ({s.sku}) — {s.remainingQuantity} remaining
                             </option>
@@ -581,7 +614,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                           required
                           min={1}
                           value={line.requestedQuantity}
-                          onChange={(e) => {
+                          onChange={e => {
                             const newLines = [...lines];
                             newLines[idx]!.requestedQuantity = Number(e.target.value);
                             setLines(newLines);
@@ -606,7 +639,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                       <input
                         type="text"
                         value={line.serialsText}
-                        onChange={(e) => {
+                        onChange={e => {
                           const newLines = [...lines];
                           newLines[idx]!.serialsText = e.target.value;
                           setLines(newLines);
@@ -626,7 +659,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                 <textarea
                   rows={2}
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   placeholder="Additional delivery instructions or gate pass notes..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -664,9 +697,11 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
             <p className="text-xs text-muted-foreground">
               Cancelling dispatch{' '}
-              <span className="font-mono font-bold text-foreground">{dispatchToCancel.dispatchNumber}</span> will
-              record compensating stock return movements and restore the physical on-hand and available quantities in the
-              warehouse.
+              <span className="font-mono font-bold text-foreground">
+                {dispatchToCancel.dispatchNumber}
+              </span>{' '}
+              will record compensating stock return movements and restore the physical on-hand and
+              available quantities in the warehouse.
             </p>
 
             <form onSubmit={handleCancelDispatch} className="space-y-4">
@@ -678,7 +713,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   required
                   rows={3}
                   value={cancellationReason}
-                  onChange={(e) => setCancellationReason(e.target.value)}
+                  onChange={e => setCancellationReason(e.target.value)}
                   placeholder="Provide detailed justification (e.g. damaged during transport, site access delay)..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />

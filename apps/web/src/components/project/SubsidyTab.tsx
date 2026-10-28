@@ -126,9 +126,7 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient<any>(
-        `/subsidies?projectId=${projectId}`
-      );
+      const res = await apiClient<any>(`/subsidies?projectId=${projectId}`);
       const apps = res.applications || res.data?.applications || (Array.isArray(res) ? res : []);
       setApplications(apps);
       if (apps.length > 0) {
@@ -214,7 +212,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
     try {
       setError(null);
       const amountPaise = Math.round(Number(disburseForm.amountRupees) * 100);
-      const idempKey = disburseForm.idempotencyKey || `DISB-${selectedApp.applicationNumber}-${Date.now()}`;
+      const idempKey =
+        disburseForm.idempotencyKey || `DISB-${selectedApp.applicationNumber}-${Date.now()}`;
       await apiClient(`/subsidies/${selectedApp._id}/disbursements`, {
         method: 'POST',
         body: JSON.stringify({
@@ -281,7 +280,9 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
       CANCELLED: 'bg-gray-100 text-gray-700 border-gray-300'
     };
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[status] || styles.ELIGIBLE}`}>
+      <span
+        className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[status] || styles.ELIGIBLE}`}
+      >
         {status.replace(/_/g, ' ')}
       </span>
     );
@@ -317,7 +318,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
             <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="font-bold hover:text-emerald-900 ml-4">
+          <button
+            onClick={() => setSuccessMsg(null)}
+            className="font-bold hover:text-emerald-900 ml-4"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -353,9 +357,12 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
           <div className="w-12 h-12 rounded-full bg-solar-50 border border-solar-200 text-solar-600 flex items-center justify-center mx-auto">
             <Landmark className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">No Subsidy Application Initiated</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            No Subsidy Application Initiated
+          </h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Track central/state subsidies, sanction orders, and DBT disbursements for this rooftop solar project.
+            Track central/state subsidies, sanction orders, and DBT disbursements for this rooftop
+            solar project.
           </p>
           {!isTerminal && (
             <button
@@ -367,253 +374,286 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
             </button>
           )}
         </div>
-      ) : selectedApp && (
-        <div className="space-y-6">
-          {/* Main Info Card */}
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3">
-              <div>
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg font-extrabold text-foreground tracking-tight">
-                    {selectedApp.applicationNumber}
-                  </span>
-                  {getStatusBadge(selectedApp.status)}
+      ) : (
+        selectedApp && (
+          <div className="space-y-6">
+            {/* Main Info Card */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3">
+                <div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-lg font-extrabold text-foreground tracking-tight">
+                      {selectedApp.applicationNumber}
+                    </span>
+                    {getStatusBadge(selectedApp.status)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Scheme:{' '}
+                    <strong className="text-foreground">
+                      {selectedApp.schemeName.replace(/_/g, ' ')}
+                    </strong>{' '}
+                    {selectedApp.portalApplicationNumber &&
+                      `| Portal Reg: ${selectedApp.portalApplicationNumber}`}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Scheme: <strong className="text-foreground">{selectedApp.schemeName.replace(/_/g, ' ')}</strong>{' '}
-                  {selectedApp.portalApplicationNumber && `| Portal Reg: ${selectedApp.portalApplicationNumber}`}
-                </p>
+
+                {/* Action Buttons for Lifecycle */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedApp.status === 'ELIGIBLE' && (
+                    <button
+                      onClick={() => handleAdvanceStatus('APPLIED')}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Submit Subsidy Claim
+                    </button>
+                  )}
+                  {['APPLIED', 'CLAIM_SUBMITTED'].includes(selectedApp.status) && (
+                    <button
+                      onClick={() => {
+                        setSanctionForm({
+                          sanctionReference: '',
+                          sanctionDate: new Date().toISOString().split('T')[0],
+                          approvedAmountRupees: (selectedApp.requestedAmountPaise || 0) / 100,
+                          notes: ''
+                        });
+                        setShowSanctionModal(true);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors flex items-center"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      Record Sanction
+                    </button>
+                  )}
+                  {['SANCTIONED', 'PARTIALLY_DISBURSED'].includes(selectedApp.status) && (
+                    <button
+                      onClick={() => {
+                        const remainingRupees =
+                          ((selectedApp.approvedAmountPaise || 0) -
+                            (selectedApp.disbursedAmountPaise || 0)) /
+                          100;
+                        setDisburseForm({
+                          disbursementReference: '',
+                          amountRupees: remainingRupees,
+                          disbursedAt: new Date().toISOString().split('T')[0],
+                          paymentMode: 'DIRECT_BENEFIT_TRANSFER',
+                          recipientAccount: '',
+                          idempotencyKey: `DISB-${selectedApp.applicationNumber}-${Date.now()}`,
+                          notes: ''
+                        });
+                        setShowDisburseModal(true);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 mr-1" />
+                      Record Disbursement
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Action Buttons for Lifecycle */}
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedApp.status === 'ELIGIBLE' && (
-                  <button
-                    onClick={() => handleAdvanceStatus('APPLIED')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    Submit Subsidy Claim
-                  </button>
-                )}
-                {['APPLIED', 'CLAIM_SUBMITTED'].includes(selectedApp.status) && (
-                  <button
-                    onClick={() => {
-                      setSanctionForm({
-                        sanctionReference: '',
-                        sanctionDate: new Date().toISOString().split('T')[0],
-                        approvedAmountRupees: (selectedApp.requestedAmountPaise || 0) / 100,
-                        notes: ''
-                      });
-                      setShowSanctionModal(true);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors flex items-center"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Record Sanction
-                  </button>
-                )}
-                {['SANCTIONED', 'PARTIALLY_DISBURSED'].includes(selectedApp.status) && (
-                  <button
-                    onClick={() => {
-                      const remainingRupees = ((selectedApp.approvedAmountPaise || 0) - (selectedApp.disbursedAmountPaise || 0)) / 100;
-                      setDisburseForm({
-                        disbursementReference: '',
-                        amountRupees: remainingRupees,
-                        disbursedAt: new Date().toISOString().split('T')[0],
-                        paymentMode: 'DIRECT_BENEFIT_TRANSFER',
-                        recipientAccount: '',
-                        idempotencyKey: `DISB-${selectedApp.applicationNumber}-${Date.now()}`,
-                        notes: ''
-                      });
-                      setShowDisburseModal(true);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center"
-                  >
-                    <CreditCard className="w-3.5 h-3.5 mr-1" />
-                    Record Disbursement
-                  </button>
-                )}
+              {/* Financial Amounts Metrics Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Requested Amount</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {formatRupees(selectedApp.requestedAmountPaise)}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Sanctioned / Approved</span>
+                  <p className="font-bold text-indigo-700 text-sm">
+                    {formatRupees(selectedApp.approvedAmountPaise)}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Disbursed (DBT / Bank)</span>
+                  <p className="font-bold text-emerald-700 text-sm">
+                    {formatRupees(selectedApp.disbursedAmountPaise)}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <span className="text-muted-foreground">Remaining Balance</span>
+                  <p className="font-bold text-foreground text-sm">
+                    {formatRupees(
+                      Math.max(
+                        0,
+                        selectedApp.approvedAmountPaise - selectedApp.disbursedAmountPaise
+                      )
+                    )}
+                  </p>
+                </div>
               </div>
+
+              {/* Visual Disbursement Progress Bar */}
+              {selectedApp.approvedAmountPaise > 0 && (
+                <div className="space-y-1.5 pt-2">
+                  <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span>Disbursement Progress</span>
+                    <span>
+                      {Math.round(
+                        (selectedApp.disbursedAmountPaise / selectedApp.approvedAmountPaise) * 100
+                      )}
+                      % Disbursed
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.round((selectedApp.disbursedAmountPaise / selectedApp.approvedAmountPaise) * 100))}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sanction Details if recorded */}
+              {selectedApp.sanctionReference && (
+                <div className="p-3 bg-muted/30 border rounded-xl text-xs space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="font-bold text-foreground">Sanction Order Reference</span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Order Number:{' '}
+                    <strong className="text-foreground">{selectedApp.sanctionReference}</strong>
+                    {selectedApp.sanctionDate &&
+                      ` | Date: ${new Date(selectedApp.sanctionDate).toLocaleDateString()}`}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Financial Amounts Metrics Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Requested Amount</span>
-                <p className="font-bold text-foreground text-sm">{formatRupees(selectedApp.requestedAmountPaise)}</p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Sanctioned / Approved</span>
-                <p className="font-bold text-indigo-700 text-sm">{formatRupees(selectedApp.approvedAmountPaise)}</p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Disbursed (DBT / Bank)</span>
-                <p className="font-bold text-emerald-700 text-sm">{formatRupees(selectedApp.disbursedAmountPaise)}</p>
-              </div>
-              <div className="p-3 bg-muted/40 rounded-lg space-y-1">
-                <span className="text-muted-foreground">Remaining Balance</span>
-                <p className="font-bold text-foreground text-sm">
-                  {formatRupees(Math.max(0, selectedApp.approvedAmountPaise - selectedApp.disbursedAmountPaise))}
-                </p>
-              </div>
-            </div>
-
-            {/* Visual Disbursement Progress Bar */}
-            {selectedApp.approvedAmountPaise > 0 && (
-              <div className="space-y-1.5 pt-2">
-                <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
-                  <span>Disbursement Progress</span>
-                  <span>
-                    {Math.round((selectedApp.disbursedAmountPaise / selectedApp.approvedAmountPaise) * 100)}% Disbursed
-                  </span>
-                </div>
-                <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, Math.round((selectedApp.disbursedAmountPaise / selectedApp.approvedAmountPaise) * 100))}%`
-                    }}
-                  />
+            {/* Disbursement Ledger Table */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
+                    <IndianRupee className="w-4 h-4 text-solar-600" />
+                    <span>Disbursement Ledger ({selectedApp.disbursements?.length || 0})</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Immutable audit records of partial and full subsidy bank credits
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Sanction Details if recorded */}
-            {selectedApp.sanctionReference && (
-              <div className="p-3 bg-muted/30 border rounded-xl text-xs space-y-1">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span className="font-bold text-foreground">Sanction Order Reference</span>
-                </div>
-                <p className="text-muted-foreground">
-                  Order Number: <strong className="text-foreground">{selectedApp.sanctionReference}</strong>
-                  {selectedApp.sanctionDate && ` | Date: ${new Date(selectedApp.sanctionDate).toLocaleDateString()}`}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Disbursement Ledger Table */}
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
-                  <IndianRupee className="w-4 h-4 text-solar-600" />
-                  <span>Disbursement Ledger ({selectedApp.disbursements?.length || 0})</span>
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Immutable audit records of partial and full subsidy bank credits
-                </p>
-              </div>
-            </div>
-
-            {selectedApp.disbursements && selectedApp.disbursements.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/50 border-b text-muted-foreground">
-                    <tr>
-                      <th className="py-2.5 px-3 font-semibold">Disbursed Date</th>
-                      <th className="py-2.5 px-3 font-semibold">UTR / Reference</th>
-                      <th className="py-2.5 px-3 font-semibold">Mode</th>
-                      <th className="py-2.5 px-3 font-semibold">Recipient Account</th>
-                      <th className="py-2.5 px-3 font-semibold text-right">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {selectedApp.disbursements.map((d, idx) => (
-                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-2.5 px-3">{new Date(d.disbursedAt).toLocaleDateString()}</td>
-                        <td className="py-2.5 px-3 font-mono font-medium">{d.disbursementReference}</td>
-                        <td className="py-2.5 px-3">{d.paymentMode.replace(/_/g, ' ')}</td>
-                        <td className="py-2.5 px-3 font-mono">{d.recipientAccount}</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
-                          {formatRupees(d.amountPaise)}
-                        </td>
+              {selectedApp.disbursements && selectedApp.disbursements.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/50 border-b text-muted-foreground">
+                      <tr>
+                        <th className="py-2.5 px-3 font-semibold">Disbursed Date</th>
+                        <th className="py-2.5 px-3 font-semibold">UTR / Reference</th>
+                        <th className="py-2.5 px-3 font-semibold">Mode</th>
+                        <th className="py-2.5 px-3 font-semibold">Recipient Account</th>
+                        <th className="py-2.5 px-3 font-semibold text-right">Amount (₹)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-6 text-center text-muted-foreground text-xs">
-                No disbursements recorded yet. Monies will be logged upon credit to beneficiary account.
-              </div>
-            )}
-          </div>
-
-          {/* Document Checklist */}
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-solar-600" />
-                  <span>Subsidy Claim Supporting Documents</span>
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Evidence for Direct Benefit Transfer (Aadhaar, Bank Passbook, Commissioning Report)
-                </p>
-              </div>
+                    </thead>
+                    <tbody className="divide-y">
+                      {selectedApp.disbursements.map((d, idx) => (
+                        <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-2.5 px-3">
+                            {new Date(d.disbursedAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-medium">
+                            {d.disbursementReference}
+                          </td>
+                          <td className="py-2.5 px-3">{d.paymentMode.replace(/_/g, ' ')}</td>
+                          <td className="py-2.5 px-3 font-mono">{d.recipientAccount}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
+                            {formatRupees(d.amountPaise)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-6 text-center text-muted-foreground text-xs">
+                  No disbursements recorded yet. Monies will be logged upon credit to beneficiary
+                  account.
+                </div>
+              )}
             </div>
 
-            <div className="divide-y text-xs">
-              {selectedApp.documents.map(doc => (
-                <div key={doc.id} className="py-3 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-foreground">{doc.title}</span>
-                      {doc.isRequired && (
-                        <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
-                          REQUIRED
-                        </span>
+            {/* Document Checklist */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-solar-600" />
+                    <span>Subsidy Claim Supporting Documents</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Evidence for Direct Benefit Transfer (Aadhaar, Bank Passbook, Commissioning
+                    Report)
+                  </p>
+                </div>
+              </div>
+
+              <div className="divide-y text-xs">
+                {selectedApp.documents.map(doc => (
+                  <div key={doc.id} className="py-3 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-foreground">{doc.title}</span>
+                        {doc.isRequired && (
+                          <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
+                            REQUIRED
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-muted-foreground text-[11px]">
+                        Type: {doc.documentType} {doc.fileName && `| File: ${doc.fileName}`}
+                      </span>
+                      {doc.rejectionReason && (
+                        <p className="text-rose-600 text-[11px] font-medium">
+                          Rejection Reason: {doc.rejectionReason}
+                        </p>
                       )}
                     </div>
-                    <span className="text-muted-foreground text-[11px]">
-                      Type: {doc.documentType} {doc.fileName && `| File: ${doc.fileName}`}
-                    </span>
-                    {doc.rejectionReason && (
-                      <p className="text-rose-600 text-[11px] font-medium">Rejection Reason: {doc.rejectionReason}</p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center space-x-3">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                        doc.status === 'ACCEPTED'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : doc.status === 'UPLOADED'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : doc.status === 'REJECTED'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}
-                    >
-                      {doc.status}
-                    </span>
-
-                    {!isTerminal && (
-                      <button
-                        onClick={() => {
-                          setUploadDocType(doc.documentType);
-                          setUploadFileForm({
-                            fileName: `${doc.documentType.toLowerCase()}.pdf`,
-                            storageKey: '',
-                            mimeType: 'application/pdf',
-                            fileSize: 1024 * 300
-                          });
-                          setShowUploadModal(true);
-                        }}
-                        className="px-2.5 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px] font-semibold flex items-center"
+                    <div className="flex items-center space-x-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                          doc.status === 'ACCEPTED'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : doc.status === 'UPLOADED'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : doc.status === 'REJECTED'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
                       >
-                        <Upload className="w-3 h-3 mr-1" />
-                        {doc.storageKey ? 'Replace' : 'Upload'}
-                      </button>
-                    )}
+                        {doc.status}
+                      </span>
+
+                      {!isTerminal && (
+                        <button
+                          onClick={() => {
+                            setUploadDocType(doc.documentType);
+                            setUploadFileForm({
+                              fileName: `${doc.documentType.toLowerCase()}.pdf`,
+                              storageKey: '',
+                              mimeType: 'application/pdf',
+                              fileSize: 1024 * 300
+                            });
+                            setShowUploadModal(true);
+                          }}
+                          className="px-2.5 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px] font-semibold flex items-center"
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          {doc.storageKey ? 'Replace' : 'Upload'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Create Subsidy Modal */}
@@ -622,7 +662,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
           <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Initiate Subsidy Application</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -634,9 +677,13 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                   onChange={e => setCreateForm({ ...createForm, schemeName: e.target.value })}
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 >
-                  <option value="PM_SURYA_GHAR_MUFT_BIJLI_YOJANA">PM Surya Ghar Muft Bijli Yojana (Central)</option>
+                  <option value="PM_SURYA_GHAR_MUFT_BIJLI_YOJANA">
+                    PM Surya Ghar Muft Bijli Yojana (Central)
+                  </option>
                   <option value="STATE_ROOFTOP_SUBSIDY">State Rooftop Solar Subsidy</option>
-                  <option value="CENTRAL_FINANCIAL_ASSISTANCE">Central Financial Assistance (CFA)</option>
+                  <option value="CENTRAL_FINANCIAL_ASSISTANCE">
+                    Central Financial Assistance (CFA)
+                  </option>
                   <option value="OTHER">Other Scheme</option>
                 </select>
               </div>
@@ -652,11 +699,15 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">National Portal Reg Number</label>
+                  <label className="font-semibold text-foreground">
+                    National Portal Reg Number
+                  </label>
                   <input
                     type="text"
                     value={createForm.portalApplicationNumber}
-                    onChange={e => setCreateForm({ ...createForm, portalApplicationNumber: e.target.value })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, portalApplicationNumber: e.target.value })
+                    }
                     placeholder="e.g. PMSG-2026-99"
                     className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
                   />
@@ -671,7 +722,9 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                     step="0.1"
                     required
                     value={createForm.systemCapacityKw}
-                    onChange={e => setCreateForm({ ...createForm, systemCapacityKw: Number(e.target.value) })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, systemCapacityKw: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
@@ -681,7 +734,12 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                     type="number"
                     required
                     value={createForm.requestedAmountRupees}
-                    onChange={e => setCreateForm({ ...createForm, requestedAmountRupees: Number(e.target.value) })}
+                    onChange={e =>
+                      setCreateForm({
+                        ...createForm,
+                        requestedAmountRupees: Number(e.target.value)
+                      })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
@@ -706,7 +764,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                >
                   Initiate Claim
                 </button>
               </div>
@@ -721,7 +782,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Subsidy Sanction</h3>
-              <button onClick={() => setShowSanctionModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowSanctionModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -732,7 +796,9 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                   type="text"
                   required
                   value={sanctionForm.sanctionReference}
-                  onChange={e => setSanctionForm({ ...sanctionForm, sanctionReference: e.target.value })}
+                  onChange={e =>
+                    setSanctionForm({ ...sanctionForm, sanctionReference: e.target.value })
+                  }
                   placeholder="e.g. SANC-MNRE-2026-99"
                   className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
                 />
@@ -753,11 +819,17 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                   type="number"
                   required
                   value={sanctionForm.approvedAmountRupees}
-                  onChange={e => setSanctionForm({ ...sanctionForm, approvedAmountRupees: Number(e.target.value) })}
+                  onChange={e =>
+                    setSanctionForm({
+                      ...sanctionForm,
+                      approvedAmountRupees: Number(e.target.value)
+                    })
+                  }
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Must not exceed requested amount ({formatRupees(selectedApp?.requestedAmountPaise || 0)}).
+                  Must not exceed requested amount (
+                  {formatRupees(selectedApp?.requestedAmountPaise || 0)}).
                 </p>
               </div>
               <div className="space-y-1">
@@ -778,7 +850,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
+                >
                   Confirm Sanction
                 </button>
               </div>
@@ -793,18 +868,25 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Subsidy Disbursement</h3>
-              <button onClick={() => setShowDisburseModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowDisburseModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleRecordDisbursement} className="p-5 space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Bank UTR / Transaction Reference</label>
+                <label className="font-semibold text-foreground">
+                  Bank UTR / Transaction Reference
+                </label>
                 <input
                   type="text"
                   required
                   value={disburseForm.disbursementReference}
-                  onChange={e => setDisburseForm({ ...disburseForm, disbursementReference: e.target.value })}
+                  onChange={e =>
+                    setDisburseForm({ ...disburseForm, disbursementReference: e.target.value })
+                  }
                   placeholder="e.g. UTR202611250001"
                   className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
                 />
@@ -816,7 +898,9 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                     type="number"
                     required
                     value={disburseForm.amountRupees}
-                    onChange={e => setDisburseForm({ ...disburseForm, amountRupees: Number(e.target.value) })}
+                    onChange={e =>
+                      setDisburseForm({ ...disburseForm, amountRupees: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
@@ -826,7 +910,9 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                     type="date"
                     required
                     value={disburseForm.disbursedAt}
-                    onChange={e => setDisburseForm({ ...disburseForm, disbursedAt: e.target.value })}
+                    onChange={e =>
+                      setDisburseForm({ ...disburseForm, disbursedAt: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-background border rounded-lg"
                   />
                 </div>
@@ -850,18 +936,24 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                   type="text"
                   required
                   value={disburseForm.recipientAccount}
-                  onChange={e => setDisburseForm({ ...disburseForm, recipientAccount: e.target.value })}
+                  onChange={e =>
+                    setDisburseForm({ ...disburseForm, recipientAccount: e.target.value })
+                  }
                   placeholder="e.g. SBI A/c ending 9901"
                   className="w-full px-3 py-2 bg-background border rounded-lg"
                 />
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Idempotency Key (Duplicate Prevention)</label>
+                <label className="font-semibold text-foreground">
+                  Idempotency Key (Duplicate Prevention)
+                </label>
                 <input
                   type="text"
                   required
                   value={disburseForm.idempotencyKey}
-                  onChange={e => setDisburseForm({ ...disburseForm, idempotencyKey: e.target.value })}
+                  onChange={e =>
+                    setDisburseForm({ ...disburseForm, idempotencyKey: e.target.value })
+                  }
                   className="w-full px-3 py-2 bg-background border rounded-lg font-mono text-[11px]"
                 />
               </div>
@@ -873,7 +965,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+                >
                   Record Disbursement
                 </button>
               </div>
@@ -887,8 +982,13 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
-              <h3 className="font-bold text-sm text-foreground">Upload Document: {uploadDocType}</h3>
-              <button onClick={() => setShowUploadModal(false)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-bold text-sm text-foreground">
+                Upload Document: {uploadDocType}
+              </h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -916,7 +1016,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                 </select>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Document will be securely linked to the subsidy claim. Permanent public URLs are never exposed.
+                Document will be securely linked to the subsidy claim. Permanent public URLs are
+                never exposed.
               </p>
               <div className="flex justify-end space-x-2 pt-2 border-t">
                 <button
@@ -926,7 +1027,10 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                >
                   Upload & Verify
                 </button>
               </div>

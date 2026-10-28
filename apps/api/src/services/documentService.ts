@@ -107,7 +107,10 @@ export class DocumentService {
     const storageKey = `documents/${input.category.toLowerCase()}/${year}/${documentNumber}_${sanitizedFilename}`;
 
     // 8. Determine safe storage status
-    const storageStatus = DocumentStorageStatus.SIMULATED_STORAGE_ONLY;
+    const storageStatus =
+      config.STORAGE_PROVIDER === 's3'
+        ? DocumentStorageStatus.STORED_S3
+        : DocumentStorageStatus.SIMULATED_STORAGE_ONLY;
 
     const safeDisplayName = input.safeDisplayName?.trim() || rawFilename;
 
@@ -116,7 +119,8 @@ export class DocumentService {
       originalFilename: rawFilename,
       safeDisplayName,
       category: input.category,
-      accessClassification: input.accessClassification || DocumentAccessClassification.INTERNAL_ONLY,
+      accessClassification:
+        input.accessClassification || DocumentAccessClassification.INTERNAL_ONLY,
       reviewStatus: DocumentReviewStatus.PENDING_REVIEW,
       storageKey,
       storageStatus,
@@ -128,7 +132,9 @@ export class DocumentService {
       customerId: customerObjectId,
       projectId: projectObjectId,
       relatedEntityType: input.relatedEntityType,
-      relatedEntityId: input.relatedEntityId ? new Types.ObjectId(input.relatedEntityId) : undefined,
+      relatedEntityId: input.relatedEntityId
+        ? new Types.ObjectId(input.relatedEntityId)
+        : undefined,
       expiryDate: input.expiryDate ? new Date(input.expiryDate) : undefined,
       uploadedBy: new Types.ObjectId(actorContext.actorId),
       uploadedByType: actorContext.actorType,
@@ -211,7 +217,10 @@ export class DocumentService {
       accessClassification: previousDoc.accessClassification,
       reviewStatus: DocumentReviewStatus.PENDING_REVIEW,
       storageKey,
-      storageStatus: DocumentStorageStatus.SIMULATED_STORAGE_ONLY,
+      storageStatus:
+        config.STORAGE_PROVIDER === 's3'
+          ? DocumentStorageStatus.STORED_S3
+          : DocumentStorageStatus.SIMULATED_STORAGE_ONLY,
       mimeType: input.mimeType,
       fileSizeBytes: input.fileSizeBytes,
       checksumSha256: input.checksumSha256,
@@ -351,11 +360,15 @@ export class DocumentService {
       // Customer requester checks:
       // 1. Must own the document
       if (!doc.customerId || doc.customerId.toString() !== requester.customerId) {
-        throw AppError.forbidden('Access denied: You do not have permission to access this document.');
+        throw AppError.forbidden(
+          'Access denied: You do not have permission to access this document.'
+        );
       }
       // 2. Must be classified as CUSTOMER_VISIBLE
       if (doc.accessClassification !== DocumentAccessClassification.CUSTOMER_VISIBLE) {
-        throw AppError.forbidden('Access denied: This internal document is not customer-accessible.');
+        throw AppError.forbidden(
+          'Access denied: This internal document is not customer-accessible.'
+        );
       }
       // 3. Must not be archived
       if (doc.isArchived) {
@@ -366,7 +379,9 @@ export class DocumentService {
       if (doc.accessClassification === DocumentAccessClassification.RESTRICTED) {
         const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'DEPARTMENT_HEAD'];
         if (requester.role && !allowedRoles.includes(requester.role)) {
-          throw AppError.forbidden('Access denied: Restricted document requires administrative clearance.');
+          throw AppError.forbidden(
+            'Access denied: Restricted document requires administrative clearance.'
+          );
         }
       }
     }
@@ -376,10 +391,7 @@ export class DocumentService {
 
     // Cryptographic HMAC token: HMAC_SHA256(secret, `${docId}:${expiresAtMs}:${storageKey}`)
     const payload = `${doc._id.toString()}:${expiresAtMs}:${doc.storageKey}`;
-    const token = crypto
-      .createHmac('sha256', config.SESSION_SECRET)
-      .update(payload)
-      .digest('hex');
+    const token = crypto.createHmac('sha256', config.SESSION_SECRET).update(payload).digest('hex');
 
     const downloadUrl = `/api/v1/documents/${doc._id.toString()}/download?token=${token}&expires=${expiresAtMs}`;
 
@@ -424,7 +436,9 @@ export class DocumentService {
     }
 
     if (Date.now() > expires) {
-      throw AppError.forbidden('Signed download URL has expired. Please generate a new access link.');
+      throw AppError.forbidden(
+        'Signed download URL has expired. Please generate a new access link.'
+      );
     }
 
     const doc = await DocumentModel.findById(documentId);
@@ -575,7 +589,12 @@ export class DocumentService {
     // Sanitize metadata for customer view
     const sanitizedItems = requester.customerId
       ? items.map(doc => {
-          const { storageKey, reviewActorId, metadata, ...safeFields } = doc as any;
+          const {
+            storageKey: _storageKey,
+            reviewActorId: _reviewActorId,
+            metadata: _metadata,
+            ...safeFields
+          } = doc as any;
           return safeFields;
         })
       : items;
@@ -613,19 +632,30 @@ export class DocumentService {
 
     if (requester.customerId) {
       const docCustomer = doc.customerId as any;
-      const docCustomerIdStr = docCustomer?._id ? docCustomer._id.toString() : doc.customerId?.toString();
+      const docCustomerIdStr = docCustomer?._id
+        ? docCustomer._id.toString()
+        : doc.customerId?.toString();
       if (docCustomerIdStr !== requester.customerId) {
-        throw AppError.forbidden('Access denied: You do not have permission to view this document.');
+        throw AppError.forbidden(
+          'Access denied: You do not have permission to view this document.'
+        );
       }
       if (doc.accessClassification !== DocumentAccessClassification.CUSTOMER_VISIBLE) {
-        throw AppError.forbidden('Access denied: This internal document is not customer-accessible.');
+        throw AppError.forbidden(
+          'Access denied: This internal document is not customer-accessible.'
+        );
       }
       if (doc.isArchived) {
         throw AppError.forbidden('Access denied: Document has been archived.');
       }
 
       // Strip sensitive internal fields for customer
-      const { storageKey, reviewActorId, metadata, ...safeDoc } = doc as any;
+      const {
+        storageKey: _storageKey,
+        reviewActorId: _reviewActorId,
+        metadata: _metadata,
+        ...safeDoc
+      } = doc as any;
       return safeDoc;
     }
 

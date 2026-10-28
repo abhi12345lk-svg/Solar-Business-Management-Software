@@ -168,11 +168,15 @@ export const ExpensesPage: React.FC = () => {
     .filter(e => e.status === 'PENDING_APPROVAL')
     .reduce((sum, e) => sum + (e.totalAmountPaise || 0), 0);
   const approvedUnpaidCount = expenses.filter(
-    e => (e.status === 'APPROVED' || e.paymentStatus === 'PARTIALLY_PAID') && e.paymentStatus !== 'PAID'
+    e =>
+      (e.status === 'APPROVED' || e.paymentStatus === 'PARTIALLY_PAID') &&
+      e.paymentStatus !== 'PAID'
   ).length;
   const approvedUnpaidPaise = expenses
     .filter(
-      e => (e.status === 'APPROVED' || e.paymentStatus === 'PARTIALLY_PAID') && e.paymentStatus !== 'PAID'
+      e =>
+        (e.status === 'APPROVED' || e.paymentStatus === 'PARTIALLY_PAID') &&
+        e.paymentStatus !== 'PAID'
     )
     .reduce((sum, e) => sum + (e.totalAmountPaise - (e.paidAmountPaise || 0)), 0);
   const paidCount = expenses.filter(e => e.paymentStatus === 'PAID').length;
@@ -440,7 +444,9 @@ export const ExpensesPage: React.FC = () => {
             <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="font-bold ml-2">×</button>
+          <button onClick={() => setError(null)} className="font-bold ml-2">
+            ×
+          </button>
         </div>
       )}
       {successMsg && (
@@ -449,7 +455,9 @@ export const ExpensesPage: React.FC = () => {
             <CheckCircle2 className="w-5 h-5 mr-2 shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="font-bold ml-2">×</button>
+          <button onClick={() => setSuccessMsg(null)} className="font-bold ml-2">
+            ×
+          </button>
         </div>
       )}
 
@@ -468,7 +476,9 @@ export const ExpensesPage: React.FC = () => {
             <Clock className="w-3.5 h-3.5 mr-1" /> Pending Approval
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(pendingApprovalPaise)}</p>
-          <p className="text-xs text-amber-700 font-medium">{pendingApprovalCount} pending manager action</p>
+          <p className="text-xs text-amber-700 font-medium">
+            {pendingApprovalCount} pending manager action
+          </p>
         </div>
 
         <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
@@ -476,7 +486,9 @@ export const ExpensesPage: React.FC = () => {
             <DollarSign className="w-3.5 h-3.5 mr-1" /> Approved & Unpaid
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(approvedUnpaidPaise)}</p>
-          <p className="text-xs text-blue-700 font-medium">{approvedUnpaidCount} ready for disbursement</p>
+          <p className="text-xs text-blue-700 font-medium">
+            {approvedUnpaidCount} ready for disbursement
+          </p>
         </div>
 
         <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
@@ -496,7 +508,7 @@ export const ExpensesPage: React.FC = () => {
             type="text"
             placeholder="Search expense #, payee, desc..."
             value={searchTerm}
-            onChange={(e) => {
+            onChange={e => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
@@ -507,7 +519,7 @@ export const ExpensesPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <select
             value={selectedCategory}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedCategory(e.target.value);
               setPage(1);
             }}
@@ -523,7 +535,7 @@ export const ExpensesPage: React.FC = () => {
 
           <select
             value={selectedStatus}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedStatus(e.target.value);
               setPage(1);
             }}
@@ -539,7 +551,7 @@ export const ExpensesPage: React.FC = () => {
 
           <select
             value={selectedPaymentStatus}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedPaymentStatus(e.target.value);
               setPage(1);
             }}
@@ -601,7 +613,7 @@ export const ExpensesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                expenses.map((exp) => (
+                expenses.map(exp => (
                   <tr key={exp._id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-semibold text-solar-600">
                       {exp.expenseNumber}
@@ -620,8 +632,12 @@ export const ExpensesPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4 max-w-xs">
-                      <div className="font-medium truncate">{exp.payeeName || 'Direct Expense'}</div>
-                      <div className="text-xs text-muted-foreground truncate">{exp.description}</div>
+                      <div className="font-medium truncate">
+                        {exp.payeeName || 'Direct Expense'}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {exp.description}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       {exp.projectId ? (
@@ -634,7 +650,9 @@ export const ExpensesPage: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">General Overhead</span>
+                        <span className="text-xs text-muted-foreground italic">
+                          General Overhead
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
@@ -643,12 +661,15 @@ export const ExpensesPage: React.FC = () => {
                       </div>
                       {exp.taxAmountPaise > 0 && (
                         <div className="text-[11px] text-muted-foreground">
-                          Base: {formatPaise(exp.amountPaise)} + Tax: {formatPaise(exp.taxAmountPaise)}
+                          Base: {formatPaise(exp.amountPaise)} + Tax:{' '}
+                          {formatPaise(exp.taxAmountPaise)}
                         </div>
                       )}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">{getStatusBadge(exp.status)}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">{getPaymentStatusBadge(exp.paymentStatus)}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {getPaymentStatusBadge(exp.paymentStatus)}
+                    </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end space-x-1">
                         <button
@@ -692,7 +713,8 @@ export const ExpensesPage: React.FC = () => {
                                 paymentMode: 'BANK_TRANSFER',
                                 paymentReference: '',
                                 paidAmountRupees: (
-                                  (exp.totalAmountPaise - (exp.paidAmountPaise || 0)) / 100
+                                  (exp.totalAmountPaise - (exp.paidAmountPaise || 0)) /
+                                  100
                                 ).toString(),
                                 notes: ''
                               });
@@ -731,7 +753,7 @@ export const ExpensesPage: React.FC = () => {
           </span>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              onClick={() => setPage(p => Math.max(p - 1, 1))}
               disabled={page <= 1}
               className="p-1 border rounded hover:bg-muted disabled:opacity-40"
             >
@@ -741,7 +763,7 @@ export const ExpensesPage: React.FC = () => {
               Page {page} of {totalPages}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              onClick={() => setPage(p => Math.min(p + 1, totalPages))}
               disabled={page >= totalPages}
               className="p-1 border rounded hover:bg-muted disabled:opacity-40"
             >
@@ -769,7 +791,7 @@ export const ExpensesPage: React.FC = () => {
                 </label>
                 <select
                   value={recordForm.category}
-                  onChange={(e) => setRecordForm({ ...recordForm, category: e.target.value })}
+                  onChange={e => setRecordForm({ ...recordForm, category: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 >
                   {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -789,7 +811,7 @@ export const ExpensesPage: React.FC = () => {
                   required
                   placeholder="e.g. Scaffolding rental and transport charges for rooftop install"
                   value={recordForm.description}
-                  onChange={(e) => setRecordForm({ ...recordForm, description: e.target.value })}
+                  onChange={e => setRecordForm({ ...recordForm, description: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
@@ -806,7 +828,7 @@ export const ExpensesPage: React.FC = () => {
                     required
                     placeholder="e.g. 4500"
                     value={recordForm.amountRupees}
-                    onChange={(e) => setRecordForm({ ...recordForm, amountRupees: e.target.value })}
+                    onChange={e => setRecordForm({ ...recordForm, amountRupees: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
                   />
                 </div>
@@ -821,7 +843,9 @@ export const ExpensesPage: React.FC = () => {
                     min="0"
                     placeholder="0"
                     value={recordForm.taxAmountRupees}
-                    onChange={(e) => setRecordForm({ ...recordForm, taxAmountRupees: e.target.value })}
+                    onChange={e =>
+                      setRecordForm({ ...recordForm, taxAmountRupees: e.target.value })
+                    }
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
                   />
                 </div>
@@ -836,7 +860,7 @@ export const ExpensesPage: React.FC = () => {
                     type="text"
                     placeholder="e.g. Metro Crane Services"
                     value={recordForm.payeeName}
-                    onChange={(e) => setRecordForm({ ...recordForm, payeeName: e.target.value })}
+                    onChange={e => setRecordForm({ ...recordForm, payeeName: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
@@ -849,7 +873,7 @@ export const ExpensesPage: React.FC = () => {
                     type="text"
                     placeholder="Project MongoDB ID"
                     value={recordForm.projectId}
-                    onChange={(e) => setRecordForm({ ...recordForm, projectId: e.target.value })}
+                    onChange={e => setRecordForm({ ...recordForm, projectId: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono text-xs"
                   />
                 </div>
@@ -863,7 +887,7 @@ export const ExpensesPage: React.FC = () => {
                   type="text"
                   placeholder="e.g. evidence/expenses/receipt-001.pdf"
                   value={recordForm.evidenceKey}
-                  onChange={(e) => setRecordForm({ ...recordForm, evidenceKey: e.target.value })}
+                  onChange={e => setRecordForm({ ...recordForm, evidenceKey: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono text-xs"
                 />
               </div>
@@ -874,7 +898,7 @@ export const ExpensesPage: React.FC = () => {
                   type="text"
                   placeholder="Additional context or bill reference..."
                   value={recordForm.notes}
-                  onChange={(e) => setRecordForm({ ...recordForm, notes: e.target.value })}
+                  onChange={e => setRecordForm({ ...recordForm, notes: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
@@ -908,8 +932,15 @@ export const ExpensesPage: React.FC = () => {
               <ShieldCheck className="w-5 h-5 mr-2 text-emerald-600" /> Approve Expense
             </h3>
             <p className="text-sm text-muted-foreground">
-              Approve expense <span className="font-mono font-bold text-foreground">{activeExpense.expenseNumber}</span> for{' '}
-              <span className="font-bold text-foreground">{formatPaise(activeExpense.totalAmountPaise)}</span>?
+              Approve expense{' '}
+              <span className="font-mono font-bold text-foreground">
+                {activeExpense.expenseNumber}
+              </span>{' '}
+              for{' '}
+              <span className="font-bold text-foreground">
+                {formatPaise(activeExpense.totalAmountPaise)}
+              </span>
+              ?
             </p>
 
             <div>
@@ -920,7 +951,7 @@ export const ExpensesPage: React.FC = () => {
                 rows={2}
                 placeholder="e.g. Verified with project engineer and site photos"
                 value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
+                onChange={e => setApprovalNotes(e.target.value)}
                 className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
               />
             </div>
@@ -954,8 +985,11 @@ export const ExpensesPage: React.FC = () => {
               <Ban className="w-5 h-5 mr-2" /> Reject Expense
             </h3>
             <p className="text-sm text-muted-foreground">
-              Reject expense <span className="font-mono font-bold text-foreground">{activeExpense.expenseNumber}</span>.
-              A documented reason is required.
+              Reject expense{' '}
+              <span className="font-mono font-bold text-foreground">
+                {activeExpense.expenseNumber}
+              </span>
+              . A documented reason is required.
             </p>
 
             <div>
@@ -967,7 +1001,7 @@ export const ExpensesPage: React.FC = () => {
                 required
                 placeholder="e.g. Receipt lacks vendor GSTIN and details do not match site report"
                 value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
+                onChange={e => setRejectionReason(e.target.value)}
                 className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
               />
             </div>
@@ -1002,15 +1036,20 @@ export const ExpensesPage: React.FC = () => {
             </h3>
             <p className="text-xs text-muted-foreground">
               Record bank transfer, UPI or cash payment against{' '}
-              <span className="font-mono font-bold text-foreground">{activeExpense.expenseNumber}</span>.
+              <span className="font-mono font-bold text-foreground">
+                {activeExpense.expenseNumber}
+              </span>
+              .
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Payment Mode</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Payment Mode
+                </label>
                 <select
                   value={paymentForm.paymentMode}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
+                  onChange={e => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 >
                   <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
@@ -1029,7 +1068,9 @@ export const ExpensesPage: React.FC = () => {
                   required
                   placeholder="e.g. UTR123456789 or Cheque #88210"
                   value={paymentForm.paymentReference}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, paymentReference: e.target.value })}
+                  onChange={e =>
+                    setPaymentForm({ ...paymentForm, paymentReference: e.target.value })
+                  }
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
                 />
               </div>
@@ -1043,7 +1084,9 @@ export const ExpensesPage: React.FC = () => {
                   step="0.01"
                   placeholder="Full remaining balance"
                   value={paymentForm.paidAmountRupees}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, paidAmountRupees: e.target.value })}
+                  onChange={e =>
+                    setPaymentForm({ ...paymentForm, paidAmountRupees: e.target.value })
+                  }
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
                 />
               </div>
@@ -1054,7 +1097,7 @@ export const ExpensesPage: React.FC = () => {
                   type="text"
                   placeholder="e.g. Paid from HDFC current account"
                   value={paymentForm.notes}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
@@ -1089,8 +1132,11 @@ export const ExpensesPage: React.FC = () => {
               <XCircle className="w-5 h-5 mr-2" /> Cancel Expense
             </h3>
             <p className="text-sm text-muted-foreground">
-              Cancel expense <span className="font-mono font-bold text-foreground">{activeExpense.expenseNumber}</span>.
-              This action is permanent and preserved in audit logs.
+              Cancel expense{' '}
+              <span className="font-mono font-bold text-foreground">
+                {activeExpense.expenseNumber}
+              </span>
+              . This action is permanent and preserved in audit logs.
             </p>
 
             <div>
@@ -1102,7 +1148,7 @@ export const ExpensesPage: React.FC = () => {
                 required
                 placeholder="e.g. Duplicate claim entered by site coordinator"
                 value={cancellationReason}
-                onChange={(e) => setCancellationReason(e.target.value)}
+                onChange={e => setCancellationReason(e.target.value)}
                 className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
               />
             </div>
@@ -1215,7 +1261,9 @@ export const ExpensesPage: React.FC = () => {
                   <span className="font-mono text-muted-foreground truncate max-w-[280px]">
                     {activeExpense.evidenceKey}
                   </span>
-                  <span className="text-emerald-600 font-semibold text-[11px]">Evidence Attached</span>
+                  <span className="text-emerald-600 font-semibold text-[11px]">
+                    Evidence Attached
+                  </span>
                 </div>
               )}
 
@@ -1225,12 +1273,17 @@ export const ExpensesPage: React.FC = () => {
                   <span className="text-xs font-bold text-foreground block">Audit History</span>
                   <div className="space-y-1 max-h-32 overflow-y-auto text-xs">
                     {activeExpense.statusHistory.map((h, idx) => (
-                      <div key={idx} className="p-1.5 bg-muted/30 rounded flex justify-between text-[11px]">
+                      <div
+                        key={idx}
+                        className="p-1.5 bg-muted/30 rounded flex justify-between text-[11px]"
+                      >
                         <div>
                           <span className="font-semibold text-foreground">
                             {h.fromStatus} → {h.toStatus}
                           </span>
-                          {h.notes && <span className="text-muted-foreground ml-1">({h.notes})</span>}
+                          {h.notes && (
+                            <span className="text-muted-foreground ml-1">({h.notes})</span>
+                          )}
                         </div>
                         <span className="text-muted-foreground shrink-0">
                           {new Date(h.changedAt).toLocaleDateString()}

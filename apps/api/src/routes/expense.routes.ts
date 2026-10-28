@@ -104,14 +104,18 @@ expenseRouter.post(
         return next(AppError.validation(parseResult.error));
       }
 
-      const expense = await ExpenseService.approveExpense(req.params.id as string, parseResult.data, {
-        userId: req.session.user?.userId,
-        role: req.session.user?.role,
-        department: req.session.user?.department,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      });
+      const expense = await ExpenseService.approveExpense(
+        req.params.id as string,
+        parseResult.data,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
       return sendSuccess(req, res, expense);
     } catch (err) {
@@ -134,14 +138,18 @@ expenseRouter.post(
         return next(AppError.validation(parseResult.error));
       }
 
-      const expense = await ExpenseService.rejectExpense(req.params.id as string, parseResult.data, {
-        userId: req.session.user?.userId,
-        role: req.session.user?.role,
-        department: req.session.user?.department,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      });
+      const expense = await ExpenseService.rejectExpense(
+        req.params.id as string,
+        parseResult.data,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
       return sendSuccess(req, res, expense);
     } catch (err) {
@@ -164,14 +172,18 @@ expenseRouter.post(
         return next(AppError.validation(parseResult.error));
       }
 
-      const expense = await ExpenseService.recordPayment(req.params.id as string, parseResult.data, {
-        userId: req.session.user?.userId,
-        role: req.session.user?.role,
-        department: req.session.user?.department,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      });
+      const expense = await ExpenseService.recordPayment(
+        req.params.id as string,
+        parseResult.data,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
       return sendSuccess(req, res, expense);
     } catch (err) {
@@ -194,14 +206,18 @@ expenseRouter.post(
         return next(AppError.validation(parseResult.error));
       }
 
-      const expense = await ExpenseService.cancelExpense(req.params.id as string, parseResult.data, {
-        userId: req.session.user?.userId,
-        role: req.session.user?.role,
-        department: req.session.user?.department,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      });
+      const expense = await ExpenseService.cancelExpense(
+        req.params.id as string,
+        parseResult.data,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
       return sendSuccess(req, res, expense);
     } catch (err) {

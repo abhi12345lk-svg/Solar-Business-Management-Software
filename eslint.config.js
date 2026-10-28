@@ -32,5 +32,11 @@ export default [
       ],
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }]
     }
+  },
+  {
+    files: ['**/scripts/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'no-console': 'off'
+    }
   }
 ];

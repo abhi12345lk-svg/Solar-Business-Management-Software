@@ -7,11 +7,7 @@
  */
 
 import mongoose, { Types } from 'mongoose';
-import {
-  Notification,
-  INotificationDocument,
-  NotificationPreference
-} from '../models/index.js';
+import { Notification, INotificationDocument, NotificationPreference } from '../models/index.js';
 import {
   NotificationRecipientType,
   NotificationCategory,
@@ -77,9 +73,10 @@ export class NotificationCenterService {
       recipientId,
       recipientType
     });
-    const pref: any = typeof (prefQuery as any)?.lean === 'function'
-      ? await (prefQuery as any).lean()
-      : await prefQuery;
+    const pref: any =
+      typeof (prefQuery as any)?.lean === 'function'
+        ? await (prefQuery as any).lean()
+        : await prefQuery;
 
     if (!pref) {
       // Default: all channels and categories enabled
@@ -154,9 +151,10 @@ export class NotificationCenterService {
   ): Promise<INotificationDocument | null> {
     try {
       const recipientObjectId = new mongoose.Types.ObjectId(params.recipientId.toString());
-      const channels = params.deliveryChannels && params.deliveryChannels.length > 0
-        ? params.deliveryChannels
-        : [NotificationChannel.IN_APP];
+      const channels =
+        params.deliveryChannels && params.deliveryChannels.length > 0
+          ? params.deliveryChannels
+          : [NotificationChannel.IN_APP];
 
       // 1. Evaluate user preferences
       const prefResult = await this.evaluatePreferences(
@@ -212,7 +210,9 @@ export class NotificationCenterService {
         title: params.title.trim(),
         message: params.message.trim(),
         entityType: params.entityType,
-        entityId: params.entityId ? new mongoose.Types.ObjectId(params.entityId.toString()) : undefined,
+        entityId: params.entityId
+          ? new mongoose.Types.ObjectId(params.entityId.toString())
+          : undefined,
         linkUrl: params.linkUrl,
         metadata: params.metadata || {},
         isRead: false,
@@ -229,7 +229,10 @@ export class NotificationCenterService {
       await AuditService.recordEvent({
         action: AuditAction.NOTIFICATION_CREATED,
         actorId: actor?.userId || params.recipientId.toString(),
-        actorType: params.recipientType === NotificationRecipientType.CUSTOMER ? ActorType.CUSTOMER : ActorType.EMPLOYEE,
+        actorType:
+          params.recipientType === NotificationRecipientType.CUSTOMER
+            ? ActorType.CUSTOMER
+            : ActorType.EMPLOYEE,
         targetEntity: 'Notification',
         targetId: notification._id.toString(),
         outcome: AuditOutcome.SUCCESS,
@@ -301,11 +304,7 @@ export class NotificationCenterService {
     }
 
     const [items, total, unreadCount] = await Promise.all([
-      Notification.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      Notification.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Notification.countDocuments(query),
       Notification.countDocuments({
         recipientId: new mongoose.Types.ObjectId(recipientId.toString()),
@@ -364,7 +363,9 @@ export class NotificationCenterService {
       notification.recipientId.toString() !== recipientId.toString() ||
       notification.recipientType !== recipientType
     ) {
-      throw AppError.forbidden('Access denied: You cannot view or modify another user\'s notification.');
+      throw AppError.forbidden(
+        "Access denied: You cannot view or modify another user's notification."
+      );
     }
 
     if (!notification.isRead) {
@@ -375,7 +376,10 @@ export class NotificationCenterService {
       await AuditService.recordEvent({
         action: AuditAction.NOTIFICATION_READ,
         actorId: recipientId.toString(),
-        actorType: recipientType === NotificationRecipientType.CUSTOMER ? ActorType.CUSTOMER : ActorType.EMPLOYEE,
+        actorType:
+          recipientType === NotificationRecipientType.CUSTOMER
+            ? ActorType.CUSTOMER
+            : ActorType.EMPLOYEE,
         targetEntity: 'Notification',
         targetId: notification._id.toString(),
         outcome: AuditOutcome.SUCCESS,
@@ -424,7 +428,10 @@ export class NotificationCenterService {
     await AuditService.recordEvent({
       action: AuditAction.NOTIFICATION_BULK_READ,
       actorId: recipientId.toString(),
-      actorType: recipientType === NotificationRecipientType.CUSTOMER ? ActorType.CUSTOMER : ActorType.EMPLOYEE,
+      actorType:
+        recipientType === NotificationRecipientType.CUSTOMER
+          ? ActorType.CUSTOMER
+          : ActorType.EMPLOYEE,
       targetEntity: 'Notification',
       targetId: recipientId.toString(),
       outcome: AuditOutcome.SUCCESS,
@@ -465,9 +472,10 @@ export class NotificationCenterService {
       recipientId: new mongoose.Types.ObjectId(recipientId.toString()),
       recipientType
     });
-    const pref: any = typeof (prefQuery as any)?.lean === 'function'
-      ? await (prefQuery as any).lean()
-      : await prefQuery;
+    const pref: any =
+      typeof (prefQuery as any)?.lean === 'function'
+        ? await (prefQuery as any).lean()
+        : await prefQuery;
 
     if (!pref) {
       return {
@@ -520,18 +528,43 @@ export class NotificationCenterService {
     });
 
     const channels = {
-      inApp: input.channels?.inApp !== undefined ? input.channels.inApp : (existing?.channels?.inApp ?? true),
-      email: input.channels?.email !== undefined ? input.channels.email : (existing?.channels?.email ?? true),
-      sms: input.channels?.sms !== undefined ? input.channels.sms : (existing?.channels?.sms ?? true),
-      whatsapp: input.channels?.whatsapp !== undefined ? input.channels.whatsapp : (existing?.channels?.whatsapp ?? true)
+      inApp:
+        input.channels?.inApp !== undefined
+          ? input.channels.inApp
+          : (existing?.channels?.inApp ?? true),
+      email:
+        input.channels?.email !== undefined
+          ? input.channels.email
+          : (existing?.channels?.email ?? true),
+      sms:
+        input.channels?.sms !== undefined ? input.channels.sms : (existing?.channels?.sms ?? true),
+      whatsapp:
+        input.channels?.whatsapp !== undefined
+          ? input.channels.whatsapp
+          : (existing?.channels?.whatsapp ?? true)
     };
 
     const categories = {
-      quotations: input.categories?.quotations !== undefined ? input.categories.quotations : (existing?.categories?.quotations ?? true),
-      projectMilestones: input.categories?.projectMilestones !== undefined ? input.categories.projectMilestones : (existing?.categories?.projectMilestones ?? true),
-      payments: input.categories?.payments !== undefined ? input.categories.payments : (existing?.categories?.payments ?? true),
-      serviceAndWarranty: input.categories?.serviceAndWarranty !== undefined ? input.categories.serviceAndWarranty : (existing?.categories?.serviceAndWarranty ?? true),
-      reminders: input.categories?.reminders !== undefined ? input.categories.reminders : (existing?.categories?.reminders ?? true)
+      quotations:
+        input.categories?.quotations !== undefined
+          ? input.categories.quotations
+          : (existing?.categories?.quotations ?? true),
+      projectMilestones:
+        input.categories?.projectMilestones !== undefined
+          ? input.categories.projectMilestones
+          : (existing?.categories?.projectMilestones ?? true),
+      payments:
+        input.categories?.payments !== undefined
+          ? input.categories.payments
+          : (existing?.categories?.payments ?? true),
+      serviceAndWarranty:
+        input.categories?.serviceAndWarranty !== undefined
+          ? input.categories.serviceAndWarranty
+          : (existing?.categories?.serviceAndWarranty ?? true),
+      reminders:
+        input.categories?.reminders !== undefined
+          ? input.categories.reminders
+          : (existing?.categories?.reminders ?? true)
     };
 
     const updated = await NotificationPreference.findOneAndUpdate(
@@ -548,7 +581,10 @@ export class NotificationCenterService {
     await AuditService.recordEvent({
       action: AuditAction.NOTIFICATION_PREFERENCES_UPDATED,
       actorId: recipientId.toString(),
-      actorType: recipientType === NotificationRecipientType.CUSTOMER ? ActorType.CUSTOMER : ActorType.EMPLOYEE,
+      actorType:
+        recipientType === NotificationRecipientType.CUSTOMER
+          ? ActorType.CUSTOMER
+          : ActorType.EMPLOYEE,
       targetEntity: 'NotificationPreference',
       targetId: updated?._id ? updated._id.toString() : recipientId.toString(),
       outcome: AuditOutcome.SUCCESS,

@@ -37,10 +37,18 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
     try {
       setLoading(true);
       const [compRes, warRes, amcRes, visRes] = await Promise.all([
-        apiClient<any>(`/complaints?projectId=${projectId}&limit=5`).catch(() => ({ data: { items: [] } })),
-        apiClient<any>(`/warranties?projectId=${projectId}&limit=5`).catch(() => ({ data: { items: [] } })),
-        apiClient<any>(`/amc?projectId=${projectId}&limit=5`).catch(() => ({ data: { items: [] } })),
-        apiClient<any>(`/service-visits?projectId=${projectId}&limit=5`).catch(() => ({ data: { items: [] } }))
+        apiClient<any>(`/complaints?projectId=${projectId}&limit=5`).catch(() => ({
+          data: { items: [] }
+        })),
+        apiClient<any>(`/warranties?projectId=${projectId}&limit=5`).catch(() => ({
+          data: { items: [] }
+        })),
+        apiClient<any>(`/amc?projectId=${projectId}&limit=5`).catch(() => ({
+          data: { items: [] }
+        })),
+        apiClient<any>(`/service-visits?projectId=${projectId}&limit=5`).catch(() => ({
+          data: { items: [] }
+        }))
       ]);
 
       setComplaints(compRes?.items || compRes?.complaints || compRes?.data?.items || []);
@@ -74,7 +82,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
         {/* AMC Overview Card */}
         <div className="p-5 border rounded-xl bg-card shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-muted-foreground">AMC Agreement</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">
+              AMC Agreement
+            </span>
             <FileCheck2 className="w-4 h-4 text-solar-500" />
           </div>
 
@@ -101,7 +111,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
                     style={{
                       width: `${Math.min(
                         100,
-                        Math.round((activeAmc.consumedVisits / Math.max(1, activeAmc.includedVisits)) * 100)
+                        Math.round(
+                          (activeAmc.consumedVisits / Math.max(1, activeAmc.includedVisits)) * 100
+                        )
                       )}%`
                     }}
                   />
@@ -115,7 +127,10 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
           )}
 
           <div className="border-t pt-2">
-            <Link to="/amc" className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1">
+            <Link
+              to="/amc"
+              className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
+            >
               Manage AMC Contracts <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -124,7 +139,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
         {/* Complaints Summary Card */}
         <div className="p-5 border rounded-xl bg-card shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-muted-foreground">Service Complaints</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">
+              Service Complaints
+            </span>
             <LifeBuoy className="w-4 h-4 text-solar-500" />
           </div>
 
@@ -135,7 +152,10 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
 
           <div className="space-y-1">
             {complaints.slice(0, 2).map((c: any) => (
-              <div key={c._id} className="text-xs flex items-center justify-between py-1 border-b border-border/50">
+              <div
+                key={c._id}
+                className="text-xs flex items-center justify-between py-1 border-b border-border/50"
+              >
                 <span className="font-medium truncate max-w-[150px]">{c.title}</span>
                 <span className="text-[11px] font-semibold text-solar-600">{c.status}</span>
               </div>
@@ -143,7 +163,10 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
           </div>
 
           <div className="border-t pt-2">
-            <Link to="/complaints" className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1">
+            <Link
+              to="/complaints"
+              className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
+            >
               View Complaints Register <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -152,7 +175,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
         {/* Warranties Summary Card */}
         <div className="p-5 border rounded-xl bg-card shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-muted-foreground">Hardware Warranties</span>
+            <span className="text-xs font-semibold uppercase text-muted-foreground">
+              Hardware Warranties
+            </span>
             <ShieldCheck className="w-4 h-4 text-solar-500" />
           </div>
 
@@ -163,7 +188,10 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
 
           <div className="space-y-1">
             {warranties.slice(0, 2).map((w: any) => (
-              <div key={w._id} className="text-xs flex items-center justify-between py-1 border-b border-border/50">
+              <div
+                key={w._id}
+                className="text-xs flex items-center justify-between py-1 border-b border-border/50"
+              >
                 <span className="font-mono truncate max-w-[150px]">{w.serialNumber}</span>
                 <span
                   className={`text-[11px] font-semibold ${
@@ -177,7 +205,10 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
           </div>
 
           <div className="border-t pt-2">
-            <Link to="/warranties" className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1">
+            <Link
+              to="/warranties"
+              className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
+            >
               View Warranty Cards <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -189,7 +220,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
         <div className="p-4 border-b flex items-center justify-between bg-muted/20">
           <div className="flex items-center space-x-2">
             <Wrench className="w-4 h-4 text-solar-500" />
-            <h3 className="text-sm font-bold text-foreground">Field Service & Maintenance Visits</h3>
+            <h3 className="text-sm font-bold text-foreground">
+              Field Service & Maintenance Visits
+            </h3>
           </div>
           <Link
             to="/service-visits"
@@ -221,7 +254,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
               ) : (
                 visits.map(v => (
                   <tr key={v._id} className="hover:bg-muted/30">
-                    <td className="px-4 py-2.5 font-semibold text-solar-600 text-xs">{v.visitNumber}</td>
+                    <td className="px-4 py-2.5 font-semibold text-solar-600 text-xs">
+                      {v.visitNumber}
+                    </td>
                     <td className="px-4 py-2.5 text-xs">{v.visitType?.replace(/_/g, ' ')}</td>
                     <td className="px-4 py-2.5 text-xs text-foreground">
                       {v.assignedTechnicianId
@@ -229,7 +264,9 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
                         : 'Unassigned'}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {v.scheduledDate ? new Date(v.scheduledDate).toISOString().split('T')[0] : 'N/A'}{' '}
+                      {v.scheduledDate
+                        ? new Date(v.scheduledDate).toISOString().split('T')[0]
+                        : 'N/A'}{' '}
                       ({v.scheduledTimeSlot})
                     </td>
                     <td className="px-4 py-2.5 text-xs max-w-xs truncate">{v.purpose}</td>

@@ -159,11 +159,14 @@ warrantyRouter.get(
   requirePermission('warranty:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const record = await WarrantyService.getWarrantyRecordBySerial(req.params.serialNumber as string, {
-        userId: req.session.user?.userId,
-        role: req.session.user?.role,
-        department: req.session.user?.department
-      });
+      const record = await WarrantyService.getWarrantyRecordBySerial(
+        req.params.serialNumber as string,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department
+        }
+      );
 
       return sendSuccess(req, res, record);
     } catch (err) {

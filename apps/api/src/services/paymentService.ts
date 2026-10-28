@@ -89,9 +89,7 @@ export class PaymentService {
     }
 
     // 4. Generate unique atomic receipt number
-    const seqResult = await SequenceService.generateNumber(
-      SequenceEntityType.PAYMENT_RECEIPT
-    );
+    const seqResult = await SequenceService.generateNumber(SequenceEntityType.PAYMENT_RECEIPT);
     const receiptNumber = seqResult.formattedNumber;
 
     const actorId = actor.userId
@@ -99,9 +97,7 @@ export class PaymentService {
       : new mongoose.Types.ObjectId();
 
     const isAutoVerified = Boolean(input.autoVerify);
-    const status = isAutoVerified
-      ? CustomerPaymentStatus.VERIFIED
-      : CustomerPaymentStatus.RECORDED;
+    const status = isAutoVerified ? CustomerPaymentStatus.VERIFIED : CustomerPaymentStatus.RECORDED;
 
     const initialHistory = [
       {
@@ -263,7 +259,9 @@ export class PaymentService {
     }
 
     if (order.status === 'CANCELLED') {
-      throw AppError.badRequest(`Cannot allocate payment to cancelled Sales Order ${order.orderNumber}.`);
+      throw AppError.badRequest(
+        `Cannot allocate payment to cancelled Sales Order ${order.orderNumber}.`
+      );
     }
 
     // 4. Strict anti-cross-customer boundary validation
@@ -279,10 +277,7 @@ export class PaymentService {
         _id: payment._id,
         status: CustomerPaymentStatus.VERIFIED,
         $expr: {
-          $lte: [
-            { $add: ['$allocatedAmountPaise', input.allocatedAmountPaise] },
-            '$amountPaise'
-          ]
+          $lte: [{ $add: ['$allocatedAmountPaise', input.allocatedAmountPaise] }, '$amountPaise']
         }
       },
       {
@@ -334,9 +329,7 @@ export class PaymentService {
     }
 
     // 7. Generate allocation sequence
-    const seqResult = await SequenceService.generateNumber(
-      SequenceEntityType.PAYMENT_ALLOCATION
-    );
+    const seqResult = await SequenceService.generateNumber(SequenceEntityType.PAYMENT_ALLOCATION);
     const allocationNumber = seqResult.formattedNumber;
 
     const actorId = actor.userId
@@ -604,9 +597,12 @@ export class PaymentService {
     }
 
     if (userContext.isCustomer) {
-      const orderCustomerId = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+      const orderCustomerId =
+        (order.customerId as any)?._id?.toString() || order.customerId?.toString();
       if (orderCustomerId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's order receivables.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's order receivables."
+        );
       }
     }
 
@@ -616,7 +612,9 @@ export class PaymentService {
       .lean();
 
     const activeAllocations = allocations.filter(a => a.status === PaymentAllocationStatus.ACTIVE);
-    const reversedAllocations = allocations.filter(a => a.status === PaymentAllocationStatus.REVERSED);
+    const reversedAllocations = allocations.filter(
+      a => a.status === PaymentAllocationStatus.REVERSED
+    );
 
     const allocatedAmountPaise = activeAllocations.reduce(
       (sum, a) => sum + (a.allocatedAmountPaise || 0),
@@ -671,7 +669,9 @@ export class PaymentService {
     }
 
     if (userContext?.isCustomer && customerId !== userContext.customerId) {
-      throw AppError.permissionDenied("Access denied: You cannot view another customer's receivables.");
+      throw AppError.permissionDenied(
+        "Access denied: You cannot view another customer's receivables."
+      );
     }
 
     // 1. Fetch orders
@@ -727,7 +727,9 @@ export class PaymentService {
       }
 
       // Compute aging bucket based on orderDate
-      const ageDays = Math.floor((now - new Date(ord.orderDate || ord.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      const ageDays = Math.floor(
+        (now - new Date(ord.orderDate || ord.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
       if (outstanding > 0) {
         if (ageDays <= 30) {
           aging.current0To30Paise += outstanding;
@@ -807,9 +809,12 @@ export class PaymentService {
     }
 
     if (userContext.isCustomer) {
-      const paymentCustId = (payment.customerId as any)?._id?.toString() || payment.customerId?.toString();
+      const paymentCustId =
+        (payment.customerId as any)?._id?.toString() || payment.customerId?.toString();
       if (paymentCustId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's payment receipt.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's payment receipt."
+        );
       }
     }
 
@@ -938,7 +943,7 @@ export class PaymentService {
     // Strip internalNotes for customer portal users
     const sanitized = items.map(p => {
       if (userContext.isCustomer) {
-        const { internalNotes, ...safe } = p as any;
+        const { internalNotes: _internalNotes, ...safe } = p as any;
         return safe;
       }
       return p;
@@ -950,10 +955,7 @@ export class PaymentService {
   /**
    * Retrieves single payment details with populated allocations.
    */
-  public static async getPaymentById(
-    id: string,
-    userContext: UserContext
-  ): Promise<any> {
+  public static async getPaymentById(id: string, userContext: UserContext): Promise<any> {
     const payment = await CustomerPayment.findById(id)
       .populate('customerId', 'name customerCode primaryPhone email billingAddress')
       .populate('recordedBy', 'firstName lastName email')
@@ -966,11 +968,14 @@ export class PaymentService {
     }
 
     if (userContext.isCustomer) {
-      const customerId = (payment.customerId as any)?._id?.toString() || payment.customerId?.toString();
+      const customerId =
+        (payment.customerId as any)?._id?.toString() || payment.customerId?.toString();
       if (customerId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's payment.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's payment."
+        );
       }
-      const { internalNotes, ...safe } = payment as any;
+      const { internalNotes: _internalNotes, ...safe } = payment as any;
       return safe;
     }
 

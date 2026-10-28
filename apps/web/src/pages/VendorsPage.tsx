@@ -165,22 +165,30 @@ export function VendorsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Suppliers</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Total Suppliers
+            </p>
             <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
           </div>
           <Building2 className="w-8 h-8 text-primary/40" />
         </div>
         <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Suppliers</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Active Suppliers
+            </p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{activeCount}</p>
           </div>
           <CheckCircle2 className="w-8 h-8 text-emerald-500/40" />
         </div>
         <div className="p-4 rounded-xl border border-border bg-card shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Inactive</p>
-            <p className="text-2xl font-bold text-muted-foreground mt-1">{totalCount - activeCount}</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Inactive
+            </p>
+            <p className="text-2xl font-bold text-muted-foreground mt-1">
+              {totalCount - activeCount}
+            </p>
           </div>
           <XCircle className="w-8 h-8 text-muted-foreground/30" />
         </div>
@@ -199,7 +207,9 @@ export function VendorsPage() {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Status:</label>
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Filter Status:
+          </label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as any)}
@@ -387,7 +397,9 @@ export function VendorsPage() {
                     min="0"
                     max="365"
                     value={formData.paymentTermsDays}
-                    onChange={e => setFormData({ ...formData, paymentTermsDays: Number(e.target.value) })}
+                    onChange={e =>
+                      setFormData({ ...formData, paymentTermsDays: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
@@ -402,7 +414,9 @@ export function VendorsPage() {
                     type="text"
                     placeholder="24AAACA1234A1Z5"
                     value={formData.gstin}
-                    onChange={e => setFormData({ ...formData, gstin: e.target.value.toUpperCase() })}
+                    onChange={e =>
+                      setFormData({ ...formData, gstin: e.target.value.toUpperCase() })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background font-mono focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
@@ -455,7 +469,9 @@ export function VendorsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Notes
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Additional commercial notes..."

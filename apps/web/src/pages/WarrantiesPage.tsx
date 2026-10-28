@@ -117,7 +117,8 @@ export const WarrantiesPage: React.FC = () => {
       if (statusFilter) query += `&status=${encodeURIComponent(statusFilter)}`;
 
       const res = await apiClient<any>(query);
-      const items = res?.items || res?.warranties || res?.data?.items || res?.data?.warranties || [];
+      const items =
+        res?.items || res?.warranties || res?.data?.items || res?.data?.warranties || [];
       const totalCount = res?.total ?? res?.data?.total ?? items.length;
       setWarranties(items);
       setTotal(totalCount);
@@ -227,7 +228,9 @@ export const WarrantiesPage: React.FC = () => {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Hardware Warranties & Claims</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Hardware Warranties & Claims
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Serialized solar assets, manufacturer guarantee periods, and RMA claims
               </p>
@@ -349,9 +352,10 @@ export const WarrantiesPage: React.FC = () => {
       <div className="p-3 bg-secondary/40 border border-secondary rounded-lg flex items-start gap-2.5 text-xs text-muted-foreground">
         <Info className="w-4 h-4 text-solar-500 shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold text-foreground">Manufacturer RMA Boundary Notice:</span> Warranty
-          decisions and replacement dispatches are recorded manually based on formal supplier RMA reports. No direct
-          automated external vendor API integration is active in this phase.
+          <span className="font-semibold text-foreground">Manufacturer RMA Boundary Notice:</span>{' '}
+          Warranty decisions and replacement dispatches are recorded manually based on formal
+          supplier RMA reports. No direct automated external vendor API integration is active in
+          this phase.
         </div>
       </div>
 
@@ -439,7 +443,9 @@ export const WarrantiesPage: React.FC = () => {
                         {item.serialNumber}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">{item.productId?.name || 'Solar Hardware'}</div>
+                        <div className="font-medium text-foreground">
+                          {item.productId?.name || 'Solar Hardware'}
+                        </div>
                         <div className="text-xs text-muted-foreground font-mono">
                           {item.productId?.productCode || item.productId?.sku || 'SKU-N/A'}
                         </div>
@@ -454,11 +460,19 @@ export const WarrantiesPage: React.FC = () => {
                         {item.supplierWarrantyReference || 'Standard Manufacturer'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                        {item.warrantyStartDate ? new Date(item.warrantyStartDate).toISOString().split('T')[0] : 'N/A'}
+                        {item.warrantyStartDate
+                          ? new Date(item.warrantyStartDate).toISOString().split('T')[0]
+                          : 'N/A'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs">
-                        <span className={item.isExpired ? 'text-rose-500 font-semibold' : 'text-foreground'}>
-                          {item.warrantyEndDate ? new Date(item.warrantyEndDate).toISOString().split('T')[0] : 'N/A'}
+                        <span
+                          className={
+                            item.isExpired ? 'text-rose-500 font-semibold' : 'text-foreground'
+                          }
+                        >
+                          {item.warrantyEndDate
+                            ? new Date(item.warrantyEndDate).toISOString().split('T')[0]
+                            : 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -549,7 +563,9 @@ export const WarrantiesPage: React.FC = () => {
                         {claim.issueDescription}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                        {claim.claimDate ? new Date(claim.claimDate).toISOString().split('T')[0] : 'N/A'}
+                        {claim.claimDate
+                          ? new Date(claim.claimDate).toISOString().split('T')[0]
+                          : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-xs">
                         {claim.resolutionOutcome ? (
@@ -566,7 +582,9 @@ export const WarrantiesPage: React.FC = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-xs border font-medium ${getClaimStatusBadge(claim.status)}`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs border font-medium ${getClaimStatusBadge(claim.status)}`}
+                        >
                           {claim.status?.replace(/_/g, ' ')}
                         </span>
                       </td>
@@ -635,7 +653,9 @@ export const WarrantiesPage: React.FC = () => {
 
             {selectedSerial && (
               <div className="p-2.5 bg-solar-500/10 border border-solar-500/20 rounded-md text-xs text-solar-700 dark:text-solar-300">
-                Selected Serial: <span className="font-mono font-semibold">{selectedSerial.serialNumber}</span> ({selectedSerial.productId?.name || 'Equipment'})
+                Selected Serial:{' '}
+                <span className="font-mono font-semibold">{selectedSerial.serialNumber}</span> (
+                {selectedSerial.productId?.name || 'Equipment'})
               </div>
             )}
 
@@ -656,7 +676,9 @@ export const WarrantiesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Product ID *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Product ID *
+                  </label>
                   <input
                     type="text"
                     required
@@ -667,7 +689,9 @@ export const WarrantiesPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Project ID *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Project ID *
+                  </label>
                   <input
                     type="text"
                     required
@@ -753,7 +777,9 @@ export const WarrantiesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Manufacturer Decision *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Manufacturer Decision *
+                </label>
                 <select
                   value={decisionForm.status}
                   onChange={e => setDecisionForm({ ...decisionForm, status: e.target.value })}
@@ -765,15 +791,21 @@ export const WarrantiesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Resolution Outcome *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Resolution Outcome *
+                </label>
                 <select
                   value={decisionForm.resolutionType}
-                  onChange={e => setDecisionForm({ ...decisionForm, resolutionType: e.target.value })}
+                  onChange={e =>
+                    setDecisionForm({ ...decisionForm, resolutionType: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 >
                   <option value="REPLACED_UNDER_WARRANTY">Replaced with New Serial Asset</option>
                   <option value="REPAIRED_UNDER_WARRANTY">Repaired Component by OEM</option>
-                  <option value="REJECTED_OUT_OF_SCOPE">Rejected: Physical Damage / Out of Scope</option>
+                  <option value="REJECTED_OUT_OF_SCOPE">
+                    Rejected: Physical Damage / Out of Scope
+                  </option>
                   <option value="REJECTED_EXPIRED">Rejected: Warranty Expired</option>
                 </select>
               </div>
@@ -787,7 +819,9 @@ export const WarrantiesPage: React.FC = () => {
                     type="text"
                     placeholder="New equipment S/N from OEM"
                     value={decisionForm.replacementSerialNumber}
-                    onChange={e => setDecisionForm({ ...decisionForm, replacementSerialNumber: e.target.value })}
+                    onChange={e =>
+                      setDecisionForm({ ...decisionForm, replacementSerialNumber: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background font-mono focus:outline-none"
                   />
                 </div>
@@ -802,7 +836,9 @@ export const WarrantiesPage: React.FC = () => {
                   rows={3}
                   placeholder="Record manufacturer RMA credit memo reference, technician inspection notes, or rejection grounds..."
                   value={decisionForm.decisionNotes}
-                  onChange={e => setDecisionForm({ ...decisionForm, decisionNotes: e.target.value })}
+                  onChange={e =>
+                    setDecisionForm({ ...decisionForm, decisionNotes: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 />
               </div>

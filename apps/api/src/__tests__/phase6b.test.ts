@@ -271,9 +271,15 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
       _id: new Types.ObjectId(sampleProjectId),
       projectCode: 'PRJ-2026-00001'
     } as any);
-    const balanceUpdateSpy = vi.spyOn(StockBalance, 'findOneAndUpdate').mockResolvedValue({} as any);
-    const serialUpdateSpy = vi.spyOn(ProductSerialNumber, 'findOneAndUpdate').mockResolvedValue({} as any);
-    const movementSaveSpy = vi.spyOn(StockMovement.prototype, 'save').mockResolvedValue(true as any);
+    const balanceUpdateSpy = vi
+      .spyOn(StockBalance, 'findOneAndUpdate')
+      .mockResolvedValue({} as any);
+    const serialUpdateSpy = vi
+      .spyOn(ProductSerialNumber, 'findOneAndUpdate')
+      .mockResolvedValue({} as any);
+    const movementSaveSpy = vi
+      .spyOn(StockMovement.prototype, 'save')
+      .mockResolvedValue(true as any);
 
     const cancelled = await MaterialDispatchService.cancelDispatch(
       mockDispatch._id.toString(),
@@ -305,7 +311,14 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
         {
           category: ChecklistCategory.SITE_READINESS_SAFETY,
           title: '1. Site Readiness',
-          items: [{ itemCode: 'CHK-01-01', description: 'Roof inspection', isRequired: true, requiresEvidence: true }]
+          items: [
+            {
+              itemCode: 'CHK-01-01',
+              description: 'Roof inspection',
+              isRequired: true,
+              requiresEvidence: true
+            }
+          ]
         }
       ]
     } as any);
@@ -316,7 +329,11 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
 
     vi.spyOn(ProjectInstallationChecklist.prototype, 'save').mockResolvedValue(true as any);
 
-    const checklist = await ChecklistService.generateProjectChecklist(sampleProjectId, 'CKT-STANDARD-ROOFTOP', adminUser);
+    const checklist = await ChecklistService.generateProjectChecklist(
+      sampleProjectId,
+      'CKT-STANDARD-ROOFTOP',
+      adminUser
+    );
     expect(checklist.templateVersion).toBe(1);
     expect(checklist.categories.length).toBe(1);
 
@@ -351,7 +368,9 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
     };
 
     // Attach Mongoose subdocument id method
-    (mockChecklist.categories[0]!.items as any).id = vi.fn().mockReturnValue(mockChecklist.categories[0]!.items[0]);
+    (mockChecklist.categories[0]!.items as any).id = vi
+      .fn()
+      .mockReturnValue(mockChecklist.categories[0]!.items[0]);
 
     vi.spyOn(ChecklistService, 'getProjectChecklist').mockResolvedValue(mockChecklist as any);
 
@@ -379,7 +398,10 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
     const updated = await ChecklistService.updateItemStatus(
       sampleProjectId,
       itemId.toString(),
-      { status: ChecklistItemStatus.BLOCKED, blockerReason: 'Earth pit soil rocky; chemical compound required' },
+      {
+        status: ChecklistItemStatus.BLOCKED,
+        blockerReason: 'Earth pit soil rocky; chemical compound required'
+      },
       adminUser
     );
     expect(updated).toBeDefined();
@@ -411,7 +433,9 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
       save: vi.fn().mockResolvedValue(true)
     };
 
-    (mockChecklist.categories[0]!.items as any).id = vi.fn().mockReturnValue(mockChecklist.categories[0]!.items[0]);
+    (mockChecklist.categories[0]!.items as any).id = vi
+      .fn()
+      .mockReturnValue(mockChecklist.categories[0]!.items[0]);
     vi.spyOn(ChecklistService, 'getProjectChecklist').mockResolvedValue(mockChecklist as any);
 
     await expect(
@@ -462,7 +486,9 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
         { stage: ProjectStage.STAGE_8_TESTING_PRE_COMMISSION },
         adminUser
       )
-    ).rejects.toThrow(/Mandatory installation checklist items must be PASSED before commissioning gate/);
+    ).rejects.toThrow(
+      /Mandatory installation checklist items must be PASSED before commissioning gate/
+    );
   });
 
   // --------------------------------------------------------------------------
@@ -486,7 +512,9 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
       save: vi.fn().mockResolvedValue(true)
     };
 
-    (mockChecklist.categories[0]!.items as any).id = vi.fn().mockReturnValue(mockChecklist.categories[0]!.items[0]);
+    (mockChecklist.categories[0]!.items as any).id = vi
+      .fn()
+      .mockReturnValue(mockChecklist.categories[0]!.items[0]);
     vi.spyOn(ChecklistService, 'getProjectChecklist').mockResolvedValue(mockChecklist as any);
 
     // Invalid latitude > 90

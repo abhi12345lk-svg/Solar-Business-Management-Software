@@ -104,7 +104,9 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
   // Reason Modal State (for FAILED or BLOCKED)
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<ChecklistItem | null>(null);
-  const [targetStatus, setTargetStatus] = useState<'PASSED' | 'FAILED' | 'BLOCKED' | 'IN_PROGRESS'>('PASSED');
+  const [targetStatus, setTargetStatus] = useState<'PASSED' | 'FAILED' | 'BLOCKED' | 'IN_PROGRESS'>(
+    'PASSED'
+  );
   const [statusReason, setStatusReason] = useState('');
   const [statusNotes, setStatusNotes] = useState('');
   const [statusSubmitting, setStatusSubmitting] = useState(false);
@@ -166,10 +168,15 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
   };
 
   // Quick Pass action or open modal if FAILED/BLOCKED
-  const handleStatusClick = async (item: ChecklistItem, status: 'PASSED' | 'FAILED' | 'BLOCKED' | 'IN_PROGRESS') => {
+  const handleStatusClick = async (
+    item: ChecklistItem,
+    status: 'PASSED' | 'FAILED' | 'BLOCKED' | 'IN_PROGRESS'
+  ) => {
     if (status === 'PASSED') {
       if (item.requiresEvidence && (!item.evidence || item.evidence.length === 0)) {
-        alert(`Photo evidence is strictly mandatory for checklist item "${item.itemCode}: ${item.description}" before marking it PASSED.`);
+        alert(
+          `Photo evidence is strictly mandatory for checklist item "${item.itemCode}: ${item.description}" before marking it PASSED.`
+        );
         return;
       }
       try {
@@ -210,7 +217,9 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
     e.preventDefault();
     if (!activeItem) return;
     if (['FAILED', 'BLOCKED'].includes(targetStatus) && !statusReason.trim()) {
-      alert(`A valid justification is strictly required when marking an inspection item as ${targetStatus}.`);
+      alert(
+        `A valid justification is strictly required when marking an inspection item as ${targetStatus}.`
+      );
       return;
     }
 
@@ -257,11 +266,11 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      pos => {
         setEvidenceLat(pos.coords.latitude.toFixed(6));
         setEvidenceLng(pos.coords.longitude.toFixed(6));
       },
-      (err) => {
+      err => {
         alert(`Failed to detect GPS coordinates: ${err.message}`);
       }
     );
@@ -343,8 +352,8 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
         <ClipboardCheck className="w-12 h-12 text-muted-foreground mx-auto" />
         <h3 className="text-base font-bold text-foreground">No Checklist Initialized</h3>
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
-          This project does not have an active installation checklist instance. Initialize from standard rooftop
-          template to begin quality assurance.
+          This project does not have an active installation checklist instance. Initialize from
+          standard rooftop template to begin quality assurance.
         </p>
         {!isTerminal && (
           <button
@@ -363,8 +372,8 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
   let passedMandatory = 0;
   const blockedMandatoryItems: ChecklistItem[] = [];
 
-  checklist.categories.forEach((cat) => {
-    cat.items.forEach((item) => {
+  checklist.categories.forEach(cat => {
+    cat.items.forEach(item => {
       if (item.isRequired) {
         totalMandatory++;
         if (item.status === 'PASSED') {
@@ -376,14 +385,14 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
     });
   });
 
-  const allItems = checklist.categories.flatMap((c) => c.items);
+  const allItems = checklist.categories.flatMap(c => c.items);
   const totalItemsCount = allItems.length;
-  const passedItemsCount = allItems.filter((i) => i.status === 'PASSED').length;
+  const passedItemsCount = allItems.filter(i => i.status === 'PASSED').length;
 
   const filteredCategories =
     selectedCategory === 'ALL'
       ? checklist.categories
-      : checklist.categories.filter((c) => c.category === selectedCategory);
+      : checklist.categories.filter(c => c.category === selectedCategory);
 
   return (
     <div className="space-y-6">
@@ -421,18 +430,23 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="text-xs font-bold uppercase tracking-wider">
-              Commissioning Stage Gates Blocked ({blockedMandatoryItems.length} items failed/blocked)
+              Commissioning Stage Gates Blocked ({blockedMandatoryItems.length} items
+              failed/blocked)
             </h4>
             <p className="text-xs">
               Project cannot advance to <strong>Stage 8: Pre-Commission Testing</strong> or{' '}
               <strong>Stage 10: Handover</strong> until all mandatory checks are PASSED.
             </p>
             <ul className="text-xs list-disc list-inside space-y-0.5 pt-1 font-mono">
-              {blockedMandatoryItems.map((b) => (
+              {blockedMandatoryItems.map(b => (
                 <li key={b._id}>
                   [{b.itemCode}] {b.description} —{' '}
                   <span className="font-bold text-destructive">{b.status}</span>
-                  {b.failureReason ? `: ${b.failureReason}` : b.blockerReason ? `: ${b.blockerReason}` : ''}
+                  {b.failureReason
+                    ? `: ${b.failureReason}`
+                    : b.blockerReason
+                      ? `: ${b.blockerReason}`
+                      : ''}
                 </li>
               ))}
             </ul>
@@ -452,8 +466,8 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
         >
           All Categories ({totalItemsCount})
         </button>
-        {checklist.categories.map((c) => {
-          const catPassed = c.items.filter((i) => i.status === 'PASSED').length;
+        {checklist.categories.map(c => {
+          const catPassed = c.items.filter(i => i.status === 'PASSED').length;
           const catTotal = c.items.length;
           const isComplete = catPassed === catTotal;
 
@@ -470,9 +484,7 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
               <span>{CATEGORY_NAMES[c.category] || c.title}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isComplete
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-black/10 dark:bg-white/10'
+                  isComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-black/10 dark:bg-white/10'
                 }`}
               >
                 {catPassed}/{catTotal}
@@ -484,20 +496,24 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
 
       {/* Categories & Checklist Items */}
       <div className="space-y-6">
-        {filteredCategories.map((catGroup) => (
-          <div key={catGroup.category} className="bg-card border rounded-xl overflow-hidden shadow-sm">
+        {filteredCategories.map(catGroup => (
+          <div
+            key={catGroup.category}
+            className="bg-card border rounded-xl overflow-hidden shadow-sm"
+          >
             <div className="p-4 bg-muted/20 border-b flex justify-between items-center">
               <h3 className="text-sm font-bold text-foreground flex items-center">
                 <FileCheck className="w-4 h-4 mr-2 text-solar-600" />
                 {CATEGORY_NAMES[catGroup.category] || catGroup.title}
               </h3>
               <span className="text-xs text-muted-foreground font-mono">
-                {catGroup.items.filter((i) => i.status === 'PASSED').length} / {catGroup.items.length} Passed
+                {catGroup.items.filter(i => i.status === 'PASSED').length} / {catGroup.items.length}{' '}
+                Passed
               </span>
             </div>
 
             <div className="divide-y">
-              {catGroup.items.map((item) => {
+              {catGroup.items.map(item => {
                 const isPassed = item.status === 'PASSED';
                 const isFailed = item.status === 'FAILED';
                 const isBlocked = item.status === 'BLOCKED';
@@ -511,7 +527,9 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                           <span className="font-mono text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border">
                             {item.itemCode}
                           </span>
-                          <h4 className="text-sm font-semibold text-foreground">{item.description}</h4>
+                          <h4 className="text-sm font-semibold text-foreground">
+                            {item.description}
+                          </h4>
 
                           {item.isRequired ? (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
@@ -561,7 +579,8 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                           {item.inspectedAt && (
                             <span className="text-muted-foreground text-[11px]">
                               Inspected {new Date(item.inspectedAt).toLocaleString()}
-                              {item.inspectedBy && ` by ${item.inspectedBy.firstName} ${item.inspectedBy.lastName}`}
+                              {item.inspectedBy &&
+                                ` by ${item.inspectedBy.firstName} ${item.inspectedBy.lastName}`}
                             </span>
                           )}
                         </div>
@@ -637,13 +656,15 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                           Attached Verification Photos ({item.evidence.length})
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                          {item.evidence.map((ev) => (
+                          {item.evidence.map(ev => (
                             <div
                               key={ev._id}
                               className="p-2.5 bg-muted/40 border rounded-lg flex items-center justify-between text-xs hover:bg-muted/60 transition-colors"
                             >
                               <div className="space-y-0.5 overflow-hidden pr-2">
-                                <p className="font-semibold text-foreground truncate">{ev.fileName}</p>
+                                <p className="font-semibold text-foreground truncate">
+                                  {ev.fileName}
+                                </p>
                                 <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
                                   <span>{(ev.fileSizeBytes / 1024).toFixed(0)} KB</span>
                                   {ev.latitude !== undefined && ev.longitude !== undefined && (
@@ -678,7 +699,10 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
             <h3 className="text-base font-bold text-foreground">
-              Mark Item as <span className={targetStatus === 'FAILED' ? 'text-destructive' : 'text-amber-600'}>{targetStatus}</span>
+              Mark Item as{' '}
+              <span className={targetStatus === 'FAILED' ? 'text-destructive' : 'text-amber-600'}>
+                {targetStatus}
+              </span>
             </h3>
             <p className="text-xs text-muted-foreground">
               [{activeItem.itemCode}] {activeItem.description}
@@ -693,7 +717,7 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                   required
                   rows={3}
                   value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
+                  onChange={e => setStatusReason(e.target.value)}
                   placeholder={`Specify why this inspection item is ${targetStatus.toLowerCase()}...`}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -706,7 +730,7 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                 <input
                   type="text"
                   value={statusNotes}
-                  onChange={(e) => setStatusNotes(e.target.value)}
+                  onChange={e => setStatusNotes(e.target.value)}
                   placeholder="Remediation instructions or notes..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -756,12 +780,14 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
 
             <form onSubmit={handleEvidenceSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">File Name</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  File Name
+                </label>
                 <input
                   type="text"
                   required
                   value={evidenceFileName}
-                  onChange={(e) => setEvidenceFileName(e.target.value)}
+                  onChange={e => setEvidenceFileName(e.target.value)}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
                 />
               </div>
@@ -773,7 +799,7 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                 <input
                   type="text"
                   value={evidenceCaption}
-                  onChange={(e) => setEvidenceCaption(e.target.value)}
+                  onChange={e => setEvidenceCaption(e.target.value)}
                   placeholder="e.g. Grounding pit resistance test meter reading 1.8 ohms"
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -796,14 +822,14 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                   <input
                     type="text"
                     value={evidenceLat}
-                    onChange={(e) => setEvidenceLat(e.target.value)}
+                    onChange={e => setEvidenceLat(e.target.value)}
                     placeholder="Latitude (-90 to 90)"
                     className="w-full text-xs rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                   />
                   <input
                     type="text"
                     value={evidenceLng}
-                    onChange={(e) => setEvidenceLng(e.target.value)}
+                    onChange={e => setEvidenceLng(e.target.value)}
                     placeholder="Longitude (-180 to 180)"
                     className="w-full text-xs rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                   />
@@ -811,7 +837,8 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
               </div>
 
               <div className="p-3 bg-muted/40 rounded-lg text-[11px] text-muted-foreground">
-                Photos are stored privately in private object storage. Public links are strictly forbidden. Short-lived authorized access tokens are generated on demand.
+                Photos are stored privately in private object storage. Public links are strictly
+                forbidden. Short-lived authorized access tokens are generated on demand.
               </div>
 
               <div className="flex justify-end space-x-2 pt-2 border-t">
@@ -860,10 +887,19 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
             ) : accessData ? (
               <div className="space-y-3">
                 <div className="p-3 bg-muted/30 border rounded-lg text-xs space-y-1.5 font-mono">
-                  <p><strong>File:</strong> {accessData.fileName}</p>
-                  <p><strong>MIME:</strong> {accessData.mimeType}</p>
-                  <p><strong>Size:</strong> {(accessData.fileSizeBytes / 1024).toFixed(1)} KB</p>
-                  <p className="text-solar-700"><strong>Link Expiry:</strong> {new Date(accessData.expiresAt).toLocaleTimeString()}</p>
+                  <p>
+                    <strong>File:</strong> {accessData.fileName}
+                  </p>
+                  <p>
+                    <strong>MIME:</strong> {accessData.mimeType}
+                  </p>
+                  <p>
+                    <strong>Size:</strong> {(accessData.fileSizeBytes / 1024).toFixed(1)} KB
+                  </p>
+                  <p className="text-solar-700">
+                    <strong>Link Expiry:</strong>{' '}
+                    {new Date(accessData.expiresAt).toLocaleTimeString()}
+                  </p>
                 </div>
 
                 <div className="space-y-1">

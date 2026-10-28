@@ -27,7 +27,12 @@ const EnvSchema = z
       .string()
       .optional()
       .transform(val => (val === undefined ? undefined : val === 'true')),
-    COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax')
+    COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+    STORAGE_PROVIDER: z.enum(['simulated', 's3']).default('simulated'),
+    AWS_REGION: z.string().optional(),
+    AWS_S3_BUCKET: z.string().optional(),
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional()
   })
   .superRefine((data, ctx) => {
     // In production, enforce strict security rules
@@ -58,6 +63,46 @@ const EnvSchema = z
           code: z.ZodIssueCode.custom,
           path: ['CSRF_SECRET'],
           message: 'Default development CSRF secret must not be used in production'
+        });
+      }
+      if (data.STORAGE_PROVIDER === 'simulated') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['STORAGE_PROVIDER'],
+          message:
+            'Production environment cannot use simulated storage; STORAGE_PROVIDER must be s3'
+        });
+      }
+    }
+
+    // If S3 storage is specified, require full AWS S3 credentials
+    if (data.STORAGE_PROVIDER === 's3') {
+      if (!data.AWS_S3_BUCKET) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['AWS_S3_BUCKET'],
+          message: 'AWS_S3_BUCKET is required when STORAGE_PROVIDER is s3'
+        });
+      }
+      if (!data.AWS_REGION) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['AWS_REGION'],
+          message: 'AWS_REGION is required when STORAGE_PROVIDER is s3'
+        });
+      }
+      if (!data.AWS_ACCESS_KEY_ID) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['AWS_ACCESS_KEY_ID'],
+          message: 'AWS_ACCESS_KEY_ID is required when STORAGE_PROVIDER is s3'
+        });
+      }
+      if (!data.AWS_SECRET_ACCESS_KEY) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['AWS_SECRET_ACCESS_KEY'],
+          message: 'AWS_SECRET_ACCESS_KEY is required when STORAGE_PROVIDER is s3'
         });
       }
     }

@@ -87,8 +87,16 @@ export class ServiceComplaintService {
    * Valid status transition map enforcing business rules.
    */
   private static readonly VALID_TRANSITIONS: Record<ComplaintStatus, ComplaintStatus[]> = {
-    [ComplaintStatus.OPEN]: [ComplaintStatus.TRIAGED, ComplaintStatus.ASSIGNED, ComplaintStatus.CANCELLED],
-    [ComplaintStatus.TRIAGED]: [ComplaintStatus.ASSIGNED, ComplaintStatus.AWAITING_CUSTOMER, ComplaintStatus.CANCELLED],
+    [ComplaintStatus.OPEN]: [
+      ComplaintStatus.TRIAGED,
+      ComplaintStatus.ASSIGNED,
+      ComplaintStatus.CANCELLED
+    ],
+    [ComplaintStatus.TRIAGED]: [
+      ComplaintStatus.ASSIGNED,
+      ComplaintStatus.AWAITING_CUSTOMER,
+      ComplaintStatus.CANCELLED
+    ],
     [ComplaintStatus.ASSIGNED]: [
       ComplaintStatus.VISIT_SCHEDULED,
       ComplaintStatus.IN_PROGRESS,
@@ -108,12 +116,25 @@ export class ServiceComplaintService {
       ComplaintStatus.AWAITING_CUSTOMER,
       ComplaintStatus.CANCELLED
     ],
-    [ComplaintStatus.AWAITING_CUSTOMER]: [ComplaintStatus.IN_PROGRESS, ComplaintStatus.TRIAGED, ComplaintStatus.CANCELLED],
-    [ComplaintStatus.AWAITING_PARTS]: [ComplaintStatus.IN_PROGRESS, ComplaintStatus.VISIT_SCHEDULED, ComplaintStatus.CANCELLED],
+    [ComplaintStatus.AWAITING_CUSTOMER]: [
+      ComplaintStatus.IN_PROGRESS,
+      ComplaintStatus.TRIAGED,
+      ComplaintStatus.CANCELLED
+    ],
+    [ComplaintStatus.AWAITING_PARTS]: [
+      ComplaintStatus.IN_PROGRESS,
+      ComplaintStatus.VISIT_SCHEDULED,
+      ComplaintStatus.CANCELLED
+    ],
     [ComplaintStatus.RESOLVED]: [ComplaintStatus.CLOSED, ComplaintStatus.REOPENED],
     [ComplaintStatus.CLOSED]: [ComplaintStatus.REOPENED],
     [ComplaintStatus.CANCELLED]: [ComplaintStatus.REOPENED],
-    [ComplaintStatus.REOPENED]: [ComplaintStatus.TRIAGED, ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.CANCELLED]
+    [ComplaintStatus.REOPENED]: [
+      ComplaintStatus.TRIAGED,
+      ComplaintStatus.ASSIGNED,
+      ComplaintStatus.IN_PROGRESS,
+      ComplaintStatus.CANCELLED
+    ]
   };
 
   /**
@@ -134,14 +155,16 @@ export class ServiceComplaintService {
     if (actor.isCustomer) {
       // Customer portal: enforce logged in customer owns the project
       if (project.customerId.toString() !== actor.customerId) {
-        throw AppError.permissionDenied("You cannot register complaints for another customer's project.");
+        throw AppError.permissionDenied(
+          "You cannot register complaints for another customer's project."
+        );
       }
       customerId = actor.customerId;
     } else {
       if (!customerId) {
         customerId = project.customerId.toString();
       } else if (project.customerId.toString() !== customerId) {
-        throw AppError.badRequest("Project customer does not match the provided customer ID.");
+        throw AppError.badRequest('Project customer does not match the provided customer ID.');
       }
     }
 
@@ -214,7 +237,9 @@ export class ServiceComplaintService {
       reportedDate: input.reportedDate || new Date(),
       preferredVisitTime: input.preferredVisitTime?.trim(),
       contactPreference: input.contactPreference || 'PHONE',
-      source: actor.isCustomer ? ComplaintSource.CUSTOMER_PORTAL : (input.source || ComplaintSource.INTERNAL_STAFF),
+      source: actor.isCustomer
+        ? ComplaintSource.CUSTOMER_PORTAL
+        : input.source || ComplaintSource.INTERNAL_STAFF,
       status: ComplaintStatus.OPEN,
       isWarrantyCovered,
       linkedAmcId,
@@ -317,7 +342,7 @@ export class ServiceComplaintService {
     // Sanitize for customer: strip internal notes
     const sanitized = items.map(c => {
       if (userContext.isCustomer) {
-        const { internalNotes, ...safe } = c as any;
+        const { internalNotes: _internalNotes, ...safe } = c as any;
         return safe;
       }
       return c;
@@ -329,10 +354,7 @@ export class ServiceComplaintService {
   /**
    * Retrieves single complaint by ID with customer ownership validation.
    */
-  public static async getComplaintById(
-    id: string,
-    userContext: UserContext
-  ): Promise<any> {
+  public static async getComplaintById(id: string, userContext: UserContext): Promise<any> {
     const complaint = await ServiceComplaint.findById(id)
       .populate('customerId', 'name primaryPhone email billingAddress')
       .populate('projectId', 'projectCode name currentStage systemCapacityKwp')
@@ -346,11 +368,14 @@ export class ServiceComplaintService {
     }
 
     if (userContext.isCustomer) {
-      const customerId = (complaint.customerId as any)?._id?.toString() || complaint.customerId?.toString();
+      const customerId =
+        (complaint.customerId as any)?._id?.toString() || complaint.customerId?.toString();
       if (customerId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's complaint.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's complaint."
+        );
       }
-      const { internalNotes, ...safe } = complaint as any;
+      const { internalNotes: _internalNotes, ...safe } = complaint as any;
       return safe;
     }
 
@@ -386,12 +411,18 @@ export class ServiceComplaintService {
       !options.resolutionSummary?.trim() &&
       !complaint.resolutionSummary
     ) {
-      throw AppError.badRequest('A comprehensive resolution summary is required to resolve or close a complaint.');
+      throw AppError.badRequest(
+        'A comprehensive resolution summary is required to resolve or close a complaint.'
+      );
     }
 
     const actorId = actor.userId || 'system';
     const actorUser = actor.userId ? await User.findById(actor.userId) : null;
-    const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : (actor.isCustomer ? 'Customer' : 'Staff');
+    const actorName = actorUser
+      ? `${actorUser.firstName} ${actorUser.lastName}`
+      : actor.isCustomer
+        ? 'Customer'
+        : 'Staff';
 
     complaint.status = targetStatus;
 
@@ -473,7 +504,9 @@ export class ServiceComplaintService {
       transitionedAt: new Date(),
       transitionedBy: new mongoose.Types.ObjectId(actorId),
       transitionedByName: actorName,
-      notes: notes?.trim() || `Assigned to technician ${tech.firstName} ${tech.lastName} (${tech.employeeCode})`
+      notes:
+        notes?.trim() ||
+        `Assigned to technician ${tech.firstName} ${tech.lastName} (${tech.employeeCode})`
     });
 
     await complaint.save();
@@ -514,7 +547,9 @@ export class ServiceComplaintService {
       complaint.status !== ComplaintStatus.CLOSED &&
       complaint.status !== ComplaintStatus.CANCELLED
     ) {
-      throw AppError.badRequest(`Cannot reopen complaint in '${complaint.status}' status. Reopening is only allowed for RESOLVED, CLOSED, or CANCELLED tickets.`);
+      throw AppError.badRequest(
+        `Cannot reopen complaint in '${complaint.status}' status. Reopening is only allowed for RESOLVED, CLOSED, or CANCELLED tickets.`
+      );
     }
 
     const actorId = actor.userId || actor.customerId || 'system';
@@ -569,13 +604,19 @@ export class ServiceComplaintService {
     if (actor.isCustomer) {
       const customerId = complaint.customerId.toString();
       if (customerId !== actor.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot add notes to another customer's complaint.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot add notes to another customer's complaint."
+        );
       }
       isInternal = false; // Customers can NEVER add internal notes
     }
 
     const actorUser = actor.userId ? await User.findById(actor.userId) : null;
-    const authorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : (actor.isCustomer ? 'Customer' : 'Staff');
+    const authorName = actorUser
+      ? `${actorUser.firstName} ${actorUser.lastName}`
+      : actor.isCustomer
+        ? 'Customer'
+        : 'Staff';
 
     const noteObj: IComplaintNote = {
       note: noteText.trim(),

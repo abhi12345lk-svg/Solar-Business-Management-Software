@@ -96,7 +96,11 @@ export const updateFeasibilityDemandNoteSchema = z.object({
   isFeasible: z.boolean().optional(),
   feasibilityReference: z.string().trim().max(100).optional(),
   feasibilityDate: z.coerce.date().optional(),
-  demandNoteAmountPaise: z.number().int().nonnegative('Demand note amount must be non-negative integer paise').optional(),
+  demandNoteAmountPaise: z
+    .number()
+    .int()
+    .nonnegative('Demand note amount must be non-negative integer paise')
+    .optional(),
   demandNotePaid: z.boolean().optional(),
   demandNotePaidDate: z.coerce.date().optional(),
   demandNoteReceiptNumber: z.string().trim().max(100).optional()
@@ -107,7 +111,11 @@ export const uploadApplicationDocumentSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   storageKey: z.string().trim().min(3).max(500),
   fileName: z.string().trim().min(1).max(255),
-  fileSize: z.number().int().positive().max(25 * 1024 * 1024, 'File size cannot exceed 25MB'),
+  fileSize: z
+    .number()
+    .int()
+    .positive()
+    .max(25 * 1024 * 1024, 'File size cannot exceed 25MB'),
   mimeType: z.string().trim().min(3).max(100),
   expiryDate: z.coerce.date().optional()
 });
@@ -130,7 +138,9 @@ export const netMeteringFilterSchema = z.object({
   search: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.enum(['createdAt', 'applicationNumber', 'submissionDate', 'status']).default('createdAt'),
+  sortBy: z
+    .enum(['createdAt', 'applicationNumber', 'submissionDate', 'status'])
+    .default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc')
 });
 

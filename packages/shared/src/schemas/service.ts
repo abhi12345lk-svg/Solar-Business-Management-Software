@@ -61,7 +61,12 @@ export const updateServiceComplaintSchema = z.object({
 export const complaintStatusTransitionSchema = z.object({
   status: z.nativeEnum(ComplaintStatus),
   notes: z.string().trim().max(2000).optional(),
-  resolutionSummary: z.string().trim().min(5, 'Resolution summary is required to resolve/close').max(3000).optional()
+  resolutionSummary: z
+    .string()
+    .trim()
+    .min(5, 'Resolution summary is required to resolve/close')
+    .max(3000)
+    .optional()
 });
 
 export const assignComplaintSchema = z.object({
@@ -158,7 +163,10 @@ export const createAmcSchema = z.object({
   capacityKwp: z.number().positive('Capacity in kWp must be positive'),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  contractAmountPaise: z.number().int().nonnegative('Contract amount must be a positive integer in paise'),
+  contractAmountPaise: z
+    .number()
+    .int()
+    .nonnegative('Contract amount must be a positive integer in paise'),
   billingCadence: z.nativeEnum(AmcBillingCadence).default(AmcBillingCadence.ANNUAL),
   visitCadence: z.nativeEnum(AmcVisitCadence).default(AmcVisitCadence.QUARTERLY),
   includedVisits: z.number().int().positive('Included visits must be at least 1').default(4),

@@ -9,12 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Banknote,
-  Printer,
-  RefreshCw,
-  AlertCircle
-} from 'lucide-react';
+import { Banknote, Printer, RefreshCw, AlertCircle } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 export const CustomerPaymentsPortalPage: React.FC = () => {
@@ -131,7 +126,9 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
             <div className="p-12 text-center text-muted-foreground">
               <Banknote className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
               <p className="font-semibold">No payments recorded</p>
-              <p className="text-xs mt-1">Payments made towards your solar installations will appear here.</p>
+              <p className="text-xs mt-1">
+                Payments made towards your solar installations will appear here.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -150,13 +147,19 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
                 <tbody className="divide-y">
                   {payments.map(p => (
                     <tr key={p._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-mono font-medium text-solar-600">{p.receiptNumber}</td>
-                      <td className="py-3 px-4">{new Date(p.paymentDate).toLocaleDateString('en-IN')}</td>
+                      <td className="py-3 px-4 font-mono font-medium text-solar-600">
+                        {p.receiptNumber}
+                      </td>
+                      <td className="py-3 px-4">
+                        {new Date(p.paymentDate).toLocaleDateString('en-IN')}
+                      </td>
                       <td className="py-3 px-4 font-mono text-xs">{p.paymentMethod}</td>
                       <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
                         {p.transactionReference || '—'}
                       </td>
-                      <td className="py-3 px-4 text-right font-medium">{formatINR(p.amountPaise)}</td>
+                      <td className="py-3 px-4 text-right font-medium">
+                        {formatINR(p.amountPaise)}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -189,20 +192,36 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Total Invoiced</span>
-              <p className="text-2xl font-bold mt-1">{formatINR(receivables.totalOrderValuePaise)}</p>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Total Invoiced
+              </span>
+              <p className="text-2xl font-bold mt-1">
+                {formatINR(receivables.totalOrderValuePaise)}
+              </p>
             </div>
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Total Realized</span>
-              <p className="text-2xl font-bold mt-1 text-emerald-600">{formatINR(receivables.totalAllocatedPaise)}</p>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Total Realized
+              </span>
+              <p className="text-2xl font-bold mt-1 text-emerald-600">
+                {formatINR(receivables.totalAllocatedPaise)}
+              </p>
             </div>
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Advance Credit</span>
-              <p className="text-2xl font-bold mt-1 text-amber-600">{formatINR(receivables.totalUnallocatedCreditPaise)}</p>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Advance Credit
+              </span>
+              <p className="text-2xl font-bold mt-1 text-amber-600">
+                {formatINR(receivables.totalUnallocatedCreditPaise)}
+              </p>
             </div>
             <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">Remaining Balance</span>
-              <p className="text-2xl font-bold mt-1 text-solar-600">{formatINR(receivables.totalOutstandingPaise)}</p>
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Remaining Balance
+              </span>
+              <p className="text-2xl font-bold mt-1 text-solar-600">
+                {formatINR(receivables.totalOutstandingPaise)}
+              </p>
             </div>
           </div>
 
@@ -228,19 +247,27 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
                   {receivables.orders?.map((ord: any) => (
                     <tr key={ord._id}>
                       <td className="py-3 px-4 font-mono font-medium">{ord.orderNumber}</td>
-                      <td className="py-3 px-4">{ord.orderDate ? new Date(ord.orderDate).toLocaleDateString('en-IN') : '—'}</td>
-                      <td className="py-3 px-4">{ord.systemCapacityKwp ? `${ord.systemCapacityKwp} kWp` : '—'}</td>
+                      <td className="py-3 px-4">
+                        {ord.orderDate ? new Date(ord.orderDate).toLocaleDateString('en-IN') : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {ord.systemCapacityKwp ? `${ord.systemCapacityKwp} kWp` : '—'}
+                      </td>
                       <td className="py-3 px-4 text-right">{formatINR(ord.netTotalPaise)}</td>
-                      <td className="py-3 px-4 text-right text-emerald-600">{formatINR(ord.allocatedAmountPaise)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-solar-600">{formatINR(ord.outstandingBalancePaise)}</td>
+                      <td className="py-3 px-4 text-right text-emerald-600">
+                        {formatINR(ord.allocatedAmountPaise)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-solar-600">
+                        {formatINR(ord.outstandingBalancePaise)}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <span
                           className={`px-2 py-0.5 rounded text-xs font-semibold ${
                             ord.paymentStatus === 'PAID'
                               ? 'bg-emerald-500/10 text-emerald-600'
                               : ord.paymentStatus === 'PARTIALLY_PAID'
-                              ? 'bg-amber-500/10 text-amber-600'
-                              : 'bg-muted text-muted-foreground'
+                                ? 'bg-amber-500/10 text-amber-600'
+                                : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {ord.paymentStatus}
@@ -282,7 +309,9 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
 
             {receiptData.allocations?.length > 0 && (
               <div className="mb-4">
-                <span className="text-xs font-bold uppercase text-muted-foreground block mb-2">Order Allocations</span>
+                <span className="text-xs font-bold uppercase text-muted-foreground block mb-2">
+                  Order Allocations
+                </span>
                 <div className="border rounded-lg overflow-hidden text-xs">
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b">
@@ -295,7 +324,9 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
                       {receiptData.allocations.map((a: any, idx: number) => (
                         <tr key={idx}>
                           <td className="py-2 px-3 font-mono">{a.orderNumber}</td>
-                          <td className="py-2 px-3 text-right font-medium">{formatINR(a.allocatedAmountPaise)}</td>
+                          <td className="py-2 px-3 text-right font-medium">
+                            {formatINR(a.allocatedAmountPaise)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

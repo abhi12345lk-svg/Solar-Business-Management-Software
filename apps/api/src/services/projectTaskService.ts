@@ -217,7 +217,8 @@ export class ProjectTaskService {
       // Verify specific entity types if supplied
       if (input.relatedEntityType === 'ServiceComplaint') {
         const complaint = await ServiceComplaint.findById(relatedEntityId);
-        if (!complaint) throw AppError.notFound(`Service complaint '${input.relatedEntityId}' not found.`);
+        if (!complaint)
+          throw AppError.notFound(`Service complaint '${input.relatedEntityId}' not found.`);
         if (!customerId) customerId = complaint.customerId;
       } else if (input.relatedEntityType === 'ServiceVisit') {
         const visit = await ServiceVisit.findById(relatedEntityId);
@@ -292,7 +293,9 @@ export class ProjectTaskService {
           linkUrl: `/tasks?selected=${task.taskCode}`
         },
         { userId: user.userId }
-      ).catch(err => logger.warn({ err }, '[ProjectTaskService] Failed to emit task assignment notification.'));
+      ).catch(err =>
+        logger.warn({ err }, '[ProjectTaskService] Failed to emit task assignment notification.')
+      );
     }
 
     return task;
@@ -328,8 +331,12 @@ export class ProjectTaskService {
     if (filter.status) query.status = filter.status;
     if (filter.priority) query.priority = filter.priority;
     if ((filter as any).category) query.category = (filter as any).category;
-    if ((filter as any).relatedEntityType) query.relatedEntityType = (filter as any).relatedEntityType;
-    if ((filter as any).relatedEntityId && Types.ObjectId.isValid((filter as any).relatedEntityId)) {
+    if ((filter as any).relatedEntityType)
+      query.relatedEntityType = (filter as any).relatedEntityType;
+    if (
+      (filter as any).relatedEntityId &&
+      Types.ObjectId.isValid((filter as any).relatedEntityId)
+    ) {
       query.relatedEntityId = new Types.ObjectId((filter as any).relatedEntityId);
     }
 
@@ -421,7 +428,9 @@ export class ProjectTaskService {
 
     const newAssignee = await User.findById(input.assignedUserId);
     if (!newAssignee || !newAssignee.isActive) {
-      throw AppError.validation(`Replacement assignee '${input.assignedUserId}' not found or inactive.`);
+      throw AppError.validation(
+        `Replacement assignee '${input.assignedUserId}' not found or inactive.`
+      );
     }
 
     const previousAssigneeId = task.assignedUserId;
@@ -471,7 +480,9 @@ export class ProjectTaskService {
           linkUrl: `/tasks?selected=${task.taskCode}`
         },
         { userId: user.userId }
-      ).catch(err => logger.warn({ err }, '[ProjectTaskService] Failed to emit reassignment notification.'));
+      ).catch(err =>
+        logger.warn({ err }, '[ProjectTaskService] Failed to emit reassignment notification.')
+      );
     }
 
     return task;
@@ -579,7 +590,9 @@ export class ProjectTaskService {
       if (input.assignedUserId && input.assignedUserId.trim()) {
         const u = await User.findById(input.assignedUserId);
         if (!u || !u.isActive) {
-          throw AppError.validation(`Assigned user '${input.assignedUserId}' not found or inactive.`);
+          throw AppError.validation(
+            `Assigned user '${input.assignedUserId}' not found or inactive.`
+          );
         }
         if (task.assignedUserId?.toString() !== u._id.toString()) {
           task.reassignmentHistory.push({
@@ -599,8 +612,10 @@ export class ProjectTaskService {
     if (input.priority) task.priority = input.priority;
     if (input.dueDate !== undefined) task.dueDate = input.dueDate || undefined;
     if ((input as any).followUpDate !== undefined) task.followUpDate = (input as any).followUpDate;
-    if ((input as any).blockerReason !== undefined) task.blockerReason = (input as any).blockerReason;
-    if ((input as any).completionNotes !== undefined) task.completionNotes = (input as any).completionNotes;
+    if ((input as any).blockerReason !== undefined)
+      task.blockerReason = (input as any).blockerReason;
+    if ((input as any).completionNotes !== undefined)
+      task.completionNotes = (input as any).completionNotes;
 
     if (input.status) {
       const oldStatus = task.status;

@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  PackageCheck,
-  Search,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import { PackageCheck, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface GoodsReceiptItem {
@@ -97,7 +92,8 @@ export function GoodsReceiptsPage() {
             Goods Receipt Notes (GRN)
           </h1>
           <p className="text-muted-foreground text-sm">
-            Audited warehouse intake records, QA inspection reports, and serial-tracked inventory movements.
+            Audited warehouse intake records, QA inspection reports, and serial-tracked inventory
+            movements.
           </p>
         </div>
       </div>
@@ -155,8 +151,14 @@ export function GoodsReceiptsPage() {
               ) : (
                 filteredGRNs.map(grn => {
                   const isExpanded = expandedRow === grn._id;
-                  const totalAccepted = grn.lineItems.reduce((acc, l) => acc + l.acceptedQuantity, 0);
-                  const totalRejected = grn.lineItems.reduce((acc, l) => acc + l.rejectedQuantity, 0);
+                  const totalAccepted = grn.lineItems.reduce(
+                    (acc, l) => acc + l.acceptedQuantity,
+                    0
+                  );
+                  const totalRejected = grn.lineItems.reduce(
+                    (acc, l) => acc + l.rejectedQuantity,
+                    0
+                  );
 
                   return (
                     <React.Fragment key={grn._id}>
@@ -177,7 +179,9 @@ export function GoodsReceiptsPage() {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="font-medium text-foreground">{grn.vendorId?.name || '—'}</div>
+                          <div className="font-medium text-foreground">
+                            {grn.vendorId?.name || '—'}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-xs text-foreground">
                           {grn.destinationWarehouseId?.name || '—'}
@@ -203,7 +207,11 @@ export function GoodsReceiptsPage() {
                             onClick={() => toggleRow(grn._id)}
                             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-medium p-1 rounded"
                           >
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -224,8 +232,12 @@ export function GoodsReceiptsPage() {
                                     <tr>
                                       <th className="py-2 px-3">Item SKU / Name</th>
                                       <th className="py-2 px-3 text-center">Delivered</th>
-                                      <th className="py-2 px-3 text-center text-emerald-600">Accepted (Stock In)</th>
-                                      <th className="py-2 px-3 text-center text-red-500">Rejected</th>
+                                      <th className="py-2 px-3 text-center text-emerald-600">
+                                        Accepted (Stock In)
+                                      </th>
+                                      <th className="py-2 px-3 text-center text-red-500">
+                                        Rejected
+                                      </th>
                                       <th className="py-2 px-3">Rejection Remarks</th>
                                       <th className="py-2 px-3 font-mono">Serial Numbers</th>
                                     </tr>
@@ -236,7 +248,9 @@ export function GoodsReceiptsPage() {
                                         <td className="py-2 px-3 font-medium text-foreground">
                                           {line.sku} — {line.productName}
                                         </td>
-                                        <td className="py-2 px-3 text-center">{line.deliveredQuantity}</td>
+                                        <td className="py-2 px-3 text-center">
+                                          {line.deliveredQuantity}
+                                        </td>
                                         <td className="py-2 px-3 text-center text-emerald-600 font-semibold">
                                           +{line.acceptedQuantity}
                                         </td>

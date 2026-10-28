@@ -343,7 +343,7 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
           dispatchedAt: new Date('2026-10-20'),
           lineItems: [
             { productId: productId1, issuedQuantity: 30 }, // 30 panels
-            { productId: productId2, issuedQuantity: 1 }   // 1 inverter
+            { productId: productId2, issuedQuantity: 1 } // 1 inverter
           ]
         }
       ])
@@ -427,16 +427,20 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
 
     // Mock PaymentAllocations: ₹300,000 collected against order
     vi.spyOn(PaymentAllocation, 'find').mockReturnValue({
-      lean: vi.fn().mockResolvedValue([
-        { allocatedAmountPaise: 30000000, status: PaymentAllocationStatus.ACTIVE }
-      ])
+      lean: vi
+        .fn()
+        .mockResolvedValue([
+          { allocatedAmountPaise: 30000000, status: PaymentAllocationStatus.ACTIVE }
+        ])
     } as any);
 
     // Mock CustomerPayment: ₹20,000 unallocated customer advance credit
     vi.spyOn(CustomerPayment, 'find').mockReturnValue({
-      lean: vi.fn().mockResolvedValue([
-        { unallocatedAmountPaise: 2000000, status: CustomerPaymentStatus.VERIFIED }
-      ])
+      lean: vi
+        .fn()
+        .mockResolvedValue([
+          { unallocatedAmountPaise: 2000000, status: CustomerPaymentStatus.VERIFIED }
+        ])
     } as any);
 
     // Mock Cost Ledger
@@ -484,7 +488,9 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
     // Budget Comparison Check
     expect(report.budgetComparison.hasApprovedBudget).toBe(true);
     expect(report.budgetComparison.materials.variancePaise).toBe(1000000); // 46M actual - 45M planned = +1M
-    expect(report.disclaimer).toMatch(/operational cost allocations and project progress estimates/i);
+    expect(report.disclaimer).toMatch(
+      /operational cost allocations and project progress estimates/i
+    );
     expect(report.disclaimer).toMatch(/do not constitute audited statutory financial statements/i);
   });
 
@@ -492,8 +498,10 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
   // 6. Project Budget Management & Versioning
   // --------------------------------------------------------------------------
   it('creates project budget revisions and atomically supersedes previous versions upon approval', async () => {
-    vi.spyOn(Project, 'findById').mockResolvedValue({ _id: new Types.ObjectId(sampleProjectId) } as any);
-    
+    vi.spyOn(Project, 'findById').mockResolvedValue({
+      _id: new Types.ObjectId(sampleProjectId)
+    } as any);
+
     // Existing budget v1 is APPROVED
     vi.spyOn(ProjectBudget, 'findOne').mockReturnValue(
       makePopulateQuery({
@@ -581,8 +589,12 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
         totalCostPaise: 0
       }
     });
-    vi.spyOn(CustomerPayment, 'find').mockReturnValue({ lean: vi.fn().mockResolvedValue([]) } as any);
-    vi.spyOn(ProjectBudget, 'findOne').mockReturnValue({ lean: vi.fn().mockResolvedValue(null) } as any);
+    vi.spyOn(CustomerPayment, 'find').mockReturnValue({
+      lean: vi.fn().mockResolvedValue([])
+    } as any);
+    vi.spyOn(ProjectBudget, 'findOne').mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null)
+    } as any);
 
     const report = await ProjectProfitabilityService.getProjectProfitability(sampleProjectId);
 

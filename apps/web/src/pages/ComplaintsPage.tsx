@@ -110,7 +110,8 @@ export const ComplaintsPage: React.FC = () => {
       if (severityFilter) query += `&severity=${encodeURIComponent(severityFilter)}`;
 
       const res = await apiClient<any>(query);
-      const items = res?.items || res?.complaints || res?.data?.items || res?.data?.complaints || [];
+      const items =
+        res?.items || res?.complaints || res?.data?.items || res?.data?.complaints || [];
       const totalCount = res?.total ?? res?.data?.total ?? items.length;
       setComplaints(items);
       setTotal(totalCount);
@@ -239,7 +240,9 @@ export const ComplaintsPage: React.FC = () => {
               <LifeBuoy className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Service Complaints</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Service Complaints
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Customer break-fix requests, inverter alerts, and technician dispatch lifecycle
               </p>
@@ -290,7 +293,10 @@ export const ComplaintsPage: React.FC = () => {
             <Clock className="w-4 h-4 text-sky-500" />
           </div>
           <div className="text-2xl font-bold mt-2 text-sky-500">
-            {complaints.filter(c => c.status === 'IN_PROGRESS' || c.status === 'VISIT_SCHEDULED').length}
+            {
+              complaints.filter(c => c.status === 'IN_PROGRESS' || c.status === 'VISIT_SCHEDULED')
+                .length
+            }
           </div>
           <div className="text-xs text-muted-foreground mt-1">Technicians dispatched on-site</div>
         </div>
@@ -418,20 +424,26 @@ export const ComplaintsPage: React.FC = () => {
                       {item.complaintNumber}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-medium text-foreground">{item.customerId?.name || 'Unknown'}</div>
+                      <div className="font-medium text-foreground">
+                        {item.customerId?.name || 'Unknown'}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {item.projectId?.projectCode || 'N/A'} • {item.projectId?.name || ''}
                       </div>
                     </td>
                     <td className="px-4 py-3 max-w-xs truncate" title={item.description}>
                       <div className="font-medium text-foreground truncate">{item.title}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {item.description}
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                       {item.category?.replace(/_/g, ' ')}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded text-xs ${getSeverityBadge(item.severity)}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs ${getSeverityBadge(item.severity)}`}
+                      >
                         {item.severity}
                       </span>
                     </td>
@@ -441,7 +453,9 @@ export const ComplaintsPage: React.FC = () => {
                         : 'Unassigned'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 rounded-full text-xs border font-medium ${getStatusBadge(item.status)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs border font-medium ${getStatusBadge(item.status)}`}
+                      >
                         {item.status?.replace(/_/g, ' ')}
                       </span>
                     </td>
@@ -586,7 +600,9 @@ export const ComplaintsPage: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Category
+                  </label>
                   <select
                     value={createForm.category}
                     onChange={e => setCreateForm({ ...createForm, category: e.target.value })}
@@ -603,7 +619,9 @@ export const ComplaintsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Severity</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Severity
+                  </label>
                   <select
                     value={createForm.severity}
                     onChange={e => setCreateForm({ ...createForm, severity: e.target.value })}
@@ -617,7 +635,9 @@ export const ComplaintsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Priority
+                  </label>
                   <select
                     value={createForm.priority}
                     onChange={e => setCreateForm({ ...createForm, priority: e.target.value })}
@@ -639,7 +659,9 @@ export const ComplaintsPage: React.FC = () => {
                   <input
                     type="text"
                     value={createForm.preferredVisitTime}
-                    onChange={e => setCreateForm({ ...createForm, preferredVisitTime: e.target.value })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, preferredVisitTime: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -649,7 +671,9 @@ export const ComplaintsPage: React.FC = () => {
                   </label>
                   <select
                     value={createForm.contactPreference}
-                    onChange={e => setCreateForm({ ...createForm, contactPreference: e.target.value })}
+                    onChange={e =>
+                      setCreateForm({ ...createForm, contactPreference: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   >
                     <option value="PHONE">Phone Call</option>
@@ -698,12 +722,16 @@ export const ComplaintsPage: React.FC = () => {
 
             <form onSubmit={handleUpdateStatus} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Current Status</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Current Status
+                </label>
                 <div className="text-sm font-semibold">{selectedComplaint.status}</div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Target Status *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Target Status *
+                </label>
                 <select
                   value={statusForm.targetStatus}
                   onChange={e => setStatusForm({ ...statusForm, targetStatus: e.target.value })}
@@ -714,7 +742,9 @@ export const ComplaintsPage: React.FC = () => {
                   <option value="VISIT_SCHEDULED">VISIT_SCHEDULED (Field Slot Booked)</option>
                   <option value="IN_PROGRESS">IN_PROGRESS (Technician On-Site)</option>
                   <option value="AWAITING_PARTS">AWAITING_PARTS (Procuring Spares)</option>
-                  <option value="AWAITING_CUSTOMER">AWAITING_CUSTOMER (Customer Confirmation)</option>
+                  <option value="AWAITING_CUSTOMER">
+                    AWAITING_CUSTOMER (Customer Confirmation)
+                  </option>
                   <option value="RESOLVED">RESOLVED (Technical Issue Fixed)</option>
                   <option value="CLOSED">CLOSED (Customer Verified & Ticket Archived)</option>
                   <option value="CANCELLED">CANCELLED (Duplicate or Invalid)</option>
@@ -731,14 +761,18 @@ export const ComplaintsPage: React.FC = () => {
                     rows={3}
                     placeholder="Document root cause and rectification performed (e.g. replaced DC isolator, tightened torque)..."
                     value={statusForm.resolutionSummary}
-                    onChange={e => setStatusForm({ ...statusForm, resolutionSummary: e.target.value })}
+                    onChange={e =>
+                      setStatusForm({ ...statusForm, resolutionSummary: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Status Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Status Notes
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Internal transition log notes..."
@@ -788,7 +822,8 @@ export const ComplaintsPage: React.FC = () => {
 
             <form onSubmit={handleReopen} className="space-y-4 text-sm">
               <p className="text-xs text-muted-foreground">
-                Document why this ticket is being reopened after resolution. This action will be audited.
+                Document why this ticket is being reopened after resolution. This action will be
+                audited.
               </p>
 
               <div>

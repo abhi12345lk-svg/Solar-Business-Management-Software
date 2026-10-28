@@ -14,14 +14,13 @@ export const notificationFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   category: z.nativeEnum(NotificationCategory).optional(),
-  isRead: z
-    .preprocess(val => {
-      if (typeof val === 'string') {
-        if (val.toLowerCase() === 'true') return true;
-        if (val.toLowerCase() === 'false') return false;
-      }
-      return val;
-    }, z.boolean().optional()),
+  isRead: z.preprocess(val => {
+    if (typeof val === 'string') {
+      if (val.toLowerCase() === 'true') return true;
+      if (val.toLowerCase() === 'false') return false;
+    }
+    return val;
+  }, z.boolean().optional()),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional()
 });
@@ -33,8 +32,14 @@ export const createNotificationSchema = z.object({
   recipientType: z.nativeEnum(NotificationRecipientType),
   category: z.nativeEnum(NotificationCategory),
   eventType: z.string().min(1, 'Event type is required'),
-  title: z.string().min(3, 'Title must be at least 3 characters').max(150, 'Title cannot exceed 150 characters'),
-  message: z.string().min(5, 'Message must be at least 5 characters').max(1000, 'Message cannot exceed 1000 characters'),
+  title: z
+    .string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(150, 'Title cannot exceed 150 characters'),
+  message: z
+    .string()
+    .min(5, 'Message must be at least 5 characters')
+    .max(1000, 'Message cannot exceed 1000 characters'),
   entityType: z.string().optional(),
   entityId: z.string().optional(),
   linkUrl: z.string().optional(),
@@ -66,4 +71,6 @@ export const updateNotificationPreferencesSchema = z.object({
     .optional()
 });
 
-export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
+export type UpdateNotificationPreferencesInput = z.infer<
+  typeof updateNotificationPreferencesSchema
+>;

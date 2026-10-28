@@ -272,7 +272,9 @@ describe('Phase 8B Frontend: Expense Management, Project Costing & Profitability
     expect(screen.getByText('EXP-2026-00001')).toBeInTheDocument();
 
     // Legal Disclaimer
-    expect(screen.getByText(/do not constitute audited statutory financial statements/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/do not constitute audited statutory financial statements/i)
+    ).toBeInTheDocument();
   });
 
   // --------------------------------------------------------------------------

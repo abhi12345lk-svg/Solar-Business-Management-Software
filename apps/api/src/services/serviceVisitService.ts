@@ -106,13 +106,13 @@ export class ServiceVisitService {
     // 2. Resolve Customer
     const customerId = input.customerId || project.customerId.toString();
     if (project.customerId.toString() !== customerId) {
-      throw AppError.badRequest("Project customer does not match provided customer ID.");
+      throw AppError.badRequest('Project customer does not match provided customer ID.');
     }
 
     // 3. Verify Technician
     const tech = await User.findById(input.assignedTechnicianId);
     if (!tech || !tech.isActive) {
-      throw AppError.badRequest("Assigned service technician does not exist or is inactive.");
+      throw AppError.badRequest('Assigned service technician does not exist or is inactive.');
     }
 
     // 4. Validate Complaint reference if present
@@ -123,7 +123,7 @@ export class ServiceVisitService {
         throw AppError.notFound(`Linked Service Complaint ${input.complaintId} not found.`);
       }
       if (complaintDoc.projectId.toString() !== project._id.toString()) {
-        throw AppError.badRequest("Linked complaint does not belong to the specified project.");
+        throw AppError.badRequest('Linked complaint does not belong to the specified project.');
       }
     }
 
@@ -135,10 +135,12 @@ export class ServiceVisitService {
         throw AppError.notFound(`Linked AMC Contract ${input.amcId} not found.`);
       }
       if (amcDoc.projectId.toString() !== project._id.toString()) {
-        throw AppError.badRequest("Linked AMC contract does not belong to the specified project.");
+        throw AppError.badRequest('Linked AMC contract does not belong to the specified project.');
       }
       if (amcDoc.status !== AmcStatus.ACTIVE) {
-        throw AppError.badRequest(`Linked AMC contract is in '${amcDoc.status}' status (must be ACTIVE).`);
+        throw AppError.badRequest(
+          `Linked AMC contract is in '${amcDoc.status}' status (must be ACTIVE).`
+        );
       }
     }
 
@@ -152,15 +154,31 @@ export class ServiceVisitService {
     const actorUser = actor.userId ? await User.findById(actor.userId) : null;
     const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'Staff';
 
-    const defaultChecklist: IVisitChecklistItem[] = input.checklist && input.checklist.length > 0
-      ? input.checklist
-      : [
-          { item: 'Inspect solar PV modules for soiling, hotspots & frame damage', status: 'NOT_APPLICABLE' },
-          { item: 'Inspect inverter DC/AC connections, heatsink & error logs', status: 'NOT_APPLICABLE' },
-          { item: 'Check ACDB / DCDB surge protectors and isolator switches', status: 'NOT_APPLICABLE' },
-          { item: 'Verify earthing pit resistance and lightning arrester', status: 'NOT_APPLICABLE' },
-          { item: 'Record instantaneous kW generation and cumulative kWh meter reading', status: 'NOT_APPLICABLE' }
-        ];
+    const defaultChecklist: IVisitChecklistItem[] =
+      input.checklist && input.checklist.length > 0
+        ? input.checklist
+        : [
+            {
+              item: 'Inspect solar PV modules for soiling, hotspots & frame damage',
+              status: 'NOT_APPLICABLE'
+            },
+            {
+              item: 'Inspect inverter DC/AC connections, heatsink & error logs',
+              status: 'NOT_APPLICABLE'
+            },
+            {
+              item: 'Check ACDB / DCDB surge protectors and isolator switches',
+              status: 'NOT_APPLICABLE'
+            },
+            {
+              item: 'Verify earthing pit resistance and lightning arrester',
+              status: 'NOT_APPLICABLE'
+            },
+            {
+              item: 'Record instantaneous kW generation and cumulative kWh meter reading',
+              status: 'NOT_APPLICABLE'
+            }
+          ];
 
     const visit = new ServiceVisit({
       visitNumber: seq.formattedNumber,
@@ -179,7 +197,9 @@ export class ServiceVisitService {
       technicianNotes: input.technicianNotes?.trim(),
       evidencePhotos: [],
       revisitRequired: Boolean(input.revisitRequired),
-      parentVisitId: input.parentVisitId ? new mongoose.Types.ObjectId(input.parentVisitId) : undefined,
+      parentVisitId: input.parentVisitId
+        ? new mongoose.Types.ObjectId(input.parentVisitId)
+        : undefined,
       isAmcIncluded: Boolean(input.amcId),
       isChargeable: false,
       statusHistory: [
@@ -329,7 +349,7 @@ export class ServiceVisitService {
     // Strip internal technician notes for customer portal
     const sanitized = items.map(v => {
       if (userContext.isCustomer) {
-        const { technicianNotes, ...safe } = v as any;
+        const { technicianNotes: _technicianNotes, ...safe } = v as any;
         return safe;
       }
       return v;
@@ -359,9 +379,11 @@ export class ServiceVisitService {
     if (userContext.isCustomer) {
       const custId = (visit.customerId as any)?._id?.toString() || visit.customerId?.toString();
       if (custId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's service visit.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's service visit."
+        );
       }
-      const { technicianNotes, ...safe } = visit as any;
+      const { technicianNotes: _technicianNotes, ...safe } = visit as any;
       return safe;
     }
 
@@ -383,7 +405,10 @@ export class ServiceVisitService {
       throw AppError.notFound(`Service visit ${id} not found.`);
     }
 
-    if (visit.status === ServiceVisitStatus.COMPLETED || visit.status === ServiceVisitStatus.CANCELLED) {
+    if (
+      visit.status === ServiceVisitStatus.COMPLETED ||
+      visit.status === ServiceVisitStatus.CANCELLED
+    ) {
       throw AppError.badRequest(`Cannot reschedule visit in '${visit.status}' status.`);
     }
 
@@ -439,7 +464,7 @@ export class ServiceVisitService {
     }
 
     if (visit.status === ServiceVisitStatus.COMPLETED) {
-      throw AppError.badRequest("Cannot cancel a completed service visit.");
+      throw AppError.badRequest('Cannot cancel a completed service visit.');
     }
 
     const actorId = actor.userId || 'system';

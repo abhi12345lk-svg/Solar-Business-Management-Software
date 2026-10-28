@@ -107,15 +107,21 @@ export const NetMeteringPage: React.FC = () => {
       CANCELLED: 'bg-gray-100 text-gray-700 border-gray-300'
     };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[status] || styles.DRAFT}`}>
+      <span
+        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[status] || styles.DRAFT}`}
+      >
         {status.replace(/_/g, ' ')}
       </span>
     );
   };
 
   // Metrics summary
-  const pendingDocsCount = applications.filter(a => a.status === 'DOCUMENTS_PENDING' || a.status === 'DRAFT').length;
-  const inspectionScheduledCount = applications.filter(a => a.status === 'INSPECTION_SCHEDULED').length;
+  const pendingDocsCount = applications.filter(
+    a => a.status === 'DOCUMENTS_PENDING' || a.status === 'DRAFT'
+  ).length;
+  const inspectionScheduledCount = applications.filter(
+    a => a.status === 'INSPECTION_SCHEDULED'
+  ).length;
   const meterInstalledCount = applications.filter(a => a.meterInstallation?.meterInstalled).length;
 
   return (
@@ -127,7 +133,9 @@ export const NetMeteringPage: React.FC = () => {
             <span className="p-2 rounded-lg bg-solar-500/10 text-solar-600 border border-solar-500/20">
               <Zap className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground">Net Metering Applications</h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+              Net Metering Applications
+            </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             DISCOM synchronization pipeline, site inspections, and bi-directional meter records
@@ -160,7 +168,9 @@ export const NetMeteringPage: React.FC = () => {
             <span className="text-xs font-semibold">Inspections Scheduled</span>
             <Calendar className="w-4 h-4 text-cyan-600" />
           </div>
-          <p className="text-2xl font-black text-cyan-700 tracking-tight">{inspectionScheduledCount}</p>
+          <p className="text-2xl font-black text-cyan-700 tracking-tight">
+            {inspectionScheduledCount}
+          </p>
           <span className="text-[11px] text-muted-foreground">Field inspection due</span>
         </div>
 
@@ -169,7 +179,9 @@ export const NetMeteringPage: React.FC = () => {
             <span className="text-xs font-semibold">Meters Installed</span>
             <Gauge className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-black text-emerald-700 tracking-tight">{meterInstalledCount}</p>
+          <p className="text-2xl font-black text-emerald-700 tracking-tight">
+            {meterInstalledCount}
+          </p>
           <span className="text-[11px] text-muted-foreground">Synchronized to grid</span>
         </div>
       </div>
@@ -243,7 +255,9 @@ export const NetMeteringPage: React.FC = () => {
           <div className="p-12 text-center space-y-2">
             <Zap className="w-8 h-8 text-muted-foreground/40 mx-auto" />
             <p className="text-sm font-semibold text-foreground">No applications found</p>
-            <p className="text-xs text-muted-foreground">Try adjusting your search criteria or status filter.</p>
+            <p className="text-xs text-muted-foreground">
+              Try adjusting your search criteria or status filter.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -285,7 +299,9 @@ export const NetMeteringPage: React.FC = () => {
                       {app.consumerNumber}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-semibold text-foreground">{app.proposedCapacityKw || 0} kW</span>
+                      <span className="font-semibold text-foreground">
+                        {app.proposedCapacityKw || 0} kW
+                      </span>
                       <span className="text-muted-foreground text-[11px] block">
                         Sanction: {app.sanctionedLoadKw || 0} kW
                       </span>
@@ -294,10 +310,16 @@ export const NetMeteringPage: React.FC = () => {
                     <td className="py-3 px-4">
                       {app.inspectionSchedule?.scheduledDate ? (
                         <div className="text-[11px]">
-                          <span>{new Date(app.inspectionSchedule.scheduledDate).toLocaleDateString()}</span>
-                          <span className={`block font-semibold ${
-                            app.inspectionSchedule.outcome === 'PASSED' ? 'text-emerald-600' : 'text-amber-600'
-                          }`}>
+                          <span>
+                            {new Date(app.inspectionSchedule.scheduledDate).toLocaleDateString()}
+                          </span>
+                          <span
+                            className={`block font-semibold ${
+                              app.inspectionSchedule.outcome === 'PASSED'
+                                ? 'text-emerald-600'
+                                : 'text-amber-600'
+                            }`}
+                          >
                             {app.inspectionSchedule.outcome || 'Pending'}
                           </span>
                         </div>
@@ -337,7 +359,8 @@ export const NetMeteringPage: React.FC = () => {
         {total > limit && (
           <div className="p-4 border-t flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} applications
+              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}{' '}
+              applications
             </span>
             <div className="flex items-center space-x-1">
               <button

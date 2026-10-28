@@ -84,7 +84,10 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
     });
 
     it('rejects duplicate active vendor name and duplicate GSTIN', async () => {
-      vi.spyOn(Vendor, 'findOne').mockResolvedValueOnce({ _id: new Types.ObjectId(), name: 'Adani Solar' } as any);
+      vi.spyOn(Vendor, 'findOne').mockResolvedValueOnce({
+        _id: new Types.ObjectId(),
+        name: 'Adani Solar'
+      } as any);
 
       await expect(
         VendorService.createVendor({ name: 'Adani Solar' }, mockPurchaserUser, mockContext)
@@ -119,7 +122,11 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
         })
       } as any);
 
-      const deactivated = await VendorService.deactivateVendor('507f1f77bcf86cd799439044', mockAdminUser, mockContext);
+      const deactivated = await VendorService.deactivateVendor(
+        '507f1f77bcf86cd799439044',
+        mockAdminUser,
+        mockContext
+      );
       expect(deactivated.isActive).toBe(false);
 
       // Test delete blockage when PO exists
@@ -136,8 +143,16 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       const warehouseId = new Types.ObjectId('507f1f77bcf86cd799439055');
       const productId = new Types.ObjectId('507f1f77bcf86cd799439066');
 
-      vi.spyOn(Vendor, 'findById').mockResolvedValue({ _id: vendorId, isActive: true, vendorCode: 'VEN-2026-00001', save: vi.fn() } as any);
-      vi.spyOn(Warehouse, 'findById').mockResolvedValue({ _id: warehouseId, isActive: true } as any);
+      vi.spyOn(Vendor, 'findById').mockResolvedValue({
+        _id: vendorId,
+        isActive: true,
+        vendorCode: 'VEN-2026-00001',
+        save: vi.fn()
+      } as any);
+      vi.spyOn(Warehouse, 'findById').mockResolvedValue({
+        _id: warehouseId,
+        isActive: true
+      } as any);
       vi.spyOn(Product, 'findById').mockResolvedValue({
         _id: productId,
         isActive: true,
@@ -145,7 +160,9 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
         name: '550Wp Mono TopCon Panel',
         uom: UnitOfMeasurement.NOS
       } as any);
-      vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({ poApprovalThresholdPaise: 2500000 } as any);
+      vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({
+        poApprovalThresholdPaise: 2500000
+      } as any);
 
       vi.spyOn(PurchaseOrder.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();
@@ -189,7 +206,13 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
           {
             vendorId: '507f1f77bcf86cd799439044',
             destinationWarehouseId: '507f1f77bcf86cd799439055',
-            lineItems: [{ productId: '507f1f77bcf86cd799439066', orderedQuantity: 5, unitPurchaseRatePaise: 1000 }]
+            lineItems: [
+              {
+                productId: '507f1f77bcf86cd799439066',
+                orderedQuantity: 5,
+                unitPurchaseRatePaise: 1000
+              }
+            ]
           },
           mockPurchaserUser,
           mockContext
@@ -210,9 +233,15 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
         save: vi.fn().mockResolvedValue(true)
       };
       vi.spyOn(PurchaseOrderService, 'getPurchaseOrderById').mockResolvedValue(smallPO);
-      vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({ poApprovalThresholdPaise: 2500000 } as any);
+      vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({
+        poApprovalThresholdPaise: 2500000
+      } as any);
 
-      const submittedSmall = await PurchaseOrderService.submitForApproval('dummy', mockPurchaserUser, mockContext);
+      const submittedSmall = await PurchaseOrderService.submitForApproval(
+        'dummy',
+        mockPurchaserUser,
+        mockContext
+      );
       expect(submittedSmall.status).toBe(PurchaseOrderStatus.APPROVED);
       expect(submittedSmall.approval.requiresApproval).toBe(false);
 
@@ -227,7 +256,11 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       };
       vi.spyOn(PurchaseOrderService, 'getPurchaseOrderById').mockResolvedValue(largePO);
 
-      const submittedLarge = await PurchaseOrderService.submitForApproval('dummy', mockPurchaserUser, mockContext);
+      const submittedLarge = await PurchaseOrderService.submitForApproval(
+        'dummy',
+        mockPurchaserUser,
+        mockContext
+      );
       expect(submittedLarge.status).toBe(PurchaseOrderStatus.PENDING_APPROVAL);
       expect(submittedLarge.approval.requiresApproval).toBe(true);
     });
@@ -273,7 +306,12 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       vi.spyOn(PurchaseOrderService, 'getPurchaseOrderById').mockResolvedValue(pendingPO);
 
       // Approved by mockApproverUser (Accounts Officer)
-      const approved = await PurchaseOrderService.approvePurchaseOrder('dummy', { reason: 'Commercial terms verified' }, mockApproverUser, mockContext);
+      const approved = await PurchaseOrderService.approvePurchaseOrder(
+        'dummy',
+        { reason: 'Commercial terms verified' },
+        mockApproverUser,
+        mockContext
+      );
       expect(approved.status).toBe(PurchaseOrderStatus.APPROVED);
       expect(approved.approval.approvedBy).toEqual(new Types.ObjectId(mockApproverUser.userId));
       expect(approved.totalAmountPaise).toBe(236000); // 200,000 base + 18% IGST (36,000)
@@ -289,7 +327,12 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       };
       vi.spyOn(PurchaseOrderService, 'getPurchaseOrderById').mockResolvedValue(pendingPO);
 
-      const rejected = await PurchaseOrderService.rejectPurchaseOrder('dummy', { reason: 'Price exceeds budget allocation' }, mockApproverUser, mockContext);
+      const rejected = await PurchaseOrderService.rejectPurchaseOrder(
+        'dummy',
+        { reason: 'Price exceeds budget allocation' },
+        mockApproverUser,
+        mockContext
+      );
       expect(rejected.status).toBe(PurchaseOrderStatus.REJECTED);
       expect(rejected.approval.rejectionReason).toBe('Price exceeds budget allocation');
     });
@@ -305,7 +348,12 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       };
       vi.spyOn(PurchaseOrderService, 'getPurchaseOrderById').mockResolvedValue(zeroReceiptPO);
 
-      const cancelled = await PurchaseOrderService.cancelPurchaseOrder('dummy', 'Supplier discontinued SKU', mockAdminUser, mockContext);
+      const cancelled = await PurchaseOrderService.cancelPurchaseOrder(
+        'dummy',
+        'Supplier discontinued SKU',
+        mockAdminUser,
+        mockContext
+      );
       expect(cancelled.status).toBe(PurchaseOrderStatus.CANCELLED);
 
       // Post-receipt cancellation: Blocked
@@ -352,11 +400,21 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       };
 
       vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue(mockPO);
-      vi.spyOn(Warehouse, 'findById').mockResolvedValue({ _id: warehouseId, isActive: true, code: 'WH-CENTRAL' } as any);
-      vi.spyOn(Product, 'findById').mockResolvedValue({ _id: productId, isActive: true, sku: 'INV-10KW-3P' } as any);
+      vi.spyOn(Warehouse, 'findById').mockResolvedValue({
+        _id: warehouseId,
+        isActive: true,
+        code: 'WH-CENTRAL'
+      } as any);
+      vi.spyOn(Product, 'findById').mockResolvedValue({
+        _id: productId,
+        isActive: true,
+        sku: 'INV-10KW-3P'
+      } as any);
 
       // Track stock balance calls
-      const stockBalanceSpy = vi.spyOn(StockBalance, 'findOneAndUpdate').mockResolvedValue({} as any);
+      const stockBalanceSpy = vi
+        .spyOn(StockBalance, 'findOneAndUpdate')
+        .mockResolvedValue({} as any);
       vi.spyOn(StockMovement.prototype, 'save').mockResolvedValue({} as any);
       vi.spyOn(ProductSerialNumber, 'findOne').mockResolvedValue(null);
       vi.spyOn(ProductSerialNumber.prototype, 'save').mockResolvedValue({} as any);
@@ -457,7 +515,9 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
         GoodsReceiptService.createGoodsReceipt(
           {
             purchaseOrderId: 'dummy',
-            lineItems: [{ productId: '507f1f77bcf86cd799439066', deliveredQuantity: 1, acceptedQuantity: 1 }]
+            lineItems: [
+              { productId: '507f1f77bcf86cd799439066', deliveredQuantity: 1, acceptedQuantity: 1 }
+            ]
           },
           mockPurchaserUser,
           mockContext
@@ -485,7 +545,9 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
         {
           purchaseOrderId: 'dummy',
           idempotencyKey: 'idemp-grn-1234',
-          lineItems: [{ productId: '507f1f77bcf86cd799439066', deliveredQuantity: 5, acceptedQuantity: 5 }]
+          lineItems: [
+            { productId: '507f1f77bcf86cd799439066', deliveredQuantity: 5, acceptedQuantity: 5 }
+          ]
         },
         mockPurchaserUser,
         mockContext
@@ -501,9 +563,16 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       const vendorId = new Types.ObjectId('507f1f77bcf86cd799439044');
       const poId = new Types.ObjectId('507f1f77bcf86cd799439088');
 
-      vi.spyOn(Vendor, 'findById').mockResolvedValue({ _id: vendorId, name: 'Waaree Energies', vendorCode: 'VEN-2026-00001' } as any);
+      vi.spyOn(Vendor, 'findById').mockResolvedValue({
+        _id: vendorId,
+        name: 'Waaree Energies',
+        vendorCode: 'VEN-2026-00001'
+      } as any);
       vi.spyOn(VendorInvoice, 'findOne').mockResolvedValue(null);
-      vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({ _id: poId, totalAmountPaise: 11200000 } as any); // PO value = ₹112,000
+      vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({
+        _id: poId,
+        totalAmountPaise: 11200000
+      } as any); // PO value = ₹112,000
 
       vi.spyOn(VendorInvoice.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();
@@ -535,9 +604,15 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       const vendorId = new Types.ObjectId('507f1f77bcf86cd799439044');
       const poId = new Types.ObjectId('507f1f77bcf86cd799439088');
 
-      vi.spyOn(Vendor, 'findById').mockResolvedValue({ _id: vendorId, name: 'Waaree Energies' } as any);
+      vi.spyOn(Vendor, 'findById').mockResolvedValue({
+        _id: vendorId,
+        name: 'Waaree Energies'
+      } as any);
       vi.spyOn(VendorInvoice, 'findOne').mockResolvedValue(null);
-      vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({ _id: poId, totalAmountPaise: 10000000 } as any); // PO = ₹100,000
+      vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({
+        _id: poId,
+        totalAmountPaise: 10000000
+      } as any); // PO = ₹100,000
 
       vi.spyOn(VendorInvoice.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();
@@ -565,7 +640,10 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
     });
 
     it('rejects duplicate invoice submission for the same vendor', async () => {
-      vi.spyOn(Vendor, 'findById').mockResolvedValue({ _id: new Types.ObjectId(), name: 'Waaree' } as any);
+      vi.spyOn(Vendor, 'findById').mockResolvedValue({
+        _id: new Types.ObjectId(),
+        name: 'Waaree'
+      } as any);
       vi.spyOn(VendorInvoice, 'findOne').mockResolvedValue({ _id: new Types.ObjectId() } as any);
 
       await expect(

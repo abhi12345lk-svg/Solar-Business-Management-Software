@@ -159,7 +159,13 @@ export class EmployeeService {
    */
   public static async createProfile(
     input: CreateEmployeeProfileInput,
-    actor?: { userId?: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor?: {
+      userId?: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<IEmployeeProfileDocument> {
     if (!Types.ObjectId.isValid(input.userId)) {
       throw AppError.validation(`Invalid User ID format '${input.userId}'.`);
@@ -245,7 +251,13 @@ export class EmployeeService {
   public static async updateProfile(
     id: string,
     input: UpdateEmployeeProfileInput,
-    actor?: { userId?: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor?: {
+      userId?: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<IEmployeeProfileDocument> {
     const profile = await EmployeeProfile.findById(id);
     if (!profile) {
@@ -306,7 +318,13 @@ export class EmployeeService {
       reassignToUserId?: string;
       reassignmentReason?: string;
     },
-    actor?: { userId?: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor?: {
+      userId?: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<{ profile: IEmployeeProfileDocument; reassignedTasksCount: number }> {
     const profile = await EmployeeProfile.findById(id);
     if (!profile) {
@@ -325,7 +343,9 @@ export class EmployeeService {
     if (options?.reassignToUserId && Types.ObjectId.isValid(options.reassignToUserId)) {
       const replacementUser = await User.findById(options.reassignToUserId);
       if (!replacementUser || !replacementUser.isActive) {
-        throw AppError.validation(`Replacement user '${options.reassignToUserId}' not found or inactive.`);
+        throw AppError.validation(
+          `Replacement user '${options.reassignToUserId}' not found or inactive.`
+        );
       }
 
       const activeTasks = await ProjectTask.find({
@@ -339,7 +359,9 @@ export class EmployeeService {
           toUserId: replacementUser._id,
           reassignedAt: new Date(),
           reassignedBy: new Types.ObjectId(actor?.userId || replacementUser._id.toString()),
-          reason: options.reassignmentReason || `Automatic reassignment upon deactivation of ${profile.employeeCode}.`
+          reason:
+            options.reassignmentReason ||
+            `Automatic reassignment upon deactivation of ${profile.employeeCode}.`
         });
         task.assignedUserId = replacementUser._id;
         task.updatedBy = new Types.ObjectId(actor?.userId || replacementUser._id.toString());

@@ -115,15 +115,32 @@ export const ServiceVisitsPage: React.FC = () => {
     soilingCondition: 'CLEAN',
     inverterStatus: 'NORMAL',
     checklist: [
-      { item: 'Inspect solar PV modules for soiling, hotspots & frame damage', status: 'PASSED', notes: 'No cracks' },
-      { item: 'Inspect inverter DC/AC connections, heatsink & error logs', status: 'PASSED', notes: 'Fans spinning freely' },
-      { item: 'Check ACDB / DCDB surge protectors and isolator switches', status: 'PASSED', notes: 'SPDs healthy' },
-      { item: 'Verify earthing pit resistance and lightning arrester', status: 'PASSED', notes: '3.4 Ohms measured' },
-      { item: 'Record instantaneous kW generation and cumulative kWh meter reading', status: 'PASSED' }
+      {
+        item: 'Inspect solar PV modules for soiling, hotspots & frame damage',
+        status: 'PASSED',
+        notes: 'No cracks'
+      },
+      {
+        item: 'Inspect inverter DC/AC connections, heatsink & error logs',
+        status: 'PASSED',
+        notes: 'Fans spinning freely'
+      },
+      {
+        item: 'Check ACDB / DCDB surge protectors and isolator switches',
+        status: 'PASSED',
+        notes: 'SPDs healthy'
+      },
+      {
+        item: 'Verify earthing pit resistance and lightning arrester',
+        status: 'PASSED',
+        notes: '3.4 Ohms measured'
+      },
+      {
+        item: 'Record instantaneous kW generation and cumulative kWh meter reading',
+        status: 'PASSED'
+      }
     ],
-    partsUsed: [
-      { name: 'MC4 Male/Female Connector Pair', quantity: 2, isWarrantyCovered: true }
-    ],
+    partsUsed: [{ name: 'MC4 Male/Female Connector Pair', quantity: 2, isWarrantyCovered: true }],
     customerFeedback: 'Technician was polite, professional and generation resumed immediately.'
   });
 
@@ -251,9 +268,12 @@ export const ServiceVisitsPage: React.FC = () => {
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Service Visits & Technician Dispatch</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Service Visits & Technician Dispatch
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Technician field visit calendars, checklist verification, and atomic AMC quota deductions
+                Technician field visit calendars, checklist verification, and atomic AMC quota
+                deductions
               </p>
             </div>
           </div>
@@ -412,9 +432,13 @@ export const ServiceVisitsPage: React.FC = () => {
                       {visit.visitNumber}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-medium text-foreground">{visit.visitType?.replace(/_/g, ' ')}</div>
+                      <div className="font-medium text-foreground">
+                        {visit.visitType?.replace(/_/g, ' ')}
+                      </div>
                       {visit.complaintId && (
-                        <div className="text-[11px] text-amber-500">Ticket: {visit.complaintId.complaintNumber}</div>
+                        <div className="text-[11px] text-amber-500">
+                          Ticket: {visit.complaintId.complaintNumber}
+                        </div>
                       )}
                       {visit.amcId && (
                         <div className="text-[11px] text-blue-500">
@@ -423,7 +447,9 @@ export const ServiceVisitsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-medium text-foreground">{visit.customerId?.name || 'Customer'}</div>
+                      <div className="font-medium text-foreground">
+                        {visit.customerId?.name || 'Customer'}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {visit.projectId?.projectCode || 'N/A'} • {visit.projectId?.name || ''}
                       </div>
@@ -437,7 +463,11 @@ export const ServiceVisitsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                      <div>{visit.scheduledDate ? new Date(visit.scheduledDate).toISOString().split('T')[0] : 'N/A'}</div>
+                      <div>
+                        {visit.scheduledDate
+                          ? new Date(visit.scheduledDate).toISOString().split('T')[0]
+                          : 'N/A'}
+                      </div>
                       <div className="text-[11px] font-mono">{visit.scheduledTimeSlot}</div>
                     </td>
                     <td className="px-4 py-3 max-w-xs truncate" title={visit.purpose}>
@@ -461,7 +491,8 @@ export const ServiceVisitsPage: React.FC = () => {
                                 setSelectedVisit(visit);
                                 setRescheduleForm({
                                   newDate: visit.scheduledDate
-                                    ? new Date(visit.scheduledDate).toISOString().split('T')[0] || ''
+                                    ? new Date(visit.scheduledDate).toISOString().split('T')[0] ||
+                                      ''
                                     : '',
                                   newTimeSlot: visit.scheduledTimeSlot || '14:00 - 17:00',
                                   reason: ''
@@ -538,7 +569,9 @@ export const ServiceVisitsPage: React.FC = () => {
             <form onSubmit={handleScheduleVisit} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Project ID *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Project ID *
+                  </label>
                   <input
                     type="text"
                     required
@@ -549,13 +582,17 @@ export const ServiceVisitsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Technician User ID *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Technician User ID *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="Technician User ObjectId"
                     value={scheduleForm.assignedTechnicianId}
-                    onChange={e => setScheduleForm({ ...scheduleForm, assignedTechnicianId: e.target.value })}
+                    onChange={e =>
+                      setScheduleForm({ ...scheduleForm, assignedTechnicianId: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -563,7 +600,9 @@ export const ServiceVisitsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Visit Type *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Visit Type *
+                  </label>
                   <select
                     value={scheduleForm.visitType}
                     onChange={e => setScheduleForm({ ...scheduleForm, visitType: e.target.value })}
@@ -576,12 +615,16 @@ export const ServiceVisitsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Scheduled Date *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Scheduled Date *
+                  </label>
                   <input
                     type="date"
                     required
                     value={scheduleForm.scheduledDate}
-                    onChange={e => setScheduleForm({ ...scheduleForm, scheduledDate: e.target.value })}
+                    onChange={e =>
+                      setScheduleForm({ ...scheduleForm, scheduledDate: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -589,11 +632,15 @@ export const ServiceVisitsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Time Slot *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Time Slot *
+                  </label>
                   <input
                     type="text"
                     value={scheduleForm.scheduledTimeSlot}
-                    onChange={e => setScheduleForm({ ...scheduleForm, scheduledTimeSlot: e.target.value })}
+                    onChange={e =>
+                      setScheduleForm({ ...scheduleForm, scheduledTimeSlot: e.target.value })
+                    }
                     placeholder="e.g. 10:00 - 13:00"
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
@@ -606,7 +653,9 @@ export const ServiceVisitsPage: React.FC = () => {
                     type="text"
                     placeholder="Complaint ObjectId"
                     value={scheduleForm.complaintId}
-                    onChange={e => setScheduleForm({ ...scheduleForm, complaintId: e.target.value })}
+                    onChange={e =>
+                      setScheduleForm({ ...scheduleForm, complaintId: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -665,7 +714,9 @@ export const ServiceVisitsPage: React.FC = () => {
 
             <form onSubmit={handleReschedule} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">New Visit Date *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  New Visit Date *
+                </label>
                 <input
                   type="date"
                   required
@@ -676,11 +727,15 @@ export const ServiceVisitsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">New Time Slot</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  New Time Slot
+                </label>
                 <input
                   type="text"
                   value={rescheduleForm.newTimeSlot}
-                  onChange={e => setRescheduleForm({ ...rescheduleForm, newTimeSlot: e.target.value })}
+                  onChange={e =>
+                    setRescheduleForm({ ...rescheduleForm, newTimeSlot: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 />
               </div>
@@ -747,7 +802,9 @@ export const ServiceVisitsPage: React.FC = () => {
                   rows={3}
                   placeholder="Detail work performed on site: component re-crimping, solar panel deep wash, torque tightening, string inverter reboot..."
                   value={completeForm.workPerformed}
-                  onChange={e => setCompleteForm({ ...completeForm, workPerformed: e.target.value })}
+                  onChange={e =>
+                    setCompleteForm({ ...completeForm, workPerformed: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 />
               </div>
@@ -774,7 +831,9 @@ export const ServiceVisitsPage: React.FC = () => {
                     type="number"
                     step="0.1"
                     value={completeForm.instantaneousKw}
-                    onChange={e => setCompleteForm({ ...completeForm, instantaneousKw: Number(e.target.value) })}
+                    onChange={e =>
+                      setCompleteForm({ ...completeForm, instantaneousKw: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -785,7 +844,9 @@ export const ServiceVisitsPage: React.FC = () => {
                   <input
                     type="number"
                     value={completeForm.meterReadingKwh}
-                    onChange={e => setCompleteForm({ ...completeForm, meterReadingKwh: Number(e.target.value) })}
+                    onChange={e =>
+                      setCompleteForm({ ...completeForm, meterReadingKwh: Number(e.target.value) })
+                    }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                   />
                 </div>
@@ -829,7 +890,9 @@ export const ServiceVisitsPage: React.FC = () => {
                   type="text"
                   placeholder="Record customer signoff or feedback quote"
                   value={completeForm.customerFeedback}
-                  onChange={e => setCompleteForm({ ...completeForm, customerFeedback: e.target.value })}
+                  onChange={e =>
+                    setCompleteForm({ ...completeForm, customerFeedback: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 />
               </div>

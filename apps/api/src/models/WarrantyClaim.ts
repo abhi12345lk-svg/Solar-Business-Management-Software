@@ -6,11 +6,7 @@
  */
 
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import {
-  WarrantyType,
-  WarrantyClaimStatus,
-  WarrantyClaimResolution
-} from '@ins-solar/shared';
+import { WarrantyType, WarrantyClaimStatus, WarrantyClaimResolution } from '@ins-solar/shared';
 
 export interface IWarrantyClaimEvidence {
   storageKey: string;

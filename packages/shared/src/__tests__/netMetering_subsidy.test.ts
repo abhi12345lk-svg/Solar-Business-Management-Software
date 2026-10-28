@@ -48,7 +48,9 @@ describe('Phase 7A: Shared Enums and Permissions', () => {
 
   it('should define document types, document statuses, and disbursement modes', () => {
     expect(ApplicationDocumentType.ELECTRICITY_BILL).toBe('ELECTRICITY_BILL');
-    expect(ApplicationDocumentType.BANK_PASSBOOK_CANCELLED_CHEQUE).toBe('BANK_PASSBOOK_CANCELLED_CHEQUE');
+    expect(ApplicationDocumentType.BANK_PASSBOOK_CANCELLED_CHEQUE).toBe(
+      'BANK_PASSBOOK_CANCELLED_CHEQUE'
+    );
     expect(ApplicationDocumentType.SOLAR_SLD).toBe('SOLAR_SLD');
 
     expect(ApplicationDocumentStatus.REQUIRED).toBe('REQUIRED');

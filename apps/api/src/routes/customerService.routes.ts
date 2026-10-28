@@ -39,90 +39,102 @@ customerServiceRouter.use((req: Request, _res: Response, next: NextFunction) => 
  * GET /api/v1/customer-portal/service/complaints
  * List complaints belonging strictly to the logged-in customer.
  */
-customerServiceRouter.get('/complaints', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const parseResult = complaintFilterSchema.safeParse(req.query);
-    const filterData = parseResult.success ? parseResult.data : {};
+customerServiceRouter.get(
+  '/complaints',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const parseResult = complaintFilterSchema.safeParse(req.query);
+      const filterData = parseResult.success ? parseResult.data : {};
 
-    const result = await ServiceComplaintService.getComplaints(filterData, {
-      isCustomer: true,
-      customerId
-    });
+      const result = await ServiceComplaintService.getComplaints(filterData, {
+        isCustomer: true,
+        customerId
+      });
 
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * POST /api/v1/customer-portal/service/complaints
  * Submit a service defect or breakdown complaint from the customer portal.
  */
-customerServiceRouter.post('/complaints', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const parseResult = createServiceComplaintSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return next(AppError.validation(parseResult.error));
-    }
-
-    const complaint = await ServiceComplaintService.createComplaint(
-      {
-        ...parseResult.data,
-        customerId
-      },
-      {
-        isCustomer: true,
-        customerId
+customerServiceRouter.post(
+  '/complaints',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const parseResult = createServiceComplaintSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return next(AppError.validation(parseResult.error));
       }
-    );
 
-    return sendSuccess(req, res, complaint, 201);
-  } catch (err) {
-    return next(err);
+      const complaint = await ServiceComplaintService.createComplaint(
+        {
+          ...parseResult.data,
+          customerId
+        },
+        {
+          isCustomer: true,
+          customerId
+        }
+      );
+
+      return sendSuccess(req, res, complaint, 201);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/service/complaints/:id
  * Retrieve customer complaint details.
  */
-customerServiceRouter.get('/complaints/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const complaint = await ServiceComplaintService.getComplaintById(req.params.id as string, {
-      isCustomer: true,
-      customerId
-    });
+customerServiceRouter.get(
+  '/complaints/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const complaint = await ServiceComplaintService.getComplaintById(req.params.id as string, {
+        isCustomer: true,
+        customerId
+      });
 
-    return sendSuccess(req, res, complaint);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, complaint);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/service/warranties
  * List warranties for equipment installed at customer's sites.
  */
-customerServiceRouter.get('/warranties', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const parseResult = warrantyFilterSchema.safeParse(req.query);
-    const filterData = parseResult.success ? parseResult.data : {};
+customerServiceRouter.get(
+  '/warranties',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const parseResult = warrantyFilterSchema.safeParse(req.query);
+      const filterData = parseResult.success ? parseResult.data : {};
 
-    const result = await WarrantyService.getWarrantyRecords(filterData, {
-      isCustomer: true,
-      customerId
-    });
+      const result = await WarrantyService.getWarrantyRecords(filterData, {
+        isCustomer: true,
+        customerId
+      });
 
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/service/amc

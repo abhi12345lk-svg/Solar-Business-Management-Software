@@ -1,9 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import {
-  createTeamSchema,
-  updateTeamSchema,
-  teamFilterSchema
-} from '@ins-solar/shared';
+import { createTeamSchema, updateTeamSchema, teamFilterSchema } from '@ins-solar/shared';
 import { TeamService } from '../services/teamService.js';
 import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
@@ -106,14 +102,10 @@ teamRouter.put(
         correlationId: (req as any).correlationId
       };
 
-      const updated = await TeamService.updateTeam(
-        req.params.id as string,
-        parseResult.data,
-        {
-          userId: user.userId,
-          ...context
-        }
-      );
+      const updated = await TeamService.updateTeam(req.params.id as string, parseResult.data, {
+        userId: user.userId,
+        ...context
+      });
       return sendSuccess(req, res, updated);
     } catch (err) {
       return next(err);
@@ -142,15 +134,10 @@ teamRouter.patch(
         correlationId: (req as any).correlationId
       };
 
-      const team = await TeamService.toggleTeamStatus(
-        req.params.id as string,
-        isActive,
-        reason,
-        {
-          userId: user.userId,
-          ...context
-        }
-      );
+      const team = await TeamService.toggleTeamStatus(req.params.id as string, isActive, reason, {
+        userId: user.userId,
+        ...context
+      });
       return sendSuccess(req, res, team);
     } catch (err) {
       return next(err);

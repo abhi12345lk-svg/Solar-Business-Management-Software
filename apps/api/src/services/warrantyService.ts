@@ -128,10 +128,7 @@ export class WarrantyService {
     }
     if (filters.search) {
       const searchRegex = new RegExp(filters.search.trim(), 'i');
-      query.$or = [
-        { serialNumber: searchRegex },
-        { supplierWarrantyReference: searchRegex }
-      ];
+      query.$or = [{ serialNumber: searchRegex }, { supplierWarrantyReference: searchRegex }];
     }
 
     const page = Math.max(1, filters.page || 1);
@@ -154,7 +151,11 @@ export class WarrantyService {
     const now = new Date();
     const enriched = items.map(item => {
       let currentStatus = item.warrantyStatus || WarrantyStatus.ACTIVE;
-      if (item.warrantyEndDate && new Date(item.warrantyEndDate) < now && currentStatus === WarrantyStatus.ACTIVE) {
+      if (
+        item.warrantyEndDate &&
+        new Date(item.warrantyEndDate) < now &&
+        currentStatus === WarrantyStatus.ACTIVE
+      ) {
         currentStatus = WarrantyStatus.EXPIRED;
       }
       return {
@@ -189,7 +190,9 @@ export class WarrantyService {
     if (userContext.isCustomer) {
       const custId = (record.customerId as any)?._id?.toString() || record.customerId?.toString();
       if (custId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's equipment warranty.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's equipment warranty."
+        );
       }
     }
 
@@ -199,7 +202,10 @@ export class WarrantyService {
     return {
       ...record,
       isExpired,
-      warrantyStatus: isExpired && record.warrantyStatus === WarrantyStatus.ACTIVE ? WarrantyStatus.EXPIRED : record.warrantyStatus
+      warrantyStatus:
+        isExpired && record.warrantyStatus === WarrantyStatus.ACTIVE
+          ? WarrantyStatus.EXPIRED
+          : record.warrantyStatus
     };
   }
 
@@ -225,7 +231,8 @@ export class WarrantyService {
     serial.warrantyStartDate = input.warrantyStartDate;
     serial.warrantyEndDate = input.warrantyEndDate;
     if (input.warrantyTerms !== undefined) serial.warrantyTerms = input.warrantyTerms;
-    if (input.supplierWarrantyReference !== undefined) serial.supplierWarrantyReference = input.supplierWarrantyReference;
+    if (input.supplierWarrantyReference !== undefined)
+      serial.supplierWarrantyReference = input.supplierWarrantyReference;
     if (input.commissioningDate !== undefined) serial.commissioningDate = input.commissioningDate;
     if (input.warrantyStatus !== undefined) serial.warrantyStatus = input.warrantyStatus;
 
@@ -260,7 +267,9 @@ export class WarrantyService {
     // 1. Check serial number record
     const serialDoc = await ProductSerialNumber.findOne({ serialNumber: normalizedSerial });
     if (!serialDoc) {
-      throw AppError.notFound(`Component with serial number '${normalizedSerial}' not found in asset registry.`);
+      throw AppError.notFound(
+        `Component with serial number '${normalizedSerial}' not found in asset registry.`
+      );
     }
 
     // 2. Prevent duplicate active claim for same serial number
@@ -284,14 +293,20 @@ export class WarrantyService {
     let customerId = input.customerId || project.customerId.toString();
     if (actor.isCustomer) {
       if (customerId !== actor.customerId) {
-        throw AppError.permissionDenied("You cannot submit warranty claims for another customer's equipment.");
+        throw AppError.permissionDenied(
+          "You cannot submit warranty claims for another customer's equipment."
+        );
       }
     }
 
     // 5. Check warranty expiration
     const now = new Date();
     const isExpired = serialDoc.warrantyEndDate ? serialDoc.warrantyEndDate < now : false;
-    if (isExpired || serialDoc.warrantyStatus === WarrantyStatus.EXPIRED || serialDoc.warrantyStatus === WarrantyStatus.VOID) {
+    if (
+      isExpired ||
+      serialDoc.warrantyStatus === WarrantyStatus.EXPIRED ||
+      serialDoc.warrantyStatus === WarrantyStatus.VOID
+    ) {
       throw AppError.badRequest(
         `Equipment with serial number '${normalizedSerial}' is out of warranty (expired on ${serialDoc.warrantyEndDate?.toISOString().split('T')[0] || 'N/A'}). Cannot submit an in-warranty claim.`
       );
@@ -314,10 +329,12 @@ export class WarrantyService {
       projectId: project._id,
       complaintId: input.complaintId ? new mongoose.Types.ObjectId(input.complaintId) : undefined,
       manufacturerName: input.manufacturerName.trim(),
-      supplierWarrantyReference: input.supplierWarrantyReference?.trim() || serialDoc.supplierWarrantyReference,
+      supplierWarrantyReference:
+        input.supplierWarrantyReference?.trim() || serialDoc.supplierWarrantyReference,
       warrantyType: input.warrantyType || WarrantyType.MANUFACTURER_STANDARD,
       warrantyStartDate: serialDoc.warrantyStartDate || now,
-      warrantyEndDate: serialDoc.warrantyEndDate || new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+      warrantyEndDate:
+        serialDoc.warrantyEndDate || new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
       claimDate: input.claimDate || now,
       issueDescription: input.issueDescription.trim(),
       status: WarrantyClaimStatus.SUBMITTED,
@@ -372,7 +389,9 @@ export class WarrantyService {
 
     const actorId = actor.userId || 'system';
     const actorUser = actor.userId ? await User.findById(actor.userId) : null;
-    const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'Authorized Admin';
+    const actorName = actorUser
+      ? `${actorUser.firstName} ${actorUser.lastName}`
+      : 'Authorized Admin';
 
     claim.status = input.status;
     claim.decisionDate = new Date();
@@ -489,7 +508,9 @@ export class WarrantyService {
     if (userContext.isCustomer) {
       const custId = (claim.customerId as any)?._id?.toString() || claim.customerId?.toString();
       if (custId !== userContext.customerId) {
-        throw AppError.permissionDenied("Access denied: You cannot view another customer's warranty claim.");
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's warranty claim."
+        );
       }
     }
 

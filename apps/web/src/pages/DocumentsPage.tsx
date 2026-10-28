@@ -76,7 +76,9 @@ export const DocumentsPage: React.FC = () => {
   const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
 
   // Form State: Review Modal
-  const [nextReviewStatus, setNextReviewStatus] = useState<'ACCEPTED' | 'REJECTED' | 'RESUBMISSION_REQUIRED'>('ACCEPTED');
+  const [nextReviewStatus, setNextReviewStatus] = useState<
+    'ACCEPTED' | 'REJECTED' | 'RESUBMISSION_REQUIRED'
+  >('ACCEPTED');
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -84,7 +86,9 @@ export const DocumentsPage: React.FC = () => {
   const [uploadFilename, setUploadFilename] = useState('');
   const [uploadDisplayName, setUploadDisplayName] = useState('');
   const [uploadCategory, setUploadCategory] = useState('CUSTOMER_KYC');
-  const [uploadClassification, setUploadClassification] = useState<'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE' | 'RESTRICTED'>('INTERNAL_ONLY');
+  const [uploadClassification, setUploadClassification] = useState<
+    'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE' | 'RESTRICTED'
+  >('INTERNAL_ONLY');
   const [uploadMime, setUploadMime] = useState('application/pdf');
   const [uploadSize, setUploadSize] = useState('1048576'); // 1 MB default
   const [uploadCustomerId, setUploadCustomerId] = useState('');
@@ -109,7 +113,9 @@ export const DocumentsPage: React.FC = () => {
       if (classificationFilter) queryParams.set('accessClassification', classificationFilter);
       if (isArchivedFilter) queryParams.set('isArchived', 'true');
 
-      const res = await apiClient<{ items: DocumentItem[] }>(`/documents?${queryParams.toString()}`);
+      const res = await apiClient<{ items: DocumentItem[] }>(
+        `/documents?${queryParams.toString()}`
+      );
       setDocuments(res?.items || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load documents.');
@@ -167,7 +173,9 @@ export const DocumentsPage: React.FC = () => {
       (nextReviewStatus === 'REJECTED' || nextReviewStatus === 'RESUBMISSION_REQUIRED') &&
       (!rejectionReason || rejectionReason.trim().length < 5)
     ) {
-      setFormError('A descriptive rejection reason (minimum 5 characters) is required when rejecting or requesting resubmission.');
+      setFormError(
+        'A descriptive rejection reason (minimum 5 characters) is required when rejecting or requesting resubmission.'
+      );
       return;
     }
 
@@ -242,7 +250,11 @@ export const DocumentsPage: React.FC = () => {
   };
 
   const handleArchive = async (doc: DocumentItem) => {
-    if (!window.confirm(`Archive document ${doc.documentNumber} (${doc.safeDisplayName})? It will be marked inactive but preserved for audit.`)) {
+    if (
+      !window.confirm(
+        `Archive document ${doc.documentNumber} (${doc.safeDisplayName})? It will be marked inactive but preserved for audit.`
+      )
+    ) {
       return;
     }
 
@@ -261,7 +273,9 @@ export const DocumentsPage: React.FC = () => {
   const totalCount = documents.length;
   const pendingCount = documents.filter(d => d.reviewStatus === 'PENDING_REVIEW').length;
   const acceptedCount = documents.filter(d => d.reviewStatus === 'ACCEPTED').length;
-  const customerVisibleCount = documents.filter(d => d.accessClassification === 'CUSTOMER_VISIBLE').length;
+  const customerVisibleCount = documents.filter(
+    d => d.accessClassification === 'CUSTOMER_VISIBLE'
+  ).length;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -273,7 +287,8 @@ export const DocumentsPage: React.FC = () => {
             Private Document Vault & Library
           </h1>
           <p className="text-sm text-gray-500">
-            Secure private document repository with cryptographic HMAC download links, multi-version history, and verification gates.
+            Secure private document repository with cryptographic HMAC download links, multi-version
+            history, and verification gates.
           </p>
         </div>
         <button
@@ -415,7 +430,9 @@ export const DocumentsPage: React.FC = () => {
           <div className="p-12 text-center text-gray-500">
             <Lock className="w-12 h-12 mx-auto text-gray-300 mb-3" />
             <p className="font-medium text-gray-700">No documents found in vault.</p>
-            <p className="text-sm text-gray-400">Click &apos;Upload to Vault&apos; to register project files.</p>
+            <p className="text-sm text-gray-400">
+              Click &apos;Upload to Vault&apos; to register project files.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -446,7 +463,9 @@ export const DocumentsPage: React.FC = () => {
                         <div className="font-semibold text-gray-900 line-clamp-1">
                           {doc.safeDisplayName}
                         </div>
-                        <div className="text-xs text-gray-400 font-mono truncate">{doc.originalFilename}</div>
+                        <div className="text-xs text-gray-400 font-mono truncate">
+                          {doc.originalFilename}
+                        </div>
                         {doc.rejectionReason && (
                           <div className="text-xs text-red-600 font-medium mt-0.5">
                             Rejection Reason: {doc.rejectionReason}
@@ -466,8 +485,8 @@ export const DocumentsPage: React.FC = () => {
                             doc.accessClassification === 'CUSTOMER_VISIBLE'
                               ? 'bg-blue-100 text-blue-800'
                               : doc.accessClassification === 'RESTRICTED'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-gray-100 text-gray-700'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-gray-100 text-gray-700'
                           }`}
                         >
                           {doc.accessClassification.replace(/_/g, ' ')}
@@ -480,8 +499,8 @@ export const DocumentsPage: React.FC = () => {
                             isAccepted
                               ? 'bg-emerald-100 text-emerald-800'
                               : isPending
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-red-100 text-red-800'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-red-100 text-red-800'
                           }`}
                         >
                           {doc.reviewStatus.replace(/_/g, ' ')}
@@ -598,7 +617,8 @@ export const DocumentsPage: React.FC = () => {
                 </select>
               </div>
 
-              {(nextReviewStatus === 'REJECTED' || nextReviewStatus === 'RESUBMISSION_REQUIRED') && (
+              {(nextReviewStatus === 'REJECTED' ||
+                nextReviewStatus === 'RESUBMISSION_REQUIRED') && (
                 <div>
                   <label className="block text-xs font-semibold text-red-700 mb-1">
                     Rejection Reason (Minimum 5 characters) *
@@ -657,7 +677,8 @@ export const DocumentsPage: React.FC = () => {
               Upload Version {selectedDoc.version + 1}
             </h3>
             <p className="text-xs text-gray-500">
-              Supersedes current version v{selectedDoc.version}. Historical versions and audit records are preserved.
+              Supersedes current version v{selectedDoc.version}. Historical versions and audit
+              records are preserved.
             </p>
 
             {formError && (
@@ -777,9 +798,7 @@ export const DocumentsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Category
-                  </label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
                   <select
                     value={uploadCategory}
                     onChange={e => setUploadCategory(e.target.value)}

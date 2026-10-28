@@ -154,7 +154,9 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
       }
     } catch (err: any) {
       setError(
-        err?.response?.data?.error?.message || err?.message || 'Failed to load project costing data.'
+        err?.response?.data?.error?.message ||
+          err?.message ||
+          'Failed to load project costing data.'
       );
     } finally {
       setLoading(false);
@@ -238,7 +240,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
     }
   };
 
-  const filteredEntries = costLedger.filter((entry) => {
+  const filteredEntries = costLedger.filter(entry => {
     if (sourceFilter === 'ALL') return true;
     return entry.sourceType === sourceFilter;
   });
@@ -261,7 +263,9 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
             <AlertTriangle className="w-5 h-5 mr-2 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="font-bold ml-2">×</button>
+          <button onClick={() => setError(null)} className="font-bold ml-2">
+            ×
+          </button>
         </div>
       )}
 
@@ -274,7 +278,8 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
               <div>
                 <span className="font-bold block">Incomplete Financial Data Notice</span>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Profitability metrics represent recorded entries only. The following data points are missing:
+                  Profitability metrics represent recorded entries only. The following data points
+                  are missing:
                 </p>
                 <ul className="list-disc list-inside text-xs mt-1 text-amber-800">
                   {report.dataCompletenessNotes.map((note, idx) => (
@@ -337,7 +342,10 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
               {formatPaise(report.costSummary.totalCostPaise)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Materials: {formatPaise(report.costSummary.materialsCostPaise)} | Direct: {formatPaise(report.costSummary.totalCostPaise - report.costSummary.materialsCostPaise)}
+              Materials: {formatPaise(report.costSummary.materialsCostPaise)} | Direct:{' '}
+              {formatPaise(
+                report.costSummary.totalCostPaise - report.costSummary.materialsCostPaise
+              )}
             </p>
           </div>
 
@@ -354,15 +362,16 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   report.grossMarginPercent >= 20
                     ? 'bg-emerald-100 text-emerald-800'
                     : report.grossMarginPercent >= 0
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-red-100 text-red-800'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-red-100 text-red-800'
                 }`}
               >
                 {report.grossMarginPercent.toFixed(1)}%
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Progress Revenue: {formatPaise(report.operationalProgressRevenuePaise)} ({report.operationalProgressPercent}%)
+              Progress Revenue: {formatPaise(report.operationalProgressRevenuePaise)} (
+              {report.operationalProgressPercent}%)
             </p>
           </div>
         </div>
@@ -446,15 +455,15 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                             row.data.plannedPaise === 0
                               ? 'bg-muted text-muted-foreground'
                               : isOver
-                              ? 'bg-destructive/10 text-destructive'
-                              : 'bg-emerald-50 text-emerald-700'
+                                ? 'bg-destructive/10 text-destructive'
+                                : 'bg-emerald-50 text-emerald-700'
                           }`}
                         >
                           {row.data.plannedPaise === 0
                             ? 'Unbudgeted'
                             : isOver
-                            ? 'Over Budget'
-                            : 'Within Budget'}
+                              ? 'Over Budget'
+                              : 'Within Budget'}
                         </span>
                       </td>
                     </tr>
@@ -514,7 +523,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
             <span className="text-xs text-muted-foreground">Source:</span>
             <select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
+              onChange={e => setSourceFilter(e.target.value)}
               className="text-xs rounded-lg border bg-background px-2.5 py-1.5 text-foreground"
             >
               <option value="ALL">All Sources ({costLedger.length})</option>
@@ -546,7 +555,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   </td>
                 </tr>
               ) : (
-                filteredEntries.map((entry) => (
+                filteredEntries.map(entry => (
                   <tr key={entry.id} className="hover:bg-muted/20">
                     <td className="py-2.5 px-4 whitespace-nowrap text-muted-foreground">
                       {new Date(entry.effectiveDate).toLocaleDateString('en-IN')}
@@ -616,19 +625,17 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   No budget revisions found.
                 </p>
               ) : (
-                budgets.map((b) => (
+                budgets.map(b => (
                   <div key={b._id} className="p-3 border rounded-lg space-y-1 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-foreground">
-                        Version {b.version}
-                      </span>
+                      <span className="font-bold text-sm text-foreground">Version {b.version}</span>
                       <span
                         className={`px-2 py-0.5 rounded font-semibold text-[10px] ${
                           b.status === 'APPROVED'
                             ? 'bg-emerald-100 text-emerald-800'
                             : b.status === 'SUPERSEDED'
-                            ? 'bg-gray-100 text-gray-700'
-                            : 'bg-amber-100 text-amber-800'
+                              ? 'bg-gray-100 text-gray-700'
+                              : 'bg-amber-100 text-amber-800'
                         }`}
                       >
                         {b.status}
@@ -694,7 +701,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 450000"
                   value={budgetForm.materialsRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, materialsRupees: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, materialsRupees: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -709,7 +716,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 50000"
                   value={budgetForm.laborRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, laborRupees: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, laborRupees: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -724,7 +731,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 15000"
                   value={budgetForm.logisticsRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, logisticsRupees: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, logisticsRupees: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -739,7 +746,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 20000"
                   value={budgetForm.civilRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, civilRupees: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, civilRupees: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -754,7 +761,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 10000"
                   value={budgetForm.miscRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, miscRupees: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, miscRupees: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -769,7 +776,9 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   min="0"
                   placeholder="e.g. 15000"
                   value={budgetForm.contingencyRupees}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, contingencyRupees: e.target.value })}
+                  onChange={e =>
+                    setBudgetForm({ ...budgetForm, contingencyRupees: e.target.value })
+                  }
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground font-mono"
                 />
               </div>
@@ -780,7 +789,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
                   type="text"
                   placeholder="e.g. Initial engineering estimate or change order revision"
                   value={budgetForm.revisionReason}
-                  onChange={(e) => setBudgetForm({ ...budgetForm, revisionReason: e.target.value })}
+                  onChange={e => setBudgetForm({ ...budgetForm, revisionReason: e.target.value })}
                   className="w-full rounded-lg border bg-background px-3 py-1.5 text-foreground"
                 />
               </div>

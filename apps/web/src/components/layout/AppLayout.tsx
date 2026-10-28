@@ -55,10 +55,30 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     icon: Users,
     items: [
       { to: '/leads', label: 'Leads', description: 'Prospect pipeline & inquiries', icon: Users },
-      { to: '/follow-ups', label: 'Follow-ups', description: 'Scheduled calls & customer meetings', icon: Clock },
-      { to: '/surveys', label: 'Site Surveys', description: 'Rooftop measurements & shade analysis', icon: Layers },
-      { to: '/solar-designs', label: 'Solar Designs', description: 'Tri-topology system sizing engine', icon: Sun },
-      { to: '/quotations', label: 'Quotations', description: 'Commercial proposals & GST snapshots', icon: FileSpreadsheet }
+      {
+        to: '/follow-ups',
+        label: 'Follow-ups',
+        description: 'Scheduled calls & customer meetings',
+        icon: Clock
+      },
+      {
+        to: '/surveys',
+        label: 'Site Surveys',
+        description: 'Rooftop measurements & shade analysis',
+        icon: Layers
+      },
+      {
+        to: '/solar-designs',
+        label: 'Solar Designs',
+        description: 'Tri-topology system sizing engine',
+        icon: Sun
+      },
+      {
+        to: '/quotations',
+        label: 'Quotations',
+        description: 'Commercial proposals & GST snapshots',
+        icon: FileSpreadsheet
+      }
     ]
   },
   {
@@ -66,12 +86,42 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     label: 'Operations',
     icon: FolderKanban,
     items: [
-      { to: '/orders', label: 'Sales Orders', description: 'Confirmed customer contracts', icon: ShoppingCart },
-      { to: '/projects', label: 'Projects', description: '10-Stage execution & checklist', icon: FolderKanban },
-      { to: '/tasks', label: 'Unified Tasks', description: 'Cross-functional task board & blockers', icon: CheckSquare },
-      { to: '/documents', label: 'Document Vault', description: 'Private documents, KYC & review gates', icon: FileText },
-      { to: '/net-metering', label: 'Net Metering', description: 'DISCOM utility applications & inspections', icon: Zap },
-      { to: '/subsidies', label: 'Subsidies', description: 'PM Surya Ghar & DBT claim tracking', icon: Landmark }
+      {
+        to: '/orders',
+        label: 'Sales Orders',
+        description: 'Confirmed customer contracts',
+        icon: ShoppingCart
+      },
+      {
+        to: '/projects',
+        label: 'Projects',
+        description: '10-Stage execution & checklist',
+        icon: FolderKanban
+      },
+      {
+        to: '/tasks',
+        label: 'Unified Tasks',
+        description: 'Cross-functional task board & blockers',
+        icon: CheckSquare
+      },
+      {
+        to: '/documents',
+        label: 'Document Vault',
+        description: 'Private documents, KYC & review gates',
+        icon: FileText
+      },
+      {
+        to: '/net-metering',
+        label: 'Net Metering',
+        description: 'DISCOM utility applications & inspections',
+        icon: Zap
+      },
+      {
+        to: '/subsidies',
+        label: 'Subsidies',
+        description: 'PM Surya Ghar & DBT claim tracking',
+        icon: Landmark
+      }
     ]
   },
   {
@@ -79,10 +129,30 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     label: 'Team & HR',
     icon: Users,
     items: [
-      { to: '/employees', label: 'Employee Directory', description: 'Operational personnel, skills & workload', icon: Users },
-      { to: '/teams', label: 'Crews & Squads', description: 'Field installation crews & eligibility', icon: Users },
-      { to: '/tasks', label: 'My & Team Tasks', description: 'Unified assignments & deadlines', icon: CheckSquare },
-      { to: '/documents', label: 'Document Library', description: 'Centralized private file repository', icon: FileText }
+      {
+        to: '/employees',
+        label: 'Employee Directory',
+        description: 'Operational personnel, skills & workload',
+        icon: Users
+      },
+      {
+        to: '/teams',
+        label: 'Crews & Squads',
+        description: 'Field installation crews & eligibility',
+        icon: Users
+      },
+      {
+        to: '/tasks',
+        label: 'My & Team Tasks',
+        description: 'Unified assignments & deadlines',
+        icon: CheckSquare
+      },
+      {
+        to: '/documents',
+        label: 'Document Library',
+        description: 'Centralized private file repository',
+        icon: FileText
+      }
     ]
   },
   {
@@ -90,11 +160,36 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     label: 'Supply Chain',
     icon: Boxes,
     items: [
-      { to: '/inventory', label: 'Inventory', description: 'Multi-location stock balances & serials', icon: Boxes },
-      { to: '/vendors', label: 'Vendors', description: 'Supplier master directory & GSTINs', icon: Building2 },
-      { to: '/purchase-orders', label: 'Purchase Orders', description: 'Inbound procurement commitments', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipt', description: 'Warehouse GRN delivery intake & QA', icon: PackageCheck },
-      { to: '/vendor-invoices', label: 'Vendor Invoices', description: 'Payable claims & 3-way reconciliation', icon: Receipt }
+      {
+        to: '/inventory',
+        label: 'Inventory',
+        description: 'Multi-location stock balances & serials',
+        icon: Boxes
+      },
+      {
+        to: '/vendors',
+        label: 'Vendors',
+        description: 'Supplier master directory & GSTINs',
+        icon: Building2
+      },
+      {
+        to: '/purchase-orders',
+        label: 'Purchase Orders',
+        description: 'Inbound procurement commitments',
+        icon: FileText
+      },
+      {
+        to: '/goods-receipts',
+        label: 'Goods Receipt',
+        description: 'Warehouse GRN delivery intake & QA',
+        icon: PackageCheck
+      },
+      {
+        to: '/vendor-invoices',
+        label: 'Vendor Invoices',
+        description: 'Payable claims & 3-way reconciliation',
+        icon: Receipt
+      }
     ]
   },
   {
@@ -102,12 +197,42 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     label: 'Service & AMC',
     icon: LifeBuoy,
     items: [
-      { to: '/complaints', label: 'Complaints', description: 'Break-fix service tickets & SLA', icon: LifeBuoy },
-      { to: '/warranties', label: 'Warranties', description: 'Module & inverter asset warranties', icon: ShieldCheck },
-      { to: '/amc', label: 'AMC Contracts', description: 'Preventive maintenance schedules', icon: FileCheck2 },
-      { to: '/service-visits', label: 'Service Visits', description: 'Technician site visit reports & signoff', icon: Wrench },
-      { to: '/customer-portal', label: 'Customer Portal Hub', description: 'Unified customer self-service center', icon: Users },
-      { to: '/customer-portal/service', label: 'Client Portal', description: 'Customer self-service ticket intake', icon: LifeBuoy }
+      {
+        to: '/complaints',
+        label: 'Complaints',
+        description: 'Break-fix service tickets & SLA',
+        icon: LifeBuoy
+      },
+      {
+        to: '/warranties',
+        label: 'Warranties',
+        description: 'Module & inverter asset warranties',
+        icon: ShieldCheck
+      },
+      {
+        to: '/amc',
+        label: 'AMC Contracts',
+        description: 'Preventive maintenance schedules',
+        icon: FileCheck2
+      },
+      {
+        to: '/service-visits',
+        label: 'Service Visits',
+        description: 'Technician site visit reports & signoff',
+        icon: Wrench
+      },
+      {
+        to: '/customer-portal',
+        label: 'Customer Portal Hub',
+        description: 'Unified customer self-service center',
+        icon: Users
+      },
+      {
+        to: '/customer-portal/service',
+        label: 'Client Portal',
+        description: 'Customer self-service ticket intake',
+        icon: LifeBuoy
+      }
     ]
   },
   {
@@ -115,9 +240,24 @@ const NAV_GROUPS: NavDropdownGroup[] = [
     label: 'Finance & Accounts',
     icon: Banknote,
     items: [
-      { to: '/payments', label: 'Customer Payments', description: 'Realization, order allocations & sequences', icon: Banknote },
-      { to: '/expenses', label: 'Expenses Register', description: 'Operational expenses & project costing', icon: Receipt },
-      { to: '/customer-portal/payments', label: 'Client Payments Portal', description: 'Customer receipts & statement view', icon: Receipt }
+      {
+        to: '/payments',
+        label: 'Customer Payments',
+        description: 'Realization, order allocations & sequences',
+        icon: Banknote
+      },
+      {
+        to: '/expenses',
+        label: 'Expenses Register',
+        description: 'Operational expenses & project costing',
+        icon: Receipt
+      },
+      {
+        to: '/customer-portal/payments',
+        label: 'Client Payments Portal',
+        description: 'Customer receipts & statement view',
+        icon: Receipt
+      }
     ]
   }
 ];
@@ -417,7 +557,9 @@ export const AppLayout: React.FC = () => {
                           key={item.to}
                           to={item.to}
                           className={`flex items-center px-3 py-2 rounded-md text-xs transition-colors ${
-                            isActive ? 'bg-solar-500/15 text-solar-600 font-semibold' : 'text-foreground hover:bg-secondary'
+                            isActive
+                              ? 'bg-solar-500/15 text-solar-600 font-semibold'
+                              : 'text-foreground hover:bg-secondary'
                           }`}
                         >
                           <ItemIcon className="w-4 h-4 mr-2 text-solar-500 shrink-0" />
@@ -454,7 +596,9 @@ export const AppLayout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>INS Solar Enterprise Management &bull; Phase 7A Net Metering & Subsidy Verified</span>
+            <span>
+              INS Solar Enterprise Management &bull; Phase 7A Net Metering & Subsidy Verified
+            </span>
           </div>
           <div>
             <span>Server-Managed Stateful Sessions &bull; Strict HttpOnly / CSRF Guard</span>

@@ -199,15 +199,21 @@ export class NetMeteringService {
     if (input.division !== undefined) application.division = input.division?.trim();
     if (input.subdivision !== undefined) application.subdivision = input.subdivision?.trim();
     if (input.section !== undefined) application.section = input.section?.trim();
-    if (input.consumerNumber !== undefined) application.consumerNumber = input.consumerNumber.trim();
+    if (input.consumerNumber !== undefined)
+      application.consumerNumber = input.consumerNumber.trim();
     if (input.sanctionedLoadKw !== undefined) application.sanctionedLoadKw = input.sanctionedLoadKw;
-    if (input.proposedCapacityKw !== undefined) application.proposedCapacityKw = input.proposedCapacityKw;
+    if (input.proposedCapacityKw !== undefined)
+      application.proposedCapacityKw = input.proposedCapacityKw;
     if (input.discomApplicationNumber !== undefined)
       application.discomApplicationNumber = input.discomApplicationNumber?.trim();
     if (input.submissionDate !== undefined)
-      application.submissionDate = input.submissionDate ? new Date(input.submissionDate) : undefined;
+      application.submissionDate = input.submissionDate
+        ? new Date(input.submissionDate)
+        : undefined;
     if (input.assignedUserId !== undefined) {
-      application.assignedUserId = input.assignedUserId ? new Types.ObjectId(input.assignedUserId) : undefined;
+      application.assignedUserId = input.assignedUserId
+        ? new Types.ObjectId(input.assignedUserId)
+        : undefined;
     }
     if (input.notes !== undefined) application.notes = input.notes?.trim();
 
@@ -287,9 +293,7 @@ export class NetMeteringService {
         NetMeteringStatus.REJECTED,
         NetMeteringStatus.UNDER_REVIEW
       ],
-      [NetMeteringStatus.APPROVED]: [
-        NetMeteringStatus.CANCELLED
-      ],
+      [NetMeteringStatus.APPROVED]: [NetMeteringStatus.CANCELLED],
       [NetMeteringStatus.REJECTED]: [
         // Allow permitted resubmission/corrections
         NetMeteringStatus.DOCUMENTS_PENDING,
@@ -309,17 +313,24 @@ export class NetMeteringService {
 
     // DOCUMENT VERIFICATION GATE:
     // If transitioning to READY_TO_SUBMIT or SUBMITTED, verify all required documents are uploaded & not rejected/expired
-    if (newStatus === NetMeteringStatus.READY_TO_SUBMIT || newStatus === NetMeteringStatus.SUBMITTED) {
+    if (
+      newStatus === NetMeteringStatus.READY_TO_SUBMIT ||
+      newStatus === NetMeteringStatus.SUBMITTED
+    ) {
       const blockingDocs = application.documents.filter((doc: IApplicationDocument) => {
         if (!doc.isRequired) return false;
         const isNotUploaded = doc.status === ApplicationDocumentStatus.REQUIRED || !doc.storageKey;
-        const isRejected = doc.status === ApplicationDocumentStatus.REJECTED || doc.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED;
+        const isRejected =
+          doc.status === ApplicationDocumentStatus.REJECTED ||
+          doc.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED;
         const isExpired = doc.status === ApplicationDocumentStatus.EXPIRED;
         return isNotUploaded || isRejected || isExpired;
       });
 
       if (blockingDocs.length > 0) {
-        const issues = blockingDocs.map((d: IApplicationDocument) => `${d.title} (${d.status})`).join('; ');
+        const issues = blockingDocs
+          .map((d: IApplicationDocument) => `${d.title} (${d.status})`)
+          .join('; ');
         throw AppError.businessRule(
           `Cannot transition application to '${newStatus}'. Required documents are missing or rejected: [${issues}].`
         );
@@ -463,7 +474,9 @@ export class NetMeteringService {
     }
 
     application.inspectionSchedule.outcome = input.outcome;
-    application.inspectionSchedule.inspectedDate = input.inspectedDate ? new Date(input.inspectedDate) : new Date();
+    application.inspectionSchedule.inspectedDate = input.inspectedDate
+      ? new Date(input.inspectedDate)
+      : new Date();
     if (input.officerName) application.inspectionSchedule.officerName = input.officerName.trim();
     if (input.notes) application.inspectionSchedule.notes = input.notes.trim();
 
@@ -529,7 +542,8 @@ export class NetMeteringService {
     }
 
     // Prerequisite: Application must be approved or inspection passed
-    const inspectionPassed = application.inspectionSchedule.outcome === NetMeteringInspectionOutcome.PASSED;
+    const inspectionPassed =
+      application.inspectionSchedule.outcome === NetMeteringInspectionOutcome.PASSED;
     const isApproved = application.status === NetMeteringStatus.APPROVED;
 
     if (!inspectionPassed && !isApproved) {
@@ -598,16 +612,21 @@ export class NetMeteringService {
     if (input.feasibilityReference !== undefined)
       application.feasibility.feasibilityReference = input.feasibilityReference?.trim();
     if (input.feasibilityDate !== undefined)
-      application.feasibility.feasibilityDate = input.feasibilityDate ? new Date(input.feasibilityDate) : undefined;
+      application.feasibility.feasibilityDate = input.feasibilityDate
+        ? new Date(input.feasibilityDate)
+        : undefined;
     if (input.demandNoteAmountPaise !== undefined) {
       if (input.demandNoteAmountPaise < 0 || !Number.isInteger(input.demandNoteAmountPaise)) {
         throw AppError.validation('demandNoteAmountPaise must be a non-negative integer in paise.');
       }
       application.feasibility.demandNoteAmountPaise = input.demandNoteAmountPaise;
     }
-    if (input.demandNotePaid !== undefined) application.feasibility.demandNotePaid = input.demandNotePaid;
+    if (input.demandNotePaid !== undefined)
+      application.feasibility.demandNotePaid = input.demandNotePaid;
     if (input.demandNotePaidDate !== undefined)
-      application.feasibility.demandNotePaidDate = input.demandNotePaidDate ? new Date(input.demandNotePaidDate) : undefined;
+      application.feasibility.demandNotePaidDate = input.demandNotePaidDate
+        ? new Date(input.demandNotePaidDate)
+        : undefined;
     if (input.demandNoteReceiptNumber !== undefined)
       application.feasibility.demandNoteReceiptNumber = input.demandNoteReceiptNumber?.trim();
 
@@ -633,7 +652,9 @@ export class NetMeteringService {
     }
 
     // Find existing doc slot by type or create new
-    let doc = application.documents.find((d: IApplicationDocument) => d.documentType === input.documentType);
+    let doc = application.documents.find(
+      (d: IApplicationDocument) => d.documentType === input.documentType
+    );
     if (!doc) {
       doc = {
         id: new Types.ObjectId().toString(),
@@ -686,7 +707,10 @@ export class NetMeteringService {
     doc.reviewedBy = new Types.ObjectId(user.userId);
     doc.reviewedAt = new Date();
     doc.reviewNotes = input.reviewNotes?.trim();
-    if (input.status === ApplicationDocumentStatus.REJECTED || input.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED) {
+    if (
+      input.status === ApplicationDocumentStatus.REJECTED ||
+      input.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED
+    ) {
       doc.rejectionReason = input.rejectionReason?.trim() || input.reviewNotes?.trim();
     }
 
@@ -720,7 +744,9 @@ export class NetMeteringService {
     // Customer portal isolation
     if (userOrCustomer.customerId) {
       if (application.customerId.toString() !== userOrCustomer.customerId) {
-        throw AppError.forbidden('Access denied: You may only access documents for your own applications.');
+        throw AppError.forbidden(
+          'Access denied: You may only access documents for your own applications.'
+        );
       }
     }
 
@@ -744,7 +770,12 @@ export class NetMeteringService {
   public static async listApplications(
     filter: NetMeteringFilterInput,
     customerId?: string
-  ): Promise<{ applications: INetMeteringApplicationDocument[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    applications: INetMeteringApplicationDocument[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const query: Record<string, any> = {};
 
     if (customerId) {
@@ -807,7 +838,10 @@ export class NetMeteringService {
     }
 
     const application = await NetMeteringApplication.findById(id)
-      .populate('projectId', 'projectCode name capacityKw systemCapacityKw status stage destinationSiteAddress')
+      .populate(
+        'projectId',
+        'projectCode name capacityKw systemCapacityKw status stage destinationSiteAddress'
+      )
       .populate('customerId', 'customerCode name phone email')
       .populate('assignedUserId', 'firstName lastName email department');
 
@@ -815,8 +849,14 @@ export class NetMeteringService {
       throw AppError.notFound(`Net Metering Application '${id}' not found.`);
     }
 
-    if (customerId && application.customerId._id?.toString() !== customerId && application.customerId.toString() !== customerId) {
-      throw AppError.forbidden('Access denied: You cannot view applications belonging to other customers.');
+    if (
+      customerId &&
+      application.customerId._id?.toString() !== customerId &&
+      application.customerId.toString() !== customerId
+    ) {
+      throw AppError.forbidden(
+        'Access denied: You cannot view applications belonging to other customers.'
+      );
     }
 
     return application;

@@ -213,7 +213,10 @@ export function PurchaseOrderDetailPage() {
           rejectedQuantity: Number(item.rejectedQuantity),
           rejectionReason: item.rejectionReason || undefined,
           serialNumbers: item.serialNumbersText
-            ? item.serialNumbersText.split(',').map(s => s.trim()).filter(Boolean)
+            ? item.serialNumbersText
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
             : undefined
         }))
       };
@@ -325,15 +328,18 @@ export function PurchaseOrderDetailPage() {
             </button>
           )}
 
-          {!hasReceivedAny && (po.status === 'DRAFT' || po.status === 'PENDING_APPROVAL' || po.status === 'APPROVED') && (
-            <button
-              onClick={() => setIsCancelModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs font-medium transition"
-            >
-              <Ban className="w-4 h-4" />
-              Cancel Order
-            </button>
-          )}
+          {!hasReceivedAny &&
+            (po.status === 'DRAFT' ||
+              po.status === 'PENDING_APPROVAL' ||
+              po.status === 'APPROVED') && (
+              <button
+                onClick={() => setIsCancelModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs font-medium transition"
+              >
+                <Ban className="w-4 h-4" />
+                Cancel Order
+              </button>
+            )}
         </div>
       </div>
 
@@ -358,9 +364,15 @@ export function PurchaseOrderDetailPage() {
             <Boxes className="w-4 h-4 text-primary" />
             Receiving Depot
           </div>
-          <div className="font-semibold text-foreground text-sm">{po.destinationWarehouseId?.name || '—'}</div>
-          <div className="text-xs font-mono text-muted-foreground">{po.destinationWarehouseId?.code}</div>
-          <div className="text-xs text-foreground">Location: {po.destinationWarehouseId?.city || 'India'}</div>
+          <div className="font-semibold text-foreground text-sm">
+            {po.destinationWarehouseId?.name || '—'}
+          </div>
+          <div className="text-xs font-mono text-muted-foreground">
+            {po.destinationWarehouseId?.code}
+          </div>
+          <div className="text-xs text-foreground">
+            Location: {po.destinationWarehouseId?.city || 'India'}
+          </div>
         </div>
 
         {/* Financial Summary */}
@@ -374,7 +386,9 @@ export function PurchaseOrderDetailPage() {
           </div>
           <div className="text-xs text-muted-foreground flex justify-between">
             <span>Taxable: ₹{(po.subtotalPaise / 100).toFixed(2)}</span>
-            <span>Tax ({po.isInterState ? 'IGST' : 'CGST+SGST'}): ₹{(po.totalTaxPaise / 100).toFixed(2)}</span>
+            <span>
+              Tax ({po.isInterState ? 'IGST' : 'CGST+SGST'}): ₹{(po.totalTaxPaise / 100).toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
@@ -481,11 +495,16 @@ export function PurchaseOrderDetailPage() {
                 </h3>
 
                 {grnLineItems.map((item, idx) => (
-                  <div key={idx} className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+                  <div
+                    key={idx}
+                    className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2"
+                  >
                     <div className="font-medium text-foreground text-xs">{item.sku}</div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-[11px] text-muted-foreground mb-0.5">Delivered Qty</label>
+                        <label className="block text-[11px] text-muted-foreground mb-0.5">
+                          Delivered Qty
+                        </label>
                         <input
                           type="number"
                           min="0"
@@ -503,7 +522,9 @@ export function PurchaseOrderDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-muted-foreground mb-0.5">Accepted Qty (Stock In)</label>
+                        <label className="block text-[11px] text-muted-foreground mb-0.5">
+                          Accepted Qty (Stock In)
+                        </label>
                         <input
                           type="number"
                           min="0"
@@ -519,7 +540,9 @@ export function PurchaseOrderDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-muted-foreground mb-0.5">Rejected Qty (Damaged)</label>
+                        <label className="block text-[11px] text-muted-foreground mb-0.5">
+                          Rejected Qty (Damaged)
+                        </label>
                         <input
                           type="number"
                           min="0"
@@ -529,7 +552,8 @@ export function PurchaseOrderDetailPage() {
                             const target = updated[idx];
                             if (!target) return;
                             target.rejectedQuantity = Number(e.target.value);
-                            target.acceptedQuantity = target.deliveredQuantity - Number(e.target.value);
+                            target.acceptedQuantity =
+                              target.deliveredQuantity - Number(e.target.value);
                             setGrnLineItems(updated);
                           }}
                           className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs text-red-500 font-semibold"

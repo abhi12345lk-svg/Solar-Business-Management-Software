@@ -106,7 +106,13 @@ export class TeamService {
    */
   public static async createTeam(
     input: CreateTeamInput,
-    actor: { userId: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor: {
+      userId: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<ITeamDocument> {
     // Verify team lead exists and is active
     if (!Types.ObjectId.isValid(input.teamLeadId)) {
@@ -171,7 +177,10 @@ export class TeamService {
       correlationId: actor.correlationId || 'team-create'
     });
 
-    logger.info({ teamCode: team.teamCode, name: team.name }, '[TeamService] Team created successfully.');
+    logger.info(
+      { teamCode: team.teamCode, name: team.name },
+      '[TeamService] Team created successfully.'
+    );
 
     return team;
   }
@@ -182,7 +191,13 @@ export class TeamService {
   public static async updateTeam(
     id: string,
     input: UpdateTeamInput,
-    actor: { userId: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor: {
+      userId: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<ITeamDocument> {
     const team = await Team.findById(id);
     if (!team) {
@@ -257,7 +272,13 @@ export class TeamService {
     id: string,
     isActive: boolean,
     reason: string | undefined,
-    actor: { userId: string; role?: string; ipAddress?: string; userAgent?: string; correlationId?: string }
+    actor: {
+      userId: string;
+      role?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      correlationId?: string;
+    }
   ): Promise<ITeamDocument> {
     const team = await Team.findById(id);
     if (!team) {

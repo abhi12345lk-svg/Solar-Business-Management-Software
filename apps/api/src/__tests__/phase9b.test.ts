@@ -147,7 +147,11 @@ describe('Phase 9B Integration: Employee/Team, Unified Tasks & Private Document 
   };
 
   // Login helper for employee/admin
-  const loginEmployee = async (userId: Types.ObjectId, role: UserRole = UserRole.ADMIN, customPermissions?: string[]) => {
+  const loginEmployee = async (
+    userId: Types.ObjectId,
+    role: UserRole = UserRole.ADMIN,
+    customPermissions?: string[]
+  ) => {
     const rawPassword = 'ValidPassword123!';
     const passwordHash = await hashPassword(rawPassword);
 
@@ -541,9 +545,7 @@ describe('Phase 9B Integration: Employee/Team, Unified Tasks & Private Document 
       );
       vi.spyOn(ProjectTask, 'countDocuments').mockResolvedValue(1);
 
-      const res = await request(app)
-        .get('/api/v1/tasks?isOverdue=true')
-        .set('Cookie', cookie);
+      const res = await request(app).get('/api/v1/tasks?isOverdue=true').set('Cookie', cookie);
 
       expect(res.status).toBe(200);
       expect(findSpy).toHaveBeenCalledWith(
@@ -740,7 +742,10 @@ describe('Phase 9B Integration: Employee/Team, Unified Tasks & Private Document 
       expect(downloadRes.headers['content-disposition']).toContain('attachment');
 
       // Expired signed token simulation
-      const expiredUrl = urlRes.body.data.downloadUrl.replace(/expires=\d+/, 'expires=1000000000000');
+      const expiredUrl = urlRes.body.data.downloadUrl.replace(
+        /expires=\d+/,
+        'expires=1000000000000'
+      );
       const expiredRes = await request(app).get(expiredUrl);
       expect(expiredRes.status).toBe(403);
       expect(expiredRes.body.error.message).toContain('expired');
@@ -819,7 +824,9 @@ describe('Phase 9B Integration: Employee/Team, Unified Tasks & Private Document 
 
     it('enforces RBAC on unauthorized employee attempting document review', async () => {
       // Login an employee with unauthorized role / lacking 'document:review' permission
-      const { cookie, csrfToken } = await loginEmployee(staffUserIdA, UserRole.SALES_EXECUTIVE, ['lead:read']);
+      const { cookie, csrfToken } = await loginEmployee(staffUserIdA, UserRole.SALES_EXECUTIVE, [
+        'lead:read'
+      ]);
       const docId = new Types.ObjectId();
 
       const res = await request(app)

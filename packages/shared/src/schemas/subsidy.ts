@@ -3,17 +3,17 @@
  */
 
 import { z } from 'zod';
-import {
-  SubsidyScheme,
-  SubsidyStatus,
-  DisbursementMode
-} from '../types/enums.js';
+import { SubsidyScheme, SubsidyStatus, DisbursementMode } from '../types/enums.js';
 
 const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
 
 export const disbursementSchema = z.object({
   disbursementId: z.string().trim().min(1),
-  disbursementReference: z.string().trim().min(2, 'Disbursement reference / UTR is required').max(100),
+  disbursementReference: z
+    .string()
+    .trim()
+    .min(2, 'Disbursement reference / UTR is required')
+    .max(100),
   amountPaise: z.number().int().positive('Disbursement amount must be a positive integer in paise'),
   disbursedAt: z.coerce.date(),
   paymentMode: z.nativeEnum(DisbursementMode).default(DisbursementMode.DIRECT_BENEFIT_TRANSFER),
@@ -26,15 +26,24 @@ export const disbursementSchema = z.object({
 export const createSubsidySchema = z.object({
   projectId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Project ID'),
   customerId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Customer ID').optional(),
-  netMeteringApplicationId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Net Metering Application ID').optional(),
+  netMeteringApplicationId: z
+    .string()
+    .regex(OBJECT_ID_REGEX, 'Invalid Net Metering Application ID')
+    .optional(),
   schemeName: z.union([z.nativeEnum(SubsidyScheme), z.string().trim().min(2).max(100)]),
   schemeVersion: z.string().trim().max(50).optional(),
   effectivePeriod: z.string().trim().max(50).optional(),
   portalApplicationNumber: z.string().trim().max(100).optional(),
   submissionDate: z.coerce.date().optional(),
   systemCapacityKw: z.number().positive('System capacity must be greater than 0').max(10000),
-  estimatedAmountPaise: z.number().int().nonnegative('Estimated amount must be non-negative integer paise'),
-  requestedAmountPaise: z.number().int().nonnegative('Requested amount must be non-negative integer paise'),
+  estimatedAmountPaise: z
+    .number()
+    .int()
+    .nonnegative('Estimated amount must be non-negative integer paise'),
+  requestedAmountPaise: z
+    .number()
+    .int()
+    .nonnegative('Requested amount must be non-negative integer paise'),
   assignedUserId: z.string().regex(OBJECT_ID_REGEX).optional(),
   notes: z.string().trim().max(2000).optional()
 });
@@ -68,12 +77,20 @@ export const recordSanctionSchema = z.object({
 });
 
 export const recordDisbursementSchema = z.object({
-  disbursementReference: z.string().trim().min(2, 'Disbursement reference / UTR is required').max(100),
+  disbursementReference: z
+    .string()
+    .trim()
+    .min(2, 'Disbursement reference / UTR is required')
+    .max(100),
   amountPaise: z.number().int().positive('Disbursement amount must be positive integer paise'),
   disbursedAt: z.coerce.date().default(() => new Date()),
   paymentMode: z.nativeEnum(DisbursementMode).default(DisbursementMode.DIRECT_BENEFIT_TRANSFER),
   recipientAccount: z.string().trim().min(2, 'Recipient account details required').max(100),
-  idempotencyKey: z.string().trim().min(3, 'Idempotency key required for safe disbursement').max(100),
+  idempotencyKey: z
+    .string()
+    .trim()
+    .min(3, 'Idempotency key required for safe disbursement')
+    .max(100),
   notes: z.string().trim().max(1000).optional()
 });
 
@@ -85,7 +102,9 @@ export const subsidyFilterSchema = z.object({
   search: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.enum(['createdAt', 'applicationNumber', 'submissionDate', 'status']).default('createdAt'),
+  sortBy: z
+    .enum(['createdAt', 'applicationNumber', 'submissionDate', 'status'])
+    .default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc')
 });
 

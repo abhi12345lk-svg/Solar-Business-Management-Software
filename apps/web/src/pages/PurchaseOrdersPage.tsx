@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  FileText,
-  Search,
-  Plus,
-  ArrowRight,
-  Trash2
-} from 'lucide-react';
+import { FileText, Search, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface PurchaseOrderItem {
@@ -59,7 +53,12 @@ export function PurchaseOrdersPage() {
   const [isInterState, setIsInterState] = useState(false);
   const [notes, setNotes] = useState('');
   const [lineItems, setLineItems] = useState<
-    Array<{ productId: string; orderedQuantity: number; unitPurchaseRateInr: number; gstRate: number }>
+    Array<{
+      productId: string;
+      orderedQuantity: number;
+      unitPurchaseRateInr: number;
+      gstRate: number;
+    }>
   >([{ productId: '', orderedQuantity: 1, unitPurchaseRateInr: 0, gstRate: 12 }]);
 
   const fetchPOs = async () => {
@@ -105,7 +104,10 @@ export function PurchaseOrdersPage() {
   }, [isModalOpen]);
 
   const handleAddLine = () => {
-    setLineItems([...lineItems, { productId: '', orderedQuantity: 1, unitPurchaseRateInr: 0, gstRate: 12 }]);
+    setLineItems([
+      ...lineItems,
+      { productId: '', orderedQuantity: 1, unitPurchaseRateInr: 0, gstRate: 12 }
+    ]);
   };
 
   const handleRemoveLine = (idx: number) => {
@@ -171,20 +173,48 @@ export function PurchaseOrdersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">Draft</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+            Draft
+          </span>
+        );
       case 'PENDING_APPROVAL':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Pending Approval</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            Pending Approval
+          </span>
+        );
       case 'APPROVED':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Approved</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+            Approved
+          </span>
+        );
       case 'PARTIALLY_RECEIVED':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Partially Received</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+            Partially Received
+          </span>
+        );
       case 'FULLY_RECEIVED':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Fully Received</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            Fully Received
+          </span>
+        );
       case 'REJECTED':
       case 'CANCELLED':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">{status}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+            {status}
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{status}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -204,7 +234,8 @@ export function PurchaseOrdersPage() {
             Purchase Orders
           </h1>
           <p className="text-muted-foreground text-sm">
-            Raise procurement orders, manage approval workflows, track vendor fulfillment and outstanding quantities.
+            Raise procurement orders, manage approval workflows, track vendor fulfillment and
+            outstanding quantities.
           </p>
         </div>
         <button
@@ -229,7 +260,9 @@ export function PurchaseOrdersPage() {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Status:</label>
+          <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Filter Status:
+          </label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -285,13 +318,18 @@ export function PurchaseOrdersPage() {
                 orders.map(po => (
                   <tr key={po._id} className="hover:bg-secondary/20 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">
-                      <Link to={`/purchase-orders/${po._id}`} className="hover:underline text-primary">
+                      <Link
+                        to={`/purchase-orders/${po._id}`}
+                        className="hover:underline text-primary"
+                      >
                         {po.poNumber}
                       </Link>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-foreground">{po.vendorId?.name || '—'}</div>
-                      <div className="text-xs font-mono text-muted-foreground">{po.vendorId?.vendorCode}</div>
+                      <div className="text-xs font-mono text-muted-foreground">
+                        {po.vendorId?.vendorCode}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-xs text-foreground">
                       {po.destinationWarehouseId?.name || '—'}
@@ -300,11 +338,12 @@ export function PurchaseOrdersPage() {
                       {new Date(po.orderDate).toLocaleDateString('en-IN')}
                     </td>
                     <td className="py-3 px-4 font-semibold text-foreground">
-                      ₹{(po.totalAmountPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹
+                      {(po.totalAmountPaise / 100).toLocaleString('en-IN', {
+                        minimumFractionDigits: 2
+                      })}
                     </td>
-                    <td className="py-3 px-4">
-                      {getStatusBadge(po.status)}
-                    </td>
+                    <td className="py-3 px-4">{getStatusBadge(po.status)}</td>
                     <td className="py-3 px-4 text-right">
                       <Link
                         to={`/purchase-orders/${po._id}`}
@@ -416,7 +455,9 @@ export function PurchaseOrdersPage() {
                       className="p-3 rounded-lg border border-border bg-secondary/20 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end"
                     >
                       <div className="sm:col-span-5">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Product</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Product
+                        </label>
                         <select
                           required
                           value={line.productId}
@@ -433,32 +474,42 @@ export function PurchaseOrdersPage() {
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Qty</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Qty
+                        </label>
                         <input
                           type="number"
                           required
                           min="1"
                           value={line.orderedQuantity}
-                          onChange={e => handleLineChange(idx, 'orderedQuantity', Number(e.target.value))}
+                          onChange={e =>
+                            handleLineChange(idx, 'orderedQuantity', Number(e.target.value))
+                          }
                           className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                         />
                       </div>
 
                       <div className="sm:col-span-3">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Rate (₹)</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Rate (₹)
+                        </label>
                         <input
                           type="number"
                           required
                           min="0"
                           step="0.01"
                           value={line.unitPurchaseRateInr}
-                          onChange={e => handleLineChange(idx, 'unitPurchaseRateInr', Number(e.target.value))}
+                          onChange={e =>
+                            handleLineChange(idx, 'unitPurchaseRateInr', Number(e.target.value))
+                          }
                           className="w-full px-2 py-1.5 rounded-lg border border-input bg-background text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                         />
                       </div>
 
                       <div className="sm:col-span-1">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">GST%</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          GST%
+                        </label>
                         <select
                           value={line.gstRate}
                           onChange={e => handleLineChange(idx, 'gstRate', Number(e.target.value))}
@@ -491,12 +542,18 @@ export function PurchaseOrdersPage() {
               <div className="p-3 rounded-lg border border-border bg-card flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Estimated PO Total (with GST):</span>
                 <span className="text-base font-bold text-foreground">
-                  ₹{estimatedTotalInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹
+                  {estimatedTotalInr.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Commercial Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Commercial Notes
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Terms, delivery dispatch schedule, freight considerations..."

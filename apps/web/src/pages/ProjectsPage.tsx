@@ -102,7 +102,9 @@ export function ProjectsPage() {
       if (statusFilter !== 'ALL') query += `&status=${statusFilter}`;
       if (priorityFilter !== 'ALL') query += `&priority=${priorityFilter}`;
 
-      const res = await apiClient<{ projects: ProjectListItem[]; total: number }>(`/projects${query}`);
+      const res = await apiClient<{ projects: ProjectListItem[]; total: number }>(
+        `/projects${query}`
+      );
       setProjects(res.projects || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch projects');
@@ -137,7 +139,9 @@ export function ProjectsPage() {
         ...prev,
         orderId,
         customerId: selectedOrder.customerId?._id || selectedOrder.customerId || prev.customerId,
-        systemCapacityKwp: selectedOrder.systemCapacityKwp ? String(selectedOrder.systemCapacityKwp) : prev.systemCapacityKwp,
+        systemCapacityKwp: selectedOrder.systemCapacityKwp
+          ? String(selectedOrder.systemCapacityKwp)
+          : prev.systemCapacityKwp,
         systemTopology: selectedOrder.systemTopology || prev.systemTopology,
         name: prev.name || `Solar Installation - ${selectedOrder.orderNumber}`
       }));
@@ -154,7 +158,9 @@ export function ProjectsPage() {
         name: formData.name.trim(),
         customerId: formData.customerId,
         orderId: formData.orderId || undefined,
-        systemCapacityKwp: formData.systemCapacityKwp ? Number(formData.systemCapacityKwp) : undefined,
+        systemCapacityKwp: formData.systemCapacityKwp
+          ? Number(formData.systemCapacityKwp)
+          : undefined,
         systemTopology: formData.systemTopology,
         plannedStartDate: new Date(formData.plannedStartDate).toISOString(),
         targetCompletionDate: new Date(formData.targetCompletionDate).toISOString(),
@@ -219,7 +225,8 @@ export function ProjectsPage() {
             Project Management
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track solar rooftop installations, 10-stage milestones, field teams, and operational progress.
+            Track solar rooftop installations, 10-stage milestones, field teams, and operational
+            progress.
           </p>
         </div>
         <button
@@ -245,28 +252,36 @@ export function ProjectsPage() {
             <span className="text-xs font-medium uppercase tracking-wider">In Progress</span>
             <Layers className="w-4 h-4 text-blue-500" />
           </div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{inProgressCount}</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {inProgressCount}
+          </div>
         </div>
         <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium uppercase tracking-wider">Planning</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{planningCount}</div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+            {planningCount}
+          </div>
         </div>
         <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium uppercase tracking-wider">Completed</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {completedCount}
+          </div>
         </div>
         <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium uppercase tracking-wider">On Hold</span>
             <AlertTriangle className="w-4 h-4 text-orange-500" />
           </div>
-          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{onHoldCount}</div>
+          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {onHoldCount}
+          </div>
         </div>
       </div>
 
@@ -320,13 +335,16 @@ export function ProjectsPage() {
       {/* Projects Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-muted-foreground text-sm">Loading project records...</div>
+          <div className="p-12 text-center text-muted-foreground text-sm">
+            Loading project records...
+          </div>
         ) : projects.length === 0 ? (
           <div className="p-12 text-center">
             <FolderKanban className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-30" />
             <h3 className="font-semibold text-foreground text-base">No projects found</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              Create a new project from an accepted customer order or start a standalone planning project.
+              Create a new project from an accepted customer order or start a standalone planning
+              project.
             </p>
           </div>
         ) : (
@@ -345,7 +363,10 @@ export function ProjectsPage() {
               </thead>
               <tbody className="divide-y divide-border text-sm">
                 {projects.map(proj => {
-                  const stageInfo = STAGE_LABELS[proj.currentStage] || { step: 1, label: proj.currentStage };
+                  const stageInfo = STAGE_LABELS[proj.currentStage] || {
+                    step: 1,
+                    label: proj.currentStage
+                  };
                   const percent = Math.round((stageInfo.step / 10) * 100);
 
                   return (
@@ -357,7 +378,9 @@ export function ProjectsPage() {
                         >
                           {proj.projectCode}
                         </Link>
-                        <span className="font-medium text-foreground text-xs line-clamp-1">{proj.name}</span>
+                        <span className="font-medium text-foreground text-xs line-clamp-1">
+                          {proj.name}
+                        </span>
                         {proj.priority === 'URGENT' && (
                           <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400">
                             URGENT
@@ -365,20 +388,30 @@ export function ProjectsPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="text-xs font-medium text-foreground">{proj.customerId?.name || 'N/A'}</div>
-                        <div className="text-[11px] text-muted-foreground">{proj.customerId?.phone}</div>
+                        <div className="text-xs font-medium text-foreground">
+                          {proj.customerId?.name || 'N/A'}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {proj.customerId?.phone}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="text-xs font-semibold text-foreground flex items-center gap-1">
                           <Zap className="w-3.5 h-3.5 text-amber-500" />
                           {proj.systemCapacityKwp ? `${proj.systemCapacityKwp} kWp` : 'Custom'}
                         </div>
-                        <div className="text-[11px] text-muted-foreground">{proj.systemTopology || 'Standard'}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {proj.systemTopology || 'Standard'}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 min-w-[180px]">
                         <div className="flex items-center justify-between text-[11px] mb-1">
-                          <span className="font-medium text-foreground truncate max-w-[130px]">{stageInfo.label}</span>
-                          <span className="text-muted-foreground font-mono">{stageInfo.step}/10</span>
+                          <span className="font-medium text-foreground truncate max-w-[130px]">
+                            {stageInfo.label}
+                          </span>
+                          <span className="text-muted-foreground font-mono">
+                            {stageInfo.step}/10
+                          </span>
                         </div>
                         <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                           <div
@@ -386,8 +419,8 @@ export function ProjectsPage() {
                               proj.status === 'COMPLETED'
                                 ? 'bg-emerald-500'
                                 : proj.status === 'ON_HOLD'
-                                ? 'bg-orange-400'
-                                : 'bg-primary'
+                                  ? 'bg-orange-400'
+                                  : 'bg-primary'
                             }`}
                             style={{ width: `${percent}%` }}
                           />
@@ -396,12 +429,16 @@ export function ProjectsPage() {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3.5 h-3.5" />
-                          <span>Target: {new Date(proj.targetCompletionDate).toLocaleDateString()}</span>
+                          <span>
+                            Target: {new Date(proj.targetCompletionDate).toLocaleDateString()}
+                          </span>
                         </div>
                         {proj.projectManagerId && (
                           <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
                             <UserIcon className="w-3 h-3" />
-                            <span>{proj.projectManagerId.firstName} {proj.projectManagerId.lastName}</span>
+                            <span>
+                              {proj.projectManagerId.firstName} {proj.projectManagerId.lastName}
+                            </span>
                           </div>
                         )}
                       </td>
@@ -411,12 +448,12 @@ export function ProjectsPage() {
                             proj.status === 'COMPLETED'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : proj.status === 'IN_PROGRESS'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                              : proj.status === 'ON_HOLD'
-                              ? 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300'
-                              : proj.status === 'CANCELLED'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                              : 'bg-secondary text-secondary-foreground'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                : proj.status === 'ON_HOLD'
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300'
+                                  : proj.status === 'CANCELLED'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                    : 'bg-secondary text-secondary-foreground'
                           }`}
                         >
                           {proj.status}
@@ -448,7 +485,8 @@ export function ProjectsPage() {
               <div>
                 <h3 className="font-bold text-foreground text-lg">Create New Project</h3>
                 <p className="text-xs text-muted-foreground">
-                  Initialize a new installation project with 10 standard milestone planning templates.
+                  Initialize a new installation project with 10 standard milestone planning
+                  templates.
                 </p>
               </div>
               <button
@@ -459,7 +497,10 @@ export function ProjectsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateProject} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form
+              onSubmit={handleCreateProject}
+              className="p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+            >
               {/* Linked Order */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
@@ -473,7 +514,8 @@ export function ProjectsPage() {
                   <option value="">-- Standalone Project (No Linked Order) --</option>
                   {ordersList.map(ord => (
                     <option key={ord._id} value={ord._id}>
-                      {ord.orderNumber} — {ord.customerId?.name || 'Customer'} ({ord.systemCapacityKwp || 0} kWp)
+                      {ord.orderNumber} — {ord.customerId?.name || 'Customer'} (
+                      {ord.systemCapacityKwp || 0} kWp)
                     </option>
                   ))}
                 </select>
@@ -517,7 +559,9 @@ export function ProjectsPage() {
               {/* Technical Capacity & Topology */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Capacity (kWp)</label>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Capacity (kWp)
+                  </label>
                   <input
                     type="number"
                     step="0.1"
@@ -564,7 +608,9 @@ export function ProjectsPage() {
                     type="date"
                     required
                     value={formData.targetCompletionDate}
-                    onChange={e => setFormData({ ...formData, targetCompletionDate: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, targetCompletionDate: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background text-xs"
                   />
                 </div>
@@ -587,7 +633,9 @@ export function ProjectsPage() {
 
               {/* Site Address */}
               <div className="p-3 border border-border rounded-lg bg-secondary/10 space-y-2">
-                <div className="font-semibold text-xs text-foreground">Installation Site Address</div>
+                <div className="font-semibold text-xs text-foreground">
+                  Installation Site Address
+                </div>
                 <input
                   type="text"
                   placeholder="Street / Building Address Line 1"
@@ -625,7 +673,9 @@ export function ProjectsPage() {
                 <input
                   type="checkbox"
                   checked={formData.applyDefaultMilestones}
-                  onChange={e => setFormData({ ...formData, applyDefaultMilestones: e.target.checked })}
+                  onChange={e =>
+                    setFormData({ ...formData, applyDefaultMilestones: e.target.checked })
+                  }
                   className="rounded border-input text-primary focus:ring-primary w-4 h-4"
                 />
                 <span>Automatically initialize 10 standard installation milestones</span>

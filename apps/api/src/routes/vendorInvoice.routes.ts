@@ -35,7 +35,11 @@ vendorInvoiceRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const invoice = await VendorInvoiceService.createVendorInvoice(parseResult.data, user, context);
+      const invoice = await VendorInvoiceService.createVendorInvoice(
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, invoice, 201);
     } catch (err) {
       return next(err);
@@ -103,7 +107,12 @@ vendorInvoiceRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const invoice = await VendorInvoiceService.reconcileInvoice(req.params.id as string, parseResult.data, user, context);
+      const invoice = await VendorInvoiceService.reconcileInvoice(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, invoice);
     } catch (err) {
       return next(err);

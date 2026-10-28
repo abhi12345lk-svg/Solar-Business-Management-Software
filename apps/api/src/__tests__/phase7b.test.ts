@@ -126,7 +126,8 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
         customerId: sampleCustomerId,
         projectId: sampleProjectId,
         title: 'Inverter Grid Synchronization Failure',
-        description: 'Red fault LED blinking continuously and zero generation recorded on mobile app.',
+        description:
+          'Red fault LED blinking continuously and zero generation recorded on mobile app.',
         category: ComplaintCategory.INVERTER_FAULT,
         priority: ProjectPriority.HIGH,
         severity: ComplaintSeverity.MAJOR,
@@ -250,8 +251,15 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
       complaintNumber: 'CMP-2026-00002',
       title: 'Generation lower than benchmark',
       status: ComplaintStatus.IN_PROGRESS,
-      customerUpdates: [{ message: 'Technician visit scheduled for tomorrow 10am', timestamp: new Date() }],
-      internalNotes: [{ note: 'Customer called 5 times aggressively; warranty expired on panels.', timestamp: new Date() }]
+      customerUpdates: [
+        { message: 'Technician visit scheduled for tomorrow 10am', timestamp: new Date() }
+      ],
+      internalNotes: [
+        {
+          note: 'Customer called 5 times aggressively; warranty expired on panels.',
+          timestamp: new Date()
+        }
+      ]
     };
 
     const mockChainable = {
@@ -270,10 +278,13 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
     ).rejects.toThrow(/Access denied: You cannot view another customer's complaint/);
 
     // Legitimate customer views complaint -> internalNotes stripped
-    const visibleData = await ServiceComplaintService.getComplaintById(mockComplaint._id.toString(), {
-      isCustomer: true,
-      customerId: ownerCustomerId
-    });
+    const visibleData = await ServiceComplaintService.getComplaintById(
+      mockComplaint._id.toString(),
+      {
+        isCustomer: true,
+        customerId: ownerCustomerId
+      }
+    );
     expect(visibleData.internalNotes).toBeUndefined();
     expect(visibleData.customerUpdates.length).toBe(1);
   });
@@ -367,7 +378,8 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
       claimDoc._id.toString(),
       {
         status: WarrantyClaimStatus.REJECTED,
-        decisionNotes: 'Physical mechanical impact damage observed on glass surface; not covered under warranty.',
+        decisionNotes:
+          'Physical mechanical impact damage observed on glass surface; not covered under warranty.',
         resolutionType: WarrantyClaimResolution.REJECTED
       },
       adminUser
@@ -424,12 +436,17 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
   // --------------------------------------------------------------------------
   it('creates AMC with atomic sequence, rejects overlapping active contracts and processes approval', async () => {
     const mockCustomer = { _id: new Types.ObjectId(sampleCustomerId) };
-    const mockProject = { _id: new Types.ObjectId(sampleProjectId), customerId: new Types.ObjectId(sampleCustomerId) };
+    const mockProject = {
+      _id: new Types.ObjectId(sampleProjectId),
+      customerId: new Types.ObjectId(sampleCustomerId)
+    };
 
     vi.spyOn(Customer, 'findById').mockResolvedValue(mockCustomer as any);
     vi.spyOn(Project, 'findById').mockResolvedValue(mockProject as any);
     vi.spyOn(AnnualMaintenanceContract, 'findOne').mockResolvedValue(null); // No overlap
-    vi.spyOn(AnnualMaintenanceContract.prototype, 'save').mockImplementation(async function (this: any) {
+    vi.spyOn(AnnualMaintenanceContract.prototype, 'save').mockImplementation(async function (
+      this: any
+    ) {
       this._id = new Types.ObjectId();
       return this;
     });
@@ -576,7 +593,9 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
 
     vi.spyOn(AnnualMaintenanceContract, 'findById').mockResolvedValue(originalContract);
     vi.spyOn(AnnualMaintenanceContract, 'findOne').mockResolvedValue(null);
-    vi.spyOn(AnnualMaintenanceContract.prototype, 'save').mockImplementation(async function (this: any) {
+    vi.spyOn(AnnualMaintenanceContract.prototype, 'save').mockImplementation(async function (
+      this: any
+    ) {
       this._id = new Types.ObjectId();
       return this;
     });
@@ -603,7 +622,10 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
   // --------------------------------------------------------------------------
   it('schedules service visits with VIS sequence, supports rescheduling and records execution checklist', async () => {
     const mockCustomer = { _id: new Types.ObjectId(sampleCustomerId) };
-    const mockProject = { _id: new Types.ObjectId(sampleProjectId), customerId: new Types.ObjectId(sampleCustomerId) };
+    const mockProject = {
+      _id: new Types.ObjectId(sampleProjectId),
+      customerId: new Types.ObjectId(sampleCustomerId)
+    };
 
     vi.spyOn(Customer, 'findById').mockResolvedValue(mockCustomer as any);
     vi.spyOn(Project, 'findById').mockResolvedValue(mockProject as any);
@@ -661,7 +683,8 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
     const completed = await ServiceVisitService.completeVisit(
       visitDoc._id.toString(),
       {
-        workPerformed: 'Re-crimped loose MC4 connector on array string #2 and torqued DC switch terminals.',
+        workPerformed:
+          'Re-crimped loose MC4 connector on array string #2 and torqued DC switch terminals.',
         observations: 'Ambient temperature 42C, array open circuit voltage 680V DC within spec.',
         checklist: [
           { item: 'Array Voc verification', status: 'PASSED', notes: '680V DC nominal' },
@@ -697,7 +720,10 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
       save: vi.fn().mockResolvedValue(true)
     };
 
-    const mockProject = { _id: new Types.ObjectId(sampleProjectId), customerId: new Types.ObjectId(sampleCustomerId) };
+    const mockProject = {
+      _id: new Types.ObjectId(sampleProjectId),
+      customerId: new Types.ObjectId(sampleCustomerId)
+    };
 
     vi.spyOn(Project, 'findById').mockResolvedValue(mockProject as any);
     vi.spyOn(ServiceVisit, 'findById').mockResolvedValue(parentVisitDoc);

@@ -158,7 +158,10 @@ export class ProjectProfitabilityService {
     for (const d of dispatches) {
       for (const item of d.lineItems || []) {
         const prod = productMap.get(item.productId.toString());
-        const unitRate = prod?.standardPurchaseRatePaise || 0;
+        const unitRate =
+          item.unitCostPaise !== undefined
+            ? item.unitCostPaise
+            : prod?.standardPurchaseRatePaise || 0;
         const lineItemAmount = (item.issuedQuantity || 0) * unitRate;
 
         entries.push({
@@ -199,7 +202,9 @@ export class ProjectProfitabilityService {
     }
 
     // Sort entries chronologically descending
-    entries.sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
+    entries.sort(
+      (a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
+    );
 
     // Compute category aggregations
     let materialsCostPaise = 0;
@@ -244,7 +249,9 @@ export class ProjectProfitabilityService {
   /**
    * Generates comprehensive project profitability and budget-vs-actual analysis.
    */
-  public static async getProjectProfitability(projectId: string): Promise<ProjectProfitabilityReport> {
+  public static async getProjectProfitability(
+    projectId: string
+  ): Promise<ProjectProfitabilityReport> {
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       throw AppError.badRequest('Invalid project ID format.');
     }
@@ -285,7 +292,10 @@ export class ProjectProfitabilityService {
         (sum, a) => sum + (a.allocatedAmountPaise || 0),
         0
       );
-      outstandingReceivablesPaise = Math.max(0, contractedSalesValuePaise - confirmedCollectionsPaise);
+      outstandingReceivablesPaise = Math.max(
+        0,
+        contractedSalesValuePaise - confirmedCollectionsPaise
+      );
     }
 
     // 3. Unallocated Customer Credit
@@ -572,7 +582,9 @@ export class ProjectProfitabilityService {
     budget.approvedBy = actorId;
     budget.approvedAt = new Date();
     if (input.notes?.trim()) {
-      budget.notes = budget.notes ? `${budget.notes}\nApproval notes: ${input.notes.trim()}` : input.notes.trim();
+      budget.notes = budget.notes
+        ? `${budget.notes}\nApproval notes: ${input.notes.trim()}`
+        : input.notes.trim();
     }
 
     budget.statusHistory.push({

@@ -118,7 +118,9 @@ export const CustomerServicePortalPage: React.FC = () => {
               <LifeBuoy className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Customer Service & Support Portal</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Customer Service & Support Portal
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Track ticket resolution progress, plant maintenance visits, and equipment warranties
               </p>
@@ -191,9 +193,12 @@ export const CustomerServicePortalPage: React.FC = () => {
           ) : complaints.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-xl bg-card">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
-              <div className="text-base font-semibold text-foreground">No Active Service Tickets</div>
+              <div className="text-base font-semibold text-foreground">
+                No Active Service Tickets
+              </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Your solar installation is operating normally. If you notice lower generation or an inverter fault, request service above.
+                Your solar installation is operating normally. If you notice lower generation or an
+                inverter fault, request service above.
               </div>
             </div>
           ) : (
@@ -201,8 +206,12 @@ export const CustomerServicePortalPage: React.FC = () => {
               {complaints.map(item => (
                 <div key={item._id} className="p-5 border rounded-xl bg-card shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-solar-600 text-sm">{item.complaintNumber}</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs border font-medium ${getStatusBadge(item.status)}`}>
+                    <span className="font-semibold text-solar-600 text-sm">
+                      {item.complaintNumber}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs border font-medium ${getStatusBadge(item.status)}`}
+                    >
                       {item.status?.replace(/_/g, ' ')}
                     </span>
                   </div>
@@ -220,7 +229,10 @@ export const CustomerServicePortalPage: React.FC = () => {
                       </div>
                       <div className="space-y-1">
                         {item.customerUpdates.map((upd: any, idx: number) => (
-                          <div key={idx} className="text-xs bg-muted/40 p-2 rounded text-foreground">
+                          <div
+                            key={idx}
+                            className="text-xs bg-muted/40 p-2 rounded text-foreground"
+                          >
                             {upd.message}
                           </div>
                         ))}
@@ -269,15 +281,23 @@ export const CustomerServicePortalPage: React.FC = () => {
               ) : (
                 warranties.map(item => (
                   <tr key={item._id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-mono font-medium text-foreground">{item.serialNumber}</td>
-                    <td className="px-4 py-3 text-foreground">{item.productId?.name || 'Solar Hardware'}</td>
+                    <td className="px-4 py-3 font-mono font-medium text-foreground">
+                      {item.serialNumber}
+                    </td>
+                    <td className="px-4 py-3 text-foreground">
+                      {item.productId?.name || 'Solar Hardware'}
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {item.warrantyEndDate ? new Date(item.warrantyEndDate).toISOString().split('T')[0] : 'N/A'}
+                      {item.warrantyEndDate
+                        ? new Date(item.warrantyEndDate).toISOString().split('T')[0]
+                        : 'N/A'}
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          item.isExpired ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
+                          item.isExpired
+                            ? 'bg-rose-500/10 text-rose-500'
+                            : 'bg-emerald-500/10 text-emerald-500'
                         }`}
                       >
                         {item.isExpired ? 'EXPIRED' : 'ACTIVE'}
@@ -305,7 +325,10 @@ export const CustomerServicePortalPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {amcs.map(contract => (
-                <div key={contract._id} className="p-5 border rounded-xl bg-card shadow-sm space-y-3">
+                <div
+                  key={contract._id}
+                  className="p-5 border rounded-xl bg-card shadow-sm space-y-3"
+                >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-solar-600">{contract.amcNumber}</span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs border font-medium bg-emerald-500/10 text-emerald-500">
@@ -313,7 +336,9 @@ export const CustomerServicePortalPage: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <div className="text-base font-bold text-foreground">{contract.planType} Plan</div>
+                    <div className="text-base font-bold text-foreground">
+                      {contract.planType} Plan
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       Valid: {new Date(contract.startDate).toISOString().split('T')[0]} to{' '}
                       {new Date(contract.endDate).toISOString().split('T')[0]}
@@ -333,7 +358,9 @@ export const CustomerServicePortalPage: React.FC = () => {
                         style={{
                           width: `${Math.min(
                             100,
-                            Math.round((contract.consumedVisits / Math.max(1, contract.includedVisits)) * 100)
+                            Math.round(
+                              (contract.consumedVisits / Math.max(1, contract.includedVisits)) * 100
+                            )
                           )}%`
                         }}
                       />
@@ -379,7 +406,9 @@ export const CustomerServicePortalPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Issue Summary *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Issue Summary *
+                </label>
                 <input
                   type="text"
                   required
@@ -399,14 +428,18 @@ export const CustomerServicePortalPage: React.FC = () => {
                   rows={3}
                   placeholder="Describe when the issue began, any audible beeps, inverter display codes, or solar app readings..."
                   value={complaintForm.description}
-                  onChange={e => setComplaintForm({ ...complaintForm, description: e.target.value })}
+                  onChange={e =>
+                    setComplaintForm({ ...complaintForm, description: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Category
+                  </label>
                   <select
                     value={complaintForm.category}
                     onChange={e => setComplaintForm({ ...complaintForm, category: e.target.value })}
@@ -420,10 +453,14 @@ export const CustomerServicePortalPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Contact Method</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    Contact Method
+                  </label>
                   <select
                     value={complaintForm.contactPreference}
-                    onChange={e => setComplaintForm({ ...complaintForm, contactPreference: e.target.value })}
+                    onChange={e =>
+                      setComplaintForm({ ...complaintForm, contactPreference: e.target.value })
+                    }
                     className="w-full px-2.5 py-2 rounded-md border bg-background focus:outline-none"
                   >
                     <option value="PHONE">Phone Call</option>

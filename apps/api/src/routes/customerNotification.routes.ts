@@ -61,115 +61,130 @@ customerNotificationRouter.get('/', async (req: Request, res: Response, next: Ne
  * GET /api/v1/customer-portal/notifications/unread-count
  * Returns the unread notification count for authenticated customer.
  */
-customerNotificationRouter.get('/unread-count', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const count = await NotificationCenterService.getUnreadCount(
-      customerId,
-      NotificationRecipientType.CUSTOMER
-    );
+customerNotificationRouter.get(
+  '/unread-count',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const count = await NotificationCenterService.getUnreadCount(
+        customerId,
+        NotificationRecipientType.CUSTOMER
+      );
 
-    return sendSuccess(req, res, { unreadCount: count });
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, { unreadCount: count });
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * PATCH /api/v1/customer-portal/notifications/:id/read
  * Mark a single notification as read with ownership validation.
  */
-customerNotificationRouter.patch('/:id/read', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const notificationId = req.params.id as string;
+customerNotificationRouter.patch(
+  '/:id/read',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const notificationId = req.params.id as string;
 
-    const updated = await NotificationCenterService.markAsRead(
-      notificationId,
-      customerId,
-      NotificationRecipientType.CUSTOMER,
-      {
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      }
-    );
+      const updated = await NotificationCenterService.markAsRead(
+        notificationId,
+        customerId,
+        NotificationRecipientType.CUSTOMER,
+        {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
-    return sendSuccess(req, res, updated);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, updated);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * POST /api/v1/customer-portal/notifications/mark-all-read
  * Mark all unread notifications as read for authenticated customer.
  */
-customerNotificationRouter.post('/mark-all-read', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const category = req.body?.category ? (req.body.category as NotificationCategory) : undefined;
+customerNotificationRouter.post(
+  '/mark-all-read',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const category = req.body?.category ? (req.body.category as NotificationCategory) : undefined;
 
-    const result = await NotificationCenterService.markAllAsRead(
-      customerId,
-      NotificationRecipientType.CUSTOMER,
-      category,
-      {
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        correlationId: req.headers['x-correlation-id'] as string
-      }
-    );
+      const result = await NotificationCenterService.markAllAsRead(
+        customerId,
+        NotificationRecipientType.CUSTOMER,
+        category,
+        {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
 
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/notifications/preferences
  * Fetch notification channel & category preferences for authenticated customer.
  */
-customerNotificationRouter.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const preferences = await NotificationCenterService.getPreferences(
-      customerId,
-      NotificationRecipientType.CUSTOMER
-    );
+customerNotificationRouter.get(
+  '/preferences',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const preferences = await NotificationCenterService.getPreferences(
+        customerId,
+        NotificationRecipientType.CUSTOMER
+      );
 
-    return sendSuccess(req, res, preferences);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, preferences);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * PUT /api/v1/customer-portal/notifications/preferences
  * Update notification channel & category preferences for authenticated customer.
  */
-customerNotificationRouter.put('/preferences', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const parseResult = updateNotificationPreferencesSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return next(AppError.validation(parseResult.error));
-    }
-
-    const updated = await NotificationCenterService.updatePreferences(
-      customerId,
-      NotificationRecipientType.CUSTOMER,
-      parseResult.data,
-      {
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        correlationId: req.headers['x-correlation-id'] as string
+customerNotificationRouter.put(
+  '/preferences',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const parseResult = updateNotificationPreferencesSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return next(AppError.validation(parseResult.error));
       }
-    );
 
-    return sendSuccess(req, res, updated);
-  } catch (err) {
-    return next(err);
+      const updated = await NotificationCenterService.updatePreferences(
+        customerId,
+        NotificationRecipientType.CUSTOMER,
+        parseResult.data,
+        {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          correlationId: req.headers['x-correlation-id'] as string
+        }
+      );
+
+      return sendSuccess(req, res, updated);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);

@@ -105,7 +105,12 @@ purchaseOrderRouter.put(
         correlationId: (req as any).correlationId
       };
 
-      const po = await PurchaseOrderService.updatePurchaseOrder(req.params.id as string, parseResult.data, user, context);
+      const po = await PurchaseOrderService.updatePurchaseOrder(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, po);
     } catch (err) {
       return next(err);
@@ -129,7 +134,11 @@ purchaseOrderRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const po = await PurchaseOrderService.submitForApproval(req.params.id as string, user, context);
+      const po = await PurchaseOrderService.submitForApproval(
+        req.params.id as string,
+        user,
+        context
+      );
       return sendSuccess(req, res, po);
     } catch (err) {
       return next(err);
@@ -158,7 +167,12 @@ purchaseOrderRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const po = await PurchaseOrderService.approvePurchaseOrder(req.params.id as string, parseResult.data, user, context);
+      const po = await PurchaseOrderService.approvePurchaseOrder(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, po);
     } catch (err) {
       return next(err);
@@ -187,7 +201,12 @@ purchaseOrderRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const po = await PurchaseOrderService.rejectPurchaseOrder(req.params.id as string, parseResult.data, user, context);
+      const po = await PurchaseOrderService.rejectPurchaseOrder(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, po);
     } catch (err) {
       return next(err);
@@ -212,7 +231,12 @@ purchaseOrderRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const po = await PurchaseOrderService.cancelPurchaseOrder(req.params.id as string, reason, user, context);
+      const po = await PurchaseOrderService.cancelPurchaseOrder(
+        req.params.id as string,
+        reason,
+        user,
+        context
+      );
       return sendSuccess(req, res, po);
     } catch (err) {
       return next(err);

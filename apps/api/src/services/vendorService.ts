@@ -39,7 +39,9 @@ export class VendorService {
     if (input.gstin && input.gstin.trim()) {
       const existingGstin = await Vendor.findOne({ gstin: input.gstin.trim().toUpperCase() });
       if (existingGstin) {
-        throw AppError.duplicateResource(`A vendor with GSTIN '${input.gstin.toUpperCase()}' already exists.`);
+        throw AppError.duplicateResource(
+          `A vendor with GSTIN '${input.gstin.toUpperCase()}' already exists.`
+        );
       }
     }
 
@@ -202,7 +204,9 @@ export class VendorService {
         gstin: input.gstin.trim().toUpperCase()
       });
       if (existingGstin) {
-        throw AppError.duplicateResource(`A vendor with GSTIN '${input.gstin.toUpperCase()}' already exists.`);
+        throw AppError.duplicateResource(
+          `A vendor with GSTIN '${input.gstin.toUpperCase()}' already exists.`
+        );
       }
       vendor.gstin = input.gstin.trim().toUpperCase();
     }

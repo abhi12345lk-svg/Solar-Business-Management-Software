@@ -149,16 +149,66 @@ interface ProjectTaskItem {
 }
 
 const STAGES = [
-  { key: 'STAGE_1_ENGINEERING_DESIGN', step: 1, label: 'Design & Eng.', fullName: 'Stage 1: Design & Engineering' },
-  { key: 'STAGE_2_NET_METERING_APPLY', step: 2, label: 'Net Metering', fullName: 'Stage 2: Net Metering Application' },
-  { key: 'STAGE_3_MATERIAL_DISPATCH', step: 3, label: 'Dispatch', fullName: 'Stage 3: Material Dispatch' },
-  { key: 'STAGE_4_CIVIL_STRUCTURE', step: 4, label: 'Civil Struct.', fullName: 'Stage 4: Civil & Roof Structure' },
-  { key: 'STAGE_5_MODULE_DC_CABLING', step: 5, label: 'DC Cabling', fullName: 'Stage 5: Module & DC Cabling' },
-  { key: 'STAGE_6_INVERTER_ACDB', step: 6, label: 'Inverter/ACDB', fullName: 'Stage 6: Inverter & ACDB/DCDB' },
-  { key: 'STAGE_7_EARTHING_LIGHTNING', step: 7, label: 'Earthing', fullName: 'Stage 7: Earthing & Lightning' },
-  { key: 'STAGE_8_TESTING_PRE_COMMISSION', step: 8, label: 'Pre-Test', fullName: 'Stage 8: Pre-Commission Testing' },
-  { key: 'STAGE_9_DISCOM_METER_INSTALL', step: 9, label: 'DISCOM Sync', fullName: 'Stage 9: DISCOM Meter Sync' },
-  { key: 'STAGE_10_COMMISSION_HANDOVER', step: 10, label: 'Handover', fullName: 'Stage 10: Commissioning & Handover' }
+  {
+    key: 'STAGE_1_ENGINEERING_DESIGN',
+    step: 1,
+    label: 'Design & Eng.',
+    fullName: 'Stage 1: Design & Engineering'
+  },
+  {
+    key: 'STAGE_2_NET_METERING_APPLY',
+    step: 2,
+    label: 'Net Metering',
+    fullName: 'Stage 2: Net Metering Application'
+  },
+  {
+    key: 'STAGE_3_MATERIAL_DISPATCH',
+    step: 3,
+    label: 'Dispatch',
+    fullName: 'Stage 3: Material Dispatch'
+  },
+  {
+    key: 'STAGE_4_CIVIL_STRUCTURE',
+    step: 4,
+    label: 'Civil Struct.',
+    fullName: 'Stage 4: Civil & Roof Structure'
+  },
+  {
+    key: 'STAGE_5_MODULE_DC_CABLING',
+    step: 5,
+    label: 'DC Cabling',
+    fullName: 'Stage 5: Module & DC Cabling'
+  },
+  {
+    key: 'STAGE_6_INVERTER_ACDB',
+    step: 6,
+    label: 'Inverter/ACDB',
+    fullName: 'Stage 6: Inverter & ACDB/DCDB'
+  },
+  {
+    key: 'STAGE_7_EARTHING_LIGHTNING',
+    step: 7,
+    label: 'Earthing',
+    fullName: 'Stage 7: Earthing & Lightning'
+  },
+  {
+    key: 'STAGE_8_TESTING_PRE_COMMISSION',
+    step: 8,
+    label: 'Pre-Test',
+    fullName: 'Stage 8: Pre-Commission Testing'
+  },
+  {
+    key: 'STAGE_9_DISCOM_METER_INSTALL',
+    step: 9,
+    label: 'DISCOM Sync',
+    fullName: 'Stage 9: DISCOM Meter Sync'
+  },
+  {
+    key: 'STAGE_10_COMMISSION_HANDOVER',
+    step: 10,
+    label: 'Handover',
+    fullName: 'Stage 10: Commissioning & Handover'
+  }
 ];
 
 export const ProjectDetailPage: React.FC = () => {
@@ -169,7 +219,18 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'dispatch' | 'checklist' | 'net-metering' | 'subsidy' | 'service-amc' | 'milestones' | 'tasks' | 'history' | 'costing'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    | 'overview'
+    | 'dispatch'
+    | 'checklist'
+    | 'net-metering'
+    | 'subsidy'
+    | 'service-amc'
+    | 'milestones'
+    | 'tasks'
+    | 'history'
+    | 'costing'
+  >('overview');
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -243,7 +304,9 @@ export const ProjectDetailPage: React.FC = () => {
         params.append('isOverdue', 'true');
       }
 
-      const res = await apiClient<{ tasks: ProjectTaskItem[] }>(`/projects/${id}/tasks?${params.toString()}`);
+      const res = await apiClient<{ tasks: ProjectTaskItem[] }>(
+        `/projects/${id}/tasks?${params.toString()}`
+      );
       if (res) {
         setTasks(res.tasks || []);
       }
@@ -427,30 +490,70 @@ export const ProjectDetailPage: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PLANNING':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">Planning</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+            Planning
+          </span>
+        );
       case 'IN_PROGRESS':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">In Progress</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+            In Progress
+          </span>
+        );
       case 'ON_HOLD':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">On Hold</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+            On Hold
+          </span>
+        );
       case 'COMPLETED':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Completed</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+            Completed
+          </span>
+        );
       case 'CANCELLED':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">Cancelled</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
+            Cancelled
+          </span>
+        );
       default:
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">{status}</span>;
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">
+            {status}
+          </span>
+        );
     }
   };
 
   const getMilestoneStatusBadge = (status: string) => {
     switch (status) {
       case 'NOT_STARTED':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">Not Started</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+            Not Started
+          </span>
+        );
       case 'IN_PROGRESS':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">In Progress</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+            In Progress
+          </span>
+        );
       case 'BLOCKED':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 font-semibold">Blocked</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 font-semibold">
+            Blocked
+          </span>
+        );
       case 'COMPLETED':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 font-semibold">Completed</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 font-semibold">
+            Completed
+          </span>
+        );
       default:
         return <span>{status}</span>;
     }
@@ -459,15 +562,31 @@ export const ProjectDetailPage: React.FC = () => {
   const getTaskStatusBadge = (status: string) => {
     switch (status) {
       case 'TODO':
-        return <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">To Do</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">To Do</span>
+        );
       case 'IN_PROGRESS':
-        return <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">In Progress</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">
+            In Progress
+          </span>
+        );
       case 'BLOCKED':
-        return <span className="px-2 py-0.5 text-xs rounded bg-rose-100 text-rose-700 font-medium">Blocked</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs rounded bg-rose-100 text-rose-700 font-medium">
+            Blocked
+          </span>
+        );
       case 'COMPLETED':
-        return <span className="px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700 font-medium">Completed</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700 font-medium">
+            Completed
+          </span>
+        );
       case 'CANCELLED':
-        return <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">Cancelled</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">Cancelled</span>
+        );
       default:
         return <span>{status}</span>;
     }
@@ -488,7 +607,9 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-xl text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
           <h2 className="text-lg font-bold text-destructive mb-2">Project Not Found</h2>
-          <p className="text-muted-foreground mb-4">{error || 'The requested project could not be found.'}</p>
+          <p className="text-muted-foreground mb-4">
+            {error || 'The requested project could not be found.'}
+          </p>
           <Link
             to="/projects"
             className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 font-medium"
@@ -500,7 +621,7 @@ export const ProjectDetailPage: React.FC = () => {
     );
   }
 
-  const currentStageIndex = STAGES.findIndex((s) => s.key === project.currentStage);
+  const currentStageIndex = STAGES.findIndex(s => s.key === project.currentStage);
   const isTerminal = ['COMPLETED', 'CANCELLED'].includes(project.status);
 
   return (
@@ -542,7 +663,10 @@ export const ProjectDetailPage: React.FC = () => {
             <>
               <button
                 onClick={() => {
-                  setTargetStage(STAGES[Math.min(currentStageIndex + 1, STAGES.length - 1)]?.key || project.currentStage);
+                  setTargetStage(
+                    STAGES[Math.min(currentStageIndex + 1, STAGES.length - 1)]?.key ||
+                      project.currentStage
+                  );
                   setStageModalOpen(true);
                 }}
                 className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-sm font-medium shadow-sm"
@@ -599,7 +723,12 @@ export const ProjectDetailPage: React.FC = () => {
       {actionSuccess && (
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-700 text-sm flex items-center justify-between">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-700 font-bold ml-2">×</button>
+          <button
+            onClick={() => setActionSuccess(null)}
+            className="text-emerald-700 font-bold ml-2"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -608,7 +737,9 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-solar-600" />
-            <h3 className="text-sm font-semibold text-foreground">Installation Progression Pipeline</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Installation Progression Pipeline
+            </h3>
           </div>
           <span className="text-xs font-semibold text-solar-600 bg-solar-50 px-2.5 py-0.5 rounded-full border border-solar-200">
             {STAGES[currentStageIndex]?.fullName || project.currentStage}
@@ -637,8 +768,8 @@ export const ProjectDetailPage: React.FC = () => {
                       isPast
                         ? 'bg-solar-600 text-white'
                         : isCurrent
-                        ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
-                        : 'bg-muted text-muted-foreground'
+                          ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
+                          : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {isPast ? <Check className="w-4 h-4" /> : s.step}
@@ -648,8 +779,8 @@ export const ProjectDetailPage: React.FC = () => {
                       isCurrent
                         ? 'text-solar-600 font-bold'
                         : isPast
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
+                          ? 'text-foreground'
+                          : 'text-muted-foreground'
                     }`}
                   >
                     {s.label}
@@ -796,13 +927,17 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Customer:</span>
                 <span className="font-semibold text-foreground">
-                  {project.customerId?.legalName || project.customerId?.displayName || project.customerId?.name || 'Customer'}
+                  {project.customerId?.legalName ||
+                    project.customerId?.displayName ||
+                    project.customerId?.name ||
+                    'Customer'}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Code / Phone:</span>
                 <span className="font-mono text-muted-foreground">
-                  {project.customerId?.customerCode || '—'} {project.customerId?.primaryPhone ? `(${project.customerId.primaryPhone})` : ''}
+                  {project.customerId?.customerCode || '—'}{' '}
+                  {project.customerId?.primaryPhone ? `(${project.customerId.primaryPhone})` : ''}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
@@ -868,19 +1003,25 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Planned Start:</span>
                 <span className="font-medium text-foreground">
-                  {project.plannedStartDate ? new Date(project.plannedStartDate).toLocaleDateString() : '—'}
+                  {project.plannedStartDate
+                    ? new Date(project.plannedStartDate).toLocaleDateString()
+                    : '—'}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Target Completion:</span>
                 <span className="font-medium text-foreground">
-                  {project.targetCompletionDate ? new Date(project.targetCompletionDate).toLocaleDateString() : '—'}
+                  {project.targetCompletionDate
+                    ? new Date(project.targetCompletionDate).toLocaleDateString()
+                    : '—'}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Actual Completion:</span>
                 <span className="font-medium text-foreground">
-                  {project.actualCompletionDate ? new Date(project.actualCompletionDate).toLocaleDateString() : '—'}
+                  {project.actualCompletionDate
+                    ? new Date(project.actualCompletionDate).toLocaleDateString()
+                    : '—'}
                 </span>
               </div>
               <div className="flex justify-between pt-1">
@@ -928,8 +1069,11 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
             <div className="divide-y">
               {project.milestones && project.milestones.length > 0 ? (
-                project.milestones.map((m) => (
-                  <div key={m._id} className="p-4 hover:bg-muted/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                project.milestones.map(m => (
+                  <div
+                    key={m._id}
+                    className="p-4 hover:bg-muted/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
@@ -938,7 +1082,9 @@ export const ProjectDetailPage: React.FC = () => {
                         <h4 className="font-semibold text-foreground text-sm">{m.name}</h4>
                         {getMilestoneStatusBadge(m.status)}
                       </div>
-                      {m.description && <p className="text-xs text-muted-foreground pl-8">{m.description}</p>}
+                      {m.description && (
+                        <p className="text-xs text-muted-foreground pl-8">{m.description}</p>
+                      )}
 
                       {/* Blocker Reason Alert if Blocked */}
                       {m.status === 'BLOCKED' && m.blockerReason && (
@@ -956,7 +1102,9 @@ export const ProjectDetailPage: React.FC = () => {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>
                             Signed off on {new Date(m.completedAt).toLocaleDateString()}{' '}
-                            {m.completedBy ? `by ${m.completedBy.firstName} ${m.completedBy.lastName}` : ''}
+                            {m.completedBy
+                              ? `by ${m.completedBy.firstName} ${m.completedBy.lastName}`
+                              : ''}
                           </span>
                         </div>
                       )}
@@ -1057,7 +1205,7 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="flex items-center space-x-2">
               <select
                 value={taskFilterStatus}
-                onChange={(e) => setTaskFilterStatus(e.target.value)}
+                onChange={e => setTaskFilterStatus(e.target.value)}
                 className="px-2.5 py-1.5 text-xs rounded-lg border bg-background text-foreground"
               >
                 <option value="ALL">All Statuses</option>
@@ -1072,7 +1220,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={taskOnlyOverdue}
-                  onChange={(e) => setTaskOnlyOverdue(e.target.checked)}
+                  onChange={e => setTaskOnlyOverdue(e.target.checked)}
                   className="rounded text-solar-600 focus:ring-solar-500"
                 />
                 <span>Overdue Only</span>
@@ -1095,15 +1243,20 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
               <div className="divide-y">
                 {tasks.length > 0 ? (
-                  tasks.map((task) => {
+                  tasks.map(task => {
                     const isOverdue =
                       task.dueDate &&
                       new Date(task.dueDate) < new Date() &&
                       !['COMPLETED', 'CANCELLED'].includes(task.status);
-                    const linkedMilestone = project.milestones?.find((m) => m._id === task.milestoneId);
+                    const linkedMilestone = project.milestones?.find(
+                      m => m._id === task.milestoneId
+                    );
 
                     return (
-                      <div key={task._id} className="p-4 hover:bg-muted/20 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div
+                        key={task._id}
+                        className="p-4 hover:bg-muted/20 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
+                      >
                         <div className="space-y-1 flex-1">
                           <div className="flex items-center space-x-2">
                             <span className="font-mono text-xs font-semibold text-muted-foreground">
@@ -1192,9 +1345,7 @@ export const ProjectDetailPage: React.FC = () => {
       )}
 
       {/* Tab: Subsidy Tracking */}
-      {activeTab === 'subsidy' && (
-        <SubsidyTab projectId={project._id} isTerminal={isTerminal} />
-      )}
+      {activeTab === 'subsidy' && <SubsidyTab projectId={project._id} isTerminal={isTerminal} />}
 
       {/* Tab: Service, Warranties & AMC */}
       {activeTab === 'service-amc' && (
@@ -1202,19 +1353,19 @@ export const ProjectDetailPage: React.FC = () => {
       )}
 
       {/* Tab: Project Costing & Profitability */}
-      {activeTab === 'costing' && (
-        <ProjectCostingTab projectId={project._id} />
-      )}
+      {activeTab === 'costing' && <ProjectCostingTab projectId={project._id} />}
 
       {/* Tab 4: Stage History & Activity */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <h2 className="text-base font-bold text-foreground">Lifecycle & Stage Transition History</h2>
+          <h2 className="text-base font-bold text-foreground">
+            Lifecycle & Stage Transition History
+          </h2>
           <div className="bg-card border rounded-xl p-5 shadow-sm">
             {project.stageHistory && project.stageHistory.length > 0 ? (
               <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
                 {project.stageHistory.map((item, idx) => {
-                  const stageInfo = STAGES.find((s) => s.key === item.stage);
+                  const stageInfo = STAGES.find(s => s.key === item.stage);
                   return (
                     <div key={idx} className="relative flex items-start space-x-4 pl-8">
                       <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
@@ -1230,17 +1381,24 @@ export const ProjectDetailPage: React.FC = () => {
                         </div>
                         {item.transitionedBy && (
                           <div className="text-xs text-muted-foreground">
-                            Updated by {item.transitionedBy.firstName} {item.transitionedBy.lastName} ({item.transitionedBy.email})
+                            Updated by {item.transitionedBy.firstName}{' '}
+                            {item.transitionedBy.lastName} ({item.transitionedBy.email})
                           </div>
                         )}
-                        {item.notes && <p className="text-xs text-foreground bg-background p-2 rounded">{item.notes}</p>}
+                        {item.notes && (
+                          <p className="text-xs text-foreground bg-background p-2 rounded">
+                            {item.notes}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No historical transitions recorded yet.</p>
+              <p className="text-sm text-muted-foreground">
+                No historical transitions recorded yet.
+              </p>
             )}
           </div>
         </div>
@@ -1252,7 +1410,8 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
             <h3 className="text-lg font-bold text-foreground">Confirm Status Transition</h3>
             <p className="text-sm text-muted-foreground">
-              Transition project <span className="font-mono font-bold text-foreground">{project.projectCode}</span> to{' '}
+              Transition project{' '}
+              <span className="font-mono font-bold text-foreground">{project.projectCode}</span> to{' '}
               <span className="font-semibold text-solar-600">{targetStatus}</span>?
             </p>
 
@@ -1264,7 +1423,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <textarea
                   rows={3}
                   value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
+                  onChange={e => setStatusReason(e.target.value)}
                   placeholder={`Provide mandatory operational justification for ${targetStatus}...`}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground focus:ring-2 focus:ring-solar-500"
                   required
@@ -1300,13 +1459,15 @@ export const ProjectDetailPage: React.FC = () => {
             <h3 className="text-lg font-bold text-foreground">Advance Installation Stage</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Target Stage</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Target Stage
+                </label>
                 <select
                   value={targetStage}
-                  onChange={(e) => setTargetStage(e.target.value)}
+                  onChange={e => setTargetStage(e.target.value)}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 >
-                  {STAGES.map((s) => (
+                  {STAGES.map(s => (
                     <option key={s.key} value={s.key}>
                       {s.fullName}
                     </option>
@@ -1315,11 +1476,13 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Operational Notes (Optional)</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Operational Notes (Optional)
+                </label>
                 <textarea
                   rows={3}
                   value={stageNotes}
-                  onChange={(e) => setStageNotes(e.target.value)}
+                  onChange={e => setStageNotes(e.target.value)}
                   placeholder="Notes regarding phase handover, inspection results, or field sign-offs..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -1352,10 +1515,13 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
             <h3 className="text-lg font-bold text-foreground">
-              {milestoneTargetStatus === 'BLOCKED' ? 'Report Milestone Blocker' : 'Sign-off Milestone'}
+              {milestoneTargetStatus === 'BLOCKED'
+                ? 'Report Milestone Blocker'
+                : 'Sign-off Milestone'}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Milestone: <span className="font-semibold text-foreground">{selectedMilestone.name}</span>
+              Milestone:{' '}
+              <span className="font-semibold text-foreground">{selectedMilestone.name}</span>
             </p>
 
             {milestoneTargetStatus === 'BLOCKED' && (
@@ -1366,7 +1532,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <textarea
                   rows={3}
                   value={milestoneBlockerReason}
-                  onChange={(e) => setMilestoneBlockerReason(e.target.value)}
+                  onChange={e => setMilestoneBlockerReason(e.target.value)}
                   placeholder="Specify blocker reason (e.g., DISCOM approval pending, site access denied)..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   required
@@ -1409,18 +1575,22 @@ export const ProjectDetailPage: React.FC = () => {
                   type="text"
                   required
                   value={newMilestoneData.name}
-                  onChange={(e) => setNewMilestoneData({ ...newMilestoneData, name: e.target.value })}
+                  onChange={e => setNewMilestoneData({ ...newMilestoneData, name: e.target.value })}
                   placeholder="e.g. DG Synchronization Test"
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Description</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Description
+                </label>
                 <textarea
                   rows={2}
                   value={newMilestoneData.description}
-                  onChange={(e) => setNewMilestoneData({ ...newMilestoneData, description: e.target.value })}
+                  onChange={e =>
+                    setNewMilestoneData({ ...newMilestoneData, description: e.target.value })
+                  }
                   placeholder="Quality criteria or acceptance notes..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
@@ -1428,21 +1598,32 @@ export const ProjectDetailPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">Display Order</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Display Order
+                  </label>
                   <input
                     type="number"
                     min={1}
                     value={newMilestoneData.displayOrder}
-                    onChange={(e) => setNewMilestoneData({ ...newMilestoneData, displayOrder: Number(e.target.value) })}
+                    onChange={e =>
+                      setNewMilestoneData({
+                        ...newMilestoneData,
+                        displayOrder: Number(e.target.value)
+                      })
+                    }
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">Target Due Date</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Target Due Date
+                  </label>
                   <input
                     type="date"
                     value={newMilestoneData.targetDueDate}
-                    onChange={(e) => setNewMilestoneData({ ...newMilestoneData, targetDueDate: e.target.value })}
+                    onChange={e =>
+                      setNewMilestoneData({ ...newMilestoneData, targetDueDate: e.target.value })
+                    }
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
@@ -1483,32 +1664,36 @@ export const ProjectDetailPage: React.FC = () => {
                   type="text"
                   required
                   value={newTaskData.title}
-                  onChange={(e) => setNewTaskData({ ...newTaskData, title: e.target.value })}
+                  onChange={e => setNewTaskData({ ...newTaskData, title: e.target.value })}
                   placeholder="e.g. Roof penetration sealing verification"
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Description</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Description
+                </label>
                 <textarea
                   rows={2}
                   value={newTaskData.description}
-                  onChange={(e) => setNewTaskData({ ...newTaskData, description: e.target.value })}
+                  onChange={e => setNewTaskData({ ...newTaskData, description: e.target.value })}
                   placeholder="Detailed instructions or specifications..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Associated Milestone (Optional)</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Associated Milestone (Optional)
+                </label>
                 <select
                   value={newTaskData.milestoneId}
-                  onChange={(e) => setNewTaskData({ ...newTaskData, milestoneId: e.target.value })}
+                  onChange={e => setNewTaskData({ ...newTaskData, milestoneId: e.target.value })}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 >
                   <option value="">No Milestone Linked</option>
-                  {project.milestones?.map((m) => (
+                  {project.milestones?.map(m => (
                     <option key={m._id} value={m._id}>
                       {m.displayOrder}. {m.name}
                     </option>
@@ -1518,10 +1703,12 @@ export const ProjectDetailPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">Priority</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Priority
+                  </label>
                   <select
                     value={newTaskData.priority}
-                    onChange={(e) => setNewTaskData({ ...newTaskData, priority: e.target.value })}
+                    onChange={e => setNewTaskData({ ...newTaskData, priority: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   >
                     <option value="LOW">Low</option>
@@ -1532,11 +1719,13 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">Due Date</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     value={newTaskData.dueDate}
-                    onChange={(e) => setNewTaskData({ ...newTaskData, dueDate: e.target.value })}
+                    onChange={e => setNewTaskData({ ...newTaskData, dueDate: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>

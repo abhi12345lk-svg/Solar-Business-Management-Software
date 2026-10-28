@@ -263,7 +263,11 @@ export async function seedDemoData(): Promise<void> {
     // 7. Installation Checklist
     let checklist: any = await ProjectInstallationChecklist.findOne({ projectId: project._id });
     if (!checklist) {
-      checklist = await ChecklistService.generateProjectChecklist(project._id.toString(), undefined, adminUser);
+      checklist = await ChecklistService.generateProjectChecklist(
+        project._id.toString(),
+        undefined,
+        adminUser
+      );
       console.log('✓ 5-Category Installation Checklist generated.');
     }
 
@@ -312,7 +316,9 @@ export async function seedDemoData(): Promise<void> {
         remarks: 'Joint site inspection scheduled for solar plant verification.'
       };
       await netMetering.save();
-      console.log(`✓ Net Metering Application ${netMetering.applicationNumber} created & scheduled.`);
+      console.log(
+        `✓ Net Metering Application ${netMetering.applicationNumber} created & scheduled.`
+      );
     }
 
     // 9. Subsidy Application (Phase 7A)
@@ -369,7 +375,9 @@ export async function seedDemoData(): Promise<void> {
         },
         adminUser
       );
-      console.log(`✓ Subsidy Application ${subsidy.applicationNumber} sanctioned and 1st DBT tranche recorded.`);
+      console.log(
+        `✓ Subsidy Application ${subsidy.applicationNumber} sanctioned and 1st DBT tranche recorded.`
+      );
     }
 
     // 10. CRM Leads & Follow-ups

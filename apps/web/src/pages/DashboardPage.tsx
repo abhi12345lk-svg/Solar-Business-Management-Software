@@ -162,16 +162,66 @@ export const DashboardPage: React.FC = () => {
   ];
 
   const phaseMatrix = [
-    { phase: 'Phase 1', title: 'Foundation, Toolchain & Standard Express Middleware', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 2', title: 'Argon2id Auth, Sessions, RBAC, TOTP MFA & CSRF Protection', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 3', title: 'Database Schemas, Sequence Engine, Product Catalog & Warehouses', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 4', title: 'CRM Pipeline: Leads, Surveys, Solar Design Engine, Quotations & PDFs', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 5', title: 'Supply Chain: Sales Orders, Multi-Location Inventory, Vendors, PO & GRN', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 6', title: 'Field Operations: 10-Stage Projects, Checklists, Dispatch & Evidence', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 7A', title: 'Net Metering (DISCOM Utility) & PM Surya Ghar Subsidy DBT Ledger', status: 'COMPLETE', color: 'text-emerald-600 bg-emerald-500/10' },
-    { phase: 'Phase 7B', title: 'Financial Management: Cash Receipts, Project Costing & Gross Margins', status: 'NEXT IN QUEUE', color: 'text-amber-600 bg-amber-500/10' },
-    { phase: 'Phase 8', title: 'After-Sales Service: Break-fix Complaints, Warranties & AMC Maintenance', status: 'PLANNED', color: 'text-slate-500 bg-slate-500/10' },
-    { phase: 'Phase 9-10', title: 'Customer Portal Triggers, Hardening, E2E Tests & Production Go-Live', status: 'PLANNED', color: 'text-slate-500 bg-slate-500/10' }
+    {
+      phase: 'Phase 1',
+      title: 'Foundation, Toolchain & Standard Express Middleware',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 2',
+      title: 'Argon2id Auth, Sessions, RBAC, TOTP MFA & CSRF Protection',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 3',
+      title: 'Database Schemas, Sequence Engine, Product Catalog & Warehouses',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 4',
+      title: 'CRM Pipeline: Leads, Surveys, Solar Design Engine, Quotations & PDFs',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 5',
+      title: 'Supply Chain: Sales Orders, Multi-Location Inventory, Vendors, PO & GRN',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 6',
+      title: 'Field Operations: 10-Stage Projects, Checklists, Dispatch & Evidence',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 7A',
+      title: 'Net Metering (DISCOM Utility) & PM Surya Ghar Subsidy DBT Ledger',
+      status: 'COMPLETE',
+      color: 'text-emerald-600 bg-emerald-500/10'
+    },
+    {
+      phase: 'Phase 7B',
+      title: 'Financial Management: Cash Receipts, Project Costing & Gross Margins',
+      status: 'NEXT IN QUEUE',
+      color: 'text-amber-600 bg-amber-500/10'
+    },
+    {
+      phase: 'Phase 8',
+      title: 'After-Sales Service: Break-fix Complaints, Warranties & AMC Maintenance',
+      status: 'PLANNED',
+      color: 'text-slate-500 bg-slate-500/10'
+    },
+    {
+      phase: 'Phase 9-10',
+      title: 'Customer Portal Triggers, Hardening, E2E Tests & Production Go-Live',
+      status: 'PLANNED',
+      color: 'text-slate-500 bg-slate-500/10'
+    }
   ];
 
   return (
@@ -189,12 +239,10 @@ export const DashboardPage: React.FC = () => {
                 325 Automated Tests Passing
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {SYSTEM_TITLE}
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{SYSTEM_TITLE}</h1>
             <p className="text-sm text-white/90 max-w-2xl leading-relaxed">
-              Enterprise management suite for rooftop solar engineering, procurement, field installations,
-              utility net metering, and government subsidy disbarment tracking.
+              Enterprise management suite for rooftop solar engineering, procurement, field
+              installations, utility net metering, and government subsidy disbarment tracking.
             </p>
           </div>
 
@@ -226,9 +274,7 @@ export const DashboardPage: React.FC = () => {
               <FolderKanban className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground">
-            {projectCount} Project
-          </div>
+          <div className="text-2xl font-black text-foreground">{projectCount} Project</div>
           <p className="text-xs text-muted-foreground mt-1">
             5.5 kWp &bull; Stage 2 (Net Metering)
           </p>
@@ -247,12 +293,8 @@ export const DashboardPage: React.FC = () => {
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground">
-            {leadCount} Leads
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Residential & Commercial Rooftops
-          </p>
+          <div className="text-2xl font-black text-foreground">{leadCount} Leads</div>
+          <p className="text-xs text-muted-foreground mt-1">Residential & Commercial Rooftops</p>
         </Link>
 
         {/* Card 3: Hardware Inventory */}
@@ -268,9 +310,7 @@ export const DashboardPage: React.FC = () => {
               <Boxes className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground">
-            150 Units
-          </div>
+          <div className="text-2xl font-black text-foreground">150 Units</div>
           <p className="text-xs text-muted-foreground mt-1">
             120x Panels &bull; 30x Inverters (Jaipur)
           </p>
@@ -289,9 +329,7 @@ export const DashboardPage: React.FC = () => {
               <Landmark className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground">
-            {subsidyAmount}
-          </div>
+          <div className="text-2xl font-black text-foreground">{subsidyAmount}</div>
           <p className="text-xs text-muted-foreground mt-1">
             PM Surya Ghar &bull; ₹50,000 Disbursed
           </p>
@@ -325,7 +363,9 @@ export const DashboardPage: React.FC = () => {
                     <div className="p-2 rounded-lg bg-solar-500/10 text-solar-600 group-hover:bg-solar-500/20 transition-colors">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${mod.badgeColor}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${mod.badgeColor}`}
+                    >
                       {mod.badge}
                     </span>
                   </div>
@@ -358,7 +398,8 @@ export const DashboardPage: React.FC = () => {
                 Software Implementation Traceability Matrix
               </h2>
               <p className="text-xs text-muted-foreground">
-                Current operational status of INS Solar ERP modules mapped against the approved 11-phase architecture.
+                Current operational status of INS Solar ERP modules mapped against the approved
+                11-phase architecture.
               </p>
             </div>
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
@@ -379,7 +420,9 @@ export const DashboardPage: React.FC = () => {
                   </span>
                   <span className="text-muted-foreground truncate">{item.title}</span>
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${item.color}`}>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${item.color}`}
+                >
                   {item.status}
                 </span>
               </div>
@@ -436,9 +479,7 @@ export const DashboardPage: React.FC = () => {
 
               <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/50 border">
                 <span className="text-muted-foreground">Test Suites</span>
-                <span className="text-emerald-600 font-bold">
-                  24 Suites &bull; 325 Passing
-                </span>
+                <span className="text-emerald-600 font-bold">24 Suites &bull; 325 Passing</span>
               </div>
             </div>
           </div>

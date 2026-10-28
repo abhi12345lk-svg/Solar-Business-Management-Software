@@ -32,52 +32,62 @@ import { AppError } from '../errors/AppError.js';
 export const DEFAULT_PROJECT_MILESTONES = [
   {
     name: 'Site Readiness & Physical Survey Verification',
-    description: 'Verify rooftop shadow clearance, access pathways, and customer meter room readiness.',
+    description:
+      'Verify rooftop shadow clearance, access pathways, and customer meter room readiness.',
     displayOrder: 1
   },
   {
     name: 'Engineering & Structural Design Sign-off',
-    description: 'Finalize PV layout, string sizing, cable routing diagrams, and structural weight load sign-off.',
+    description:
+      'Finalize PV layout, string sizing, cable routing diagrams, and structural weight load sign-off.',
     displayOrder: 2
   },
   {
     name: 'Net Metering & DISCOM Application Submission',
-    description: 'Submit net metering feasibility application and requisite documentation to regional DISCOM portal.',
+    description:
+      'Submit net metering feasibility application and requisite documentation to regional DISCOM portal.',
     displayOrder: 3
   },
   {
     name: 'Procurement & BOM Dispatch Readiness',
-    description: 'Allocate solar modules, inverter, structure, and BOS from warehouse custody for site dispatch.',
+    description:
+      'Allocate solar modules, inverter, structure, and BOS from warehouse custody for site dispatch.',
     displayOrder: 4
   },
   {
     name: 'Civil Structure & Roof Rail Mounting',
-    description: 'Erect galvanized steel mounting structures with civil anchors, torque tightening, and pull-out verification.',
+    description:
+      'Erect galvanized steel mounting structures with civil anchors, torque tightening, and pull-out verification.',
     displayOrder: 5
   },
   {
     name: 'Module Placement & DC String Cabling',
-    description: 'Mount solar PV modules with UV-resistant MC4 connectors, string cabling, and conduit dressing.',
+    description:
+      'Mount solar PV modules with UV-resistant MC4 connectors, string cabling, and conduit dressing.',
     displayOrder: 6
   },
   {
     name: 'Inverter & Switchgear (ACDB/DCDB) Installation',
-    description: 'Install solar string inverter, DC isolator switch, AC distribution box with SPDs and circuit breakers.',
+    description:
+      'Install solar string inverter, DC isolator switch, AC distribution box with SPDs and circuit breakers.',
     displayOrder: 7
   },
   {
     name: 'Earthing Pit & Lightning Arrester Termination',
-    description: 'Drill dedicated earthing pits for AC, DC, and LA with chemical compound and low-resistance bonding.',
+    description:
+      'Drill dedicated earthing pits for AC, DC, and LA with chemical compound and low-resistance bonding.',
     displayOrder: 8
   },
   {
     name: 'Testing, Inverter Synchronization & Pre-Commissioning',
-    description: 'Perform Voc/Isc continuity tests, earth loop impedance check, insulation resistance, and inverter power-on test.',
+    description:
+      'Perform Voc/Isc continuity tests, earth loop impedance check, insulation resistance, and inverter power-on test.',
     displayOrder: 9
   },
   {
     name: 'DISCOM Bi-directional Meter Install & Customer Handover',
-    description: 'Joint inspection with DISCOM engineer, bi-directional net meter sync, customer portal onboarding, and warranty handover.',
+    description:
+      'Joint inspection with DISCOM engineer, bi-directional net meter sync, customer portal onboarding, and warranty handover.',
     displayOrder: 10
   }
 ];
@@ -138,7 +148,9 @@ export class ProjectService {
     if (input.projectManagerId && input.projectManagerId.trim()) {
       const pmUser = await User.findById(input.projectManagerId);
       if (!pmUser || !pmUser.isActive) {
-        throw AppError.validation(`Project Manager with ID '${input.projectManagerId}' not found or inactive.`);
+        throw AppError.validation(
+          `Project Manager with ID '${input.projectManagerId}' not found or inactive.`
+        );
       }
       projectManagerId = pmUser._id;
     }
@@ -149,7 +161,9 @@ export class ProjectService {
       for (const memberId of input.teamMemberIds) {
         const teamUser = await User.findById(memberId);
         if (!teamUser || !teamUser.isActive) {
-          throw AppError.validation(`Team member user with ID '${memberId}' not found or inactive.`);
+          throw AppError.validation(
+            `Team member user with ID '${memberId}' not found or inactive.`
+          );
         }
         teamMemberIds.push(teamUser._id);
       }
@@ -251,7 +265,8 @@ export class ProjectService {
     if (filter.currentStage) query.currentStage = filter.currentStage;
     if (filter.priority) query.priority = filter.priority;
     if (filter.customerId) query.customerId = new Types.ObjectId(filter.customerId);
-    if (filter.projectManagerId) query.projectManagerId = new Types.ObjectId(filter.projectManagerId);
+    if (filter.projectManagerId)
+      query.projectManagerId = new Types.ObjectId(filter.projectManagerId);
 
     if (filter.search && filter.search.trim()) {
       const searchRegex = new RegExp(filter.search.trim(), 'i');
@@ -336,7 +351,9 @@ export class ProjectService {
       if (input.projectManagerId && input.projectManagerId.trim()) {
         const pm = await User.findById(input.projectManagerId);
         if (!pm || !pm.isActive) {
-          throw AppError.validation(`Project Manager with ID '${input.projectManagerId}' not found or inactive.`);
+          throw AppError.validation(
+            `Project Manager with ID '${input.projectManagerId}' not found or inactive.`
+          );
         }
         project.projectManagerId = pm._id;
       } else {
@@ -370,7 +387,8 @@ export class ProjectService {
     if (input.systemCapacityKwp !== undefined) project.systemCapacityKwp = input.systemCapacityKwp;
     if (input.systemTopology !== undefined) project.systemTopology = input.systemTopology;
     if (input.plannedStartDate !== undefined) project.plannedStartDate = input.plannedStartDate;
-    if (input.targetCompletionDate !== undefined) project.targetCompletionDate = input.targetCompletionDate;
+    if (input.targetCompletionDate !== undefined)
+      project.targetCompletionDate = input.targetCompletionDate;
     if (input.priority !== undefined) project.priority = input.priority;
     if (input.notes !== undefined) project.notes = input.notes.trim();
 
@@ -423,10 +441,14 @@ export class ProjectService {
     // IN_PROGRESS -> ON_HOLD, COMPLETED, CANCELLED
     // ON_HOLD -> IN_PROGRESS, CANCELLED
     if (oldStatus === ProjectStatus.PLANNING && newStatus === ProjectStatus.COMPLETED) {
-      throw AppError.businessRule('Project in PLANNING cannot directly transition to COMPLETED without being IN_PROGRESS.');
+      throw AppError.businessRule(
+        'Project in PLANNING cannot directly transition to COMPLETED without being IN_PROGRESS.'
+      );
     }
     if (oldStatus === ProjectStatus.ON_HOLD && newStatus === ProjectStatus.COMPLETED) {
-      throw AppError.businessRule('Project ON_HOLD must be resumed to IN_PROGRESS before marking COMPLETED.');
+      throw AppError.businessRule(
+        'Project ON_HOLD must be resumed to IN_PROGRESS before marking COMPLETED.'
+      );
     }
 
     // Reason requirement
@@ -441,7 +463,10 @@ export class ProjectService {
       }
       project.cancellationReason = input.reason.trim();
     } else if (newStatus === ProjectStatus.COMPLETED) {
-      if (mongoose.connection.readyState === 1 || (ProjectInstallationChecklist.findOne as any)?.mock) {
+      if (
+        mongoose.connection.readyState === 1 ||
+        (ProjectInstallationChecklist.findOne as any)?.mock
+      ) {
         const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
         if (checklist) {
           const incompleteItems: string[] = [];
@@ -508,7 +533,10 @@ export class ProjectService {
       input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
       input.stage === ProjectStage.STAGE_10_COMMISSION_HANDOVER
     ) {
-      if (mongoose.connection.readyState === 1 || (ProjectInstallationChecklist.findOne as any)?.mock) {
+      if (
+        mongoose.connection.readyState === 1 ||
+        (ProjectInstallationChecklist.findOne as any)?.mock
+      ) {
         const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
         if (checklist) {
           const incompleteItems: string[] = [];
@@ -639,7 +667,9 @@ export class ProjectService {
     const milestone = project.milestones.id(milestoneId);
 
     if (!milestone) {
-      throw AppError.notFound(`Milestone '${milestoneId}' not found in project ${project.projectCode}.`);
+      throw AppError.notFound(
+        `Milestone '${milestoneId}' not found in project ${project.projectCode}.`
+      );
     }
 
     if (input.name) milestone.name = input.name.trim();
@@ -652,7 +682,9 @@ export class ProjectService {
       if (input.assignedUserId && input.assignedUserId.trim()) {
         const u = await User.findById(input.assignedUserId);
         if (!u || !u.isActive) {
-          throw AppError.validation(`Assigned user '${input.assignedUserId}' not found or inactive.`);
+          throw AppError.validation(
+            `Assigned user '${input.assignedUserId}' not found or inactive.`
+          );
         }
         milestone.assignedUserId = u._id;
       } else {
@@ -696,7 +728,9 @@ export class ProjectService {
     const milestone = project.milestones.id(milestoneId);
 
     if (!milestone) {
-      throw AppError.notFound(`Milestone '${milestoneId}' not found in project ${project.projectCode}.`);
+      throw AppError.notFound(
+        `Milestone '${milestoneId}' not found in project ${project.projectCode}.`
+      );
     }
 
     const oldStatus = milestone.status;
@@ -704,7 +738,9 @@ export class ProjectService {
 
     if (newStatus === MilestoneStatus.BLOCKED) {
       if (!input.blockerReason || input.blockerReason.trim().length === 0) {
-        throw AppError.validation('Blocker reason is strictly required when setting status to BLOCKED.');
+        throw AppError.validation(
+          'Blocker reason is strictly required when setting status to BLOCKED.'
+        );
       }
       milestone.blockerReason = input.blockerReason.trim();
     } else {

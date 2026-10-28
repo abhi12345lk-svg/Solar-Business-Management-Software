@@ -142,15 +142,11 @@ serviceVisitRouter.patch(
         return next(AppError.badRequest('Cancellation reason is required.'));
       }
 
-      const updated = await ServiceVisitService.cancelVisit(
-        req.params.id as string,
-        reason,
-        {
-          userId: req.session.user?.userId,
-          role: req.session.user?.role,
-          department: req.session.user?.department
-        }
-      );
+      const updated = await ServiceVisitService.cancelVisit(req.params.id as string, reason, {
+        userId: req.session.user?.userId,
+        role: req.session.user?.role,
+        department: req.session.user?.department
+      });
 
       return sendSuccess(req, res, updated);
     } catch (err) {

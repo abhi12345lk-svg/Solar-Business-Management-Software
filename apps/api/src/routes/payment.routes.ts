@@ -216,15 +216,11 @@ paymentRouter.post(
       }
 
       const allocationId = String(req.params.allocationId || '');
-      const allocation = await PaymentService.reverseAllocation(
-        allocationId,
-        parseResult.data,
-        {
-          userId: req.session.user?.userId,
-          role: req.session.user?.role,
-          department: req.session.user?.department
-        }
-      );
+      const allocation = await PaymentService.reverseAllocation(allocationId, parseResult.data, {
+        userId: req.session.user?.userId,
+        role: req.session.user?.role,
+        department: req.session.user?.department
+      });
 
       return sendSuccess(req, res, allocation);
     } catch (err) {

@@ -197,11 +197,14 @@ export class SubsidyService {
 
     if (input.schemeName !== undefined) application.schemeName = input.schemeName;
     if (input.schemeVersion !== undefined) application.schemeVersion = input.schemeVersion?.trim();
-    if (input.effectivePeriod !== undefined) application.effectivePeriod = input.effectivePeriod?.trim();
+    if (input.effectivePeriod !== undefined)
+      application.effectivePeriod = input.effectivePeriod?.trim();
     if (input.portalApplicationNumber !== undefined)
       application.portalApplicationNumber = input.portalApplicationNumber?.trim();
     if (input.submissionDate !== undefined)
-      application.submissionDate = input.submissionDate ? new Date(input.submissionDate) : undefined;
+      application.submissionDate = input.submissionDate
+        ? new Date(input.submissionDate)
+        : undefined;
     if (input.systemCapacityKw !== undefined) application.systemCapacityKw = input.systemCapacityKw;
 
     if (input.estimatedAmountPaise !== undefined) {
@@ -216,7 +219,10 @@ export class SubsidyService {
         throw AppError.validation('requestedAmountPaise must be a non-negative integer in paise.');
       }
       // If already sanctioned, requested cannot be made less than approved without explicit audit
-      if (application.approvedAmountPaise > 0 && input.requestedAmountPaise < application.approvedAmountPaise) {
+      if (
+        application.approvedAmountPaise > 0 &&
+        input.requestedAmountPaise < application.approvedAmountPaise
+      ) {
         throw AppError.businessRule(
           `Requested amount (${input.requestedAmountPaise} paise) cannot be less than already approved amount (${application.approvedAmountPaise} paise).`
         );
@@ -225,10 +231,14 @@ export class SubsidyService {
     }
 
     if (input.assignedUserId !== undefined) {
-      application.assignedUserId = input.assignedUserId ? new Types.ObjectId(input.assignedUserId) : undefined;
+      application.assignedUserId = input.assignedUserId
+        ? new Types.ObjectId(input.assignedUserId)
+        : undefined;
     }
-    if (input.eligibilityVerified !== undefined) application.eligibilityVerified = input.eligibilityVerified;
-    if (input.eligibilityNotes !== undefined) application.eligibilityNotes = input.eligibilityNotes?.trim();
+    if (input.eligibilityVerified !== undefined)
+      application.eligibilityVerified = input.eligibilityVerified;
+    if (input.eligibilityNotes !== undefined)
+      application.eligibilityNotes = input.eligibilityNotes?.trim();
     if (input.notes !== undefined) application.notes = input.notes?.trim();
 
     await application.save();
@@ -280,10 +290,7 @@ export class SubsidyService {
         SubsidyStatus.APPLIED,
         SubsidyStatus.CANCELLED
       ],
-      [SubsidyStatus.DOCUMENTS_PENDING]: [
-        SubsidyStatus.APPLIED,
-        SubsidyStatus.CANCELLED
-      ],
+      [SubsidyStatus.DOCUMENTS_PENDING]: [SubsidyStatus.APPLIED, SubsidyStatus.CANCELLED],
       [SubsidyStatus.APPLIED]: [
         SubsidyStatus.CLAIM_SUBMITTED,
         SubsidyStatus.SANCTIONED,
@@ -300,10 +307,7 @@ export class SubsidyService {
         SubsidyStatus.FULLY_DISBURSED,
         SubsidyStatus.CANCELLED
       ],
-      [SubsidyStatus.PARTIALLY_DISBURSED]: [
-        SubsidyStatus.FULLY_DISBURSED,
-        SubsidyStatus.CANCELLED
-      ],
+      [SubsidyStatus.PARTIALLY_DISBURSED]: [SubsidyStatus.FULLY_DISBURSED, SubsidyStatus.CANCELLED],
       [SubsidyStatus.FULLY_DISBURSED]: [],
       [SubsidyStatus.REJECTED]: [
         // Allow documented resubmission/appeal
@@ -327,13 +331,17 @@ export class SubsidyService {
       const blockingDocs = application.documents.filter((doc: IApplicationDocument) => {
         if (!doc.isRequired) return false;
         const isNotUploaded = doc.status === ApplicationDocumentStatus.REQUIRED || !doc.storageKey;
-        const isRejected = doc.status === ApplicationDocumentStatus.REJECTED || doc.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED;
+        const isRejected =
+          doc.status === ApplicationDocumentStatus.REJECTED ||
+          doc.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED;
         const isExpired = doc.status === ApplicationDocumentStatus.EXPIRED;
         return isNotUploaded || isRejected || isExpired;
       });
 
       if (blockingDocs.length > 0) {
-        const issues = blockingDocs.map((d: IApplicationDocument) => `${d.title} (${d.status})`).join('; ');
+        const issues = blockingDocs
+          .map((d: IApplicationDocument) => `${d.title} (${d.status})`)
+          .join('; ');
         throw AppError.businessRule(
           `Cannot transition application to '${newStatus}'. Required subsidy documents are missing or rejected: [${issues}].`
         );
@@ -342,7 +350,10 @@ export class SubsidyService {
 
     // DISBURSEMENT STATUS INVARIANT:
     // Cannot manually mark PARTIALLY_DISBURSED or FULLY_DISBURSED without actual recorded disbursements
-    if (newStatus === SubsidyStatus.PARTIALLY_DISBURSED || newStatus === SubsidyStatus.FULLY_DISBURSED) {
+    if (
+      newStatus === SubsidyStatus.PARTIALLY_DISBURSED ||
+      newStatus === SubsidyStatus.FULLY_DISBURSED
+    ) {
       if (application.disbursements.length === 0 || application.disbursedAmountPaise === 0) {
         throw AppError.businessRule(
           `Cannot transition to '${newStatus}' without recorded disbursements. Record actual disbursement ledger entries first.`
@@ -586,7 +597,9 @@ export class SubsidyService {
       throw AppError.notFound(`Subsidy Application '${id}' not found.`);
     }
 
-    let doc = application.documents.find((d: IApplicationDocument) => d.documentType === input.documentType);
+    let doc = application.documents.find(
+      (d: IApplicationDocument) => d.documentType === input.documentType
+    );
     if (!doc) {
       doc = {
         id: new Types.ObjectId().toString(),
@@ -638,7 +651,10 @@ export class SubsidyService {
     doc.reviewedBy = new Types.ObjectId(user.userId);
     doc.reviewedAt = new Date();
     doc.reviewNotes = input.reviewNotes?.trim();
-    if (input.status === ApplicationDocumentStatus.REJECTED || input.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED) {
+    if (
+      input.status === ApplicationDocumentStatus.REJECTED ||
+      input.status === ApplicationDocumentStatus.RESUBMISSION_REQUIRED
+    ) {
       doc.rejectionReason = input.rejectionReason?.trim() || input.reviewNotes?.trim();
     }
 
@@ -671,7 +687,9 @@ export class SubsidyService {
 
     if (userOrCustomer.customerId) {
       if (application.customerId.toString() !== userOrCustomer.customerId) {
-        throw AppError.forbidden('Access denied: You may only access documents for your own subsidy applications.');
+        throw AppError.forbidden(
+          'Access denied: You may only access documents for your own subsidy applications.'
+        );
       }
     }
 
@@ -695,7 +713,12 @@ export class SubsidyService {
   public static async listApplications(
     filter: SubsidyFilterInput,
     customerId?: string
-  ): Promise<{ applications: ISubsidyApplicationDocument[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    applications: ISubsidyApplicationDocument[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const query: Record<string, any> = {};
 
     if (customerId) {
@@ -759,17 +782,29 @@ export class SubsidyService {
     }
 
     const application = await SubsidyApplication.findById(id)
-      .populate('projectId', 'projectCode name capacityKw systemCapacityKw status stage destinationSiteAddress')
+      .populate(
+        'projectId',
+        'projectCode name capacityKw systemCapacityKw status stage destinationSiteAddress'
+      )
       .populate('customerId', 'customerCode name phone email')
-      .populate('netMeteringApplicationId', 'applicationNumber discomName consumerNumber status inspectionSchedule meterInstallation')
+      .populate(
+        'netMeteringApplicationId',
+        'applicationNumber discomName consumerNumber status inspectionSchedule meterInstallation'
+      )
       .populate('assignedUserId', 'firstName lastName email department');
 
     if (!application) {
       throw AppError.notFound(`Subsidy Application '${id}' not found.`);
     }
 
-    if (customerId && application.customerId._id?.toString() !== customerId && application.customerId.toString() !== customerId) {
-      throw AppError.forbidden('Access denied: You cannot view applications belonging to other customers.');
+    if (
+      customerId &&
+      application.customerId._id?.toString() !== customerId &&
+      application.customerId.toString() !== customerId
+    ) {
+      throw AppError.forbidden(
+        'Access denied: You cannot view applications belonging to other customers.'
+      );
     }
 
     return application;

@@ -85,7 +85,9 @@ export const EmployeesPage: React.FC = () => {
       if (selectedAvailability) queryParams.set('availability', selectedAvailability);
       if (selectedStatus) queryParams.set('employmentStatus', selectedStatus);
 
-      const res = await apiClient<{ items: EmployeeItem[] }>(`/employees?${queryParams.toString()}`);
+      const res = await apiClient<{ items: EmployeeItem[] }>(
+        `/employees?${queryParams.toString()}`
+      );
       setEmployees(res?.items || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load employees.');
@@ -308,7 +310,9 @@ export const EmployeesPage: React.FC = () => {
           <div className="p-12 text-center text-gray-500">
             <Users className="w-12 h-12 mx-auto text-gray-300 mb-3" />
             <p className="font-medium text-gray-700">No employee profiles found.</p>
-            <p className="text-sm text-gray-400">Try adjusting search filters or link a user account.</p>
+            <p className="text-sm text-gray-400">
+              Try adjusting search filters or link a user account.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -339,7 +343,9 @@ export const EmployeesPage: React.FC = () => {
                         <div className="text-xs text-amber-600 font-mono font-semibold">
                           {emp.employeeCode}
                         </div>
-                        <div className="text-xs text-gray-400">{email} {phone ? `• ${phone}` : ''}</div>
+                        <div className="text-xs text-gray-400">
+                          {email} {phone ? `• ${phone}` : ''}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">
@@ -353,7 +359,9 @@ export const EmployeesPage: React.FC = () => {
                         {emp.teamId ? (
                           <div className="flex flex-col">
                             <span className="font-medium text-gray-800">{emp.teamId.name}</span>
-                            <span className="text-xs text-gray-400 font-mono">{emp.teamId.teamCode}</span>
+                            <span className="text-xs text-gray-400 font-mono">
+                              {emp.teamId.teamCode}
+                            </span>
                             {emp.isTeamLead && (
                               <span className="text-[10px] uppercase font-bold text-amber-600">
                                 Team Lead
@@ -372,8 +380,8 @@ export const EmployeesPage: React.FC = () => {
                               emp.availability === 'AVAILABLE'
                                 ? 'bg-emerald-500'
                                 : emp.availability === 'BUSY'
-                                ? 'bg-amber-500'
-                                : 'bg-red-400'
+                                  ? 'bg-amber-500'
+                                  : 'bg-red-400'
                             }`}
                           />
                           <span className="text-xs font-medium text-gray-700 capitalize">
@@ -427,7 +435,9 @@ export const EmployeesPage: React.FC = () => {
                             <span className="text-gray-400 text-xs italic">None</span>
                           )}
                           {emp.skills && emp.skills.length > 3 && (
-                            <span className="text-[10px] text-gray-400">+{emp.skills.length - 3}</span>
+                            <span className="text-[10px] text-gray-400">
+                              +{emp.skills.length - 3}
+                            </span>
                           )}
                         </div>
                       </td>
@@ -466,7 +476,8 @@ export const EmployeesPage: React.FC = () => {
               Link Employee Profile
             </h3>
             <p className="text-xs text-gray-500">
-              Attach operational HR metadata to an existing user without duplicating authentication credentials.
+              Attach operational HR metadata to an existing user without duplicating authentication
+              credentials.
             </p>
 
             {formError && (
@@ -577,7 +588,8 @@ export const EmployeesPage: React.FC = () => {
               Deactivate Employee: {targetEmployee.employeeCode}
             </h3>
             <p className="text-xs text-gray-600">
-              This action terminates active employment status and revokes system access. Historical project tasks, service visits, and audit logs will be permanently preserved.
+              This action terminates active employment status and revokes system access. Historical
+              project tasks, service visits, and audit logs will be permanently preserved.
             </p>
 
             {formError && (

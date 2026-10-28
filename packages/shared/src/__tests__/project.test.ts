@@ -56,7 +56,9 @@ describe('Phase 6A — Shared Project, Milestone & Task Schemas', () => {
     if (!result.success) {
       const err = result.error.errors.find(e => e.path.includes('targetCompletionDate'));
       expect(err).toBeDefined();
-      expect(err?.message).toContain('Target completion date must be on or after planned start date');
+      expect(err?.message).toContain(
+        'Target completion date must be on or after planned start date'
+      );
     }
   });
 

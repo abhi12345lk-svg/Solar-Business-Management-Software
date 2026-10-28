@@ -72,7 +72,9 @@ export class MaterialDispatchService {
     }
 
     if (['COMPLETED', 'CANCELLED'].includes(project.status)) {
-      throw AppError.businessRule(`Cannot dispatch materials to a project in '${project.status}' status.`);
+      throw AppError.businessRule(
+        `Cannot dispatch materials to a project in '${project.status}' status.`
+      );
     }
 
     if (!Types.ObjectId.isValid(input.sourceWarehouseId)) {
@@ -121,7 +123,11 @@ export class MaterialDispatchService {
     }
 
     const processedLineItems: any[] = [];
-    const rollbackStockBalances: Array<{ productId: Types.ObjectId; quantity: number; wasReserved: boolean }> = [];
+    const rollbackStockBalances: Array<{
+      productId: Types.ObjectId;
+      quantity: number;
+      wasReserved: boolean;
+    }> = [];
     const rollbackSerials: string[] = [];
 
     try {
@@ -186,7 +192,9 @@ export class MaterialDispatchService {
         });
 
         // Validate serial numbers if provided
-        const normalizedSerials = item.serialNumbers ? item.serialNumbers.map(s => s.toUpperCase().trim()) : [];
+        const normalizedSerials = item.serialNumbers
+          ? item.serialNumbers.map(s => s.toUpperCase().trim())
+          : [];
         if (normalizedSerials.length > 0) {
           if (normalizedSerials.length !== item.requestedQuantity) {
             throw AppError.validation(
@@ -234,7 +242,9 @@ export class MaterialDispatchService {
           serialNumbers: normalizedSerials.length > 0 ? normalizedSerials : undefined,
           performedBy: new Types.ObjectId(user.userId),
           reason: `Installation dispatch to project ${project.projectCode}`,
-          idempotencyKey: input.idempotencyKey ? `${input.idempotencyKey}-${product._id}` : undefined
+          idempotencyKey: input.idempotencyKey
+            ? `${input.idempotencyKey}-${product._id}`
+            : undefined
         });
 
         await movement.save();
@@ -244,7 +254,8 @@ export class MaterialDispatchService {
           requestedQuantity: item.requestedQuantity,
           issuedQuantity: item.requestedQuantity,
           serialNumbers: normalizedSerials,
-          stockMovementId: movement._id
+          stockMovementId: movement._id,
+          unitCostPaise: product.standardPurchaseRatePaise || 0
         });
       }
     } catch (err) {
@@ -343,7 +354,9 @@ export class MaterialDispatchService {
     }
 
     if (dispatch.status === MaterialDispatchStatus.CANCELLED) {
-      throw AppError.businessRule(`Dispatch slip '${dispatch.dispatchNumber}' is already cancelled.`);
+      throw AppError.businessRule(
+        `Dispatch slip '${dispatch.dispatchNumber}' is already cancelled.`
+      );
     }
 
     const project = await Project.findById(dispatch.projectId);
@@ -438,7 +451,11 @@ export class MaterialDispatchService {
     }
     if (filter.search && filter.search.trim()) {
       const searchRegex = new RegExp(filter.search.trim(), 'i');
-      query.$or = [{ dispatchNumber: searchRegex }, { vehicleNumber: searchRegex }, { driverName: searchRegex }];
+      query.$or = [
+        { dispatchNumber: searchRegex },
+        { vehicleNumber: searchRegex },
+        { driverName: searchRegex }
+      ];
     }
 
     const page = filter.page || 1;
@@ -520,7 +537,10 @@ export class MaterialDispatchService {
 
     // If originating order exists, populate contracted BOM quantities
     if (project.orderId) {
-      const order = await SalesOrder.findById(project.orderId).populate('lineItems.productId', 'name sku uom');
+      const order = await SalesOrder.findById(project.orderId).populate(
+        'lineItems.productId',
+        'name sku uom'
+      );
       if (order && order.lineItems) {
         for (const ol of order.lineItems) {
           if (ol.productId) {

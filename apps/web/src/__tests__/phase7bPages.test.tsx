@@ -237,7 +237,9 @@ describe('Phase 7B Frontend: Service, Warranty, AMC & Service Visits', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Hardware Warranties & Claims/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Hardware Warranties & Claims/i })
+      ).toBeInTheDocument();
       expect(screen.getByText('INV-SOLIS-992211')).toBeInTheDocument();
       expect(screen.getByText('Solis 10kW On-Grid Inverter 3-Phase')).toBeInTheDocument();
       expect(screen.getByText('SOLIS-INDIA-WRN-88331')).toBeInTheDocument();
@@ -273,7 +275,9 @@ describe('Phase 7B Frontend: Service, Warranty, AMC & Service Visits', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Annual Maintenance Contracts \(AMC\)/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Annual Maintenance Contracts \(AMC\)/i })
+      ).toBeInTheDocument();
       expect(screen.getByText('AMC-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Sharma Residence')).toBeInTheDocument();
       // 2500000 paise = ₹25,000
@@ -303,10 +307,14 @@ describe('Phase 7B Frontend: Service, Warranty, AMC & Service Visits', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Service Visits & Technician Dispatch/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Service Visits & Technician Dispatch/i })
+      ).toBeInTheDocument();
       expect(screen.getByText('VIS-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Vikram Singh')).toBeInTheDocument();
-      expect(screen.getByText('Inspect inverter internal capacitor and grid sync settings')).toBeInTheDocument();
+      expect(
+        screen.getByText('Inspect inverter internal capacitor and grid sync settings')
+      ).toBeInTheDocument();
     });
   });
 
@@ -333,7 +341,9 @@ describe('Phase 7B Frontend: Service, Warranty, AMC & Service Visits', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Customer Service & Support Portal/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Customer Service & Support Portal/i })
+      ).toBeInTheDocument();
       expect(screen.getByText('CMP-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Inverter Error Code E04 Grid Fault')).toBeInTheDocument();
     });

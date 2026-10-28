@@ -112,7 +112,12 @@ projectRouter.put(
         correlationId: (req as any).correlationId
       };
 
-      const project = await ProjectService.updateProject(req.params.id as string, parseResult.data, user, context);
+      const project = await ProjectService.updateProject(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, project);
     } catch (err) {
       return next(err);
@@ -141,7 +146,12 @@ projectRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const project = await ProjectService.updateProjectStatus(req.params.id as string, parseResult.data, user, context);
+      const project = await ProjectService.updateProjectStatus(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, project);
     } catch (err) {
       return next(err);
@@ -170,7 +180,12 @@ projectRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const project = await ProjectService.advanceProjectStage(req.params.id as string, parseResult.data, user, context);
+      const project = await ProjectService.advanceProjectStage(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, project);
     } catch (err) {
       return next(err);
@@ -199,7 +214,12 @@ projectRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const project = await ProjectService.addMilestone(req.params.id as string, parseResult.data, user, context);
+      const project = await ProjectService.addMilestone(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, project, 201);
     } catch (err) {
       return next(err);
@@ -323,7 +343,12 @@ projectRouter.post(
         correlationId: (req as any).correlationId
       };
 
-      const task = await ProjectTaskService.createTask(req.params.id as string, parseResult.data, user, context);
+      const task = await ProjectTaskService.createTask(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, task, 201);
     } catch (err) {
       return next(err);
@@ -360,7 +385,9 @@ projectRouter.get(
   requirePermission('project:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await MaterialDispatchService.getProjectMaterialSummary(req.params.id as string);
+      const result = await MaterialDispatchService.getProjectMaterialSummary(
+        req.params.id as string
+      );
       return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);

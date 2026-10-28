@@ -50,35 +50,41 @@ customerPaymentRouter.get('/', async (req: Request, res: Response, next: NextFun
  * GET /api/v1/customer-portal/payments/receivables
  * Get authenticated customer's orders, payments summary, and outstanding balance.
  */
-customerPaymentRouter.get('/receivables', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const result = await PaymentService.getCustomerReceivables(customerId, {
-      isCustomer: true,
-      customerId
-    });
+customerPaymentRouter.get(
+  '/receivables',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const result = await PaymentService.getCustomerReceivables(customerId, {
+        isCustomer: true,
+        customerId
+      });
 
-    return sendSuccess(req, res, result);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/customer-portal/payments/:id/receipt
  * Get printable operational payment receipt for customer.
  */
-customerPaymentRouter.get('/:id/receipt', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const customerId = req.session.customer!.customerId;
-    const paymentId = String(req.params.id || '');
-    const receipt = await PaymentService.getReceiptDocument(paymentId, {
-      isCustomer: true,
-      customerId
-    });
+customerPaymentRouter.get(
+  '/:id/receipt',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const paymentId = String(req.params.id || '');
+      const receipt = await PaymentService.getReceiptDocument(paymentId, {
+        isCustomer: true,
+        customerId
+      });
 
-    return sendSuccess(req, res, receipt);
-  } catch (err) {
-    return next(err);
+      return sendSuccess(req, res, receipt);
+    } catch (err) {
+      return next(err);
+    }
   }
-});
+);

@@ -27,7 +27,8 @@ export const uploadDocumentMetadataSchema = z.object({
     .default(DocumentAccessClassification.INTERNAL_ONLY)
     .optional(),
   mimeType: z.string().refine(val => (ALLOWED_MIME_TYPES as readonly string[]).includes(val), {
-    message: 'Unsupported document MIME type. Allowed formats: PDF, JPEG, PNG, WEBP, XLSX, DOCX, TXT, CSV.'
+    message:
+      'Unsupported document MIME type. Allowed formats: PDF, JPEG, PNG, WEBP, XLSX, DOCX, TXT, CSV.'
   }),
   fileSizeBytes: z
     .number()
@@ -35,10 +36,19 @@ export const uploadDocumentMetadataSchema = z.object({
     .min(1)
     .max(MAX_DOCUMENT_FILE_SIZE_BYTES, 'Document file size must not exceed 25MB'),
   checksumSha256: z.string().max(128).optional(),
-  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  customerId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  projectId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   relatedEntityType: z.string().max(50).optional(),
-  relatedEntityId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  relatedEntityId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   expiryDate: z.coerce.date().optional(),
   metadata: z.record(z.any()).default({}).optional()
 });
@@ -66,7 +76,8 @@ export const reviewDocumentSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['rejectionReason'],
-        message: 'Rejection reason must be at least 5 characters when rejecting or requesting resubmission.'
+        message:
+          'Rejection reason must be at least 5 characters when rejecting or requesting resubmission.'
       });
     }
   });
@@ -86,10 +97,19 @@ export const documentFilterSchema = z.object({
   category: z.nativeEnum(DocumentCategory).optional(),
   accessClassification: z.nativeEnum(DocumentAccessClassification).optional(),
   reviewStatus: z.nativeEnum(DocumentReviewStatus).optional(),
-  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  customerId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  projectId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   relatedEntityType: z.string().optional(),
-  relatedEntityId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  relatedEntityId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   isLatestVersion: z
     .string()
     .optional()
@@ -99,7 +119,10 @@ export const documentFilterSchema = z.object({
     .optional()
     .transform(val => (val === undefined ? undefined : val === 'true')),
   search: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'safeDisplayName', 'fileSizeBytes', 'reviewStatus', 'category']).default('createdAt').optional(),
+  sortBy: z
+    .enum(['createdAt', 'safeDisplayName', 'fileSizeBytes', 'reviewStatus', 'category'])
+    .default('createdAt')
+    .optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
   page: z.coerce.number().int().min(1).default(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20).optional()

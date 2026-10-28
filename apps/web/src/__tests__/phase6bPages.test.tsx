@@ -306,14 +306,24 @@ describe('Phase 6B Frontend: Material Dispatch & Installation Checklist', () => 
 
       // Commissioning blocker warning banner (item-2 is FAILED)
       expect(screen.getByText(/Commissioning Stage Gates Blocked/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Torque on clamp bolts measured below specified 14 Nm/i).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Torque on clamp bolts measured below specified 14 Nm/i).length
+      ).toBeGreaterThanOrEqual(1);
 
       // 5 categories present in pills or sections
       expect(screen.getAllByText(/1\. Site Readiness & Safety/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/2\. Mounting Structure & Modules/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/3\. DC Wiring, Protection & Earthing/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/4\. Inverter, AC & Protection/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/5\. Testing & Handover Readiness/i).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/2\. Mounting Structure & Modules/i).length
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/3\. DC Wiring, Protection & Earthing/i).length
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/4\. Inverter, AC & Protection/i).length).toBeGreaterThanOrEqual(
+        1
+      );
+      expect(
+        screen.getAllByText(/5\. Testing & Handover Readiness/i).length
+      ).toBeGreaterThanOrEqual(1);
 
       // Inspection item codes and statuses
       expect(screen.getByText('CHK-01-01')).toBeInTheDocument();

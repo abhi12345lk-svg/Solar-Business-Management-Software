@@ -59,7 +59,8 @@ export class ChecklistService {
               },
               {
                 itemCode: 'CHK-01-02',
-                description: 'Safety lifelines, scaffolding, and personal fall arrest anchor points inspected',
+                description:
+                  'Safety lifelines, scaffolding, and personal fall arrest anchor points inspected',
                 isRequired: true,
                 requiresEvidence: true
               },
@@ -77,13 +78,15 @@ export class ChecklistService {
             items: [
               {
                 itemCode: 'CHK-02-01',
-                description: 'Module mounting structure (MMS) fasteners torqued to specified Nm with anti-seize',
+                description:
+                  'Module mounting structure (MMS) fasteners torqued to specified Nm with anti-seize',
                 isRequired: true,
                 requiresEvidence: false
               },
               {
                 itemCode: 'CHK-02-02',
-                description: 'Roof penetration chemical anchoring, grouting, and waterproofing membrane sealed',
+                description:
+                  'Roof penetration chemical anchoring, grouting, and waterproofing membrane sealed',
                 isRequired: true,
                 requiresEvidence: true
               },
@@ -125,7 +128,8 @@ export class ChecklistService {
             items: [
               {
                 itemCode: 'CHK-04-01',
-                description: 'Inverter mounted in shaded, ventilated location with IP65 gland seals intact',
+                description:
+                  'Inverter mounted in shaded, ventilated location with IP65 gland seals intact',
                 isRequired: true,
                 requiresEvidence: true
               },
@@ -149,7 +153,8 @@ export class ChecklistService {
             items: [
               {
                 itemCode: 'CHK-05-01',
-                description: 'String open-circuit voltage (Voc) and short-circuit current (Isc) test sign-off',
+                description:
+                  'String open-circuit voltage (Voc) and short-circuit current (Isc) test sign-off',
                 isRequired: true,
                 requiresEvidence: true
               },
@@ -161,13 +166,15 @@ export class ChecklistService {
               },
               {
                 itemCode: 'CHK-05-03',
-                description: 'DISCOM bi-directional net-meter synchronization and anti-islanding test pass',
+                description:
+                  'DISCOM bi-directional net-meter synchronization and anti-islanding test pass',
                 isRequired: true,
                 requiresEvidence: true
               },
               {
                 itemCode: 'CHK-05-04',
-                description: 'Customer handover documentation, test certificates, and warranty pack delivered',
+                description:
+                  'Customer handover documentation, test certificates, and warranty pack delivered',
                 isRequired: true,
                 requiresEvidence: false
               }
@@ -270,14 +277,17 @@ export class ChecklistService {
   /**
    * 3. Get Project Checklist (or auto-generate default if not yet generated).
    */
-  public static async getProjectChecklist(projectId: string): Promise<IProjectInstallationChecklistDocument> {
+  public static async getProjectChecklist(
+    projectId: string
+  ): Promise<IProjectInstallationChecklistDocument> {
     if (!Types.ObjectId.isValid(projectId)) {
       throw AppError.validation(`Invalid project ID '${projectId}'.`);
     }
 
-    let checklist: IProjectInstallationChecklistDocument | null = await ProjectInstallationChecklist.findOne({
-      projectId: new Types.ObjectId(projectId)
-    });
+    let checklist: IProjectInstallationChecklistDocument | null =
+      await ProjectInstallationChecklist.findOne({
+        projectId: new Types.ObjectId(projectId)
+      });
 
     if (!checklist) {
       // Auto-generate default checklist for active project
@@ -324,7 +334,10 @@ export class ChecklistService {
 
     // Evidence rule: cannot pass mandatory checklist item if template specifies evidence is required
     if (input.status === ChecklistItemStatus.PASSED) {
-      if (targetItem.requiresEvidence && (!targetItem.evidence || targetItem.evidence.length === 0)) {
+      if (
+        targetItem.requiresEvidence &&
+        (!targetItem.evidence || targetItem.evidence.length === 0)
+      ) {
         throw AppError.validation(
           `Cannot mark checklist item '${targetItem.description}' as PASSED without required photo evidence.`
         );
@@ -335,7 +348,9 @@ export class ChecklistService {
       targetItem.completedAt = new Date();
     } else if (input.status === ChecklistItemStatus.FAILED) {
       if (!input.failureReason || !input.failureReason.trim()) {
-        throw AppError.validation('Failure reason is strictly required when setting item status to FAILED.');
+        throw AppError.validation(
+          'Failure reason is strictly required when setting item status to FAILED.'
+        );
       }
       targetItem.failureReason = input.failureReason.trim();
       targetItem.blockerReason = undefined;
@@ -343,7 +358,9 @@ export class ChecklistService {
       targetItem.completedAt = new Date();
     } else if (input.status === ChecklistItemStatus.BLOCKED) {
       if (!input.blockerReason || !input.blockerReason.trim()) {
-        throw AppError.validation('Blocker reason is strictly required when setting item status to BLOCKED.');
+        throw AppError.validation(
+          'Blocker reason is strictly required when setting item status to BLOCKED.'
+        );
       }
       targetItem.blockerReason = input.blockerReason.trim();
       targetItem.failureReason = undefined;
@@ -409,14 +426,19 @@ export class ChecklistService {
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.fileSizeBytes > MAX_FILE_SIZE) {
-      throw AppError.validation(`File size (${(file.fileSizeBytes / 1024 / 1024).toFixed(2)} MB) exceeds maximum 10 MB limit.`);
+      throw AppError.validation(
+        `File size (${(file.fileSizeBytes / 1024 / 1024).toFixed(2)} MB) exceeds maximum 10 MB limit.`
+      );
     }
 
     if (metadata.latitude !== undefined && (metadata.latitude < -90 || metadata.latitude > 90)) {
       throw AppError.validation('Latitude must be between -90 and 90 degrees.');
     }
 
-    if (metadata.longitude !== undefined && (metadata.longitude < -180 || metadata.longitude > 180)) {
+    if (
+      metadata.longitude !== undefined &&
+      (metadata.longitude < -180 || metadata.longitude > 180)
+    ) {
       throw AppError.validation('Longitude must be between -180 and 180 degrees.');
     }
 
@@ -502,7 +524,9 @@ export class ChecklistService {
     // If request is from customer portal, verify customer ownership
     if (userOrCustomer.customerId) {
       if (project.customerId.toString() !== userOrCustomer.customerId) {
-        throw AppError.forbidden('Access denied: You cannot view evidence for another customer project.');
+        throw AppError.forbidden(
+          'Access denied: You cannot view evidence for another customer project.'
+        );
       }
     }
 

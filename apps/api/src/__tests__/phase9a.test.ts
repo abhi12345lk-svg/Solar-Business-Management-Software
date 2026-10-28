@@ -137,7 +137,11 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
           message: 'Your solar rooftop mounting structure has been installed and inspected.',
           entityType: 'PROJECT',
           entityId: new Types.ObjectId().toString(),
-          deliveryChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP]
+          deliveryChannels: [
+            NotificationChannel.IN_APP,
+            NotificationChannel.EMAIL,
+            NotificationChannel.WHATSAPP
+          ]
         },
         {
           userId: employeeUserId,
@@ -216,7 +220,11 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
         eventType: 'QUOTATION_APPROVED',
         title: 'Quotation Ready',
         message: 'Your customized solar proposal is ready for digital approval.',
-        deliveryChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP]
+        deliveryChannels: [
+          NotificationChannel.IN_APP,
+          NotificationChannel.EMAIL,
+          NotificationChannel.WHATSAPP
+        ]
       });
 
       expect(notif).toBeDefined();
@@ -346,7 +354,9 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
       const resNotif = await request(app).get('/api/v1/customer-portal/notifications');
       expect(resNotif.status).toBe(401);
 
-      const resUnread = await request(app).get('/api/v1/customer-portal/notifications/unread-count');
+      const resUnread = await request(app).get(
+        '/api/v1/customer-portal/notifications/unread-count'
+      );
       expect(resUnread.status).toBe(401);
 
       const resPrefs = await request(app).get('/api/v1/customer-portal/notifications/preferences');
@@ -357,31 +367,35 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
       const { cookie } = await loginCustomer(customerIdA);
 
       // Mock DB queries for customer A
-      vi.spyOn(Customer, 'findById').mockReturnValue(makePopulateQuery({
-        _id: customerIdA,
-        name: 'Asha Sharma',
-        email: 'asha@example.com',
-        phone: '+919876543210',
-        customerCode: 'CUST-2026-0001'
-      }));
+      vi.spyOn(Customer, 'findById').mockReturnValue(
+        makePopulateQuery({
+          _id: customerIdA,
+          name: 'Asha Sharma',
+          email: 'asha@example.com',
+          phone: '+919876543210',
+          customerCode: 'CUST-2026-0001'
+        })
+      );
 
-      vi.spyOn(Project, 'find').mockReturnValue(makePopulateQuery([
-        {
-          _id: new Types.ObjectId(),
-          projectCode: 'PRJ-2026-0001',
-          name: 'Sharma Rooftop 5kW',
-          customerId: customerIdA,
-          currentStage: 'STRUCTURE_INSTALLATION',
-          systemTopology: 'ON_GRID',
-          systemCapacityKwp: 5.0,
-          progressPercent: 40,
-          milestones: [
-            { milestoneCode: 'M1', name: 'Design', status: 'COMPLETED' },
-            { milestoneCode: 'M2', name: 'Procurement', status: 'COMPLETED' },
-            { milestoneCode: 'M3', name: 'Structure', status: 'IN_PROGRESS' }
-          ]
-        }
-      ]));
+      vi.spyOn(Project, 'find').mockReturnValue(
+        makePopulateQuery([
+          {
+            _id: new Types.ObjectId(),
+            projectCode: 'PRJ-2026-0001',
+            name: 'Sharma Rooftop 5kW',
+            customerId: customerIdA,
+            currentStage: 'STRUCTURE_INSTALLATION',
+            systemTopology: 'ON_GRID',
+            systemCapacityKwp: 5.0,
+            progressPercent: 40,
+            milestones: [
+              { milestoneCode: 'M1', name: 'Design', status: 'COMPLETED' },
+              { milestoneCode: 'M2', name: 'Procurement', status: 'COMPLETED' },
+              { milestoneCode: 'M3', name: 'Structure', status: 'IN_PROGRESS' }
+            ]
+          }
+        ])
+      );
 
       vi.spyOn(Quotation, 'find').mockReturnValue(makePopulateQuery([]));
       vi.spyOn(CustomerPayment, 'find').mockReturnValue(makePopulateQuery([]));
@@ -402,9 +416,7 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
         orders: []
       } as any);
 
-      const res = await request(app)
-        .get('/api/v1/customer-portal/dashboard')
-        .set('Cookie', cookie);
+      const res = await request(app).get('/api/v1/customer-portal/dashboard').set('Cookie', cookie);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -499,11 +511,7 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
       } as any);
 
       await expect(
-        QuotationService.customerDecision(
-          quoteId,
-          { action: 'ACCEPT' },
-          customerIdA.toString()
-        )
+        QuotationService.customerDecision(quoteId, { action: 'ACCEPT' }, customerIdA.toString())
       ).rejects.toThrow(/expired/i);
     });
 
@@ -520,11 +528,7 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
       } as any);
 
       await expect(
-        QuotationService.customerDecision(
-          quoteId,
-          { action: 'ACCEPT' },
-          customerIdA.toString()
-        )
+        QuotationService.customerDecision(quoteId, { action: 'ACCEPT' }, customerIdA.toString())
       ).rejects.toThrow(/not eligible|superseded|invalid/i);
     });
   });
@@ -534,9 +538,11 @@ describe('Phase 9A Integration: Customer Portal & Centralized Notification Cente
   // ==========================================================================
   describe('Notification Reminder Service Integration', () => {
     it('bridges scheduled operational reminders directly to persistent notification center', async () => {
-      const createNotifSpy = vi.spyOn(NotificationCenterService, 'createNotification').mockResolvedValue({
-        notificationNumber: 'NTF-2026-00099'
-      } as any);
+      const createNotifSpy = vi
+        .spyOn(NotificationCenterService, 'createNotification')
+        .mockResolvedValue({
+          notificationNumber: 'NTF-2026-00099'
+        } as any);
 
       const record = await NotificationReminderService.scheduleOrSendReminder({
         reminderType: 'AMC_RENEWAL',

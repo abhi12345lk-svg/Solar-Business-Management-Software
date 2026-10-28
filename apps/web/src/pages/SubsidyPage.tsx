@@ -110,7 +110,9 @@ export const SubsidyPage: React.FC = () => {
       CANCELLED: 'bg-gray-100 text-gray-700 border-gray-300'
     };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[status] || styles.ELIGIBLE}`}>
+      <span
+        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[status] || styles.ELIGIBLE}`}
+      >
         {status.replace(/_/g, ' ')}
       </span>
     );
@@ -130,10 +132,13 @@ export const SubsidyPage: React.FC = () => {
             <span className="p-2 rounded-lg bg-solar-500/10 text-solar-600 border border-solar-500/20">
               <Landmark className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground">Government Subsidies</h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+              Government Subsidies
+            </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            National Rooftop Solar Portal claims, sanctions, and Direct Benefit Transfer (DBT) disbursement registry
+            National Rooftop Solar Portal claims, sanctions, and Direct Benefit Transfer (DBT)
+            disbursement registry
           </p>
         </div>
       </div>
@@ -154,7 +159,9 @@ export const SubsidyPage: React.FC = () => {
             <span className="text-xs font-semibold">Total Requested</span>
             <IndianRupee className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-black text-blue-700 tracking-tight">{formatRupees(totalRequestedPaise)}</p>
+          <p className="text-2xl font-black text-blue-700 tracking-tight">
+            {formatRupees(totalRequestedPaise)}
+          </p>
           <span className="text-[11px] text-muted-foreground">Submitted claim total</span>
         </div>
 
@@ -163,7 +170,9 @@ export const SubsidyPage: React.FC = () => {
             <span className="text-xs font-semibold">Sanctioned Amount</span>
             <TrendingUp className="w-4 h-4 text-indigo-600" />
           </div>
-          <p className="text-2xl font-black text-indigo-700 tracking-tight">{formatRupees(totalApprovedPaise)}</p>
+          <p className="text-2xl font-black text-indigo-700 tracking-tight">
+            {formatRupees(totalApprovedPaise)}
+          </p>
           <span className="text-[11px] text-muted-foreground">Approved by MNRE / DISCOM</span>
         </div>
 
@@ -172,7 +181,9 @@ export const SubsidyPage: React.FC = () => {
             <span className="text-xs font-semibold">Actually Disbursed</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-black text-emerald-700 tracking-tight">{formatRupees(totalDisbursedPaise)}</p>
+          <p className="text-2xl font-black text-emerald-700 tracking-tight">
+            {formatRupees(totalDisbursedPaise)}
+          </p>
           <span className="text-[11px] text-muted-foreground">Credited via DBT</span>
         </div>
       </div>
@@ -282,7 +293,9 @@ export const SubsidyPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-medium text-foreground">{sub.schemeName.replace(/_/g, ' ')}</div>
+                      <div className="font-medium text-foreground">
+                        {sub.schemeName.replace(/_/g, ' ')}
+                      </div>
                       <span className="text-muted-foreground text-[11px] font-mono">
                         {sub.portalApplicationNumber || 'Unregistered'}
                       </span>

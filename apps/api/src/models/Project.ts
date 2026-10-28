@@ -275,4 +275,7 @@ ProjectSchema.index({ projectManagerId: 1, status: 1 });
 ProjectSchema.index({ status: 1, currentStage: 1 });
 ProjectSchema.index({ createdAt: -1 });
 
-export const Project: Model<IProjectDocument> = mongoose.model<IProjectDocument>('Project', ProjectSchema);
+export const Project: Model<IProjectDocument> = mongoose.model<IProjectDocument>(
+  'Project',
+  ProjectSchema
+);

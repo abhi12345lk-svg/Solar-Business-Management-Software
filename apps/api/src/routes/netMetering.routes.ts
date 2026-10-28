@@ -68,7 +68,11 @@ netMeteringRouter.post(
         correlationId: (req.headers['x-correlation-id'] as string) || `req-${Date.now()}`
       };
 
-      const application = await NetMeteringService.createApplication(parseResult.data, user, context);
+      const application = await NetMeteringService.createApplication(
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, application, 201);
     } catch (err) {
       return next(err);

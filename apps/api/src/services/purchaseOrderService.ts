@@ -12,7 +12,11 @@ import {
   ActorType,
   UserRole
 } from '@ins-solar/shared';
-import { PurchaseOrder, IPurchaseOrderDocument, IPurchaseOrderLineItem } from '../models/PurchaseOrder.js';
+import {
+  PurchaseOrder,
+  IPurchaseOrderDocument,
+  IPurchaseOrderLineItem
+} from '../models/PurchaseOrder.js';
 import { Vendor } from '../models/Vendor.js';
 import { Warehouse } from '../models/Warehouse.js';
 import { Product } from '../models/Product.js';
@@ -140,7 +144,9 @@ export class PurchaseOrderService {
       vendorId: vendor._id,
       destinationWarehouseId: warehouse._id,
       orderDate: input.orderDate ? new Date(input.orderDate) : new Date(),
-      expectedDeliveryDate: input.expectedDeliveryDate ? new Date(input.expectedDeliveryDate) : undefined,
+      expectedDeliveryDate: input.expectedDeliveryDate
+        ? new Date(input.expectedDeliveryDate)
+        : undefined,
       lineItems: computedLineItems,
       isInterState: !!input.isInterState,
       subtotalPaise,
@@ -267,7 +273,10 @@ export class PurchaseOrderService {
     let recalculatedTotal = 0;
 
     for (const line of po.lineItems) {
-      const taxable = Math.max(0, Math.round(line.orderedQuantity * line.unitPurchaseRatePaise) - line.discountPaise);
+      const taxable = Math.max(
+        0,
+        Math.round(line.orderedQuantity * line.unitPurchaseRatePaise) - line.discountPaise
+      );
       let tax = 0;
       if (po.isInterState) {
         tax = Math.round((taxable * line.gstRate) / 100);
@@ -439,7 +448,10 @@ export class PurchaseOrderService {
       po.vendorId = vendor._id;
     }
 
-    if (input.destinationWarehouseId && input.destinationWarehouseId !== po.destinationWarehouseId.toString()) {
+    if (
+      input.destinationWarehouseId &&
+      input.destinationWarehouseId !== po.destinationWarehouseId.toString()
+    ) {
       const wh = await Warehouse.findById(input.destinationWarehouseId);
       if (!wh || !wh.isActive) {
         throw AppError.businessRule('Destination warehouse is inactive or not found.');
@@ -485,7 +497,8 @@ export class PurchaseOrderService {
 
     if (input.orderDate) po.orderDate = new Date(input.orderDate);
     if (input.expectedDeliveryDate) po.expectedDeliveryDate = new Date(input.expectedDeliveryDate);
-    if (input.termsAndConditions !== undefined) po.termsAndConditions = input.termsAndConditions.trim();
+    if (input.termsAndConditions !== undefined)
+      po.termsAndConditions = input.termsAndConditions.trim();
     if (input.notes !== undefined) po.notes = input.notes.trim();
 
     po.revision += 1;

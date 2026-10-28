@@ -5,10 +5,16 @@ export const createEmployeeProfileSchema = z.object({
   userId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format'),
   designation: z.string().min(2, 'Designation must be at least 2 characters').max(100),
   department: z.nativeEnum(Department),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid team ID format').optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid team ID format')
+    .optional(),
   isTeamLead: z.boolean().default(false).optional(),
   employmentStatus: z.nativeEnum(EmploymentStatus).default(EmploymentStatus.ACTIVE).optional(),
-  availability: z.nativeEnum(EmployeeAvailability).default(EmployeeAvailability.AVAILABLE).optional(),
+  availability: z
+    .nativeEnum(EmployeeAvailability)
+    .default(EmployeeAvailability.AVAILABLE)
+    .optional(),
   joiningDate: z.coerce.date().optional(),
   skills: z.array(z.string().min(1).max(50)).default([]).optional(),
   emergencyContact: z
@@ -24,7 +30,11 @@ export const createEmployeeProfileSchema = z.object({
 export const updateEmployeeProfileSchema = z.object({
   designation: z.string().min(2).max(100).optional(),
   department: z.nativeEnum(Department).optional(),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/).nullable().optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .nullable()
+    .optional(),
   isTeamLead: z.boolean().optional(),
   employmentStatus: z.nativeEnum(EmploymentStatus).optional(),
   availability: z.nativeEnum(EmployeeAvailability).optional(),
@@ -44,7 +54,10 @@ export const employeeFilterSchema = z.object({
   department: z.nativeEnum(Department).optional(),
   employmentStatus: z.nativeEnum(EmploymentStatus).optional(),
   availability: z.nativeEnum(EmployeeAvailability).optional(),
-  teamId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  teamId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   search: z.string().optional(),
   isActive: z
     .string()
@@ -59,7 +72,10 @@ export const createTeamSchema = z.object({
   department: z.nativeEnum(Department),
   purpose: z.string().min(3, 'Team purpose is required').max(500),
   teamLeadId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid team lead user ID format'),
-  memberUserIds: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).default([]).optional(),
+  memberUserIds: z
+    .array(z.string().regex(/^[0-9a-fA-F]{24}$/))
+    .default([])
+    .optional(),
   skills: z.array(z.string().min(1).max(50)).default([]).optional(),
   eligibility: z
     .object({
@@ -74,7 +90,10 @@ export const updateTeamSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   department: z.nativeEnum(Department).optional(),
   purpose: z.string().min(3).max(500).optional(),
-  teamLeadId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  teamLeadId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
   memberUserIds: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
   skills: z.array(z.string().min(1).max(50)).optional(),
   eligibility: z

@@ -17,13 +17,17 @@ export const checklistTemplateItemSchema = z.object({
 export const checklistTemplateCategorySchema = z.object({
   category: z.nativeEnum(ChecklistCategory),
   title: z.string().trim().min(3).max(200),
-  items: z.array(checklistTemplateItemSchema).min(1, 'Category must have at least one checklist item')
+  items: z
+    .array(checklistTemplateItemSchema)
+    .min(1, 'Category must have at least one checklist item')
 });
 
 export const createChecklistTemplateSchema = z.object({
   templateCode: z.string().trim().min(3).max(50),
   title: z.string().trim().min(3).max(200),
-  categories: z.array(checklistTemplateCategorySchema).min(1, 'Template must contain at least one category')
+  categories: z
+    .array(checklistTemplateCategorySchema)
+    .min(1, 'Template must contain at least one category')
 });
 
 export const generateProjectChecklistSchema = z.object({
@@ -39,14 +43,20 @@ export const updateChecklistItemStatusSchema = z
     notes: z.string().trim().max(2000).optional()
   })
   .superRefine((data, ctx) => {
-    if (data.status === ChecklistItemStatus.FAILED && (!data.failureReason || !data.failureReason.trim())) {
+    if (
+      data.status === ChecklistItemStatus.FAILED &&
+      (!data.failureReason || !data.failureReason.trim())
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['failureReason'],
         message: 'Failure reason is strictly required when checklist item status is FAILED'
       });
     }
-    if (data.status === ChecklistItemStatus.BLOCKED && (!data.blockerReason || !data.blockerReason.trim())) {
+    if (
+      data.status === ChecklistItemStatus.BLOCKED &&
+      (!data.blockerReason || !data.blockerReason.trim())
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['blockerReason'],

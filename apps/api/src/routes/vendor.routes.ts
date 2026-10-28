@@ -99,7 +99,12 @@ vendorRouter.put(
         correlationId: (req as any).correlationId
       };
 
-      const vendor = await VendorService.updateVendor(req.params.id as string, parseResult.data, user, context);
+      const vendor = await VendorService.updateVendor(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
       return sendSuccess(req, res, vendor);
     } catch (err) {
       return next(err);

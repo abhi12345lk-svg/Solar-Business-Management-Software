@@ -14,45 +14,39 @@ customerDocumentRouter.use(requireCustomer);
  * GET /api/v1/customer-portal/documents
  * List customer-visible documents strictly belonging to the authenticated customer.
  */
-customerDocumentRouter.get(
-  '/',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const customer = req.session.customer!;
-      const parseResult = documentFilterSchema.safeParse(req.query);
-      if (!parseResult.success) {
-        return next(AppError.validation(parseResult.error));
-      }
-
-      const result = await DocumentService.listDocuments(parseResult.data, {
-        customerId: customer.customerId
-      });
-
-      return sendSuccess(req, res, result);
-    } catch (err) {
-      return next(err);
+customerDocumentRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customer = req.session.customer!;
+    const parseResult = documentFilterSchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return next(AppError.validation(parseResult.error));
     }
+
+    const result = await DocumentService.listDocuments(parseResult.data, {
+      customerId: customer.customerId
+    });
+
+    return sendSuccess(req, res, result);
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 /**
  * GET /api/v1/customer-portal/documents/:id
  * Get single customer-visible document by ID.
  */
-customerDocumentRouter.get(
-  '/:id',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const customer = req.session.customer!;
-      const doc = await DocumentService.getDocumentById(req.params.id as string, {
-        customerId: customer.customerId
-      });
-      return sendSuccess(req, res, doc);
-    } catch (err) {
-      return next(err);
-    }
+customerDocumentRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customer = req.session.customer!;
+    const doc = await DocumentService.getDocumentById(req.params.id as string, {
+      customerId: customer.customerId
+    });
+    return sendSuccess(req, res, doc);
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 /**
  * GET /api/v1/customer-portal/documents/:id/access-url
