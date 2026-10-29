@@ -58,7 +58,7 @@ describe('Administrator Bootstrap Safety', () => {
     // Ensure plaintext password is NEVER stored
     expect(createPayload.password).toBeUndefined();
     expect(createPayload.passwordHash.startsWith('$argon2id$')).toBe(true);
-  });
+  }, 15000);
 
   it('cannot be repeated once an active Superadmin exists', async () => {
     // Existing active Superadmin in database

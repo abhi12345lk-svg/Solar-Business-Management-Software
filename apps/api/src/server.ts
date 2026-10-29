@@ -3,9 +3,16 @@ import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { dbManager } from './db/connection.js';
 
-async function startServer(): Promise<void> {
-  // 1. Initialize Database Connection
-  await dbManager.connect();
+export async function startServer(): Promise<any> {
+  // 1. Initialize Database Connection (Fail-fast before opening HTTP listener)
+  const dbState = await dbManager.connect();
+  if (config.NODE_ENV === 'production' || config.NODE_ENV === 'staging') {
+    if (!dbManager.isReady() || dbState !== 'connected') {
+      throw new Error(
+        `Fatal startup error: Cannot start API server when database state is '${dbState}'. Aborting.`
+      );
+    }
+  }
 
   // 2. Start HTTP Server
   const server = app.listen(config.PORT, () => {
@@ -50,7 +57,9 @@ async function startServer(): Promise<void> {
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
-startServer().catch(err => {
-  logger.fatal({ err }, 'Failed to start API server');
-  process.exit(1);
-});
+if (config.NODE_ENV !== 'test') {
+  startServer().catch(err => {
+    logger.fatal({ err: err?.message || err }, 'Failed to start API server');
+    process.exit(1);
+  });
+}

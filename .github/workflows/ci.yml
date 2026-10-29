@@ -25,6 +25,15 @@ jobs:
       - name: Deterministic Dependency Installation
         run: npm ci
 
+      - name: Code Quality & Lint Hygiene
+        run: npm run lint
+
+      - name: Code Style & Prettier Formatting
+        run: npm run format:check
+
+      - name: Production Dependency Security Audit
+        run: npm audit --omit=dev --audit-level=critical
+
       - name: Type Checking Across Workspaces
         run: npm run typecheck
 

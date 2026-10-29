@@ -135,3 +135,4 @@ Disaster recovery drills must be executed semi-annually on an isolated sandbox e
 - **Upcoming Scheduled Drill:** 2026-11-15 (Simulated Primary Region Loss & S3 Failover)
 - **Responsible Engineers:** Lead DevOps Architect & Principal Security Engineer
 - **Sign-Off Authority:** Chief Technology Officer & Head of Operations
+

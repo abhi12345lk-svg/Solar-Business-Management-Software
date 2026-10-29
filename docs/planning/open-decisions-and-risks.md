@@ -243,6 +243,10 @@ To avoid legal, tax, or operational misunderstandings:
 | **`RSK-06`** | **Provider Dependency** | WhatsApp Business API provider downtime or credential suspension blocking customer communications. | Medium | Low | Decouple WhatsApp into an optional, asynchronous notification channel. Primary transaction notifications always dispatch via in-app alerts and reliable transactional email (SMTP). |
 | **`RSK-07`** | **Host / Infrastructure** | Server crash or unhandled exception during PDF compilation stranding active requests. | Low | Medium | Isolate PDF generation into an asynchronous worker task or streaming process with memory limits; run Node.js behind a process supervisor (`systemd` or Docker restart policy). |
 | **`RSK-08`** | **Data Loss** | Accidental catastrophic database corruption or ransomware on managed VPS. | Low | Critical | Automated continuous cloud backups on MongoDB Atlas with Point-in-Time Recovery (PITR); daily automated backups of object storage; quarterly documented restoration drills. |
+| **`RSK-09`** | **Storage Integration Gap** | Production configuration enforces S3 but AWS SDK client is missing from dependencies, causing real file storage to fail. | Low (Mitigated) | Critical | **Resolved in Phase 10C Sprint 1:** Installed `@aws-sdk/client-s3` & `@aws-sdk/s3-request-presigner`. Implemented `S3StorageAdapter` with binary streaming and SHA-256 validation. Simulated storage strictly rejected in production. Live bucket connectivity pending cloud credentials. |
+| **`RSK-10`** | **Reverse Proxy TLS Session Drop** | Missing `trust proxy` setting causes Express behind reverse proxy to treat requests as HTTP, dropping secure cookies and skewing rate limiting. | Low (Mitigated) | High | **Resolved in Phase 10C Sprint 1:** Added `TRUST_PROXY` validation in `env.ts` (defaults to `'1'` in prod; rejects wildcard `'true'`). Configured Express `trust proxy` and verified client IP spoofing defense. |
+| **`RSK-11`** | **In-Memory Reminder Loss** | Schedulers and reminder registries running in-memory lose state upon process restarts or across multi-replica nodes. | High | High | Implement DEC-03 MongoDB-backed persistent job queue with atomic lease locks and standalone worker (Scheduled for Sprint 2). |
+| **`RSK-12`** | **Dependency Vulnerabilities** | Outdated runtime `zod` and dev toolchain packages contain known CVEs. | Low (Mitigated) | Medium | **Audited & Mitigated in Phase 10C Sprint 1:** 0 critical prod CVEs. `zod < 4.6.6` high-severity memory exhaustion mitigated via strict 1MB body-parser limits in Express. Vitest 5 toolchain upgrade planned. |
 
 ---
 
@@ -258,12 +262,14 @@ To avoid legal, tax, or operational misunderstandings:
 
 ---
 
-## 5. Summary of Open Items Requiring Formal Sign-off
+## 5. Summary of Open Items Requiring Formal Sign-off (Audited in Phase 10B)
 
-The following operational parameters require final executive confirmation from INS Solar prior to their respective phase implementation:
+The following operational parameters require formal executive and statutory confirmation prior to live production deployment:
 
-1.  **DEC-01 (Tax Rules Confirmation):** Written sign-off from company chartered accountant confirming applicable GST rates, HSN/SAC codes, and tax split treatment for turn-key EPC and hardware-only sales.
-2.  **DEC-02 (Customer Auth UX):** Approval of Passwordless Hybrid Login (Email Magic Link + WhatsApp OTP) as the customer portal authentication mechanism.
-3.  **DEC-03 (Job Queue Architecture):** Approval of the zero-cost MongoDB-backed reliable job queue, avoiding external Redis infrastructure.
-4.  **DEC-04 (Approval Thresholds):** Confirmation of initial threshold limits: Discounts > 5%, Expenses > ₹5,000, and Purchase Orders > ₹25,000.
-5.  **DEC-05 (Accounting Scope):** Formal acknowledgment of operational accounts boundaries and out-of-scope statutory accounting features.
+| Decision ID | Decision Title | Current Code Status | Required Authority | Action Needed Before Go-Live |
+| :---: | :--- | :--- | :--- | :--- |
+| **DEC-01** | **Tax Rules & GST Split** | Default 18% GST basis points; manual line items; no dynamic date-effective profile collection. | Qualified Chartered Accountant (CA) | Written sign-off on turn-key EPC (70:30 goods/services deemed split vs current notification) and SAC/HSN codes. |
+| **DEC-02** | **Customer Portal Authentication Channel** | Passwordless hybrid engine implemented in code; email/SMS transport is `SIMULATED_LOG_ONLY`. | Managing Director / CTO | Formal provider selection (Amazon SES for email; Gupshup/Fast2SMS for DLT SMS) and account provisioning. |
+| **DEC-03** | **Job Queue Architecture** | Designed as MongoDB `jobs` collection with lease locking; currently operating as in-memory `Map`. | CTO / Principal Architect | Implementation of persistent MongoDB job worker daemon prior to running multi-instance production. |
+| **DEC-04** | **Approval Threshold Limits** | Hardcoded initial defaults (5% discount, ₹5,000 expense, ₹25,000 purchase order). | Head of Operations / CFO | Executive sign-off on threshold parameters before publishing company settings. |
+| **DEC-05** | **Accounting Scope Boundary** | Operational costing and receivables implemented; disclaimers rendered on costing tab and receipts. | Managing Director & CA | Formal sign-off acknowledging the ERP is an operational tracker, not a statutory double-entry ledger. |

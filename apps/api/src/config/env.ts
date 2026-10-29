@@ -29,6 +29,13 @@ const EnvSchema = z
       .transform(val => (val === undefined ? undefined : val === 'true')),
     COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
     STORAGE_PROVIDER: z.enum(['simulated', 's3']).default('simulated'),
+    TRUST_PROXY: z
+      .string()
+      .optional()
+      .transform(val => {
+        if (val !== undefined) return val;
+        return process.env.NODE_ENV === 'production' ? '1' : 'false';
+      }),
     AWS_REGION: z.string().optional(),
     AWS_S3_BUCKET: z.string().optional(),
     AWS_ACCESS_KEY_ID: z.string().optional(),
@@ -71,6 +78,14 @@ const EnvSchema = z
           path: ['STORAGE_PROVIDER'],
           message:
             'Production environment cannot use simulated storage; STORAGE_PROVIDER must be s3'
+        });
+      }
+      if (data.TRUST_PROXY === 'true') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['TRUST_PROXY'],
+          message:
+            'Insecure configuration: Blindly trusting all proxies (TRUST_PROXY=true) allows IP spoofing. Use "1" for single reverse proxy or specify trusted subnets.'
         });
       }
     }

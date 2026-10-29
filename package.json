@@ -28,7 +28,9 @@
   "overrides": {
     "braces": "^3.0.3",
     "postcss-selector-parser": "^7.1.6",
-    "tinypool": "^2.2.0"
+    "vitest": {
+      "tinypool": "2.2.0"
+    }
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.25.0",

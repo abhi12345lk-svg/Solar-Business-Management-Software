@@ -266,9 +266,32 @@ graph TD
     *   **Production Configuration Guard:** Strict validation in `apps/api/src/config/env.ts` rejecting simulated storage in production and enforcing complete AWS S3 credentials when `STORAGE_PROVIDER=s3`.
     *   **Disaster Recovery Runbook:** Documented complete operational backup, point-in-time recovery, sequence recovery, and restore verification checklist in `docs/operations/backup-and-disaster-recovery.md`.
     *   **Requirement Traceability Reconciliation:** Reconciled register to 354 unique atomic requirements (317 module requirements, 7 panel requirements, 30 confirmed business decisions).
-*   **Phase 10B (Planned - Final Staging & Go-Live):**
-    *   Automated Playwright browser E2E suite covering critical UI journeys.
-    *   Production deployment configuration (Docker / systemd, Nginx reverse proxy, TLS certificates).
-    *   Staging environment provisioning with real external credentials.
-*   **Acceptance Criteria:** 100% of traceability matrix requirements verified; zero high/critical vulnerabilities; 100% of test suites passing.
-*   **Release Gate:** Executive sign-off for production deployment.
+*   **Phase 10B Status (Audit Completed — Status: BLOCKED / NOT PRODUCTION-READY):**
+    *   **Audit Reference:** `docs/development/phase-10b-readiness-audit.md` (Commit `8327492`).
+    *   **Baseline Quality Gates Verified:** 446/446 tests passing across 46 test files (135 shared, 260 API, 51 web); 0 TypeScript errors; 0 ESLint warnings; 100% Prettier compliance; production build clean.
+    *   **Identified Critical Blockers:**
+        1.  *AWS S3 Object Storage Missing Driver:* `env.ts` mandates S3 credentials in production, but `@aws-sdk/client-s3` is not installed; download endpoint streams synthetic mock ASCII buffer.
+        2.  *External Communications Simulated:* Email (SMTP/SES), SMS (India DLT), and WhatsApp messaging operate in `SIMULATED_LOG_ONLY` mode without operational gateway integrations.
+        3.  *In-Memory Schedulers & Reminders:* Reminders operate via in-memory `Map` registry without persistent background queue worker (DEC-03).
+        4.  *Reverse Proxy TLS Configuration:* `trust proxy` omitted in `apps/api/src/app.ts`, risking secure cookie dropping and rate-limit skew.
+        5.  *Security Vulnerabilities:* High severity CVE in runtime `zod` (<4.6.6) and critical CVE in dev toolchain `tinypool`.
+        6.  *Disaster Recovery Drill:* Backup/restore runbook documented only; physical restore drill unexecuted.
+        7.  *Statutory Governance:* CA sign-off pending on turn-key solar 70:30 composite supply GST configuration.
+*   **Mandatory Evidence-Based Release Gates (Required for Phase 10C Go-Live):**
+    *   **Gate 1 (Storage):** Install `@aws-sdk/client-s3` and pass end-to-end binary upload/download verification against S3 bucket.
+    *   **Gate 2 (Communications):** Integrate transactional email transport (Nodemailer/SES) and SMS gateway for magic link and OTP delivery.
+    *   **Gate 3 (Queue Worker):** Implement DEC-03 persistent MongoDB job worker daemon (`src/worker.ts`) with lease locking and crash recovery.
+    *   **Gate 4 (Operational Hardening):** Set `trust proxy` in Express; fail fast on MongoDB startup disconnect; update CI workflow to include lint, format, and audit.
+    *   **Gate 5 (Vulnerability Remediation):** Clean `npm audit --omit=dev --audit-level=high` (0 high/critical runtime vulnerabilities).
+    *   **Gate 6 (Restore Verification):** Execute documented restore drill on isolated Atlas sandbox cluster with sign-off checklist.
+    *   **Gate 7 (Statutory Sign-Off):** Written CA approval of GST tax engine rules and company threshold limits (DEC-01 & DEC-04).
+*   **Phase 10C (Remediation Sprints, Staging & Production Go-Live):**
+    *   **Sprint 1 Status (Completed & Verified):**
+        *   *Object Storage:* Added `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner`. Implemented `S3StorageAdapter` and `MemoryStorageAdapter` with streaming binary upload/download and byte-identical SHA-256 verification. Strict production guard rejects simulated storage.
+        *   *Reverse Proxy & Anti-Spoofing:* Configured `TRUST_PROXY` in `env.ts` (defaults to `'1'` in production; strictly rejects wildcard `'true'`). Configured Express `trust proxy` and validated client IP spoofing defense.
+        *   *Fail-Fast Database Startup:* Hardened `DatabaseManager.connect()` and `startServer()` in production to abort (`process.exit(1)`) on database connection failure or unreadiness before accepting HTTP requests.
+        *   *CI Hardening:* Updated `.github/workflows/ci.yml` with ESLint, Prettier format verification, and production security audits before running tests and builds.
+        *   *Dependency Audit:* Documented 0 critical production vulnerabilities. High-severity `zod < 4.6.6` memory exhaustion risk mitigated via 1MB Express request body size limit.
+        *   *Test Gate:* 458 automated tests passing across 47 test files (135 shared, 272 API, 51 web), 0 failures, 0 skipped, 0 TypeScript errors across monorepo, 0 ESLint warnings, 100% Prettier formatting, production build clean.
+    *   **Sprint 2 (Planned):** External Communications (Nodemailer/SES email transport, DLT SMS) and DEC-03 persistent MongoDB job worker daemon (`worker.ts`).
+    *   **Sprint 3 (Planned):** Documented restore drill execution, statutory CA GST sign-off, and final production staging go-live.

@@ -15,6 +15,20 @@ import { AppError } from './errors/AppError.js';
 export function createApp(): Express {
   const app = express();
 
+  // 0. Trusted Reverse Proxy Configuration (Safeguards client IP resolution & secure cookies)
+  if (config.TRUST_PROXY === 'false' || config.TRUST_PROXY === '0') {
+    app.set('trust proxy', false);
+  } else if (!isNaN(Number(config.TRUST_PROXY))) {
+    app.set('trust proxy', Number(config.TRUST_PROXY));
+  } else if (config.TRUST_PROXY.includes(',')) {
+    app.set(
+      'trust proxy',
+      config.TRUST_PROXY.split(',').map(s => s.trim())
+    );
+  } else {
+    app.set('trust proxy', config.TRUST_PROXY);
+  }
+
   // 1. Basic Security Headers via Helmet
   app.use(
     helmet({

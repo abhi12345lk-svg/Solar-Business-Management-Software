@@ -22,6 +22,7 @@ import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { config } from '../config/env.js';
 import { AppError } from '../errors/AppError.js';
+import { getStorageAdapter } from './storage/index.js';
 
 export interface DocumentActorContext {
   actorId: string;
@@ -38,7 +39,8 @@ export class DocumentService {
    */
   public static async registerDocument(
     input: UploadDocumentMetadataInput,
-    actorContext: DocumentActorContext
+    actorContext: DocumentActorContext,
+    initialFileBuffer?: Buffer
   ): Promise<IDocumentRecord> {
     // 1. Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(input.mimeType as any)) {
@@ -142,6 +144,21 @@ export class DocumentService {
       metadata: input.metadata || {}
     });
 
+    // If initial binary file content is provided, persist it directly to object storage
+    if (initialFileBuffer) {
+      const storageAdapter = getStorageAdapter();
+      const uploadResult = await storageAdapter.uploadObject(storageKey, initialFileBuffer, {
+        contentType: input.mimeType,
+        contentLength: initialFileBuffer.length,
+        metadata: {
+          documentNumber,
+          originalFilename: rawFilename
+        }
+      });
+      documentDoc.fileSizeBytes = uploadResult.sizeBytes;
+      documentDoc.checksumSha256 = uploadResult.checksumSha256;
+    }
+
     await documentDoc.save();
 
     await AuditService.recordEvent({
@@ -160,11 +177,88 @@ export class DocumentService {
         accessClassification: input.accessClassification,
         storageKey,
         storageStatus,
-        fileSizeBytes: input.fileSizeBytes
+        fileSizeBytes: documentDoc.fileSizeBytes,
+        hasBinaryContent: !!initialFileBuffer
       }
     });
 
     return documentDoc;
+  }
+
+  /**
+   * Upload binary content for an existing document record.
+   */
+  public static async uploadDocumentContent(
+    documentId: string,
+    fileBuffer: Buffer,
+    actorContext: DocumentActorContext
+  ): Promise<IDocumentRecord> {
+    if (!Types.ObjectId.isValid(documentId)) {
+      throw AppError.validation(`Invalid document ID '${documentId}'.`);
+    }
+
+    const doc = await DocumentModel.findById(documentId);
+    if (!doc) {
+      throw AppError.notFound(`Document with ID '${documentId}' not found.`);
+    }
+
+    if (doc.isArchived) {
+      throw AppError.badRequest('Cannot upload content to an archived document.');
+    }
+
+    // Customer ownership boundary check
+    if (actorContext.actorType === 'CUSTOMER') {
+      if (!doc.customerId || doc.customerId.toString() !== actorContext.actorId) {
+        throw AppError.forbidden(
+          "Access denied: You cannot upload content to another customer's document."
+        );
+      }
+    }
+
+    if (fileBuffer.length <= 0 || fileBuffer.length > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+      throw AppError.validation(
+        `File size (${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB) must be between 1 byte and 25 MB.`
+      );
+    }
+
+    const storageAdapter = getStorageAdapter();
+    const uploadResult = await storageAdapter.uploadObject(doc.storageKey, fileBuffer, {
+      contentType: doc.mimeType,
+      contentLength: fileBuffer.length,
+      metadata: {
+        documentNumber: doc.documentNumber,
+        originalFilename: doc.originalFilename
+      }
+    });
+
+    doc.fileSizeBytes = uploadResult.sizeBytes;
+    doc.checksumSha256 = uploadResult.checksumSha256;
+    doc.storageStatus =
+      config.STORAGE_PROVIDER === 's3'
+        ? DocumentStorageStatus.STORED_S3
+        : DocumentStorageStatus.SIMULATED_STORAGE_ONLY;
+
+    await doc.save();
+
+    await AuditService.recordEvent({
+      actorId: actorContext.actorId,
+      actorType: actorContext.actorType === 'EMPLOYEE' ? ActorType.EMPLOYEE : ActorType.CUSTOMER,
+      action: AuditAction.DOCUMENT_UPLOADED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: actorContext.ipAddress,
+      userAgent: actorContext.userAgent,
+      correlationId: actorContext.correlationId || 'document-content-upload',
+      targetEntity: 'DocumentModel',
+      targetId: doc._id.toString(),
+      details: {
+        documentNumber: doc.documentNumber,
+        fileSizeBytes: doc.fileSizeBytes,
+        checksumSha256: doc.checksumSha256,
+        storageKey: doc.storageKey
+      }
+    });
+
+    return doc;
   }
 
   /**
@@ -173,7 +267,8 @@ export class DocumentService {
   public static async createDocumentVersion(
     documentId: string,
     input: CreateDocumentVersionInput,
-    actorContext: DocumentActorContext
+    actorContext: DocumentActorContext,
+    fileBuffer?: Buffer
   ): Promise<IDocumentRecord> {
     if (!Types.ObjectId.isValid(documentId)) {
       throw AppError.validation(`Invalid document ID '${documentId}'.`);
@@ -240,6 +335,21 @@ export class DocumentService {
         ...(input.metadata || {})
       }
     });
+
+    if (fileBuffer) {
+      const storageAdapter = getStorageAdapter();
+      const uploadResult = await storageAdapter.uploadObject(storageKey, fileBuffer, {
+        contentType: input.mimeType,
+        contentLength: fileBuffer.length,
+        metadata: {
+          documentNumber: previousDoc.documentNumber,
+          version: String(newVersion),
+          originalFilename: rawFilename
+        }
+      });
+      newDoc.fileSizeBytes = uploadResult.sizeBytes;
+      newDoc.checksumSha256 = uploadResult.checksumSha256;
+    }
 
     await newDoc.save();
 

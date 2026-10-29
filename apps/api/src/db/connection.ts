@@ -18,9 +18,16 @@ export class DatabaseManager {
   }
 
   public async connect(): Promise<DatabaseState> {
-    const uri = config.MONGODB_URI;
+    const uri =
+      process.env.MONGODB_URI !== undefined ? process.env.MONGODB_URI : config.MONGODB_URI;
+    const nodeEnv = process.env.NODE_ENV || config.NODE_ENV;
 
     if (!uri || uri.trim() === '') {
+      if (nodeEnv === 'production' || nodeEnv === 'staging') {
+        throw new Error(
+          'FATAL CONFIGURATION ERROR: MONGODB_URI is required in production environment.'
+        );
+      }
       logger.info('MONGODB_URI not configured. Operating in offline/degraded database mode.');
       this.isExplicitlyConnected = false;
       return 'unconfigured';
@@ -30,7 +37,7 @@ export class DatabaseManager {
       // Connect to MongoDB without logging connection credentials
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000,
-        autoIndex: config.NODE_ENV !== 'production'
+        autoIndex: nodeEnv !== 'production'
       });
 
       this.isExplicitlyConnected = true;
@@ -39,7 +46,10 @@ export class DatabaseManager {
     } catch (error) {
       this.isExplicitlyConnected = false;
       const message = error instanceof Error ? error.message : 'Unknown connection error';
-      logger.warn({ error: message }, 'Failed to establish connection to MongoDB.');
+      logger.error({ error: message }, 'Failed to establish connection to MongoDB.');
+      if (nodeEnv === 'production' || nodeEnv === 'staging') {
+        throw new Error(`Failed to establish connection to MongoDB: ${message}`);
+      }
       return 'disconnected';
     }
   }
