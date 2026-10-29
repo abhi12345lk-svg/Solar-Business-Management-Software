@@ -58,7 +58,18 @@ export const LoginPage: React.FC = () => {
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+      const msg = err.message || '';
+      if (
+        msg.includes('SERVER_INITIALIZATION_ERROR') ||
+        msg.includes('MONGODB_URI') ||
+        msg.includes('503')
+      ) {
+        setErrorMessage(
+          'Vercel Cloud Database Not Connected: Vercel dashboard me MONGODB_URI configure nahi hai. Live cloud me login karne ke liye Vercel Settings > Environment Variables me apna MongoDB Atlas URL dalein.'
+        );
+      } else {
+        setErrorMessage(msg || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +93,18 @@ export const LoginPage: React.FC = () => {
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+      const msg = err.message || '';
+      if (
+        msg.includes('SERVER_INITIALIZATION_ERROR') ||
+        msg.includes('MONGODB_URI') ||
+        msg.includes('503')
+      ) {
+        setErrorMessage(
+          'Vercel Cloud Database Not Connected: Vercel dashboard me MONGODB_URI configure nahi hai. Live cloud me login karne ke liye Vercel Settings > Environment Variables me apna MongoDB Atlas URL dalein.'
+        );
+      } else {
+        setErrorMessage(msg || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
