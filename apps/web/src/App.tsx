@@ -46,6 +46,11 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <Routes>
+        {/* Full-Screen Dedicated Authentication Routes */}
+        <Route path="login" element={<LoginPage />} />
+        <Route path="mfa-challenge" element={<MfaChallengePage />} />
+
+        {/* Main Authenticated Application Shell */}
         <Route path="/" element={<AppLayout />}>
           <Route
             index
@@ -55,8 +60,6 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="mfa-challenge" element={<MfaChallengePage />} />
           <Route
             path="mfa-setup"
             element={
