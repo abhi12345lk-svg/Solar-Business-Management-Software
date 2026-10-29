@@ -1,0 +1,9 @@
+.git
+.github
+docs/
+scratch/
+coverage/
+*.log
+.DS_Store
+.env.local
+.env.*.local

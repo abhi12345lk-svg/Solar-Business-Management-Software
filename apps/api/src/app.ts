@@ -37,11 +37,17 @@ export function createApp(): Express {
   );
 
   // 2. Strict CORS Configuration (Credentials enabled only for trusted origins)
+  const configuredOrigins = config.CORS_ORIGIN.split(',').map(s => s.trim());
+
   app.use(
     cors({
       origin: (requestOrigin, callback) => {
-        // Disallow wildcard with credentials; only allow configured origin or null origin
-        if (!requestOrigin || requestOrigin === config.CORS_ORIGIN) {
+        // Disallow wildcard with credentials; only allow configured origins or null origin
+        if (
+          !requestOrigin ||
+          configuredOrigins.includes(requestOrigin) ||
+          (config.NODE_ENV !== 'production' && requestOrigin.endsWith('.vercel.app'))
+        ) {
           callback(null, true);
         } else {
           callback(new AppError(403, `CORS blocked: Origin ${requestOrigin} not permitted.`));

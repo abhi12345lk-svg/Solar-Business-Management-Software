@@ -18,6 +18,11 @@ export class DatabaseManager {
   }
 
   public async connect(): Promise<DatabaseState> {
+    if (mongoose.connection.readyState === 1) {
+      this.isExplicitlyConnected = true;
+      return 'connected';
+    }
+
     const uri =
       process.env.MONGODB_URI !== undefined ? process.env.MONGODB_URI : config.MONGODB_URI;
     const nodeEnv = process.env.NODE_ENV || config.NODE_ENV;
