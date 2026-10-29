@@ -1,0 +1,37 @@
+# ==============================================================================
+# INS Solar Web Frontend — Multi-stage Production Dockerfile
+# ==============================================================================
+
+# Build Stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/web/package.json ./apps/web/
+
+RUN npm ci
+
+# Copy source code
+COPY tsconfig.base.json ./
+COPY packages/shared/ ./packages/shared/
+COPY apps/web/ ./apps/web/
+
+# Build shared package and Vite web app
+RUN npm run build --workspace=@ins-solar/shared
+RUN npm run build --workspace=@ins-solar/web
+
+# Nginx Alpine Runtime Stage
+FROM nginx:alpine AS runner
+
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/healthz || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

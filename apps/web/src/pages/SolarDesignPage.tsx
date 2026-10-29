@@ -83,6 +83,16 @@ export const SolarDesignPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient<any>('/catalog/products?limit=100')
+      .then(res => {
+        if (res && Array.isArray(res.items)) setCatalogProducts(res.items);
+        else if (Array.isArray(res)) setCatalogProducts(res);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchDesigns = async () => {
     setLoading(true);
@@ -175,18 +185,37 @@ export const SolarDesignPage: React.FC = () => {
     setSaveSuccess(null);
 
     try {
+      const panelProd = catalogProducts.find(
+        p =>
+          p.category?.code === 'SOLAR_PANEL' ||
+          p.category?.name?.toLowerCase().includes('panel') ||
+          p.name?.toLowerCase().includes('panel')
+      );
+      const inverterProd = catalogProducts.find(
+        p =>
+          p.category?.code === 'INVERTER' ||
+          p.category?.name?.toLowerCase().includes('inverter') ||
+          p.name?.toLowerCase().includes('inverter')
+      );
+      const batteryProd = catalogProducts.find(
+        p =>
+          p.category?.code === 'BATTERY' ||
+          p.category?.name?.toLowerCase().includes('battery') ||
+          p.name?.toLowerCase().includes('battery')
+      );
+
       const payload: any = {
         customerId: saveCustomerId.trim(),
         leadId: saveLeadId.trim() || undefined,
         designName: saveDesignName.trim(),
         systemTopology: calcTopology,
         module: {
-          productId: '507f1f77bcf86cd799439011', // Catalog product mock id
+          productId: panelProd?._id || '507f1f77bcf86cd799439011',
           wattageWp: calcResult.moduleWattageWp,
           quantity: calcResult.panelQuantity
         },
         inverter: {
-          productId: '507f1f77bcf86cd799439022', // Catalog product mock id
+          productId: inverterProd?._id || '507f1f77bcf86cd799439022',
           ratedCapacityKw: calcResult.recommendedInverterKw,
           quantity: 1
         },
@@ -201,7 +230,7 @@ export const SolarDesignPage: React.FC = () => {
 
       if (calcResult.batteryStorage) {
         payload.battery = {
-          productId: '507f1f77bcf86cd799439033',
+          productId: batteryProd?._id || '507f1f77bcf86cd799439033',
           batteryType: 'LiFePO4 Lithium Ion',
           unitVoltageV: Number(batteryUnitVoltageV),
           unitCapacityAh: Number(batteryUnitAh),

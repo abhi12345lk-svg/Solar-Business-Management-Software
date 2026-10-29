@@ -39,7 +39,18 @@ const EnvSchema = z
     AWS_REGION: z.string().optional(),
     AWS_S3_BUCKET: z.string().optional(),
     AWS_ACCESS_KEY_ID: z.string().optional(),
-    AWS_SECRET_ACCESS_KEY: z.string().optional()
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().optional().default(587),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().optional().default('no-reply@inssolar.com'),
+    SMTP_SECURE: z
+      .string()
+      .optional()
+      .transform(val => val === 'true'),
+    SMS_GATEWAY_API_KEY: z.string().optional(),
+    SMS_SENDER_ID: z.string().optional()
   })
   .superRefine((data, ctx) => {
     // In production, enforce strict security rules

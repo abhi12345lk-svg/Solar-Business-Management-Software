@@ -20,6 +20,8 @@ import { customerTokenRateLimiter } from '../middleware/rateLimiter.js';
 import { requireAuth, requireCustomer } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { config } from '../config/env.js';
+import { EmailService } from '../services/emailService.js';
+import { SmsService } from '../services/smsService.js';
 
 export const customerAuthRouter = Router();
 
@@ -60,6 +62,12 @@ customerAuthRouter.post(
         // Capture in test/dev store only
         if (config.NODE_ENV !== 'production') {
           devCustomerTokens.lastMagicLinkToken = rawToken;
+        }
+
+        // Dispatch transactional email via EmailService
+        if (identity.email) {
+          const portalUrl = `${config.CORS_ORIGIN}/customer-portal?token=${rawToken}`;
+          await EmailService.sendMagicLink(identity.email, portalUrl);
         }
 
         await AuditService.recordEvent({
@@ -201,6 +209,11 @@ customerAuthRouter.post(
 
         if (config.NODE_ENV !== 'production') {
           devCustomerTokens.lastOtp = otpNumber;
+        }
+
+        // Dispatch OTP via DLT-compliant SMS service
+        if (identity.phone) {
+          await SmsService.sendOtp(identity.phone, otpNumber);
         }
 
         await AuditService.recordEvent({

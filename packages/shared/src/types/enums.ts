@@ -907,3 +907,19 @@ export enum EmployeeAvailability {
   BUSY = 'BUSY',
   ON_LEAVE = 'ON_LEAVE'
 }
+
+export enum JobStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED'
+}
+
+export enum JobQueueName {
+  CRITICAL_MAIL = 'CRITICAL_MAIL',
+  WHATSAPP = 'WHATSAPP',
+  SMS = 'SMS',
+  PDF_COMPILE = 'PDF_COMPILE',
+  CRON_MAINTENANCE = 'CRON_MAINTENANCE',
+  REMINDER = 'REMINDER'
+}

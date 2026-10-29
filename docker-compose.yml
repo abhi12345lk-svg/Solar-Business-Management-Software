@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: inssolar-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: ins_solar_prod
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: inssolar-api
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      TRUST_PROXY: '1'
+      MONGODB_URI: mongodb://mongodb:27017/ins_solar_prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: inssolar-worker
+    restart: unless-stopped
+    command: ['node', 'apps/api/dist/worker.js']
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/ins_solar_prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: inssolar-web
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - api
+
+volumes:
+  mongodb_data:
+    driver: local

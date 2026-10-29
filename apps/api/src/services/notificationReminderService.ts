@@ -10,6 +10,8 @@
  */
 
 import { logger } from '../utils/logger.js';
+import { JobQueueService } from './jobQueueService.js';
+import { JobQueueName } from '@ins-solar/shared';
 
 export interface ReminderPayload {
   reminderType:
@@ -143,6 +145,31 @@ export class NotificationReminderService {
       logger.warn(
         { bridgeErr },
         '[NotificationReminderService] Failed to persist reminder into notification center.'
+      );
+    }
+
+    // Persist to durable MongoDB Job Queue (DEC-03)
+    try {
+      await JobQueueService.enqueueJob(
+        JobQueueName.REMINDER,
+        {
+          reminderId: record.reminderId,
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          reminderType: payload.reminderType,
+          subject: payload.subject,
+          message: payload.message,
+          metadata: payload.metadata
+        },
+        {
+          jobKey: `job:${dedupKey}`,
+          scheduledFor: payload.scheduledFor
+        }
+      );
+    } catch (queueErr) {
+      logger.warn(
+        { queueErr },
+        '[NotificationReminderService] Failed to persist reminder into JobQueue.'
       );
     }
 

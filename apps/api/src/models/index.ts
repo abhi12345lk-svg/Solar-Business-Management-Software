@@ -42,3 +42,4 @@ export * from './NotificationPreference.js';
 export * from './EmployeeProfile.js';
 export * from './Team.js';
 export * from './DocumentModel.js';
+export * from './Job.js';
