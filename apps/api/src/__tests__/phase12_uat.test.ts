@@ -33,8 +33,11 @@ import {
   ChecklistItemStatus,
   NetMeteringStatus,
   SubsidyStatus,
-  JobStatus
+  JobStatus,
+  SequenceEntityType
 } from '@ins-solar/shared';
+import { Lead, LeadActivity } from '../models/index.js';
+import { SequenceService } from '../services/sequenceService.js';
 import { JobQueueService } from '../services/jobQueueService.js';
 import { LeadService, UserContext } from '../services/leadService.js';
 import { SurveyService } from '../services/surveyService.js';
@@ -214,6 +217,63 @@ describe('Phase 12: User Acceptance Testing (UAT) Master Verification Suite', ()
         mockMeta
       );
       expect(accepted.status).toBe(QuotationStatus.ACCEPTED);
+    });
+
+    it('automatically recovers from leadCode collisions by advancing sequence counter', async () => {
+      let callCount = 0;
+      vi.spyOn(SequenceService, 'generateNumber').mockImplementation(async () => {
+        callCount++;
+        return {
+          formattedNumber: `LEAD-2026-0000${callCount}`,
+          sequenceNumber: callCount,
+          sequenceKey: 'LEAD:2026',
+          prefix: 'LEAD',
+          fiscalYear: '2026'
+        };
+      });
+
+      const ensureSpy = vi
+        .spyOn(SequenceService, 'ensureCounterAtLeast')
+        .mockResolvedValue(undefined as any);
+      vi.spyOn(LeadActivity, 'create').mockResolvedValue({} as any);
+
+      const leadId = new Types.ObjectId();
+      const mockCreatedLead = {
+        _id: leadId,
+        id: leadId.toString(),
+        leadCode: 'LEAD-2026-00002',
+        prospectName: 'Auto Recovery Test',
+        prospectPhone: '9829099999',
+        status: LeadStatus.NEW,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      vi.spyOn(Lead, 'create')
+        .mockImplementationOnce(async () => {
+          const err: any = new Error(
+            'E11000 duplicate key error dup key: { leadCode: "LEAD-2026-00001" }'
+          );
+          err.code = 11000;
+          throw err;
+        })
+        .mockResolvedValueOnce(mockCreatedLead as any);
+
+      vi.spyOn(Lead, 'findById').mockReturnValue({
+        populate: vi.fn().mockResolvedValue(mockCreatedLead)
+      } as any);
+
+      const result = await LeadService.createLead(
+        {
+          prospectName: 'Auto Recovery Test',
+          prospectPhone: '9829099999'
+        } as any,
+        salesActor,
+        mockMeta
+      );
+
+      expect(ensureSpy).toHaveBeenCalledWith(SequenceEntityType.LEAD, 2);
+      expect(result.leadCode).toBe('LEAD-2026-00002');
     });
   });
 

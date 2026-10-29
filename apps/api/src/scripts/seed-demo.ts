@@ -40,6 +40,7 @@ import { ProjectService } from '../services/projectService.js';
 import { NetMeteringService } from '../services/netMeteringService.js';
 import { SubsidyService } from '../services/subsidyService.js';
 import { ChecklistService } from '../services/checklistService.js';
+import { SequenceService } from '../services/sequenceService.js';
 
 export async function seedDemoData(): Promise<void> {
   await dbManager.connect();
@@ -605,6 +606,10 @@ export async function seedDemoData(): Promise<void> {
         console.log('✓ Purchase Order PO-2026-00001 created.');
       }
     }
+
+    // Synchronize all sequence counters so that newly created records never collide with seeded IDs
+    await SequenceService.syncAllCounters();
+    console.log('✓ Sequence counters synchronized with demo data.');
 
     console.log('\n======================================================');
     console.log('  INS SOLAR BUSINESS MANAGEMENT SYSTEM — DEMO READY!  ');

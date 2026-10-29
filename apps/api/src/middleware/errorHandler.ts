@@ -54,7 +54,33 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     return;
   }
 
-  // 3. Uncaught / Unexpected Server Errors
+  // 3. Mongo Duplicate Key Constraint Errors (E11000)
+  const isMongoDuplicate =
+    (err as any)?.code === 11000 ||
+    (err?.name === 'MongoServerError' && err?.message?.includes('E11000'));
+
+  if (isMongoDuplicate) {
+    logger.warn(
+      { correlationId, path: req.path, message: err.message },
+      'MongoDB duplicate key conflict'
+    );
+    const fieldMatch = err.message.match(/index: (?:.*?\.)?(\w+) dup key: \{ (\w+):/);
+    const fieldName = fieldMatch ? fieldMatch[2] : 'record identifier';
+
+    sendError(
+      res,
+      {
+        code: ErrorCode.DUPLICATE_RESOURCE,
+        message: `A record with this ${fieldName} already exists in the system.`,
+        correlationId,
+        timestamp
+      },
+      409
+    );
+    return;
+  }
+
+  // 4. Uncaught / Unexpected Server Errors
   logger.error(
     {
       correlationId,

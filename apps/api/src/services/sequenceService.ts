@@ -312,4 +312,206 @@ export class SequenceService {
 
     return formatSequence(prefix, fiscalYear, currentValue + 1, padding);
   }
+
+  /**
+   * Ensures that the sequence counter for a given entity type is at least a specified minimum value.
+   * If currentValue is less than minimumValue, it advances it atomically to minimumValue.
+   */
+  public static async ensureCounterAtLeast(
+    entityType: SequenceEntityType | string,
+    minimumValue: number,
+    fiscalYear: string = getCurrentFiscalYear()
+  ): Promise<void> {
+    const cleanEntityType = entityType.trim().toUpperCase();
+    const prefix = (
+      DEFAULT_PREFIXES[cleanEntityType] || cleanEntityType.substring(0, 4)
+    ).toUpperCase();
+    const sequenceKey = `${cleanEntityType}:${fiscalYear}`;
+
+    if (mongoose.connection.readyState === 1) {
+      await SequenceCounter.findOneAndUpdate(
+        { sequenceKey },
+        {
+          $max: { currentValue: minimumValue },
+          $setOnInsert: {
+            entityType: cleanEntityType,
+            fiscalYear,
+            prefix,
+            padding: DEFAULT_PADDING,
+            createdAt: new Date()
+          }
+        },
+        { upsert: true, new: true }
+      );
+    } else {
+      const current = inMemoryCounters.get(sequenceKey) || 0;
+      if (current < minimumValue) {
+        inMemoryCounters.set(sequenceKey, minimumValue);
+      }
+    }
+  }
+
+  /**
+   * Automatically scans existing collections and synchronizes sequence counters
+   * to ensure they are at least as high as any existing recorded business numbers.
+   * Prevents duplicate key collisions when seeded, manual, or migrated records exist.
+   */
+  public static async syncAllCounters(): Promise<void> {
+    if (mongoose.connection.readyState !== 1) return;
+
+    try {
+      const currentFY = getCurrentFiscalYear();
+
+      const entitiesToSync = [
+        { type: SequenceEntityType.LEAD, coll: 'leads', field: 'leadCode', prefix: 'LEAD' },
+        {
+          type: SequenceEntityType.CUSTOMER,
+          coll: 'customers',
+          field: 'customerCode',
+          prefix: 'CUST'
+        },
+        {
+          type: SequenceEntityType.SITE_SURVEY,
+          coll: 'sitesurveys',
+          field: 'surveyNumber',
+          prefix: 'SRV'
+        },
+        { type: SequenceEntityType.PROJECT, coll: 'projects', field: 'projectCode', prefix: 'PRJ' },
+        {
+          type: SequenceEntityType.QUOTATION,
+          coll: 'quotations',
+          field: 'quotationNumber',
+          prefix: 'QT'
+        },
+        {
+          type: SequenceEntityType.ORDER,
+          coll: 'salesorders',
+          field: 'orderNumber',
+          prefix: 'ORD'
+        },
+        {
+          type: SequenceEntityType.PURCHASE_ORDER,
+          coll: 'purchaseorders',
+          field: 'poNumber',
+          prefix: 'PO'
+        },
+        {
+          type: SequenceEntityType.GOODS_RECEIPT,
+          coll: 'goodsreceipts',
+          field: 'grnNumber',
+          prefix: 'GRN'
+        },
+        {
+          type: SequenceEntityType.VENDOR_INVOICE,
+          coll: 'vendorinvoices',
+          field: 'invoiceNumber',
+          prefix: 'VINV'
+        },
+        {
+          type: SequenceEntityType.PAYMENT_RECEIPT,
+          coll: 'customerpayments',
+          field: 'receiptNumber',
+          prefix: 'REC'
+        },
+        {
+          type: SequenceEntityType.PAYMENT_ALLOCATION,
+          coll: 'paymentallocations',
+          field: 'allocationNumber',
+          prefix: 'ALC'
+        },
+        {
+          type: SequenceEntityType.EXPENSE,
+          coll: 'expenses',
+          field: 'expenseNumber',
+          prefix: 'EXP'
+        },
+        {
+          type: SequenceEntityType.SERVICE_TICKET,
+          coll: 'servicecomplaints',
+          field: 'complaintNumber',
+          prefix: 'CMP'
+        },
+        {
+          type: SequenceEntityType.AMC_CONTRACT,
+          coll: 'annualmaintenancecontracts',
+          field: 'contractNumber',
+          prefix: 'AMC'
+        },
+        {
+          type: SequenceEntityType.SERVICE_VISIT,
+          coll: 'servicevisits',
+          field: 'visitNumber',
+          prefix: 'VIS'
+        },
+        {
+          type: SequenceEntityType.NET_METERING,
+          coll: 'netmeteringapplications',
+          field: 'applicationNumber',
+          prefix: 'NMA'
+        },
+        {
+          type: SequenceEntityType.SUBSIDY,
+          coll: 'subsidyapplications',
+          field: 'applicationNumber',
+          prefix: 'SUB'
+        },
+        {
+          type: SequenceEntityType.MATERIAL_DISPATCH,
+          coll: 'materialdispatches',
+          field: 'dispatchNumber',
+          prefix: 'DSP'
+        },
+        { type: SequenceEntityType.TASK, coll: 'projecttasks', field: 'taskNumber', prefix: 'TSK' },
+        {
+          type: SequenceEntityType.DOCUMENT,
+          coll: 'documents',
+          field: 'documentNumber',
+          prefix: 'DOC'
+        },
+        {
+          type: SequenceEntityType.EMPLOYEE,
+          coll: 'employeeprofiles',
+          field: 'employeeCode',
+          prefix: 'EMP'
+        },
+        { type: SequenceEntityType.TEAM, coll: 'teams', field: 'teamCode', prefix: 'TEM' },
+        {
+          type: SequenceEntityType.NOTIFICATION,
+          coll: 'notifications',
+          field: 'notificationNumber',
+          prefix: 'NTF'
+        }
+      ];
+
+      for (const item of entitiesToSync) {
+        try {
+          const docs = await mongoose.connection
+            .collection(item.coll)
+            .find({ [item.field]: { $regex: `^${item.prefix}-${currentFY}-` } })
+            .project({ [item.field]: 1 })
+            .sort({ [item.field]: -1 })
+            .limit(1)
+            .toArray();
+
+          const firstDoc = docs[0];
+          if (firstDoc && firstDoc[item.field]) {
+            const val = String(firstDoc[item.field]);
+            const match = val.match(/-(\d+)$/);
+            if (match && match[1]) {
+              const highestNumber = parseInt(match[1], 10);
+              if (!isNaN(highestNumber) && highestNumber > 0) {
+                await SequenceService.ensureCounterAtLeast(item.type, highestNumber, currentFY);
+              }
+            }
+          }
+        } catch {
+          // If collection does not exist yet, continue safely
+        }
+      }
+
+      logger.info('Sequence counters synchronized successfully with database records.');
+    } catch (err: any) {
+      logger.warn({ err: err?.message }, 'Non-fatal warning synchronizing sequence counters.');
+    }
+  }
 }

@@ -2,6 +2,7 @@ import { app } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { dbManager } from './db/connection.js';
+import { SequenceService } from './services/sequenceService.js';
 
 export async function startServer(): Promise<any> {
   // 1. Initialize Database Connection (Fail-fast before opening HTTP listener)
@@ -12,6 +13,11 @@ export async function startServer(): Promise<any> {
         `Fatal startup error: Cannot start API server when database state is '${dbState}'. Aborting.`
       );
     }
+  }
+
+  // Synchronize sequence counters with existing records to prevent E11000 duplicate collisions
+  if (dbState === 'connected') {
+    await SequenceService.syncAllCounters();
   }
 
   // 2. Start HTTP Server

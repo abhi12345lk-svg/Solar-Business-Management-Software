@@ -153,10 +153,6 @@ export class LeadService {
       throw AppError.permissionDenied('Customer portal users cannot create internal leads.');
     }
 
-    // Atomic monotonic sequence generation
-    const seqResult = await SequenceService.generateNumber(SequenceEntityType.LEAD);
-    const leadCode = seqResult.formattedNumber;
-
     let assignedId: Types.ObjectId | undefined;
     if (input.assignedToEmployeeId) {
       if (!Types.ObjectId.isValid(input.assignedToEmployeeId)) {
@@ -172,24 +168,63 @@ export class LeadService {
       assignedId = new Types.ObjectId(user.userId);
     }
 
-    const leadDoc = await Lead.create({
-      leadCode,
-      prospectName: input.prospectName,
-      prospectPhone: input.prospectPhone,
-      prospectEmail: input.prospectEmail,
-      companyName: input.companyName,
-      location: input.location,
-      source: input.source,
-      solarRequirement: input.solarRequirement,
-      estimatedCapacityKw: input.estimatedCapacityKw,
-      assignedToEmployeeId: assignedId,
-      status: LeadStatus.NEW,
-      priority: input.priority || LeadPriority.MEDIUM,
-      notes: input.notes,
-      nextFollowUpDate: input.nextFollowUpDate ? new Date(input.nextFollowUpDate) : undefined,
-      isActive: true,
-      createdBy: Types.ObjectId.isValid(user.userId) ? new Types.ObjectId(user.userId) : undefined
-    });
+    let leadDoc: any;
+    const MAX_CREATION_ATTEMPTS = 5;
+
+    for (let attempt = 1; attempt <= MAX_CREATION_ATTEMPTS; attempt++) {
+      // Atomic monotonic sequence generation
+      const seqResult = await SequenceService.generateNumber(SequenceEntityType.LEAD);
+      const leadCode = seqResult.formattedNumber;
+
+      try {
+        leadDoc = await Lead.create({
+          leadCode,
+          prospectName: input.prospectName,
+          prospectPhone: input.prospectPhone,
+          prospectEmail: input.prospectEmail,
+          companyName: input.companyName,
+          location: input.location,
+          source: input.source,
+          solarRequirement: input.solarRequirement,
+          estimatedCapacityKw: input.estimatedCapacityKw,
+          assignedToEmployeeId: assignedId,
+          status: LeadStatus.NEW,
+          priority: input.priority || LeadPriority.MEDIUM,
+          notes: input.notes,
+          nextFollowUpDate: input.nextFollowUpDate ? new Date(input.nextFollowUpDate) : undefined,
+          isActive: true,
+          createdBy: Types.ObjectId.isValid(user.userId)
+            ? new Types.ObjectId(user.userId)
+            : undefined
+        });
+        break; // Successfully created lead!
+      } catch (err: any) {
+        const isDuplicateKey =
+          (err?.code === 11000 ||
+            err?.name === 'MongoServerError' ||
+            String(err?.message || '').includes('E11000')) &&
+          (String(err?.message || '').includes('leadCode') ||
+            JSON.stringify(err?.keyPattern || {}).includes('leadCode'));
+
+        if (isDuplicateKey && attempt < MAX_CREATION_ATTEMPTS) {
+          logger.warn(
+            { leadCode, attempt },
+            'Pre-existing leadCode collision detected; advancing sequence counter and retrying.'
+          );
+          await SequenceService.ensureCounterAtLeast(
+            SequenceEntityType.LEAD,
+            seqResult.sequenceNumber + 1
+          );
+          continue;
+        }
+
+        if (err?.code === 11000 && String(err?.message || '').includes('prospectPhone')) {
+          throw AppError.businessRule('A lead with this phone number already exists.');
+        }
+
+        throw err;
+      }
+    }
 
     // Record initial capture activity
     await LeadActivity.create({
@@ -215,7 +250,7 @@ export class LeadService {
       targetEntity: 'Lead',
       targetId: leadDoc._id.toString(),
       details: {
-        leadCode,
+        leadCode: leadDoc.leadCode,
         prospectPhone: input.prospectPhone,
         source: input.source,
         assignedToEmployeeId: assignedId?.toString()
@@ -226,7 +261,7 @@ export class LeadService {
       'assignedToEmployeeId',
       'firstName lastName email'
     );
-    return LeadService.toLeadDto(populated);
+    return LeadService.toLeadDto(populated || leadDoc);
   }
 
   /**
@@ -690,7 +725,7 @@ export class LeadService {
       }
     }
 
-    let customerDoc: ICustomerDocument;
+    let customerDoc!: ICustomerDocument;
 
     // Option A: Link to existing customer if ID supplied
     if (input.existingCustomerId) {
@@ -703,10 +738,7 @@ export class LeadService {
       }
       customerDoc = found;
     } else {
-      // Option B: Create new Customer with atomic customer sequence
-      const seqResult = await SequenceService.generateNumber(SequenceEntityType.CUSTOMER);
-      const customerCode = seqResult.formattedNumber;
-
+      // Option B: Create new Customer with atomic customer sequence and collision retry
       const loc = lead.location || { city: '', state: '' };
       const installationAddress: IAddressSubdocument = {
         type: AddressType.SITE_INSTALLATION,
@@ -730,21 +762,44 @@ export class LeadService {
         geoCoordinates: loc.geoCoordinates
       };
 
-      customerDoc = await Customer.create({
-        customerCode,
-        name: lead.prospectName,
-        companyName: input.companyName || lead.companyName,
-        primaryPhone: lead.prospectPhone,
-        email: lead.prospectEmail,
-        type: input.customerType,
-        status: CustomerStatus.ACTIVE,
-        isActive: true,
-        gstin: input.gstin,
-        pan: input.pan,
-        billingAddress,
-        installationAddress,
-        notes: input.notes || `Converted from Lead ${lead.leadCode}`
-      });
+      const MAX_CUSTOMER_ATTEMPTS = 5;
+      for (let attempt = 1; attempt <= MAX_CUSTOMER_ATTEMPTS; attempt++) {
+        const seqResult = await SequenceService.generateNumber(SequenceEntityType.CUSTOMER);
+        const customerCode = seqResult.formattedNumber;
+
+        try {
+          customerDoc = await Customer.create({
+            customerCode,
+            name: lead.prospectName,
+            companyName: input.companyName || lead.companyName,
+            primaryPhone: lead.prospectPhone,
+            email: lead.prospectEmail,
+            type: input.customerType,
+            status: CustomerStatus.ACTIVE,
+            isActive: true,
+            gstin: input.gstin,
+            pan: input.pan,
+            billingAddress,
+            installationAddress,
+            notes: input.notes || `Converted from Lead ${lead.leadCode}`
+          });
+          break;
+        } catch (err: any) {
+          const isDupCustomerCode =
+            (err?.code === 11000 || String(err?.message || '').includes('E11000')) &&
+            (String(err?.message || '').includes('customerCode') ||
+              JSON.stringify(err?.keyPattern || {}).includes('customerCode'));
+
+          if (isDupCustomerCode && attempt < MAX_CUSTOMER_ATTEMPTS) {
+            await SequenceService.ensureCounterAtLeast(
+              SequenceEntityType.CUSTOMER,
+              seqResult.sequenceNumber + 1
+            );
+            continue;
+          }
+          throw err;
+        }
+      }
     }
 
     // Update lead record to reflect conversion

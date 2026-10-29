@@ -140,7 +140,14 @@ export const LeadsPage: React.FC = () => {
       resetForm();
       fetchLeads();
     } catch (err: any) {
-      setCreateError(err?.message || 'Failed to create lead.');
+      const msg = err?.message || 'Failed to create lead.';
+      if (msg.includes('E11000') || msg.includes('duplicate key')) {
+        setCreateError(
+          'A lead with this phone number or code already exists. Please retry or verify details.'
+        );
+      } else {
+        setCreateError(msg);
+      }
     } finally {
       setCreating(false);
     }
