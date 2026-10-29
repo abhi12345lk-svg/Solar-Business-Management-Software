@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AuthUserDto, Permission, UserRole, LoginInput } from '@ins-solar/shared';
+import { AuthUserDto, Permission, UserRole, Department, LoginInput } from '@ins-solar/shared';
 import { apiClient } from '../lib/api.js';
 
 interface MfaChallengeState {
@@ -14,6 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   mfaChallenge: MfaChallengeState | null;
   login: (credentials: LoginInput) => Promise<{ requiresMfa?: boolean }>;
+  loginDemo: (role?: UserRole) => void;
   verifyMfaLogin: (code: string, isRecovery?: boolean) => Promise<void>;
   clearMfaChallenge: () => void;
   logout: () => Promise<void>;
@@ -33,11 +34,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     queryFn: async () => {
       try {
         return await apiClient<AuthUserDto>('/auth/me');
-      } catch (err: any) {
-        if (err.statusCode === 401 || err.statusCode === 403) {
-          return null;
+      } catch {
+        // If server is unreachable or 401/403/503 (e.g. Vercel without cloud DB), check for demo user
+        try {
+          const savedDemo = localStorage.getItem('ins_demo_user');
+          if (savedDemo) {
+            return JSON.parse(savedDemo);
+          }
+        } catch {
+          localStorage.removeItem('ins_demo_user');
         }
-        throw err;
+        return null;
       }
     },
     retry: false,
@@ -95,14 +102,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiClient('/auth/logout', { method: 'POST' });
+      try {
+        await apiClient('/auth/logout', { method: 'POST' });
+      } catch {
+        // Continue logout even if backend API is offline
+      }
     },
     onSettled: () => {
+      try {
+        localStorage.removeItem('ins_demo_user');
+      } catch {
+        // ignore
+      }
       queryClient.setQueryData(['authUser'], null);
       queryClient.clear();
       setMfaChallenge(null);
     }
   });
+
+  const loginDemo = (role: UserRole = UserRole.SUPERADMIN) => {
+    const demoUser: AuthUserDto = {
+      id: 'demo-superadmin-001',
+      employeeCode: role === UserRole.SUPERADMIN ? 'EMP-0001' : 'EMP-0002',
+      email: role === UserRole.SUPERADMIN ? 'admin@inssolar.com' : 'sales@inssolar.com',
+      firstName: role === UserRole.SUPERADMIN ? 'System' : 'Rajesh',
+      lastName: role === UserRole.SUPERADMIN ? 'Administrator' : 'Sharma',
+      phone: '+919876500000',
+      department: role === UserRole.SUPERADMIN ? Department.ADMIN : Department.SALES,
+      role,
+      permissions: [],
+      isActive: true,
+      mfaEnabled: false
+    };
+    try {
+      localStorage.setItem('ins_demo_user', JSON.stringify(demoUser));
+    } catch {
+      // ignore
+    }
+    queryClient.setQueryData(['authUser'], demoUser);
+  };
 
   const login = async (credentials: LoginInput) => {
     const res = await loginMutation.mutateAsync(credentials);
@@ -141,6 +179,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         mfaChallenge,
         login,
+        loginDemo,
         verifyMfaLogin,
         clearMfaChallenge,
         logout,
