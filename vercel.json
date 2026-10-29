@@ -4,7 +4,6 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "apps/web/dist",
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
@@ -15,7 +14,7 @@
       "destination": "/api"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
