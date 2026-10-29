@@ -19,6 +19,7 @@ import {
 } from '../models/index.js';
 import {
   UserRole,
+  Department,
   ProjectPriority,
   SolarTopology,
   NetMeteringStatus,
@@ -41,19 +42,66 @@ import { NetMeteringService } from '../services/netMeteringService.js';
 import { SubsidyService } from '../services/subsidyService.js';
 import { ChecklistService } from '../services/checklistService.js';
 import { SequenceService } from '../services/sequenceService.js';
+import { hashPassword } from '../utils/crypto.js';
 
 export async function seedDemoData(): Promise<void> {
   await dbManager.connect();
 
   try {
-    // 1. Get Superadmin
+    // 1. Get or Bootstrap Superadmin
     let admin = await User.findOne({ email: 'admin@inssolar.com' });
     if (!admin) {
       admin = await User.findOne({ role: UserRole.SUPERADMIN });
     }
+    const adminPassHash = await hashPassword('SolarAdmin2026!');
     if (!admin) {
-      console.error('Please run bootstrap:admin first before seeding demo data.');
-      return;
+      admin = await User.create({
+        employeeCode: 'EMP-0001',
+        firstName: 'System',
+        lastName: 'Administrator',
+        email: 'admin@inssolar.com',
+        phone: '+919876500000',
+        passwordHash: adminPassHash,
+        department: Department.ADMIN,
+        role: UserRole.SUPERADMIN,
+        permissions: [],
+        isActive: true,
+        mfaEnabled: false,
+        sessionVersion: 1
+      });
+      console.log('✓ Initialized Superadmin admin@inssolar.com / SolarAdmin2026!');
+    } else {
+      admin.passwordHash = adminPassHash;
+      await admin.save();
+    }
+
+    // Also ensure Sales Executive exists
+    let sales = await User.findOne({ email: 'sales@inssolar.com' });
+    const salesPassHash = await hashPassword('SolarSales2026!');
+    if (!sales) {
+      sales = await User.create({
+        employeeCode: 'EMP-0002',
+        firstName: 'Rajesh',
+        lastName: 'Sharma',
+        email: 'sales@inssolar.com',
+        phone: '+919876500001',
+        passwordHash: salesPassHash,
+        department: Department.SALES,
+        role: UserRole.SALES_EXECUTIVE,
+        permissions: [
+          'crm:lead:create',
+          'crm:lead:read',
+          'crm:lead:update',
+          'engineering:quote:create'
+        ],
+        isActive: true,
+        mfaEnabled: false,
+        sessionVersion: 1
+      });
+      console.log('✓ Initialized Sales Executive sales@inssolar.com / SolarSales2026!');
+    } else {
+      sales.passwordHash = salesPassHash;
+      await sales.save();
     }
     const adminUser = {
       userId: admin._id.toString(),

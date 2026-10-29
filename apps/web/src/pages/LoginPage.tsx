@@ -64,10 +64,28 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (fillEmail: string, fillPass: string) => {
+  const handleQuickFillAndLogin = async (fillEmail: string, fillPass: string) => {
     setEmail(fillEmail);
     setPassword(fillPass);
     setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      const result = await login({
+        email: fillEmail,
+        password: fillPass
+      });
+
+      if (result.requiresMfa) {
+        navigate('/mfa-challenge');
+      } else {
+        navigate(from, { replace: true });
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -365,23 +383,34 @@ export const LoginPage: React.FC = () => {
 
           {/* Quick Demo Access Bar */}
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 text-center">
-              Quick Demo Fill (Evaluation Mode)
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Instant 1-Click Login (Evaluation Mode)
+              </p>
+              <span className="text-[10px] text-amber-500 font-semibold">Auto-fills & logs in</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@inssolar.com', 'SolarAdmin2026!')}
-                className="flex-1 py-2 px-3 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors text-center border border-slate-200 dark:border-slate-700"
+                disabled={isLoading}
+                onClick={() => handleQuickFillAndLogin('admin@inssolar.com', 'SolarAdmin2026!')}
+                className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all text-center border border-amber-500/30 hover:border-amber-500 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
-                ⚡ Super Admin
+                <span>⚡ Super Admin</span>
+                <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
+                  (admin)
+                </span>
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('sales@inssolar.com', 'SolarSales2026!')}
-                className="flex-1 py-2 px-3 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors text-center border border-slate-200 dark:border-slate-700"
+                disabled={isLoading}
+                onClick={() => handleQuickFillAndLogin('sales@inssolar.com', 'SolarSales2026!')}
+                className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all text-center border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
-                💼 Sales Exec
+                <span>💼 Sales Exec</span>
+                <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
+                  (sales)
+                </span>
               </button>
             </div>
           </div>
