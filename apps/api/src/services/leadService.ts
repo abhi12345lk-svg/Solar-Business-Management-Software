@@ -23,8 +23,6 @@ import {
   LeadActivityDto,
   LeadStatus,
   LeadPriority,
-  LeadSource,
-  SolarRequirement,
   SequenceEntityType,
   ActivityType,
   ActivityStatus,
@@ -320,87 +318,15 @@ export class LeadService {
       throw AppError.permissionDenied('Customer portal users cannot access internal leads.');
     }
 
-    // Standalone preview fallback when live MongoDB is not connected
+    // Clean empty state fallback when live MongoDB is not connected
     if (mongoose.connection.readyState !== 1) {
-      const fallbackLeads: LeadDto[] = [
-        {
-          id: 'lead-preview-001',
-          leadCode: 'LEAD-2026-00001',
-          prospectName: 'Amit Verma',
-          prospectPhone: '+919829111222',
-          prospectEmail: 'amit.verma@example.com',
-          companyName: 'Verma Solar Enterprises',
-          location: {
-            city: 'Jaipur',
-            state: 'Rajasthan',
-            pinCode: '302020',
-            street: '12, Malviya Nagar'
-          },
-          source: LeadSource.WEBSITE,
-          solarRequirement: SolarRequirement.RESIDENTIAL,
-          estimatedCapacityKw: 5,
-          status: LeadStatus.SURVEY_SCHEDULED,
-          priority: LeadPriority.HIGH,
-          notes: 'PM Surya Ghar rooftop solar prospect',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'lead-preview-002',
-          leadCode: 'LEAD-2026-00002',
-          prospectName: 'Priya Sharma',
-          prospectPhone: '+919829333444',
-          prospectEmail: 'priya.sharma@example.com',
-          companyName: 'Sharma Textiles',
-          location: {
-            city: 'Udaipur',
-            state: 'Rajasthan',
-            pinCode: '313001',
-            street: '45, Industrial Estate'
-          },
-          source: LeadSource.COLD_CALL,
-          solarRequirement: SolarRequirement.COMMERCIAL,
-          estimatedCapacityKw: 25,
-          status: LeadStatus.CONTACTED,
-          priority: LeadPriority.HIGH,
-          notes: 'Commercial rooftop solar installation',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'lead-preview-003',
-          leadCode: 'LEAD-2026-00003',
-          prospectName: 'Rajesh Patel',
-          prospectPhone: '+919829555666',
-          prospectEmail: 'rajesh.patel@example.com',
-          companyName: 'Patel Agro Industries',
-          location: {
-            city: 'Kota',
-            state: 'Rajasthan',
-            pinCode: '324005',
-            street: '88, Agro Park'
-          },
-          source: LeadSource.REFERRAL,
-          solarRequirement: SolarRequirement.INDUSTRIAL,
-          estimatedCapacityKw: 100,
-          status: LeadStatus.QUOTED,
-          priority: LeadPriority.URGENT,
-          notes: 'Industrial captive rooftop solar inquiry',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-
       return {
-        data: fallbackLeads,
+        data: [],
         pagination: {
           page: 1,
           limit: 50,
-          totalRecords: fallbackLeads.length,
-          totalPages: 1,
+          totalRecords: 0,
+          totalPages: 0,
           hasNextPage: false,
           hasPrevPage: false
         }
