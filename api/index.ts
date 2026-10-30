@@ -11,12 +11,14 @@ async function getApp() {
     const { createApp } = await import('../apps/api/src/app.js');
     const { DatabaseManager } = await import('../apps/api/src/db/connection.js');
     const { SequenceService } = await import('../apps/api/src/services/sequenceService.js');
+    const { bootstrapDefaultUsers } = await import('../apps/api/src/db/bootstrap.js');
 
     try {
       const dbManager = DatabaseManager.getInstance();
       const state = await dbManager.connect();
       if (state === 'connected') {
         await SequenceService.syncAllCounters();
+        await bootstrapDefaultUsers();
       }
     } catch (dbErr: any) {
       console.warn('Vercel serverless database initialization:', dbErr?.message || dbErr);

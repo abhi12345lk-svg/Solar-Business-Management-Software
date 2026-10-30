@@ -3,6 +3,7 @@ import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { dbManager } from './db/connection.js';
 import { SequenceService } from './services/sequenceService.js';
+import { bootstrapDefaultUsers } from './db/bootstrap.js';
 
 export async function startServer(): Promise<any> {
   // 1. Initialize Database Connection (Fail-fast before opening HTTP listener)
@@ -15,9 +16,10 @@ export async function startServer(): Promise<any> {
     }
   }
 
-  // Synchronize sequence counters with existing records to prevent E11000 duplicate collisions
+  // Synchronize sequence counters and bootstrap default users
   if (dbState === 'connected') {
     await SequenceService.syncAllCounters();
+    await bootstrapDefaultUsers();
   }
 
   // 2. Start HTTP Server

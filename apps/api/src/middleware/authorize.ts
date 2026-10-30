@@ -1,4 +1,5 @@
 import { RequestHandler, Request } from 'express';
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import {
@@ -44,6 +45,10 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 
   // If employee session, verify active status in database
   if (sessionUser) {
+    if (mongoose.connection.readyState !== 1) {
+      // Standalone preview mode: trust valid session user when database is unconfigured
+      return next();
+    }
     try {
       const user = await User.findById(sessionUser.userId);
       if (!user) {
@@ -208,10 +213,10 @@ export function requirePermission(permission: Permission): RequestHandler {
       return next();
     }
 
-    // Get effective permissions from cached user document or compute
+    // Get effective permissions from cached user document or session
     const effectivePermissions: Permission[] = req.currentUser
       ? req.currentUser.getEffectivePermissions()
-      : [];
+      : ((user as any).permissions as Permission[]) || [];
 
     if (effectivePermissions.includes(permission)) {
       return next();
