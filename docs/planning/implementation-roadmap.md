@@ -308,10 +308,25 @@ graph TD
     *   **Master Quality Gates:** **487 automated tests passing** across 49 test files (135 shared, 301 API, 51 web), 0 failures, 0 skipped, 0 TypeScript errors, 0 ESLint warnings, 100% Prettier formatting, clean production build, and 0 critical production vulnerabilities.
     *   **UAT Documentation:** Published master UAT report in `docs/development/phase-12-uat-report.md`.
     *   **Final Release Readiness:** **UAT PASSED (100% Core Acceptance Verified)**. Ready for production deployment upon provisioning live third-party accounts (AWS S3/R2, SMTP/SES, DLT SMS) and CA GST written sign-off.
-*   **Phase 13: Master Module Restructuring (Completed & Verified):**
-    *   **Architecture Streamlining (30 Modules → 24 Unified Core Modules):**
-        1.  *Removed Standalone Modules:* Removed standalone navigation and isolated sub-screens for Follow-ups (integrated into Leads CRM), Installation (integrated into 10-Stage Projects & Checklist), Payment Management (integrated into Sales Orders & Customer Accounts), and Expense Management (integrated into Project Costing & Profitability).
-        2.  *Combined Related Modules:* Combined Quotation Management + Quotation Sharing into a single unified Quotation Suite; combined Product/Item Master + Inventory into a single unified Inventory Management Suite.
-        3.  *Data & Logic Preservation:* 100% of historical records, financial calculations (integer paise), audit logs, and approval rules strictly preserved without schema drops.
-        4.  *Quality Gates:* **488 automated tests passing (100%)** across 49 test suites, 0 TypeScript errors, 0 ESLint warnings, 100% Prettier compliance, production build clean.
-        5.  *Documentation:* Published audit in `docs/development/module-restructuring-audit.md` and final report in `docs/development/module-restructuring-final-report.md`.
+*   **Phase 13: Master Module Restructuring & Workflow Optimization (Completed & Verified):**
+    *   **Final Logical Architecture (30 Modules → 24 Unified Core Modules):**
+        1.  *Group A (Sales & Engineering):* Executive Dashboard, Lead & Customer Management (Leads, Customers, and Follow-up activity timeline unified), Site Survey Management, Solar System Design, Quotation Management (Quotation Suite with revisions and proposal sharing unified), Sales Order Management.
+        2.  *Group B (Procurement & Inventory):* Inventory Management (Product Catalogue and 10 internal stock sub-sections unified), Purchase Management, Vendor Management.
+        3.  *Group C (Project & Installation):* Project Management (10-stage execution pipeline; standalone installation merged), Installation Checklist & Commissioning (quality gates), Net Metering & Subsidy Management, Task Management.
+        4.  *Group D (Accounts & Business Performance):* Accounts & Receivables (Payment collections, receipts, aging), Project Costing & Profitability (Budget vs actual, direct expenses, margins), Reports & Analytics.
+        5.  *Group E (After-Sales & Service):* Service & Complaint Management, Warranty Management, AMC & Service Visit Management (AMC contracts + field visits unified).
+        6.  *Group F (Administration & Support):* Employee & Team Management, Document Management, User & Role Management, Notifications & Reminders, Settings & Masters.
+    *   **Data & Logic Preservation:** 100% of historical records, financial calculations (integer paise), audit logs, and approval rules strictly preserved without schema drops.
+    *   **Quality Gates:** **488 automated tests passing (100%)** across 49 test suites, 0 TypeScript errors, 0 ESLint warnings, 100% Prettier compliance, production build clean.
+    *   **Documentation:** Architecture specification in `docs/architecture/final-logical-module-architecture.md`, audit report in `docs/development/module-restructuring-audit.md`, and final completion report in `docs/development/final-logical-restructuring-report.md`.
+*   **Phase 14: Enterprise Three-Panel Architecture Restructuring (Admin | Sales | Accounts) (Completed & Verified):**
+    *   **Three Internal Panels Implementation:**
+        1.  *Admin Panel:* Central company management, operational oversight, 10-stage project pipeline, inventory & product master, physical GRN verification, vendor profiles, service & AMC, workforce management, users, and masters.
+        2.  *Sales Panel:* Customer acquisition engine, lead management, follow-up timeline, customer commercial records, site survey scheduling, solar PV sizing, quotation suite with immutable revisions, and confirmed sales orders.
+        3.  *Accounts Panel:* Financial control, customer receivables, payment collections, aging analysis, purchase order financial approvals, vendor payables, corporate & project expenses, and project costing gross margin analysis.
+    *   **External Customer Portal:** Isolated public customer portal (`/customer-portal`, `/portal`) for customers only (`CUSTOMER` role); strictly maintained outside internal company panels.
+    *   **Data & System Invariants:** 100% of 46 MongoDB Atlas collections, schema indexes, sequence counters (`SequenceCounter`), integer paise monetary precision, and audit trails preserved with zero data loss.
+    *   **Frontend Panel Switcher & Navigation:** Updated `AppLayout.tsx` with role-adaptive navigation, panel selector for Admin users, and role badge for Sales and Accounts users.
+    *   **Quality Gates:** **497 automated tests passing (100% green)** across 50 test suites (12 shared, 25 API, 13 web), 0 TypeScript errors, 0 ESLint warnings, 100% Prettier formatting, clean production build.
+    *   **Documentation:** Published Phase 1 Audit in `docs/architecture/three-panel-architecture-audit.md`, Architecture Specification in `docs/architecture/three-panel-architecture-specification.md`, and Final Completion Report in `docs/development/three-panel-restructuring-report.md`.
+

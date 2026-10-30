@@ -184,17 +184,9 @@ export type SizingResult = z.infer<typeof SizingResultSchema>;
 // ----------------------------------------------------------------------------
 
 export const CreateSolarDesignInputSchema = z.object({
-  customerId: z
-    .string({ required_error: 'Target customer ID is required.' })
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Customer ID format.'),
-  leadId: z
-    .string()
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Lead ID format.')
-    .optional(),
-  surveyId: z
-    .string()
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Site Survey ID format.')
-    .optional(),
+  customerId: z.string().trim().optional(),
+  leadId: z.string().trim().optional(),
+  surveyId: z.string().trim().optional(),
   designName: z
     .string({ required_error: 'Design name is required.' })
     .trim()

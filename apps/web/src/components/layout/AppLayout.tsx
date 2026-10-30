@@ -24,10 +24,13 @@ import {
   Menu,
   X,
   Bell,
-  CheckSquare
+  CheckSquare,
+  CreditCard,
+  TrendingUp
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
+import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 
 interface NavItem {
   to: string;
@@ -41,15 +44,12 @@ interface NavSection {
   items: NavItem[];
 }
 
-const SIDEBAR_SECTIONS: NavSection[] = [
+const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Core & Executive',
-    items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }]
-  },
-  {
-    title: 'Sales & CRM',
+    title: 'Executive & Commercial',
     items: [
-      { to: '/leads', label: 'Leads & Follow-ups', icon: Users },
+      { to: '/', label: 'Admin Dashboard', icon: LayoutDashboard },
+      { to: '/leads', label: 'Lead & Customer CRM', icon: Users },
       { to: '/surveys', label: 'Site Surveys', icon: Layers },
       { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
       { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
@@ -57,40 +57,114 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Execution & Projects',
+    title: 'Project & Field Operations',
     items: [
-      { to: '/projects', label: 'Projects (10-Stage)', icon: FolderKanban },
-      { to: '/tasks', label: 'Unified Tasks', icon: CheckSquare },
+      { to: '/projects', label: 'Project Management (10-Stage)', icon: FolderKanban },
+      { to: '/tasks', label: 'Operational Tasks', icon: CheckSquare },
       { to: '/documents', label: 'Document Vault', icon: FileText },
-      { to: '/net-metering', label: 'Net Metering', icon: Zap },
-      { to: '/subsidies', label: 'Govt Subsidies', icon: Landmark }
+      { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
+      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
   },
   {
-    title: 'Supply Chain & Inventory',
+    title: 'Supply Chain & Procurement',
     items: [
       { to: '/inventory', label: 'Inventory Management', icon: Boxes },
       { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
       { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipt (GRN)', icon: PackageCheck },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck },
       { to: '/vendor-invoices', label: 'Vendor Invoices', icon: Receipt }
     ]
   },
   {
-    title: 'Service & Maintenance',
+    title: 'Accounts & Controlling',
     items: [
-      { to: '/complaints', label: 'Service Complaints', icon: LifeBuoy },
-      { to: '/warranties', label: 'Asset Warranties', icon: ShieldCheck },
-      { to: '/amc', label: 'AMC Contracts', icon: FileCheck2 },
-      { to: '/service-visits', label: 'Field Visits', icon: Wrench },
-      { to: '/customer-portal', label: 'Customer Portal Hub', icon: Users }
+      { to: '/payments', label: 'Accounts & Receivables', icon: CreditCard },
+      { to: '/expenses', label: 'Project Costing & Profitability', icon: TrendingUp }
     ]
   },
   {
-    title: 'Team & Workforce',
+    title: 'After-Sales & Service',
     items: [
-      { to: '/employees', label: 'Employee Directory', icon: Users },
-      { to: '/teams', label: 'Crews & Squads', icon: Users }
+      { to: '/complaints', label: 'Service Complaints', icon: LifeBuoy },
+      { to: '/warranties', label: 'Asset Warranties', icon: ShieldCheck },
+      { to: '/amc', label: 'AMC & Service Visits', icon: FileCheck2 },
+      { to: '/service-visits', label: 'Field Service Visits', icon: Wrench }
+    ]
+  },
+  {
+    title: 'Workforce & Governance',
+    items: [
+      { to: '/employees', label: 'Employee Management', icon: Users },
+      { to: '/teams', label: 'Teams & Field Crews', icon: Users },
+      { to: '/mfa-setup', label: 'Users & Roles (MFA)', icon: ShieldCheck }
+    ]
+  }
+];
+
+const SALES_PANEL_SECTIONS: NavSection[] = [
+  {
+    title: 'CRM & Sales Pipeline',
+    items: [
+      { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
+      { to: '/leads', label: 'Lead Management', icon: Users },
+      { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell },
+      { to: '/leads', label: 'Customer Directory', icon: Users }
+    ]
+  },
+  {
+    title: 'Engineering & Proposals',
+    items: [
+      { to: '/surveys', label: 'Site Surveys', icon: Layers },
+      { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
+      { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
+    ]
+  },
+  {
+    title: 'Execution & Milestone Tracking',
+    items: [
+      { to: '/projects', label: 'Project Progress', icon: FolderKanban },
+      { to: '/net-metering', label: 'Net Metering Status', icon: Zap },
+      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
+    ]
+  },
+  {
+    title: 'Workspace & Documents',
+    items: [
+      { to: '/tasks', label: 'Sales Tasks', icon: CheckSquare },
+      { to: '/documents', label: 'Client Document Vault', icon: FileText }
+    ]
+  }
+];
+
+const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
+  {
+    title: 'Receivables & Billing',
+    items: [
+      { to: '/', label: 'Accounts Dashboard', icon: LayoutDashboard },
+      { to: '/payments', label: 'Payment Collections & Receipts', icon: CreditCard },
+      { to: '/payments', label: 'Customer Outstanding & Aging', icon: Landmark },
+      { to: '/subsidies', label: 'Govt Subsidy Disbursements', icon: Landmark },
+      { to: '/orders', label: 'Confirmed Sales Orders (Billing)', icon: ShoppingCart }
+    ]
+  },
+  {
+    title: 'Procurement & 3-Way Match',
+    items: [
+      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN QA)', icon: PackageCheck },
+      { to: '/vendor-invoices', label: 'Vendor Invoices & Aging', icon: Receipt },
+      { to: '/vendors', label: 'Vendor Directory & Balances', icon: Building2 }
+    ]
+  },
+  {
+    title: 'Costing, Vouchers & Tasks',
+    items: [
+      { to: '/expenses', label: 'Operational Expense Vouchers', icon: TrendingUp },
+      { to: '/expenses', label: 'Project Costing & Gross Margins', icon: FolderKanban },
+      { to: '/documents', label: 'Financial Documents & Invoices', icon: FileText },
+      { to: '/tasks', label: 'Accounts Tasks & Approvals', icon: CheckSquare }
     ]
   }
 ];
@@ -101,6 +175,18 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // The operational panel is strictly derived from the authenticated user's role and department
+  const activePanel: PanelType = user?.role
+    ? getDefaultPanelForRole(user.role, user.department)
+    : PanelType.ADMIN;
+
+  const currentSections =
+    activePanel === PanelType.SALES
+      ? SALES_PANEL_SECTIONS
+      : activePanel === PanelType.ACCOUNTS
+        ? ACCOUNTS_PANEL_SECTIONS
+        : ADMIN_PANEL_SECTIONS;
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -136,9 +222,48 @@ export const AppLayout: React.FC = () => {
         </Link>
       </div>
 
+      {/* Dedicated Panel Workstation Badge (Strictly derived from logged-in user role) */}
+      <div className="px-3 pt-3 pb-1 shrink-0">
+        <div
+          className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl border shadow-xs ${
+            activePanel === PanelType.ADMIN
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+              : activePanel === PanelType.SALES
+                ? 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-400'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+          }`}
+        >
+          <div
+            className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
+              activePanel === PanelType.ADMIN
+                ? 'bg-amber-500'
+                : activePanel === PanelType.SALES
+                  ? 'bg-sky-500'
+                  : 'bg-emerald-500'
+            }`}
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-black uppercase tracking-wider truncate">
+              {activePanel === PanelType.ADMIN
+                ? 'Admin Panel'
+                : activePanel === PanelType.SALES
+                  ? 'Sales Panel'
+                  : 'Accounts Panel'}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-medium truncate">
+              {activePanel === PanelType.ADMIN
+                ? 'Operations & Management'
+                : activePanel === PanelType.SALES
+                  ? 'Commercial CRM & Quoting'
+                  : 'Finance & Controlling'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Sections */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-muted-foreground/20">
-        {SIDEBAR_SECTIONS.map((section, idx) => (
+        {currentSections.map((section, idx) => (
           <div key={idx} className="space-y-1">
             <div className="px-3 text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider mb-1.5">
               {section.title}
@@ -257,10 +382,14 @@ export const AppLayout: React.FC = () => {
             </button>
             <div className="flex items-center space-x-2">
               <span className="font-bold text-sm text-foreground hidden sm:inline">
-                Solar Business Operations
+                {activePanel === PanelType.ADMIN
+                  ? 'Admin Operations'
+                  : activePanel === PanelType.SALES
+                    ? 'Sales & CRM'
+                    : 'Accounts & Controlling'}
               </span>
-              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                System Active
+              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+                {activePanel} PANEL
               </span>
             </div>
           </div>

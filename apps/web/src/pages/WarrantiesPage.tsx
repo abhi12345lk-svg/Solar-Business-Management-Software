@@ -675,12 +675,12 @@ export const WarrantiesPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Product ID *
+                    Product / Component *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Catalog ObjectId"
+                    placeholder="Product Code, SKU, or ID"
                     value={claimForm.productId}
                     onChange={e => setClaimForm({ ...claimForm, productId: e.target.value })}
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
@@ -688,12 +688,12 @@ export const WarrantiesPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Project ID *
+                    Solar Project *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Project ObjectId"
+                    placeholder="Project Code (e.g. PRJ-2026-00001) or ID"
                     value={claimForm.projectId}
                     onChange={e => setClaimForm({ ...claimForm, projectId: e.target.value })}
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"

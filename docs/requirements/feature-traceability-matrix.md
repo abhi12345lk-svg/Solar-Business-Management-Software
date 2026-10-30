@@ -23,7 +23,12 @@
 | **Phase 8 / 9B** | Operations & Teams (Employees, Teams, Tasks) | 18 | Verified (18/18) |
 | **Phase 9A** | Customer Portal, Notifications, Reminders & System Settings | 27 | Verified (27/27) |
 | **Phase 10 & 11** | Full Integration, S3 Storage, Background Queue, Deployment & Production Launch | 8 | Verified (8/8) |
+| **Phase 13** | Master Module Restructuring (30 Developmental Modules -> 24 Logical Core Modules) | Master | Verified (100% Retained) |
 | **Total Requirements** | **100% Granular Feature Coverage** | **354** | **354 Verified (100% Complete)** |
+
+> [!NOTE]
+> **24-Module Logical Architecture Alignment (Phase 13 Update):**
+> All 354 requirements across the original 30 developmental modules are preserved in full. Standalone interfaces for Follow-ups, Quotation Sharing, Product Master, Installation, Payments, and Expenses have been consolidated into their parent operational suites (Lead & Customer CRM, Quotation Suite, Inventory Management, Project Management, Accounts & Receivables, and Project Costing). Refer to `docs/architecture/final-logical-module-architecture.md` for the comprehensive module and workflow mapping.
 
 ---
 
@@ -546,3 +551,6 @@
 | `REQ-BIZ-28` | Orthogonal State Separation | Project stage, payment state, installation state, subsidy state operate independently. | Phase 6 | Independent state transition test. | Planned |
 | `REQ-BIZ-29` | Quotation Snapshot Immutability | Confirmed orders permanently lock agreed BOM prices against future catalog changes. | Phase 5 | Price lock immutability test. | Planned |
 | `REQ-BIZ-30` | Empirical Quality & Reliability | Verified via automated test suites, structured Pino logging, and automated backups. | Phase 10 | Automated CI test run in deployment pipeline. | Planned |
+| `REQ-BIZ-31` | Three-Panel Internal ERP Architecture | Internal system strictly structured into 3 operational panels: Admin, Sales, Accounts. | Phase 14 | Verified in `threePanelRestructuring.test.ts` & `AppLayout.tsx`. | Verified |
+| `REQ-BIZ-32` | External Customer Portal Isolation | Customer self-service portal maintained as an isolated external surface, not an internal panel. | Phase 14 | Verified in `threePanelRestructuring.test.ts` & `customer-auth.routes.ts`. | Verified |
+

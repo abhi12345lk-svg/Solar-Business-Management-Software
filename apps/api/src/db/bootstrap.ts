@@ -51,6 +51,26 @@ export async function bootstrapDefaultUsers(): Promise<void> {
       });
       logger.info('Initialized default Sales Executive (sales@inssolar.com).');
     }
+
+    const accountsExists = await User.exists({ email: 'accounts@inssolar.com' });
+    if (!accountsExists) {
+      const accountsPassHash = await hashPassword('SolarAccounts2026!');
+      await User.create({
+        employeeCode: 'EMP-0003',
+        firstName: 'Priya',
+        lastName: 'Verma',
+        email: 'accounts@inssolar.com',
+        phone: '+919876500002',
+        passwordHash: accountsPassHash,
+        department: Department.ACCOUNTS,
+        role: UserRole.ACCOUNTS_OFFICER,
+        permissions: [],
+        isActive: true,
+        mfaEnabled: false,
+        sessionVersion: 1
+      });
+      logger.info('Initialized default Accounts Officer (accounts@inssolar.com).');
+    }
   } catch (err: any) {
     logger.warn(
       { err: err?.message },

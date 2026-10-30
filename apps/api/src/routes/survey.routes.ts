@@ -9,6 +9,9 @@ import {
 import { SurveyService } from '../services/surveyService.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
+import { SiteSurvey } from '../models/SiteSurvey.js';
+import { AppError } from '../errors/AppError.js';
+import { getStorageAdapter } from '../services/storage/index.js';
 
 export const surveyRouter = Router();
 
@@ -170,6 +173,38 @@ surveyRouter.post(
         }
       );
       sendSuccess(req, res, survey);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+surveyRouter.get(
+  '/:id/photos/:photoIndex/view',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const survey = await SiteSurvey.findById(req.params.id);
+      if (!survey) throw AppError.notFound('Site survey not found.');
+      const index = parseInt(req.params.photoIndex as string, 10);
+      const photo = survey.photos[index];
+      if (!photo) throw AppError.notFound('Photo not found.');
+
+      if (photo.dataUrl) {
+        const matches = photo.dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches[1] && matches[2]) {
+          res.setHeader('Content-Type', matches[1]);
+          return res.send(Buffer.from(matches[2], 'base64'));
+        }
+      }
+
+      const storageAdapter = getStorageAdapter();
+      if (await storageAdapter.objectExists(photo.storageKey)) {
+        const stream = await storageAdapter.downloadObject(photo.storageKey);
+        res.setHeader('Content-Type', photo.mimeType);
+        return (stream.stream as any).pipe(res);
+      }
+
+      throw AppError.notFound('Photo binary content not available.');
     } catch (err) {
       next(err);
     }

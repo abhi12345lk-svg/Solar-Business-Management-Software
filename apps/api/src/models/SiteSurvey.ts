@@ -16,6 +16,7 @@ export interface ISurveyPhotoSubdocument {
   mimeType: string;
   category: SurveyPhotoCategory;
   caption?: string;
+  dataUrl?: string;
   geoCoordinates?: {
     latitude: number;
     longitude: number;
@@ -90,6 +91,7 @@ const SurveyPhotoSubSchema = new Schema<ISurveyPhotoSubdocument>(
       default: SurveyPhotoCategory.OTHER
     },
     caption: { type: String, trim: true },
+    dataUrl: { type: String },
     geoCoordinates: {
       latitude: { type: Number },
       longitude: { type: Number }

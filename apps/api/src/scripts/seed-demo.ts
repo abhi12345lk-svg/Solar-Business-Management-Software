@@ -103,6 +103,30 @@ export async function seedDemoData(): Promise<void> {
       sales.passwordHash = salesPassHash;
       await sales.save();
     }
+
+    // Also ensure Accounts Officer exists
+    let accounts = await User.findOne({ email: 'accounts@inssolar.com' });
+    const accountsPassHash = await hashPassword('SolarAccounts2026!');
+    if (!accounts) {
+      accounts = await User.create({
+        employeeCode: 'EMP-0003',
+        firstName: 'Priya',
+        lastName: 'Verma',
+        email: 'accounts@inssolar.com',
+        phone: '+919876500002',
+        passwordHash: accountsPassHash,
+        department: Department.ACCOUNTS,
+        role: UserRole.ACCOUNTS_OFFICER,
+        permissions: [],
+        isActive: true,
+        mfaEnabled: false,
+        sessionVersion: 1
+      });
+      console.log('✓ Initialized Accounts Officer accounts@inssolar.com / SolarAccounts2026!');
+    } else {
+      accounts.passwordHash = accountsPassHash;
+      await accounts.save();
+    }
     const adminUser = {
       userId: admin._id.toString(),
       role: admin.role,

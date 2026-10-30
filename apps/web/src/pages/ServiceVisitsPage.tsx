@@ -570,12 +570,12 @@ export const ServiceVisitsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Project ID *
+                    Solar Project *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Project ObjectId"
+                    placeholder="Project Code (e.g. PRJ-2026-00001) or ID"
                     value={scheduleForm.projectId}
                     onChange={e => setScheduleForm({ ...scheduleForm, projectId: e.target.value })}
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
@@ -588,7 +588,7 @@ export const ServiceVisitsPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="Technician User ObjectId"
+                    placeholder="Technician Employee ID / User ID"
                     value={scheduleForm.assignedTechnicianId}
                     onChange={e =>
                       setScheduleForm({ ...scheduleForm, assignedTechnicianId: e.target.value })
@@ -651,7 +651,7 @@ export const ServiceVisitsPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="Complaint ObjectId"
+                    placeholder="Linked Complaint Ticket or ID"
                     value={scheduleForm.complaintId}
                     onChange={e =>
                       setScheduleForm({ ...scheduleForm, complaintId: e.target.value })

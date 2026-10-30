@@ -1,13 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Camera, AlertCircle, Layers, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Plus,
+  Search,
+  Filter,
+  Camera,
+  AlertCircle,
+  Layers,
+  Loader2,
+  UploadCloud,
+  Eye,
+  Check,
+  FileText
+} from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
   SiteSurveyDto,
   SurveyStatus,
   RoofType,
   ConnectionPhase,
-  SurveyPhotoCategory
+  SurveyPhotoCategory,
+  LeadDto
 } from '@ins-solar/shared';
+
+// Helper to optimize/compress image files in browser for fast, real uploads
+const compressImage = (
+  file: File,
+  maxDimension = 1600,
+  quality = 0.85
+): Promise<{ dataUrl: string; size: number }> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ dataUrl: reader.result as string, size: file.size });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(objectUrl);
+        return resolve({ dataUrl: objectUrl, size: file.size });
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(objectUrl);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      const size = Math.round((dataUrl.length * 3) / 4);
+      resolve({ dataUrl, size });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = () => resolve({ dataUrl: reader.result as string, size: file.size });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    };
+  });
+};
 
 export const SurveysPage: React.FC = () => {
   const [surveys, setSurveys] = useState<SiteSurveyDto[]>([]);
@@ -21,6 +86,11 @@ export const SurveysPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // CRM Leads State for Survey Creation
+  const [availableLeads, setAvailableLeads] = useState<LeadDto[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [manualLeadEntry, setManualLeadEntry] = useState(false);
 
   // Form Fields
   const [leadId, setLeadId] = useState('');
@@ -44,7 +114,10 @@ export const SurveysPage: React.FC = () => {
   const [attachingPhoto, setAttachingPhoto] = useState(false);
   const [photoCategory, setPhotoCategory] = useState<SurveyPhotoCategory>(SurveyPhotoCategory.ROOF);
   const [photoCaption, setPhotoCaption] = useState('');
-  const [photoFileName, setPhotoFileName] = useState('roof_aerial_01.jpg');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<any | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchSurveys = async () => {
     setLoading(true);
@@ -64,9 +137,43 @@ export const SurveysPage: React.FC = () => {
     }
   };
 
+  const fetchAvailableLeads = async () => {
+    setLoadingLeads(true);
+    try {
+      const data = await apiClient<LeadDto[]>('/leads?limit=100');
+      setAvailableLeads(data || []);
+    } catch {
+      // Non-blocking
+    } finally {
+      setLoadingLeads(false);
+    }
+  };
+
   useEffect(() => {
     fetchSurveys();
   }, [statusFilter]);
+
+  useEffect(() => {
+    if (showCreateModal && availableLeads.length === 0) {
+      fetchAvailableLeads();
+    }
+  }, [showCreateModal]);
+
+  const handleSelectLead = (selectedId: string) => {
+    setLeadId(selectedId);
+    const lead = availableLeads.find(l => l.id === selectedId);
+    if (lead) {
+      if (lead.location) {
+        if (lead.location.street) setAddressLine1(lead.location.street);
+        if (lead.location.city) setCity(lead.location.city);
+        if (lead.location.state) setState(lead.location.state);
+        if (lead.location.pinCode) setPostalCode(lead.location.pinCode);
+      }
+      if (lead.estimatedCapacityKw) {
+        setProposedCapacityKw(String(lead.estimatedCapacityKw));
+      }
+    }
+  };
 
   const handleCreateSurvey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,22 +220,50 @@ export const SurveysPage: React.FC = () => {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoFile(file);
+    try {
+      if (file.type.startsWith('image/')) {
+        const compressed = await compressImage(file, 1600, 0.85);
+        setPhotoPreviewUrl(compressed.dataUrl);
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => setPhotoPreviewUrl(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      setPhotoPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleAttachPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSurvey) return;
+    if (!photoFile && !photoPreviewUrl) {
+      alert('Please select or drag & drop a site photo first.');
+      return;
+    }
 
     setAttachingPhoto(true);
     try {
-      const storageKey = `surveys/${activeSurvey.surveyNumber}/${Date.now()}_${photoFileName}`;
+      const fileName = photoFile ? photoFile.name : `photo_${Date.now()}.jpg`;
+      const mimeType = photoFile ? photoFile.type || 'image/jpeg' : 'image/jpeg';
+      const fileSizeBytes = photoFile ? photoFile.size : 500000;
+      const storageKey = `surveys/${activeSurvey.surveyNumber}/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
       const payload = {
         photos: [
           {
             storageKey,
-            fileName: photoFileName,
-            fileSizeBytes: 2048500, // Safe metadata simulation
-            mimeType: 'image/jpeg',
+            fileName,
+            fileSizeBytes,
+            mimeType: (mimeType === 'image/jpg' ? 'image/jpeg' : mimeType) as any,
             category: photoCategory,
-            caption: photoCaption.trim() || undefined
+            caption: photoCaption.trim() || undefined,
+            dataUrl: photoPreviewUrl || undefined
           }
         ]
       };
@@ -140,9 +275,12 @@ export const SurveysPage: React.FC = () => {
 
       setActiveSurvey(updated);
       setPhotoCaption('');
+      setPhotoFile(null);
+      setPhotoPreviewUrl(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       fetchSurveys();
     } catch (err: any) {
-      alert(err?.message || 'Failed to attach photo metadata.');
+      alert(err?.message || 'Failed to attach photo.');
     } finally {
       setAttachingPhoto(false);
     }
@@ -156,6 +294,7 @@ export const SurveysPage: React.FC = () => {
     setPostalCode('');
     setObservations('');
     setCreateError(null);
+    setManualLeadEntry(false);
   };
 
   const getStatusBadge = (status: SurveyStatus) => {
@@ -347,17 +486,91 @@ export const SurveysPage: React.FC = () => {
 
             <form onSubmit={handleCreateSurvey} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Lead ID (Mongoose ObjectId) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={leadId}
-                  onChange={e => setLeadId(e.target.value)}
-                  placeholder="e.g. 507f1f77bcf86cd799439011"
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500 font-mono"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-foreground">
+                    Originating Solar Lead <span className="text-destructive">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualLeadEntry(!manualLeadEntry);
+                      setLeadId('');
+                    }}
+                    className="text-[11px] text-solar-600 dark:text-solar-400 hover:underline font-medium"
+                  >
+                    {manualLeadEntry ? '← Select from CRM Leads' : 'Custom / Search by Code'}
+                  </button>
+                </div>
+
+                {!manualLeadEntry ? (
+                  <div className="space-y-2">
+                    <select
+                      required
+                      value={leadId}
+                      onChange={e => handleSelectLead(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      <option value="">
+                        {loadingLeads
+                          ? 'Loading CRM leads...'
+                          : '-- Select Active Lead from CRM --'}
+                      </option>
+                      {availableLeads.map(lead => (
+                        <option key={lead.id} value={lead.id}>
+                          {lead.leadCode} — {lead.prospectName} ({lead.prospectPhone})
+                          {lead.location?.city ? ` • ${lead.location.city}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {availableLeads.length === 0 && !loadingLeads && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        No active leads found. Switch to custom entry or create a Lead in CRM first.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      required
+                      value={leadId}
+                      onChange={e => setLeadId(e.target.value)}
+                      placeholder="Enter Lead Code (e.g. LEAD-2026-00001) or Phone"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      System will automatically resolve and link the survey to this Lead record.
+                    </p>
+                  </div>
+                )}
+
+                {/* Selected Lead Summary Preview */}
+                {leadId &&
+                  !manualLeadEntry &&
+                  (() => {
+                    const selectedLead = availableLeads.find(l => l.id === leadId);
+                    if (!selectedLead) return null;
+                    return (
+                      <div className="mt-2 p-2.5 bg-solar-50/70 dark:bg-solar-950/30 border border-solar-200 dark:border-solar-800/60 rounded-lg text-xs flex items-center justify-between">
+                        <div>
+                          <span className="font-semibold text-solar-800 dark:text-solar-300">
+                            {selectedLead.prospectName}
+                          </span>
+                          <span className="text-muted-foreground ml-2">
+                            📞 {selectedLead.prospectPhone}
+                          </span>
+                          {selectedLead.location?.city && (
+                            <span className="text-muted-foreground ml-2">
+                              📍 {selectedLead.location.city}, {selectedLead.location.state}
+                            </span>
+                          )}
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 font-mono">
+                          {selectedLead.leadCode}
+                        </span>
+                      </div>
+                    );
+                  })()}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -598,27 +811,83 @@ export const SurveysPage: React.FC = () => {
 
             {/* Evidence Photos Subdocuments */}
             <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground flex items-center space-x-1.5">
-                <Camera className="w-4 h-4 text-solar-500" />
-                <span>Site Photos & Document Evidence ({activeSurvey.photos.length})</span>
+              <h3 className="text-sm font-bold text-foreground flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <Camera className="w-4 h-4 text-solar-500" />
+                  <span>Site Photos & Document Evidence ({activeSurvey.photos.length})</span>
+                </span>
+                {activeSurvey.photos.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground font-normal">
+                    Click any photo to view full resolution
+                  </span>
+                )}
               </h3>
 
               {activeSurvey.photos.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic bg-muted/30 p-3 rounded-lg">
-                  No site photos attached yet. Attach rooftop photos below.
-                </p>
+                <div className="text-center py-8 border border-dashed rounded-xl bg-muted/20 text-muted-foreground text-xs space-y-1">
+                  <Camera className="w-8 h-8 mx-auto text-solar-500 opacity-60" />
+                  <p className="font-semibold text-foreground">No site photos attached yet</p>
+                  <p className="text-[11px]">
+                    Upload photos of rooftop, parapet walls, shadow obstacles, and electrical panels
+                    below.
+                  </p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {activeSurvey.photos.map((p, idx) => (
-                    <div key={idx} className="border bg-muted/30 p-3 rounded-xl space-y-1 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-solar-700 uppercase">{p.category}</span>
-                        <span className="text-muted-foreground text-[10px]">
-                          {p.fileSizeBytes ? `${Math.round(p.fileSizeBytes / 1024)} KB` : ''}
-                        </span>
+                    <div
+                      key={idx}
+                      className="group relative border rounded-xl overflow-hidden bg-card shadow-sm hover:shadow-md transition flex flex-col"
+                    >
+                      <div
+                        className="h-36 bg-muted/40 relative overflow-hidden flex items-center justify-center cursor-pointer"
+                        onClick={() => setLightboxPhoto(p)}
+                      >
+                        {p.dataUrl || p.mimeType.startsWith('image/') ? (
+                          <img
+                            src={
+                              p.dataUrl || `/api/v1/surveys/${activeSurvey.id}/photos/${idx}/view`
+                            }
+                            alt={p.fileName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-4 text-muted-foreground">
+                            <FileText className="w-10 h-10 text-solar-600 mb-1" />
+                            <span className="text-[10px] font-mono">PDF Document</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold space-x-1">
+                          <Eye className="w-4 h-4" />
+                          <span>View Full Photo</span>
+                        </div>
                       </div>
-                      <p className="font-mono text-muted-foreground truncate">{p.fileName}</p>
-                      {p.caption && <p className="text-foreground italic">"{p.caption}"</p>}
+                      <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 uppercase tracking-wide">
+                              {p.category}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {p.fileSizeBytes ? `${Math.round(p.fileSizeBytes / 1024)} KB` : ''}
+                            </span>
+                          </div>
+                          <p
+                            className="text-xs font-semibold text-foreground truncate mt-1"
+                            title={p.fileName}
+                          >
+                            {p.fileName}
+                          </p>
+                          {p.caption && (
+                            <p
+                              className="text-[11px] text-muted-foreground italic truncate"
+                              title={p.caption}
+                            >
+                              "{p.caption}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -627,9 +896,78 @@ export const SurveysPage: React.FC = () => {
 
             {/* Attach Photo Form */}
             <form onSubmit={handleAttachPhoto} className="border-t pt-4 space-y-3">
-              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Attach New Site Photo Metadata
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center space-x-1.5">
+                <UploadCloud className="w-4 h-4 text-solar-500" />
+                <span>Upload New Rooftop Photo / Document</span>
               </h4>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              {/* Real Drag & Drop / File Selector Area */}
+              {!photoPreviewUrl ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      const syntheticEvent = { target: { files: [file] } } as any;
+                      handleFileChange(syntheticEvent);
+                    }
+                  }}
+                  className="border-2 border-dashed border-border hover:border-solar-500 hover:bg-solar-50/10 cursor-pointer rounded-xl p-6 text-center transition space-y-2"
+                >
+                  <Camera className="w-9 h-9 mx-auto text-solar-500" />
+                  <div>
+                    <p className="text-xs font-bold text-foreground">
+                      Click to choose rooftop photo from computer/mobile or drag & drop here
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Supports JPEG, PNG, WebP, HEIC & PDF (Automatic client-side optimization for
+                      fast upload)
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="border rounded-xl p-3 bg-muted/20 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={photoPreviewUrl}
+                      alt="Upload preview"
+                      className="w-16 h-16 object-cover rounded-lg border shadow-sm"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-foreground truncate max-w-xs">
+                        {photoFile?.name || 'Selected Photo'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {photoFile?.size ? `${Math.round(photoFile.size / 1024)} KB` : 'Ready'}
+                      </p>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center mt-0.5">
+                        <Check className="w-3 h-3 mr-1" /> Image selected & optimized
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoFile(null);
+                      setPhotoPreviewUrl(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -641,51 +979,99 @@ export const SurveysPage: React.FC = () => {
                     onChange={e => setPhotoCategory(e.target.value as SurveyPhotoCategory)}
                     className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   >
-                    {Object.values(SurveyPhotoCategory).map(c => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
+                    <option value={SurveyPhotoCategory.ROOF}>🏠 Rooftop & Civil Structure</option>
+                    <option value={SurveyPhotoCategory.DISTRIBUTION_BOARD}>
+                      ⚡ Electrical Distribution Board
+                    </option>
+                    <option value={SurveyPhotoCategory.METER}>
+                      ⚡ Energy Meter & Service Line
+                    </option>
+                    <option value={SurveyPhotoCategory.EARTHING_PIT}>
+                      ⚡ Earthing Pit & Grounding
+                    </option>
+                    <option value={SurveyPhotoCategory.SHADOW_OBSTRUCTION}>
+                      🌳 Obstacle & Shadow Source (Trees/Chimneys)
+                    </option>
+                    <option value={SurveyPhotoCategory.OTHER}>📄 Document / Other Evidence</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Attachment File Name
+                    Caption / Observations
                   </label>
                   <input
                     type="text"
-                    required
-                    value={photoFileName}
-                    onChange={e => setPhotoFileName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500 font-mono"
+                    value={photoCaption}
+                    onChange={e => setPhotoCaption(e.target.value)}
+                    placeholder="e.g. South azimuth unshaded zone, 3-phase meter board..."
+                    className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Caption / Observations
-                </label>
-                <input
-                  type="text"
-                  value={photoCaption}
-                  onChange={e => setPhotoCaption(e.target.value)}
-                  placeholder="e.g. South azimuth unshaded zone, 3-phase meter board..."
-                  className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
               </div>
 
               <div className="flex justify-end pt-1">
                 <button
                   type="submit"
-                  disabled={attachingPhoto}
-                  className="px-3.5 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50"
+                  disabled={attachingPhoto || !photoPreviewUrl}
+                  className="px-4 py-2 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50 flex items-center space-x-1.5"
                 >
-                  {attachingPhoto ? 'Attaching...' : 'Attach Photo'}
+                  {attachingPhoto ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading Photo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>Upload & Attach Photo</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Fullscreen Photo Viewer Modal */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full max-h-[90vh] bg-card border rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-3 border-b flex items-center justify-between bg-muted/40">
+              <div>
+                <h3 className="text-sm font-bold text-foreground font-mono">
+                  {lightboxPhoto.fileName}
+                </h3>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 uppercase">
+                  {lightboxPhoto.category}
+                </span>
+              </div>
+              <button
+                onClick={() => setLightboxPhoto(null)}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/90 min-h-[300px]">
+              <img
+                src={lightboxPhoto.dataUrl || `/api/v1/surveys/${activeSurvey?.id}/photos/0/view`}
+                alt={lightboxPhoto.fileName}
+                className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-lg"
+              />
+            </div>
+            {lightboxPhoto.caption && (
+              <div className="p-3 border-t bg-muted/20 text-xs text-foreground italic">
+                "{lightboxPhoto.caption}"
+              </div>
+            )}
           </div>
         </div>
       )}

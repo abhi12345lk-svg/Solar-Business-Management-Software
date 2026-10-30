@@ -29,6 +29,7 @@ import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
 import { UserContext } from './leadService.js';
+import { getStorageAdapter } from './storage/index.js';
 
 export class SurveyService {
   /**
@@ -97,6 +98,7 @@ export class SurveyService {
         mimeType: p.mimeType,
         category: p.category,
         caption: p.caption,
+        dataUrl: p.dataUrl,
         geoCoordinates: p.geoCoordinates,
         uploadedBy: p.uploadedBy ? p.uploadedBy.toString() : undefined,
         uploadedAt: p.uploadedAt ? new Date(p.uploadedAt).toISOString() : undefined
@@ -120,23 +122,35 @@ export class SurveyService {
       throw AppError.permissionDenied('Customer portal users cannot create internal site surveys.');
     }
 
-    if (!Types.ObjectId.isValid(input.leadId)) {
-      throw AppError.validationFailed('Invalid lead ID format.');
-    }
+    const cleanLeadId = input.leadId.trim();
+    let lead: any = null;
 
-    const lead = await Lead.findById(input.leadId);
+    if (Types.ObjectId.isValid(cleanLeadId)) {
+      lead = await Lead.findById(cleanLeadId);
+    }
     if (!lead) {
-      throw AppError.notFound(`Lead '${input.leadId}' not found.`);
+      lead = await Lead.findOne({
+        $or: [{ leadCode: cleanLeadId.toUpperCase() }, { prospectPhone: cleanLeadId }]
+      });
+    }
+    if (!lead) {
+      throw AppError.notFound(
+        `Lead not found for '${cleanLeadId}'. Please select an existing valid lead.`
+      );
     }
 
     let customerId: Types.ObjectId | undefined;
     if (input.customerId) {
-      if (!Types.ObjectId.isValid(input.customerId)) {
-        throw AppError.validationFailed('Invalid customer ID format.');
+      const cleanCustomerId = input.customerId.trim();
+      let customer: any = null;
+      if (Types.ObjectId.isValid(cleanCustomerId)) {
+        customer = await Customer.findById(cleanCustomerId);
       }
-      const customer = await Customer.findById(input.customerId);
       if (!customer) {
-        throw AppError.notFound(`Customer '${input.customerId}' not found.`);
+        customer = await Customer.findOne({ customerCode: cleanCustomerId.toUpperCase() });
+      }
+      if (!customer) {
+        throw AppError.notFound(`Customer not found for '${cleanCustomerId}'.`);
       }
       customerId = customer._id;
     } else if (lead.convertedCustomerId) {
@@ -522,10 +536,28 @@ export class SurveyService {
       mimeType: p.mimeType,
       category: p.category,
       caption: p.caption,
+      dataUrl: p.dataUrl,
       geoCoordinates: p.geoCoordinates,
       uploadedBy: uploaderObjectId,
       uploadedAt: new Date()
     }));
+
+    // Sync binary data to object storage if dataUrl is provided
+    try {
+      const storageAdapter = getStorageAdapter();
+      for (const p of input.photos) {
+        if (p.dataUrl) {
+          const base64Data = p.dataUrl.replace(/^data:[^;]+;base64,/, '');
+          const buffer = Buffer.from(base64Data, 'base64');
+          await storageAdapter.uploadObject(p.storageKey, buffer, {
+            contentType: p.mimeType,
+            contentLength: buffer.length
+          });
+        }
+      }
+    } catch {
+      // Non-blocking fallback to keep database record resilient
+    }
 
     survey.photos.push(...(newPhotos as any));
     survey.updatedBy = uploaderObjectId;

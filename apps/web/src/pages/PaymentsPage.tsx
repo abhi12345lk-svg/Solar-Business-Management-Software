@@ -424,8 +424,11 @@ export const PaymentsPage: React.FC = () => {
             <div className="p-2 bg-solar-500/10 rounded-lg text-solar-600">
               <Banknote className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Customer Payments & Receivables Ledger
+            <h1 className="text-2xl font-bold tracking-tight flex items-center">
+              <span>Customer Payments & Receivables Ledger</span>
+              <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+                Accounts & Receivables
+              </span>
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -816,7 +819,7 @@ export const PaymentsPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="Enter MongoDB Customer ObjectId"
+                  placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
                   value={recordForm.customerId}
                   onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
@@ -1021,7 +1024,7 @@ export const PaymentsPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="Enter Sales Order ObjectId"
+                  placeholder="Enter Sales Order Code (e.g. SO-2026-00001) or ID"
                   value={allocateForm.salesOrderId}
                   onChange={e => setAllocateForm({ ...allocateForm, salesOrderId: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"

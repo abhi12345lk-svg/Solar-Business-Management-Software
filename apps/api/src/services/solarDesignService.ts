@@ -14,11 +14,14 @@ import {
   AuditAction,
   AuditOutcome,
   ActorType,
-  SolarProductType
+  SolarProductType,
+  CustomerType
 } from '@ins-solar/shared';
+import { Types } from 'mongoose';
 import { SolarDesign, ISolarDesignDocument } from '../models/SolarDesign.js';
 import { Customer } from '../models/Customer.js';
 import { Product } from '../models/Product.js';
+import { Lead } from '../models/Lead.js';
 import { SequenceService } from './sequenceService.js';
 import { SolarSizingService } from './solarSizingService.js';
 import { AuditService } from './auditService.js';
@@ -41,10 +44,89 @@ export class SolarDesignService {
     user: { userId: string; role?: string },
     context: { ipAddress?: string; userAgent?: string; correlationId?: string } = {}
   ): Promise<ISolarDesignDocument> {
-    // 1. Validate customer existence
-    const customer = await Customer.findById(input.customerId);
+    // 1. Resolve lead if provided
+    let resolvedLeadId: Types.ObjectId | undefined;
+    let lead: any = null;
+    if (input.leadId && input.leadId.trim()) {
+      const cleanLeadId = input.leadId.trim();
+      if (Types.ObjectId.isValid(cleanLeadId)) {
+        lead = await Lead.findById(cleanLeadId);
+      }
+      if (!lead) {
+        lead = await Lead.findOne({
+          $or: [{ leadCode: cleanLeadId.toUpperCase() }, { prospectPhone: cleanLeadId }]
+        });
+      }
+      if (lead) {
+        resolvedLeadId = lead._id;
+      }
+    }
+
+    // 2. Resolve customer
+    let customer: any = null;
+    const cleanCustId = (input.customerId || '').trim();
+    if (cleanCustId) {
+      if (Types.ObjectId.isValid(cleanCustId)) {
+        customer = await Customer.findById(cleanCustId);
+      }
+      if (!customer) {
+        customer = await Customer.findOne({ customerCode: cleanCustId.toUpperCase() });
+      }
+    }
+
+    // Auto-resolve or create customer from lead if not explicitly provided
+    if (!customer && lead) {
+      if (lead.convertedCustomerId) {
+        customer = await Customer.findById(lead.convertedCustomerId);
+      }
+      if (!customer) {
+        customer = await Customer.findOne({
+          $or: [
+            { primaryPhone: lead.prospectPhone },
+            { email: lead.prospectEmail },
+            { name: lead.prospectName }
+          ]
+        });
+      }
+      // If customer record doesn't exist yet, auto-create customer profile for this lead
+      if (!customer) {
+        const seqResult = await SequenceService.generateNumber(SequenceEntityType.CUSTOMER);
+        customer = await Customer.create({
+          customerCode: seqResult.formattedNumber,
+          name: lead.prospectName,
+          legalName: lead.companyName || lead.prospectName,
+          primaryPhone: lead.prospectPhone,
+          email: lead.prospectEmail,
+          customerType: CustomerType.INDIVIDUAL,
+          billingAddress: {
+            street: lead.location?.street || lead.prospectName,
+            city: lead.location?.city || 'Jaipur',
+            state: lead.location?.state || 'Rajasthan',
+            pincode: lead.location?.pinCode || '302001',
+            country: 'India'
+          },
+          installationAddresses: [
+            {
+              street: lead.location?.street || lead.prospectName,
+              city: lead.location?.city || 'Jaipur',
+              state: lead.location?.state || 'Rajasthan',
+              pincode: lead.location?.pinCode || '302001',
+              country: 'India'
+            }
+          ],
+          createdBy: Types.ObjectId.isValid(user.userId)
+            ? new Types.ObjectId(user.userId)
+            : undefined
+        });
+        lead.convertedCustomerId = customer._id;
+        await lead.save();
+      }
+    }
+
     if (!customer) {
-      throw AppError.notFound('Referenced Customer not found.');
+      throw AppError.notFound(
+        'Please select a valid Customer Account or Lead for this solar design.'
+      );
     }
 
     // 2. Validate Module Product in catalog
@@ -119,7 +201,11 @@ export class SolarDesignService {
     const design = new SolarDesign({
       designNumber: seqResult.formattedNumber,
       customerId: customer._id,
-      leadId: input.leadId,
+      leadId:
+        resolvedLeadId ||
+        (input.leadId && Types.ObjectId.isValid(input.leadId)
+          ? new Types.ObjectId(input.leadId)
+          : undefined),
       surveyId: input.surveyId,
       designName: input.designName,
       systemTopology: input.systemTopology,

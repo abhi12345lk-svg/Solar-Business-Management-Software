@@ -83,11 +83,19 @@ export const TaxProfileSnapshotSchema = z.object({
 
 export type TaxProfileSnapshot = z.infer<typeof TaxProfileSnapshotSchema>;
 
-export const PaymentMilestoneSchema = z.object({
-  milestoneName: z.string().trim().min(2).max(100),
-  percentage: z.number().min(0).max(100),
-  dueTrigger: z.string().trim().max(200).optional()
-});
+export const PaymentMilestoneSchema = z
+  .object({
+    milestoneName: z.string().trim().min(1).max(100).optional(),
+    name: z.string().trim().min(1).max(100).optional(),
+    percentage: z.number().min(0).max(100),
+    dueTrigger: z.string().trim().max(200).optional(),
+    description: z.string().trim().max(200).optional()
+  })
+  .transform(val => ({
+    milestoneName: val.milestoneName || val.name || 'Milestone',
+    percentage: val.percentage,
+    dueTrigger: val.dueTrigger || val.description || undefined
+  }));
 
 export type PaymentMilestone = z.infer<typeof PaymentMilestoneSchema>;
 
@@ -96,23 +104,15 @@ export type PaymentMilestone = z.infer<typeof PaymentMilestoneSchema>;
 // ----------------------------------------------------------------------------
 
 export const CreateQuotationInputSchema = z.object({
-  customerId: z
-    .string({ required_error: 'Target customer ID is required.' })
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Customer ID format.'),
-  leadId: z
-    .string()
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Lead ID format.')
-    .optional(),
-  solarDesignId: z
-    .string()
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Solar Design ID format.')
-    .optional(),
+  customerId: z.string().trim().optional(),
+  leadId: z.string().trim().optional(),
+  solarDesignId: z.string().trim().optional(),
   systemTopology: z.nativeEnum(SolarTopology),
   systemCapacityKwp: z
     .number({ invalid_type_error: 'System capacity must be a number in kWp.' })
     .positive('System capacity must be greater than 0 kWp.')
     .max(10000),
-  validUntil: z.string().datetime({ offset: true }).or(z.date()).optional(),
+  validUntil: z.string().or(z.date()).optional(),
   taxProfile: TaxProfileSnapshotSchema.default({}),
   lineItems: z
     .array(QuotationLineItemInputSchema)

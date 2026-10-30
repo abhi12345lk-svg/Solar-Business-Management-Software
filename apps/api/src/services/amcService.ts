@@ -110,9 +110,16 @@ export class AmcService {
     actor: UserContext
   ): Promise<IAnnualMaintenanceContractDocument> {
     // 1. Verify Project
-    const project = await Project.findById(input.projectId);
+    let project: any = null;
+    const cleanProjId = input.projectId.trim();
+    if (mongoose.Types.ObjectId.isValid(cleanProjId)) {
+      project = await Project.findById(cleanProjId);
+    }
     if (!project) {
-      throw AppError.notFound(`Project with ID ${input.projectId} not found.`);
+      project = await Project.findOne({ projectCode: cleanProjId.toUpperCase() });
+    }
+    if (!project) {
+      throw AppError.notFound(`Project '${cleanProjId}' not found.`);
     }
 
     // 2. Verify Customer

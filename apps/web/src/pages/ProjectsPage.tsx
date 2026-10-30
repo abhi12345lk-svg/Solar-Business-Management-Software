@@ -222,11 +222,14 @@ export function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <FolderKanban className="w-7 h-7 text-primary" />
-            Project Management
+            <span>Project Management</span>
+            <span className="text-xs px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+              10-Stage Pipeline
+            </span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track solar rooftop installations, 10-stage milestones, field teams, and operational
-            progress.
+            Track solar rooftop installations, 10-stage execution milestones, field execution,
+            checklist gates, and commissioning.
           </p>
         </div>
         <button

@@ -189,7 +189,9 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     fireEvent.click(recordBtn);
 
     expect(screen.getByText('Record Customer Payment')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter MongoDB Customer ObjectId')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Enter Customer Code (e.g. CUST-2026-00001) or ID')
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('e.g. 50000.00')).toBeInTheDocument();
   });
 

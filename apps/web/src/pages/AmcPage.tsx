@@ -98,6 +98,24 @@ export const AmcPage: React.FC = () => {
   const [approvalNotes, setApprovalNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Available projects for dropdown
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [manualProjectEntry, setManualProjectEntry] = useState(false);
+
+  useEffect(() => {
+    if (showCreateModal && availableProjects.length === 0) {
+      setLoadingProjects(true);
+      apiClient<any>('/projects?limit=100')
+        .then(res => {
+          const list = Array.isArray(res) ? res : res?.data || res?.items || [];
+          setAvailableProjects(list);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingProjects(false));
+    }
+  }, [showCreateModal]);
+
   const fetchContracts = useCallback(async () => {
     try {
       setLoading(true);
@@ -221,11 +239,15 @@ export const AmcPage: React.FC = () => {
               <FileCheck2 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Annual Maintenance Contracts (AMC)
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
+                <span>Annual Maintenance Contracts (AMC)</span>
+                <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+                  AMC & Service Visits
+                </span>
               </h1>
               <p className="text-sm text-muted-foreground">
-                Solar plant maintenance agreements, included visit quotas, and scheduled servicing
+                Solar plant maintenance agreements, included visit quotas, technician scheduling,
+                and field servicing
               </p>
             </div>
           </div>
@@ -549,17 +571,45 @@ export const AmcPage: React.FC = () => {
             <form onSubmit={handleCreateAmc} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Project ID *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Project ObjectId"
-                    value={createForm.projectId}
-                    onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground">
+                      Solar Project <span className="text-destructive">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setManualProjectEntry(!manualProjectEntry)}
+                      className="text-[10px] text-solar-600 dark:text-solar-400 hover:underline"
+                    >
+                      {manualProjectEntry ? '← Select Project' : 'Custom Code'}
+                    </button>
+                  </div>
+                  {!manualProjectEntry ? (
+                    <select
+                      required
+                      value={createForm.projectId}
+                      onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
+                    >
+                      <option value="">
+                        {loadingProjects ? 'Loading projects...' : '-- Select Solar Project --'}
+                      </option>
+                      {availableProjects.map(p => (
+                        <option key={p._id || p.id} value={p._id || p.id}>
+                          {p.projectCode || p.projectNumber || 'PRJ'} —{' '}
+                          {p.name || p.projectName || 'Solar Project'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter Project Code (e.g. PRJ-2026-00001) or ID"
+                      value={createForm.projectId}
+                      onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">

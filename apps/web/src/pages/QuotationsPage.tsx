@@ -50,6 +50,12 @@ export const QuotationsPage: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // CRM context for dropdowns
+  const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
+  const [availableLeads, setAvailableLeads] = useState<any[]>([]);
+  const [loadingContext, setLoadingContext] = useState(false);
+  const [manualCustomerEntry, setManualCustomerEntry] = useState(false);
+
   // Form Fields for new quotation
   const [customerId, setCustomerId] = useState('');
   const [leadId, setLeadId] = useState('');
@@ -90,13 +96,95 @@ export const QuotationsPage: React.FC = () => {
     fetchQuotations();
   }, [activeTab]);
 
+  useEffect(() => {
+    if (showCreateModal && availableCustomers.length === 0) {
+      setLoadingContext(true);
+      Promise.all([
+        apiClient<any>('/customers?limit=100').catch(() => []),
+        apiClient<any>('/leads?limit=100').catch(() => [])
+      ])
+        .then(([custRes, leadRes]) => {
+          const custs = Array.isArray(custRes) ? custRes : custRes?.data || custRes?.items || [];
+          const lds = Array.isArray(leadRes) ? leadRes : leadRes?.data || leadRes?.items || [];
+          setAvailableCustomers(custs);
+          setAvailableLeads(lds);
+        })
+        .finally(() => setLoadingContext(false));
+    }
+  }, [showCreateModal]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchQuotations();
   };
 
+  const handleLeadChange = (selectedLeadId: string) => {
+    setLeadId(selectedLeadId);
+    if (!selectedLeadId) return;
+
+    const matchedLead = availableLeads.find(l => (l.id || l._id) === selectedLeadId);
+    if (!matchedLead) return;
+
+    const linkedCustId = matchedLead.convertedCustomerId || matchedLead.customerId;
+    if (linkedCustId) {
+      const matchedCust = availableCustomers.find(
+        c => (c._id || c.id) === linkedCustId || c.customerCode === linkedCustId
+      );
+      if (matchedCust) {
+        setCustomerId(matchedCust._id || matchedCust.id);
+        setManualCustomerEntry(false);
+        return;
+      }
+      setCustomerId(linkedCustId);
+      return;
+    }
+
+    const matchedByPhone = availableCustomers.find(
+      c =>
+        (c.primaryPhone &&
+          matchedLead.prospectPhone &&
+          c.primaryPhone === matchedLead.prospectPhone) ||
+        (c.legalName &&
+          matchedLead.prospectName &&
+          c.legalName.toLowerCase() === matchedLead.prospectName.toLowerCase()) ||
+        (c.name &&
+          matchedLead.prospectName &&
+          c.name.toLowerCase() === matchedLead.prospectName.toLowerCase())
+    );
+    if (matchedByPhone) {
+      setCustomerId(matchedByPhone._id || matchedByPhone.id);
+      setManualCustomerEntry(false);
+    }
+  };
+
+  const handleCustomerChange = (selectedCustId: string) => {
+    setCustomerId(selectedCustId);
+    if (!selectedCustId || leadId) return;
+
+    const matchedCust = availableCustomers.find(c => (c._id || c.id) === selectedCustId);
+    if (!matchedCust) return;
+
+    const matchedLead = availableLeads.find(
+      l =>
+        l.convertedCustomerId === selectedCustId ||
+        l.customerId === selectedCustId ||
+        (l.prospectPhone &&
+          matchedCust.primaryPhone &&
+          l.prospectPhone === matchedCust.primaryPhone)
+    );
+    if (matchedLead) {
+      setLeadId(matchedLead.id || matchedLead._id);
+    }
+  };
+
   const handleCreateQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!customerId.trim() && !leadId.trim()) {
+      setCreateError('Please select either a Customer Account or an Originating Lead.');
+      return;
+    }
+
     setCreating(true);
     setCreateError(null);
 
@@ -126,7 +214,7 @@ export const QuotationsPage: React.FC = () => {
       validUntilDate.setDate(validUntilDate.getDate() + Number(validDays));
 
       const payload = {
-        customerId: customerId.trim(),
+        customerId: customerId.trim() || undefined,
         leadId: leadId.trim() || undefined,
         systemTopology: topology,
         systemCapacityKwp: Number(capacityKwp),
@@ -143,19 +231,19 @@ export const QuotationsPage: React.FC = () => {
         },
         paymentMilestones: [
           {
-            name: 'Booking Advance',
+            milestoneName: 'Booking Advance',
             percentage: 20,
-            description: 'Upon confirmation of order'
+            dueTrigger: 'Upon confirmation of order'
           },
           {
-            name: 'Pre-Dispatch',
+            milestoneName: 'Pre-Dispatch',
             percentage: 70,
-            description: 'Prior to material dispatch from warehouse'
+            dueTrigger: 'Prior to material dispatch from warehouse'
           },
           {
-            name: 'Commissioning',
+            milestoneName: 'Commissioning',
             percentage: 10,
-            description: 'Post physical installation and net-meter testing'
+            dueTrigger: 'Post physical installation and net-meter testing'
           }
         ],
         termsAndConditions: [
@@ -430,30 +518,70 @@ export const QuotationsPage: React.FC = () => {
             <form onSubmit={handleCreateQuotation} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Customer Object ID *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="24-char hex MongoDB Customer ID"
-                    value={customerId}
-                    onChange={e => setCustomerId(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md font-mono"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      Customer {!leadId && <span className="text-destructive">*</span>}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setManualCustomerEntry(!manualCustomerEntry)}
+                      className="text-[10px] text-solar-600 dark:text-solar-400 hover:underline"
+                    >
+                      {manualCustomerEntry ? '← Select Customer' : 'Custom Code'}
+                    </button>
+                  </div>
+                  {!manualCustomerEntry ? (
+                    <select
+                      required={!leadId}
+                      value={customerId}
+                      onChange={e => handleCustomerChange(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
+                    >
+                      <option value="">
+                        {loadingContext
+                          ? 'Loading registered customers...'
+                          : '-- Select Registered Customer --'}
+                      </option>
+                      {availableCustomers.map(c => (
+                        <option key={c._id || c.id} value={c._id || c.id}>
+                          {c.customerCode || 'CUST'} — {c.legalName || c.name} (
+                          {c.primaryPhone || c.phone || 'No phone'})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required={!leadId}
+                      placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
+                      value={customerId}
+                      onChange={e => handleCustomerChange(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
+                    />
+                  )}
+                  {leadId && customerId && (
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      ✓ Automatically synchronized with Lead account
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Optional Lead ID
+                    Originating Lead {!customerId && <span className="text-destructive">*</span>}
                   </label>
-                  <input
-                    type="text"
-                    placeholder="24-char hex MongoDB Lead ID"
+                  <select
                     value={leadId}
-                    onChange={e => setLeadId(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md font-mono"
-                  />
+                    onChange={e => handleLeadChange(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
+                  >
+                    <option value="">-- None (Direct Customer) --</option>
+                    {availableLeads.map(l => (
+                      <option key={l.id || l._id} value={l.id || l._id}>
+                        {l.leadCode} — {l.prospectName} ({l.prospectPhone})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

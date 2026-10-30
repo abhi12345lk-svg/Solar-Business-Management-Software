@@ -1,4 +1,4 @@
-import { UserRole, Department } from './enums.js';
+import { UserRole, Department, PanelType } from './enums.js';
 
 /**
  * Granular permissions supported in the INS Solar system.
@@ -314,6 +314,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'order:create',
     'order:read',
     'order:cancel',
+    'project:read',
     'catalog:read',
     'warehouse:read',
     'net_metering:read',
@@ -495,4 +496,60 @@ export interface SessionCustomerPayload {
 
 export interface CsrfTokenResponse {
   csrfToken: string;
+}
+
+/**
+ * Resolves the primary internal panel for a user role.
+ */
+export function getDefaultPanelForRole(role: UserRole, department?: Department): PanelType {
+  if (role === UserRole.SUPERADMIN || role === UserRole.ADMIN) {
+    return PanelType.ADMIN;
+  }
+  if (role === UserRole.ACCOUNTS_OFFICER || department === Department.ACCOUNTS) {
+    return PanelType.ACCOUNTS;
+  }
+  if (
+    role === UserRole.SALES_EXECUTIVE ||
+    role === UserRole.SURVEYOR ||
+    role === UserRole.EXECUTIVE ||
+    department === Department.SALES
+  ) {
+    return PanelType.SALES;
+  }
+  return PanelType.ADMIN;
+}
+
+/**
+ * Checks whether a given role is allowed to access a specific panel.
+ */
+export function isRoleAllowedInPanel(
+  role: UserRole,
+  targetPanel: PanelType,
+  department?: Department
+): boolean {
+  if (role === UserRole.SUPERADMIN || role === UserRole.ADMIN) {
+    return true; // Admins have company-wide access to all three panels
+  }
+  if (targetPanel === PanelType.SALES) {
+    return (
+      role === UserRole.SALES_EXECUTIVE ||
+      role === UserRole.SURVEYOR ||
+      role === UserRole.EXECUTIVE ||
+      department === Department.SALES
+    );
+  }
+  if (targetPanel === PanelType.ACCOUNTS) {
+    return role === UserRole.ACCOUNTS_OFFICER || department === Department.ACCOUNTS;
+  }
+  if (targetPanel === PanelType.ADMIN) {
+    return (
+      role === UserRole.INSTALLATION_CREW ||
+      role === UserRole.SERVICE_TECHNICIAN ||
+      role === UserRole.TECHNICIAN ||
+      department === Department.OPERATIONS ||
+      department === Department.SERVICE ||
+      department === Department.INVENTORY
+    );
+  }
+  return false;
 }

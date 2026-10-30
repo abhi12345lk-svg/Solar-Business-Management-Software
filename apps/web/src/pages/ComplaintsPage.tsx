@@ -99,6 +99,24 @@ export const ComplaintsPage: React.FC = () => {
   const [reopenReason, setReopenReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Available projects for dropdown
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [manualProjectEntry, setManualProjectEntry] = useState(false);
+
+  useEffect(() => {
+    if (showCreateModal && availableProjects.length === 0) {
+      setLoadingProjects(true);
+      apiClient<any>('/projects?limit=100')
+        .then(res => {
+          const list = Array.isArray(res) ? res : res?.data || res?.items || [];
+          setAvailableProjects(list);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingProjects(false));
+    }
+  }, [showCreateModal]);
+
   const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
@@ -544,21 +562,49 @@ export const ComplaintsPage: React.FC = () => {
             <form onSubmit={handleCreateComplaint} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Project ID / ObjectId *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 6adf47abf827..."
-                    value={createForm.projectId}
-                    onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground">
+                      Solar Project <span className="text-destructive">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setManualProjectEntry(!manualProjectEntry)}
+                      className="text-[10px] text-solar-600 dark:text-solar-400 hover:underline"
+                    >
+                      {manualProjectEntry ? '← Select Project' : 'Custom Code'}
+                    </button>
+                  </div>
+                  {!manualProjectEntry ? (
+                    <select
+                      required
+                      value={createForm.projectId}
+                      onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
+                    >
+                      <option value="">
+                        {loadingProjects ? 'Loading projects...' : '-- Select Solar Project --'}
+                      </option>
+                      {availableProjects.map(p => (
+                        <option key={p._id || p.id} value={p._id || p.id}>
+                          {p.projectCode || p.projectNumber || 'PRJ'} —{' '}
+                          {p.name || p.projectName || 'Solar Project'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter Project Code (e.g. PRJ-2026-00001) or ID"
+                      value={createForm.projectId}
+                      onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Customer ID (Optional)
+                    Customer ID / Account (Optional)
                   </label>
                   <input
                     type="text"

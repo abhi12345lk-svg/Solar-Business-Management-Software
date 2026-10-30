@@ -923,3 +923,9 @@ export enum JobQueueName {
   CRON_MAINTENANCE = 'CRON_MAINTENANCE',
   REMINDER = 'REMINDER'
 }
+
+export enum PanelType {
+  ADMIN = 'ADMIN',
+  SALES = 'SALES',
+  ACCOUNTS = 'ACCOUNTS'
+}

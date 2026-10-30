@@ -413,10 +413,15 @@ export const ExpensesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
-            <Receipt className="w-6 h-6 mr-2 text-solar-600" /> Operational Expense Management
+            <Receipt className="w-6 h-6 mr-2 text-solar-600" />
+            <span>Operational Expense Management</span>
+            <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+              Project Costing & Profitability
+            </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track project expenses, labor, transport, civil works and overhead disbursements.
+            Track project budgets, direct site expenses, civil works, and profitability
+            disbursements.
           </p>
         </div>
         <div className="flex items-center space-x-3">

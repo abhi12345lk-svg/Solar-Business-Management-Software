@@ -383,30 +383,75 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Direct Role Login Bar */}
+          {/* Direct Role Login Bar (Three-Panel Workstation Access) */}
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80">
             <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Direct Workstation Access
-              </p>
+              <div className="flex items-center space-x-1.5">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Direct Workstation Access
+                </p>
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  3 Panels
+                </span>
+              </div>
               <span className="text-[10px] text-amber-500 font-semibold">1-Click Sign-In</span>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2.5">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* 1. Admin Panel */}
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={() => handleQuickFillAndLogin('admin@inssolar.com', 'SolarAdmin2026!')}
-                className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all text-center border border-amber-500/30 hover:border-amber-500 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                className="p-2.5 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all text-center border border-amber-500/30 hover:border-amber-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
               >
-                <span>⚡ Super Administrator</span>
+                <div className="flex items-center space-x-1">
+                  <span>⚡</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">
+                    Admin Panel
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Super Administrator
+                </span>
               </button>
+
+              {/* 2. Sales Panel */}
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={() => handleQuickFillAndLogin('sales@inssolar.com', 'SolarSales2026!')}
-                className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all text-center border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                className="p-2.5 text-xs font-bold rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 transition-all text-center border border-sky-500/30 hover:border-sky-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
               >
-                <span>💼 Sales Executive</span>
+                <div className="flex items-center space-x-1">
+                  <span>💼</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">
+                    Sales Panel
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Sales Executive
+                </span>
+              </button>
+
+              {/* 3. Accounts Panel */}
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() =>
+                  handleQuickFillAndLogin('accounts@inssolar.com', 'SolarAccounts2026!')
+                }
+                className="p-2.5 text-xs font-bold rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 transition-all text-center border border-emerald-500/30 hover:border-emerald-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
+              >
+                <div className="flex items-center space-x-1">
+                  <span>💳</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">
+                    Accounts Panel
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Accounts Officer
+                </span>
               </button>
             </div>
           </div>

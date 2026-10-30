@@ -69,9 +69,16 @@ export class PaymentService {
     }
 
     // 2. Validate customer existence
-    const customer = await Customer.findById(input.customerId);
+    let customer: any = null;
+    const cleanCustId = input.customerId.trim();
+    if (mongoose.Types.ObjectId.isValid(cleanCustId)) {
+      customer = await Customer.findById(cleanCustId);
+    }
     if (!customer) {
-      throw AppError.notFound(`Customer with ID ${input.customerId} not found.`);
+      customer = await Customer.findOne({ customerCode: cleanCustId.toUpperCase() });
+    }
+    if (!customer) {
+      throw AppError.notFound(`Customer with ID or Code '${cleanCustId}' not found.`);
     }
 
     // 3. Duplicate transaction reference check for non-cash methods
@@ -253,9 +260,16 @@ export class PaymentService {
     }
 
     // 3. Fetch sales order and validate status
-    const order = await SalesOrder.findById(input.salesOrderId);
+    let order: any = null;
+    const cleanOrderId = input.salesOrderId.trim();
+    if (mongoose.Types.ObjectId.isValid(cleanOrderId)) {
+      order = await SalesOrder.findById(cleanOrderId);
+    }
     if (!order) {
-      throw AppError.notFound(`Sales Order with ID ${input.salesOrderId} not found.`);
+      order = await SalesOrder.findOne({ orderNumber: cleanOrderId.toUpperCase() });
+    }
+    if (!order) {
+      throw AppError.notFound(`Sales Order with ID or Code '${cleanOrderId}' not found.`);
     }
 
     if (order.status === 'CANCELLED') {

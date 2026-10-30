@@ -85,6 +85,12 @@ export const SolarDesignPage: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
 
+  // CRM context for dropdowns
+  const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
+  const [availableLeads, setAvailableLeads] = useState<any[]>([]);
+  const [loadingContext, setLoadingContext] = useState(false);
+  const [manualCustomerEntry, setManualCustomerEntry] = useState(false);
+
   useEffect(() => {
     apiClient<any>('/catalog/products?limit=100')
       .then(res => {
@@ -93,6 +99,23 @@ export const SolarDesignPage: React.FC = () => {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (showSaveModal && availableCustomers.length === 0) {
+      setLoadingContext(true);
+      Promise.all([
+        apiClient<any>('/customers?limit=100').catch(() => []),
+        apiClient<any>('/leads?limit=100').catch(() => [])
+      ])
+        .then(([custRes, leadRes]) => {
+          const custs = Array.isArray(custRes) ? custRes : custRes?.data || custRes?.items || [];
+          const lds = Array.isArray(leadRes) ? leadRes : leadRes?.data || leadRes?.items || [];
+          setAvailableCustomers(custs);
+          setAvailableLeads(lds);
+        })
+        .finally(() => setLoadingContext(false));
+    }
+  }, [showSaveModal]);
 
   const fetchDesigns = async () => {
     setLoading(true);
@@ -177,9 +200,61 @@ export const SolarDesignPage: React.FC = () => {
     }
   };
 
+  const handleLeadChange = (selectedLeadId: string) => {
+    setSaveLeadId(selectedLeadId);
+    if (!selectedLeadId) return;
+    const lead = availableLeads.find(l => (l.id || l._id) === selectedLeadId);
+    if (lead) {
+      if (lead.convertedCustomerId) {
+        const matchingCust = availableCustomers.find(
+          c =>
+            (c._id || c.id) === lead.convertedCustomerId ||
+            c.customerCode === lead.convertedCustomerId
+        );
+        if (matchingCust) {
+          setSaveCustomerId(matchingCust._id || matchingCust.id);
+          setManualCustomerEntry(false);
+          return;
+        }
+        setSaveCustomerId(lead.convertedCustomerId);
+      } else {
+        const matchingCust = availableCustomers.find(
+          c =>
+            (c.phone && lead.prospectPhone && c.phone === lead.prospectPhone) ||
+            (c.primaryPhone && lead.prospectPhone && c.primaryPhone === lead.prospectPhone) ||
+            (c.customerCode && lead.leadCode && c.customerCode.endsWith(lead.leadCode.slice(-5)))
+        );
+        if (matchingCust) {
+          setSaveCustomerId(matchingCust._id || matchingCust.id);
+          setManualCustomerEntry(false);
+        }
+      }
+    }
+  };
+
+  const handleCustomerChange = (selectedCustId: string) => {
+    setSaveCustomerId(selectedCustId);
+    if (!selectedCustId) return;
+    const matchingLead = availableLeads.find(
+      l =>
+        l.convertedCustomerId === selectedCustId ||
+        (l.id && l.id === selectedCustId) ||
+        (l._id && l._id === selectedCustId)
+    );
+    if (matchingLead) {
+      setSaveLeadId(matchingLead.id || matchingLead._id);
+    }
+  };
+
   const handleSaveDesign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!calcResult) return;
+
+    if (!saveCustomerId.trim() && !saveLeadId.trim()) {
+      setSaveError('Please select either a Customer Account or an Originating Lead.');
+      return;
+    }
+
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -205,7 +280,7 @@ export const SolarDesignPage: React.FC = () => {
       );
 
       const payload: any = {
-        customerId: saveCustomerId.trim(),
+        customerId: saveCustomerId.trim() || undefined,
         leadId: saveLeadId.trim() || undefined,
         designName: saveDesignName.trim(),
         systemTopology: calcTopology,
@@ -772,30 +847,68 @@ export const SolarDesignPage: React.FC = () => {
 
             <form onSubmit={handleSaveDesign} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Customer Reference ID *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter Customer Account ID"
-                  value={saveCustomerId}
-                  onChange={e => setSaveCustomerId(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md font-mono"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Customer Account {!saveLeadId && <span className="text-destructive">*</span>}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setManualCustomerEntry(!manualCustomerEntry)}
+                    className="text-[10px] text-solar-600 dark:text-solar-400 hover:underline"
+                  >
+                    {manualCustomerEntry ? '← Select Customer' : 'Custom Code'}
+                  </button>
+                </div>
+                {!manualCustomerEntry ? (
+                  <select
+                    value={saveCustomerId}
+                    onChange={e => handleCustomerChange(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md"
+                  >
+                    <option value="">
+                      {loadingContext
+                        ? 'Loading registered customers...'
+                        : '-- Select Registered Customer --'}
+                    </option>
+                    {availableCustomers.map(c => (
+                      <option key={c._id || c.id} value={c._id || c.id}>
+                        {c.customerCode || 'CUST'} — {c.legalName || c.name} (
+                        {c.primaryPhone || c.phone || 'No phone'})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
+                    value={saveCustomerId}
+                    onChange={e => handleCustomerChange(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md"
+                  />
+                )}
+                {saveLeadId && saveCustomerId && (
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    ✓ Automatically synchronized with Lead account
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Optional Lead ID
+                  Originating Lead {!saveCustomerId && <span className="text-destructive">*</span>}
                 </label>
-                <input
-                  type="text"
-                  placeholder="24-char hex MongoDB Lead ID"
+                <select
                   value={saveLeadId}
-                  onChange={e => setSaveLeadId(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md font-mono"
-                />
+                  onChange={e => handleLeadChange(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md"
+                >
+                  <option value="">-- None (Direct Design) --</option>
+                  {availableLeads.map(l => (
+                    <option key={l.id || l._id} value={l.id || l._id}>
+                      {l.leadCode} — {l.prospectName} ({l.prospectPhone})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

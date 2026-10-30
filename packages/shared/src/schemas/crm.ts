@@ -259,6 +259,7 @@ export const SurveyPhotoMetadataSchema = z.object({
     .max(25 * 1024 * 1024, 'File size exceeds 25MB limit.'),
   category: z.nativeEnum(SurveyPhotoCategory).default(SurveyPhotoCategory.OTHER),
   caption: z.string().trim().max(300).optional(),
+  dataUrl: z.string().optional(),
   geoCoordinates: z
     .object({
       latitude: z.number().min(-90).max(90),

@@ -68,9 +68,9 @@ export function createApp(): Express {
     })
   );
 
-  // 3. Request Body Size Limits
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+  // 3. Request Body Size Limits (Allows site survey rooftop photo uploads & documents)
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // 4. Cookie Parser
   app.use(cookieParser(config.SESSION_SECRET));
