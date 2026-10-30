@@ -266,15 +266,26 @@ export const LeadsPage: React.FC = () => {
             <p>Loading prospective leads...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-destructive space-y-2">
-            <AlertCircle className="w-8 h-8 mx-auto" />
-            <p>{error}</p>
-            <button
-              onClick={fetchLeads}
-              className="text-sm underline text-foreground hover:text-solar-600"
-            >
-              Try Again
-            </button>
+          <div className="p-8 text-center space-y-3 max-w-xl mx-auto">
+            <AlertCircle className="w-10 h-10 mx-auto text-amber-500" />
+            <h3 className="text-base font-bold text-foreground">
+              {error.includes('MONGODB_URI') || error.includes('Serverless')
+                ? 'Cloud Database Connection Pending'
+                : 'Unable to Load Leads'}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {error.includes('MONGODB_URI') || error.includes('Serverless')
+                ? 'Vercel cloud database (MONGODB_URI) is not configured yet. To connect your live database, add your MongoDB Atlas connection string in Vercel Project Settings > Environment Variables.'
+                : error}
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={fetchLeads}
+                className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+              >
+                Retry Connection
+              </button>
+            </div>
           </div>
         ) : leads.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-3">

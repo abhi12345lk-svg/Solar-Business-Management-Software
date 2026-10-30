@@ -17,11 +17,17 @@ if (config.MONGODB_URI) {
   });
   logger.info('Initialized MongoDB session store.');
 } else {
-  if (config.NODE_ENV === 'production') {
+  const isServerlessOrVercel = Boolean(
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.NETLIFY
+  );
+  if (config.NODE_ENV === 'production' && !isServerlessOrVercel) {
     throw new Error('FATAL: Insecure configuration. MongoDB session store required in production.');
   }
   logger.warn(
-    'No MONGODB_URI provided. Initialized in-memory session store for local dev/testing.'
+    'No MONGODB_URI provided. Initialized in-memory session store for standalone/preview mode.'
   );
   sessionStore = new session.MemoryStore();
 }

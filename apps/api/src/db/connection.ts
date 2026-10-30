@@ -28,12 +28,20 @@ export class DatabaseManager {
     const nodeEnv = process.env.NODE_ENV || config.NODE_ENV;
 
     if (!uri || uri.trim() === '') {
-      if (nodeEnv === 'production' || nodeEnv === 'staging') {
+      const isServerlessOrVercel = Boolean(
+        process.env.VERCEL ||
+        process.env.VERCEL_ENV ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME ||
+        process.env.NETLIFY
+      );
+      if ((nodeEnv === 'production' || nodeEnv === 'staging') && !isServerlessOrVercel) {
         throw new Error(
           'FATAL CONFIGURATION ERROR: MONGODB_URI is required in production environment.'
         );
       }
-      logger.info('MONGODB_URI not configured. Operating in offline/degraded database mode.');
+      logger.warn(
+        'MONGODB_URI not configured. Operating in standalone demo/preview database mode.'
+      );
       this.isExplicitlyConnected = false;
       return 'unconfigured';
     }

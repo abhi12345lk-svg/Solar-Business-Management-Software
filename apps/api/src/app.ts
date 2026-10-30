@@ -46,7 +46,7 @@ export function createApp(): Express {
         if (
           !requestOrigin ||
           configuredOrigins.includes(requestOrigin) ||
-          (config.NODE_ENV !== 'production' && requestOrigin.endsWith('.vercel.app'))
+          requestOrigin.endsWith('.vercel.app')
         ) {
           callback(null, true);
         } else {

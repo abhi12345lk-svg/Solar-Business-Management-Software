@@ -14,8 +14,10 @@ async function getApp() {
 
     try {
       const dbManager = DatabaseManager.getInstance();
-      await dbManager.connect();
-      await SequenceService.syncAllCounters();
+      const state = await dbManager.connect();
+      if (state === 'connected') {
+        await SequenceService.syncAllCounters();
+      }
     } catch (dbErr: any) {
       console.warn('Vercel serverless database initialization:', dbErr?.message || dbErr);
     }
