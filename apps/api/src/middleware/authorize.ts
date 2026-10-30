@@ -7,6 +7,7 @@ import {
   UserRole,
   Permission,
   PRIVILEGED_ROLES,
+  ROLE_DEFAULT_PERMISSIONS,
   AuditAction,
   AuditOutcome,
   ActorType
@@ -45,7 +46,7 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 
   // If employee session, verify active status in database
   if (sessionUser) {
-    if (mongoose.connection.readyState !== 1) {
+    if (process.env.NODE_ENV !== 'test' && mongoose.connection.readyState !== 1) {
       // Standalone preview mode: trust valid session user when database is unconfigured
       return next();
     }
@@ -216,7 +217,10 @@ export function requirePermission(permission: Permission): RequestHandler {
     // Get effective permissions from cached user document or session
     const effectivePermissions: Permission[] = req.currentUser
       ? req.currentUser.getEffectivePermissions()
-      : ((user as any).permissions as Permission[]) || [];
+      : [
+          ...(ROLE_DEFAULT_PERMISSIONS[user.role] || []),
+          ...(((user as any).permissions as Permission[]) || [])
+        ];
 
     if (effectivePermissions.includes(permission)) {
       return next();

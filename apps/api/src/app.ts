@@ -46,7 +46,8 @@ export function createApp(): Express {
         if (
           !requestOrigin ||
           configuredOrigins.includes(requestOrigin) ||
-          requestOrigin.endsWith('.vercel.app')
+          requestOrigin.endsWith('.vercel.app') ||
+          requestOrigin.includes('vercel.app')
         ) {
           callback(null, true);
         } else {

@@ -308,3 +308,10 @@ graph TD
     *   **Master Quality Gates:** **487 automated tests passing** across 49 test files (135 shared, 301 API, 51 web), 0 failures, 0 skipped, 0 TypeScript errors, 0 ESLint warnings, 100% Prettier formatting, clean production build, and 0 critical production vulnerabilities.
     *   **UAT Documentation:** Published master UAT report in `docs/development/phase-12-uat-report.md`.
     *   **Final Release Readiness:** **UAT PASSED (100% Core Acceptance Verified)**. Ready for production deployment upon provisioning live third-party accounts (AWS S3/R2, SMTP/SES, DLT SMS) and CA GST written sign-off.
+*   **Phase 13: Master Module Restructuring (Completed & Verified):**
+    *   **Architecture Streamlining (30 Modules → 24 Unified Core Modules):**
+        1.  *Removed Standalone Modules:* Removed standalone navigation and isolated sub-screens for Follow-ups (integrated into Leads CRM), Installation (integrated into 10-Stage Projects & Checklist), Payment Management (integrated into Sales Orders & Customer Accounts), and Expense Management (integrated into Project Costing & Profitability).
+        2.  *Combined Related Modules:* Combined Quotation Management + Quotation Sharing into a single unified Quotation Suite; combined Product/Item Master + Inventory into a single unified Inventory Management Suite.
+        3.  *Data & Logic Preservation:* 100% of historical records, financial calculations (integer paise), audit logs, and approval rules strictly preserved without schema drops.
+        4.  *Quality Gates:* **488 automated tests passing (100%)** across 49 test suites, 0 TypeScript errors, 0 ESLint warnings, 100% Prettier compliance, production build clean.
+        5.  *Documentation:* Published audit in `docs/development/module-restructuring-audit.md` and final report in `docs/development/module-restructuring-final-report.md`.

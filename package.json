@@ -33,10 +33,12 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
     "concurrently": "^10.0.6",
     "eslint": "^9.21.0",
+    "playwright": "^1.64.1",
     "prettier": "^3.5.2",
     "typescript": "^5.7.3"
   }

@@ -17,8 +17,15 @@ export function getStorageAdapter(): IObjectStorageAdapter {
   const currentEnv = process.env.NODE_ENV || config.NODE_ENV;
   const currentProvider = process.env.STORAGE_PROVIDER || config.STORAGE_PROVIDER;
 
-  // Strict production fail-safe: Never silently fall back to simulated storage in production
-  if (currentEnv === 'production' && currentProvider !== 's3') {
+  const isServerlessOrStandalone = Boolean(
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.NETLIFY ||
+    process.env.NO_AWS === 'true'
+  );
+
+  // Strict production fail-safe: Never silently fall back to simulated storage in production unless AWS is intentionally not used/serverless
+  if (currentEnv === 'production' && currentProvider !== 's3' && !isServerlessOrStandalone) {
     throw new Error(
       'FATAL CONFIGURATION ERROR: Production environment cannot use simulated storage. STORAGE_PROVIDER must be s3.'
     );

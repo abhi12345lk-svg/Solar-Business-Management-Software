@@ -39,7 +39,7 @@ function createCustomLimiterHandler(actionName: string) {
   };
 }
 
-const isTest = config.NODE_ENV === 'test';
+const isTest = config.NODE_ENV === 'test' || config.NODE_ENV === 'development';
 
 /**
  * Sensitive rate limiter for employee login attempts (5 requests per 15 minutes).

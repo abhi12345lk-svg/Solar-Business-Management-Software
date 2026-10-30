@@ -28,6 +28,9 @@ lerna-debug.log*
 coverage/
 .nyc_output/
 test-results/
+playwright-report/
+e2e-report.json
+playwright/.auth/
 
 # Editor & OS Artifacts
 .vscode/*

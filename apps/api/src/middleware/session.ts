@@ -20,8 +20,8 @@ if (config.MONGODB_URI) {
   const isServerlessOrVercel = Boolean(
     process.env.VERCEL ||
     process.env.VERCEL_ENV ||
-    process.env.AWS_LAMBDA_FUNCTION_NAME ||
-    process.env.NETLIFY
+    process.env.NETLIFY ||
+    process.env.NO_AWS === 'true'
   );
   if (config.NODE_ENV === 'production' && !isServerlessOrVercel) {
     throw new Error('FATAL: Insecure configuration. MongoDB session store required in production.');

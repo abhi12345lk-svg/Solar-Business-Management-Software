@@ -16,13 +16,12 @@ import {
   Layers,
   ShieldCheck
 } from 'lucide-react';
-import { UserRole } from '@ins-solar/shared';
 import { useAuth } from '../context/AuthContext.js';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginDemo, isAuthenticated } = useAuth();
+  const { login, isAuthenticated } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,18 +59,6 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       const msg = err.message || '';
-      // If cloud DB is not configured, fall back to instant demo workstation!
-      if (
-        (msg.includes('SERVER_INITIALIZATION_ERROR') ||
-          msg.includes('MONGODB_URI') ||
-          msg.includes('503') ||
-          msg.includes('Failed to fetch')) &&
-        (email === 'admin@inssolar.com' || email === 'sales@inssolar.com')
-      ) {
-        loginDemo(email === 'admin@inssolar.com' ? UserRole.SUPERADMIN : UserRole.SALES_EXECUTIVE);
-        navigate(from, { replace: true });
-        return;
-      }
       setErrorMessage(msg || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -97,18 +84,6 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       const msg = err.message || '';
-      // If Vercel cloud database is not connected (no MONGODB_URI), automatically log into Demo Mode!
-      if (
-        msg.includes('SERVER_INITIALIZATION_ERROR') ||
-        msg.includes('MONGODB_URI') ||
-        msg.includes('503') ||
-        msg.includes('Failed to fetch') ||
-        msg.includes('unreachable')
-      ) {
-        loginDemo(fillEmail.includes('admin') ? UserRole.SUPERADMIN : UserRole.SALES_EXECUTIVE);
-        navigate(from, { replace: true });
-        return;
-      }
       setErrorMessage(msg || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);

@@ -9,6 +9,8 @@ import {
   AuditOutcome,
   ActorType,
   UserRole,
+  Permission,
+  ROLE_DEFAULT_PERMISSIONS,
   LoginSchema,
   MfaLoginChallengeSchema,
   MfaConfirmEnrollSchema,
@@ -443,14 +445,42 @@ authRouter.post('/logout', async (req: Request, res: Response, next: NextFunctio
  * GET /api/v1/auth/me
  * Retrieves authenticated employee profile and effective permissions.
  */
-authRouter.get('/me', requireAuth, requireEmployee, async (req: Request, res: Response) => {
-  const user = req.currentUser;
-  const userDto = user.toJSON();
-  (userDto as any).permissions = user.getEffectivePermissions();
-  (userDto as any).mfaVerified = req.session.user?.mfaVerified ?? false;
+authRouter.get(
+  '/me',
+  requireAuth,
+  requireEmployee,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.currentUser;
+    if (!user) {
+      if (req.session?.user) {
+        const role = req.session.user.role;
+        const defaults = ROLE_DEFAULT_PERMISSIONS[role] || [];
+        const sessionPermissions = (req.session.user as any).permissions || [];
+        const permissions = Array.from(new Set<Permission>([...defaults, ...sessionPermissions]));
+        return sendSuccess(req, res, {
+          id: req.session.user.userId,
+          email: req.session.user.email,
+          role: req.session.user.role,
+          department: req.session.user.department,
+          permissions,
+          mfaVerified: req.session.user.mfaVerified ?? false
+        });
+      }
+      return next(
+        new AppError(
+          401,
+          'Authentication required to access this resource.',
+          ErrorCode.AUTHENTICATION_REQUIRED
+        )
+      );
+    }
+    const userDto = user.toJSON();
+    (userDto as any).permissions = user.getEffectivePermissions();
+    (userDto as any).mfaVerified = req.session.user?.mfaVerified ?? false;
 
-  return sendSuccess(req, res, userDto);
-});
+    return sendSuccess(req, res, userDto);
+  }
+);
 
 /**
  * POST /api/v1/auth/mfa/setup

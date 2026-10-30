@@ -14,7 +14,13 @@ import {
   RotateCcw,
   QrCode,
   CheckCircle2,
-  History
+  History,
+  Package,
+  Building2,
+  Plus,
+  Tag,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -80,12 +86,50 @@ interface SerialItem {
   createdAt: string;
 }
 
+interface CatalogProductItem {
+  _id: string;
+  name: string;
+  sku: string;
+  brand?: string;
+  modelNumber?: string;
+  description?: string;
+  categoryId?: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  uom: string;
+  sellingPricePaise: number;
+  purchaseRatePaise?: number;
+  isSerialized: boolean;
+  isActive: boolean;
+  specifications?: Record<string, any>;
+}
+
 export const InventoryPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'balances' | 'movements' | 'serials'>('balances');
+  const [activeTab, setActiveTab] = useState<
+    'balances' | 'products' | 'movements' | 'serials' | 'warehouses'
+  >('balances');
 
   // Balances
   const [balances, setBalances] = useState<StockBalanceItem[]>([]);
   const [loadingBalances, setLoadingBalances] = useState(false);
+
+  // Products (Catalogue Master)
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProductItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductSku, setNewProductSku] = useState('');
+  const [newProductBrand, setNewProductBrand] = useState('INS Solar Tech');
+  const [newProductCategory, setNewProductCategory] = useState('');
+  const [newProductUom, setNewProductUom] = useState('PCS');
+  const [newProductSellPrice, setNewProductSellPrice] = useState('15000');
+  const [newProductBuyRate, setNewProductBuyRate] = useState('12000');
+  const [newProductSerialized, setNewProductSerialized] = useState(false);
 
   // Movements
   const [movements, setMovements] = useState<StockMovementItem[]>([]);
@@ -172,6 +216,25 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
+  const fetchCatalogProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const [prodRes, catRes] = await Promise.all([
+        apiClient('/catalog/products?limit=100'),
+        apiClient('/catalog/categories?isActive=true')
+      ]);
+      setCatalogProducts(prodRes.items || []);
+      setCategories(catRes || []);
+      if (catRes?.length > 0 && !newProductCategory) {
+        setNewProductCategory(catRes[0]._id);
+      }
+    } catch {
+      // handled
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
   useEffect(() => {
     fetchWarehousesAndProducts();
     fetchBalances();
@@ -179,9 +242,43 @@ export const InventoryPage: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'balances') fetchBalances();
+    if (activeTab === 'products') fetchCatalogProducts();
     if (activeTab === 'movements') fetchMovements();
     if (activeTab === 'serials') fetchSerials();
   }, [activeTab]);
+
+  const handleCreateProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProductName.trim() || !newProductSku.trim() || !newProductCategory) {
+      alert('Please fill product name, SKU, and category.');
+      return;
+    }
+    setSavingProduct(true);
+    try {
+      await apiClient('/catalog/products', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newProductName.trim(),
+          sku: newProductSku.trim(),
+          brand: newProductBrand.trim() || 'INS Solar',
+          categoryId: newProductCategory,
+          uom: newProductUom,
+          sellingPricePaise: Math.round(Number(newProductSellPrice) * 100),
+          purchaseRatePaise: Math.round(Number(newProductBuyRate) * 100),
+          isSerialized: newProductSerialized
+        })
+      });
+      setShowAddProductModal(false);
+      setNewProductName('');
+      setNewProductSku('');
+      setSuccessBanner('New product item successfully added to master catalogue.');
+      fetchCatalogProducts();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to create product.');
+    } finally {
+      setSavingProduct(false);
+    }
+  };
 
   const resetForm = () => {
     setModalType(null);
@@ -397,6 +494,18 @@ export const InventoryPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('products')}
+          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+            activeTab === 'products'
+              ? 'border-solar-500 text-solar-500'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>Product & Item Catalogue</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('movements')}
           className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
             activeTab === 'movements'
@@ -418,6 +527,18 @@ export const InventoryPage: React.FC = () => {
         >
           <QrCode className="w-4 h-4" />
           <span>Serialized Assets</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('warehouses')}
+          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+            activeTab === 'warehouses'
+              ? 'border-solar-500 text-solar-500'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Warehouses & Locations</span>
         </button>
       </div>
 
@@ -503,7 +624,116 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Stock Movement Ledger */}
+      {/* Tab 2: Product & Item Catalogue Master */}
+      {activeTab === 'products' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search products by SKU, name, brand..."
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+              />
+            </div>
+            <button
+              onClick={() => setShowAddProductModal(true)}
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-semibold shadow-sm transition"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              <span>Add New Product / Item</span>
+            </button>
+          </div>
+
+          <div className="border rounded-xl bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-3">Item Name & SKU</th>
+                    <th className="px-6 py-3">Category</th>
+                    <th className="px-6 py-3">Brand / Mfr</th>
+                    <th className="px-6 py-3 text-center">Unit (UOM)</th>
+                    <th className="px-6 py-3 text-right">Purchase Rate</th>
+                    <th className="px-6 py-3 text-right">Selling Price</th>
+                    <th className="px-6 py-3 text-center">Tracking</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {loadingProducts ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                        <div className="inline-flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-solar-500" />
+                          <span>Loading product catalogue...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : catalogProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                        No product items found. Click "+ Add New Product / Item" to define your
+                        hardware catalogue.
+                      </td>
+                    </tr>
+                  ) : (
+                    catalogProducts
+                      .filter(p =>
+                        productSearch
+                          ? p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                            p.sku.toLowerCase().includes(productSearch.toLowerCase()) ||
+                            (p.brand && p.brand.toLowerCase().includes(productSearch.toLowerCase()))
+                          : true
+                      )
+                      .map(p => (
+                        <tr key={p._id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 font-semibold text-foreground">
+                            {p.name}
+                            <span className="block text-xs font-mono text-muted-foreground">
+                              {p.sku}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground border">
+                              <Tag className="w-3 h-3 mr-1" />
+                              {p.categoryId?.name || 'General Hardware'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-foreground text-xs">{p.brand || '—'}</td>
+                          <td className="px-6 py-4 text-center text-xs font-mono">
+                            {p.uom || 'PCS'}
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-xs text-muted-foreground">
+                            ₹
+                            {(p.purchaseRatePaise ? p.purchaseRatePaise / 100 : 0).toLocaleString(
+                              'en-IN'
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-sm font-bold text-foreground">
+                            ₹{(p.sellingPricePaise / 100).toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {p.isSerialized ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                Barcode / Serial
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Bulk Batch</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Stock Movement Ledger */}
       {activeTab === 'movements' && (
         <div className="border rounded-xl bg-card overflow-hidden">
           <div className="overflow-x-auto">
@@ -631,7 +861,220 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* Movement & Action Modal */}
+      {/* Tab 5: Warehouses & Depots */}
+      {activeTab === 'warehouses' && (
+        <div className="border rounded-xl bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
+                <tr>
+                  <th className="px-6 py-3">Warehouse Name</th>
+                  <th className="px-6 py-3">Code</th>
+                  <th className="px-6 py-3">Depot Type</th>
+                  <th className="px-6 py-3">Location / Address</th>
+                  <th className="px-6 py-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {warehouses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                      No warehouses found. Default central depot is active.
+                    </td>
+                  </tr>
+                ) : (
+                  warehouses.map(w => (
+                    <tr key={w._id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-foreground flex items-center space-x-2">
+                        <Building2 className="w-4 h-4 text-solar-500" />
+                        <span>{w.name}</span>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-foreground">
+                        {w.code}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted border">
+                          {w.type || 'CENTRAL_DEPOT'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {w.address?.city || 'Jaipur'}, {w.address?.state || 'Rajasthan'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          Operational
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Product Modal */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center space-x-2">
+                <Package className="w-5 h-5 text-solar-500" />
+                <h2 className="text-lg font-bold text-foreground">Add New Product / Item</h2>
+              </div>
+              <button
+                onClick={() => setShowAddProductModal(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProductSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">
+                  Product / Item Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 550Wp Mono PERC Solar Module"
+                  value={newProductName}
+                  onChange={e => setNewProductName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    SKU / Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. MOD-550-MONO"
+                    value={newProductSku}
+                    onChange={e => setNewProductSku(e.target.value)}
+                    className="w-full px-3 py-2 text-sm font-mono bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Brand / Mfr
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. INS Solar"
+                    value={newProductBrand}
+                    onChange={e => setNewProductBrand(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={newProductCategory}
+                    onChange={e => setNewProductCategory(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  >
+                    {categories.length === 0 ? (
+                      <option value="">No categories defined</option>
+                    ) : (
+                      categories.map(c => (
+                        <option key={c._id} value={c._id}>
+                          {c.name} ({c.code})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Unit of Measure
+                  </label>
+                  <select
+                    value={newProductUom}
+                    onChange={e => setNewProductUom(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  >
+                    <option value="PCS">PCS (Pieces)</option>
+                    <option value="NOS">NOS (Numbers)</option>
+                    <option value="SET">SET (Sets)</option>
+                    <option value="MTR">MTR (Meters)</option>
+                    <option value="KG">KG (Kilograms)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Purchase Rate (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newProductBuyRate}
+                    onChange={e => setNewProductBuyRate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm font-mono bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Selling Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newProductSellPrice}
+                    onChange={e => setNewProductSellPrice(e.target.value)}
+                    className="w-full px-3 py-2 text-sm font-mono bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="chkSerialized"
+                  checked={newProductSerialized}
+                  onChange={e => setNewProductSerialized(e.target.checked)}
+                  className="rounded text-solar-600 focus:ring-solar-500"
+                />
+                <label htmlFor="chkSerialized" className="text-xs text-foreground cursor-pointer">
+                  Requires Individual Barcode / Serial Number Tracking
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(false)}
+                  className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProduct}
+                  className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                >
+                  {savingProduct ? 'Saving Item...' : 'Save to Catalogue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {modalType && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">

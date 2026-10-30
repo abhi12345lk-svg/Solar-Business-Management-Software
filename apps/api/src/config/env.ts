@@ -34,7 +34,7 @@ const EnvSchema = z
       .optional()
       .transform(val => {
         if (val !== undefined) return val;
-        return process.env.NODE_ENV === 'production' ? '1' : 'false';
+        return process.env.NODE_ENV === 'production' || process.env.VERCEL ? '1' : 'false';
       }),
     AWS_REGION: z.string().optional(),
     AWS_S3_BUCKET: z.string().optional(),
@@ -57,8 +57,8 @@ const EnvSchema = z
     const isServerlessOrVercel = Boolean(
       process.env.VERCEL ||
       process.env.VERCEL_ENV ||
-      process.env.AWS_LAMBDA_FUNCTION_NAME ||
       process.env.NETLIFY ||
+      process.env.NO_AWS === 'true' ||
       process.env.ALLOW_DEV_FALLBACK_IN_PROD === 'true'
     );
 
@@ -91,11 +91,7 @@ const EnvSchema = z
           message: 'Default development CSRF secret must not be used in production'
         });
       }
-      if (
-        data.STORAGE_PROVIDER === 'simulated' &&
-        !isServerlessOrVercel &&
-        Boolean(data.AWS_S3_BUCKET)
-      ) {
+      if (data.STORAGE_PROVIDER === 'simulated' && !isServerlessOrVercel) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['STORAGE_PROVIDER'],

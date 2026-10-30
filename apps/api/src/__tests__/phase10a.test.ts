@@ -977,6 +977,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
           MONGODB_URI: 'mongodb+srv://cluster.mongodb.net/prod',
           SESSION_SECRET: 'a'.repeat(64),
           CSRF_SECRET: 'b'.repeat(64),
+          MFA_ENCRYPTION_KEY: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
           STORAGE_PROVIDER: 'simulated'
         } as any);
       }).toThrow(/Production environment cannot use simulated storage/i);
@@ -989,6 +990,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
           MONGODB_URI: 'mongodb+srv://cluster.mongodb.net/prod',
           SESSION_SECRET: 'a'.repeat(64),
           CSRF_SECRET: 'b'.repeat(64),
+          MFA_ENCRYPTION_KEY: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
           STORAGE_PROVIDER: 's3',
           AWS_S3_BUCKET: 'ins-solar-production-vault'
           // Missing AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY

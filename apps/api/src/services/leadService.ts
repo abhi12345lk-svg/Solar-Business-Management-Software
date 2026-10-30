@@ -169,7 +169,7 @@ export class LeadService {
     }
 
     // Standalone preview fallback when live MongoDB is not connected
-    if (mongoose.connection.readyState !== 1) {
+    if (process.env.NODE_ENV !== 'test' && mongoose.connection.readyState !== 1) {
       return {
         id: new Types.ObjectId().toString(),
         leadCode: `LEAD-${getCurrentFiscalYear()}-00099`,
@@ -319,7 +319,7 @@ export class LeadService {
     }
 
     // Clean empty state fallback when live MongoDB is not connected
-    if (mongoose.connection.readyState !== 1) {
+    if (process.env.NODE_ENV !== 'test' && mongoose.connection.readyState !== 1) {
       return {
         data: [],
         pagination: {

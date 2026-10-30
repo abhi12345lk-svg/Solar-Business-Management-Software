@@ -81,6 +81,7 @@ export const csrfProtectionMiddleware: RequestHandler = async (req, _res, next) 
     !origin ||
     configuredOrigins.includes(origin) ||
     origin.endsWith('.vercel.app') ||
+    origin.includes('vercel.app') ||
     origin === `http://localhost:${config.PORT}` ||
     (req.headers.host &&
       (origin === `https://${req.headers.host}` || origin === `http://${req.headers.host}`));

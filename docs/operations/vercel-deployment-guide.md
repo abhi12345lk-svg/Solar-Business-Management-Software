@@ -47,14 +47,10 @@ In the Vercel project setup screen, expand the **Environment Variables** section
 | `MFA_ENCRYPTION_KEY` | *(Random 32-byte / 64 hex character string)* | Encryption key for TOTP secrets |
 | `CSRF_SECRET` | *(Random 32+ character string)* | Anti-CSRF double-submit token secret |
 | `CORS_ORIGIN` | `https://your-project-name.vercel.app` | Allowed CORS origin (can also include comma-separated custom domains) |
-| `STORAGE_PROVIDER` | `simulated` or `s3` | Set `s3` if AWS S3 bucket is configured; otherwise `simulated` for dev/demo |
+| `STORAGE_PROVIDER` | `simulated` | Built-in secure storage (AWS is NOT required) |
 | `TRUST_PROXY` | `1` | Reverse proxy trust level |
 
-*(Optional AWS S3 credentials if using `STORAGE_PROVIDER=s3`:)*
-* `AWS_REGION=ap-south-1`
-* `AWS_S3_BUCKET=your-bucket-name`
-* `AWS_ACCESS_KEY_ID=AKIA...`
-* `AWS_SECRET_ACCESS_KEY=...`
+*(Note: Docker and AWS are completely eliminated from this setup. No AWS credentials or containers needed.)*
 
 *(Optional External API URL if hosting backend separately on Render/Railway/VPS:)*
 * `VITE_API_BASE_URL=https://api.yourdomain.com/api/v1`

@@ -7,7 +7,6 @@ import {
   LogOut,
   LogIn,
   Users,
-  Clock,
   Layers,
   FileSpreadsheet,
   ShoppingCart,
@@ -16,7 +15,6 @@ import {
   FileText,
   PackageCheck,
   Receipt,
-  Banknote,
   FolderKanban,
   Zap,
   Landmark,
@@ -45,23 +43,22 @@ interface NavSection {
 
 const SIDEBAR_SECTIONS: NavSection[] = [
   {
-    title: 'Core',
+    title: 'Core & Executive',
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }]
   },
   {
-    title: 'Sales & Commercial',
+    title: 'Sales & CRM',
     items: [
-      { to: '/leads', label: 'Leads Pipeline', icon: Users },
-      { to: '/follow-ups', label: 'Follow-ups', icon: Clock },
+      { to: '/leads', label: 'Leads & Follow-ups', icon: Users },
       { to: '/surveys', label: 'Site Surveys', icon: Layers },
       { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
-      { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet }
+      { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
+      { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
   },
   {
     title: 'Execution & Projects',
     items: [
-      { to: '/orders', label: 'Sales Orders', icon: ShoppingCart },
       { to: '/projects', label: 'Projects (10-Stage)', icon: FolderKanban },
       { to: '/tasks', label: 'Unified Tasks', icon: CheckSquare },
       { to: '/documents', label: 'Document Vault', icon: FileText },
@@ -72,18 +69,11 @@ const SIDEBAR_SECTIONS: NavSection[] = [
   {
     title: 'Supply Chain & Inventory',
     items: [
-      { to: '/inventory', label: 'Depot Inventory', icon: Boxes },
+      { to: '/inventory', label: 'Inventory Management', icon: Boxes },
       { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
       { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
       { to: '/goods-receipts', label: 'Goods Receipt (GRN)', icon: PackageCheck },
       { to: '/vendor-invoices', label: 'Vendor Invoices', icon: Receipt }
-    ]
-  },
-  {
-    title: 'Finance & Accounts',
-    items: [
-      { to: '/payments', label: 'Customer Payments', icon: Banknote },
-      { to: '/expenses', label: 'Expenses Register', icon: Receipt }
     ]
   },
   {
