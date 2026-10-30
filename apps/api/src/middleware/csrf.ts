@@ -74,9 +74,18 @@ export const csrfProtectionMiddleware: RequestHandler = async (req, _res, next) 
     return next();
   }
 
-  // If request has an Origin header, verify it matches CORS_ORIGIN
+  // If request has an Origin header, verify it matches configured origins or trusted domain
   const origin = req.headers.origin;
-  if (origin && origin !== config.CORS_ORIGIN) {
+  const configuredOrigins = config.CORS_ORIGIN.split(',').map(s => s.trim());
+  const isTrustedOrigin =
+    !origin ||
+    configuredOrigins.includes(origin) ||
+    origin.endsWith('.vercel.app') ||
+    origin === `http://localhost:${config.PORT}` ||
+    (req.headers.host &&
+      (origin === `https://${req.headers.host}` || origin === `http://${req.headers.host}`));
+
+  if (origin && !isTrustedOrigin) {
     await AuditService.recordEvent({
       actorType: ActorType.ANONYMOUS,
       action: AuditAction.CSRF_VIOLATION,
