@@ -35,7 +35,7 @@ import {
   AddressType,
   ApiPagination
 } from '@ins-solar/shared';
-import { SequenceService } from './sequenceService.js';
+import { SequenceService, getCurrentFiscalYear } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
 import { logger } from '../utils/logger.js';
@@ -209,12 +209,33 @@ export class LeadService {
         if (isDuplicateKey && attempt < MAX_CREATION_ATTEMPTS) {
           logger.warn(
             { leadCode, attempt },
-            'Pre-existing leadCode collision detected; advancing sequence counter and retrying.'
+            'Pre-existing leadCode collision detected; advancing sequence counter past highest existing record and retrying.'
           );
-          await SequenceService.ensureCounterAtLeast(
-            SequenceEntityType.LEAD,
-            seqResult.sequenceNumber + 1
-          );
+
+          let targetSeq = seqResult.sequenceNumber + 1;
+          try {
+            const currentFY = getCurrentFiscalYear();
+            const highestLead = await Lead.findOne(
+              { leadCode: { $regex: `^LEAD-${currentFY}-` } },
+              { leadCode: 1 }
+            )
+              .sort({ leadCode: -1 })
+              .lean();
+
+            if (highestLead?.leadCode) {
+              const match = highestLead.leadCode.match(/-(\d+)$/);
+              if (match && match[1]) {
+                const maxNum = parseInt(match[1], 10);
+                if (!isNaN(maxNum) && maxNum >= targetSeq) {
+                  targetSeq = maxNum;
+                }
+              }
+            }
+          } catch {
+            // Fall back to targetSeq
+          }
+
+          await SequenceService.ensureCounterAtLeast(SequenceEntityType.LEAD, targetSeq);
           continue;
         }
 

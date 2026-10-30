@@ -192,12 +192,7 @@ export const LeadsPage: React.FC = () => {
       {/* Top Banner & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center space-x-2">
-            <span>CRM & Lead Pipeline</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-solar-500/10 text-solar-600 border border-solar-500/20">
-              Phase 4A
-            </span>
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">CRM & Lead Pipeline</h1>
           <p className="text-sm text-muted-foreground">
             Capture, qualify, assign, and track solar prospective customers.
           </p>

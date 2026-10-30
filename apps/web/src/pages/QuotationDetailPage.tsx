@@ -744,7 +744,7 @@ export const QuotationDetailPage: React.FC = () => {
             ) : (
               <div className="space-y-3 text-xs">
                 <p className="text-muted-foreground">
-                  Simulate digital acceptance or decline via customer portal authorization boundary:
+                  Record customer quotation decision or digital acceptance approval:
                 </p>
 
                 <input

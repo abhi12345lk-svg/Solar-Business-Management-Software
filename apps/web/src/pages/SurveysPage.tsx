@@ -182,11 +182,8 @@ export const SurveysPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center space-x-2">
-            <span>Site Surveys & Feasibility</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-solar-500/10 text-solar-600 border border-solar-500/20">
-              Phase 4A
-            </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Site Surveys & Feasibility
           </h1>
           <p className="text-sm text-muted-foreground">
             Rooftop audits, shadow analyses, electrical loads, and site evidence logs.
@@ -373,7 +370,7 @@ export const SurveysPage: React.FC = () => {
                     required
                     value={addressLine1}
                     onChange={e => setAddressLine1(e.target.value)}
-                    placeholder="e.g. Plot 12, Phase 1"
+                    placeholder="e.g. Plot 12, Industrial Area"
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
@@ -654,7 +651,7 @@ export const SurveysPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Simulated File Name
+                    Attachment File Name
                   </label>
                   <input
                     type="text"

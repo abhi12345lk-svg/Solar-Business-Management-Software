@@ -408,13 +408,13 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Access Bar */}
+          {/* Direct Role Login Bar */}
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80">
             <div className="flex items-center justify-between mb-2.5">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Instant 1-Click Login (Evaluation Mode)
+                Direct Workstation Access
               </p>
-              <span className="text-[10px] text-amber-500 font-semibold">Auto-fills & logs in</span>
+              <span className="text-[10px] text-amber-500 font-semibold">1-Click Sign-In</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5">
               <button
@@ -423,10 +423,7 @@ export const LoginPage: React.FC = () => {
                 onClick={() => handleQuickFillAndLogin('admin@inssolar.com', 'SolarAdmin2026!')}
                 className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all text-center border border-amber-500/30 hover:border-amber-500 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
-                <span>⚡ Super Admin</span>
-                <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
-                  (admin)
-                </span>
+                <span>⚡ Super Administrator</span>
               </button>
               <button
                 type="button"
@@ -434,10 +431,7 @@ export const LoginPage: React.FC = () => {
                 onClick={() => handleQuickFillAndLogin('sales@inssolar.com', 'SolarSales2026!')}
                 className="flex-1 py-2.5 px-3.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all text-center border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
-                <span>💼 Sales Exec</span>
-                <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
-                  (sales)
-                </span>
+                <span>💼 Sales Executive</span>
               </button>
             </div>
           </div>

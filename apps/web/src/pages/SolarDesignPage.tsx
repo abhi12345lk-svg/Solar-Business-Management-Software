@@ -281,7 +281,7 @@ export const SolarDesignPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-foreground">Interactive Sizing Calculator</h2>
           </div>
           <span className="text-xs bg-solar-50 text-solar-700 dark:bg-solar-950/60 dark:text-solar-300 font-medium px-2.5 py-1 rounded-full border border-solar-200 dark:border-solar-800">
-            Phase 4B Pure Math Engine
+            PV Sizing Engine
           </span>
         </div>
 
@@ -773,12 +773,12 @@ export const SolarDesignPage: React.FC = () => {
             <form onSubmit={handleSaveDesign} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Customer Object ID *
+                  Customer Reference ID *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="24-char hex MongoDB Customer ID"
+                  placeholder="Enter Customer Account ID"
                   value={saveCustomerId}
                   onChange={e => setSaveCustomerId(e.target.value)}
                   className="w-full px-3 py-1.5 text-sm bg-background border border-input rounded-md font-mono"

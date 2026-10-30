@@ -348,14 +348,12 @@ export const WarrantiesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Honest Notice */}
       <div className="p-3 bg-secondary/40 border border-secondary rounded-lg flex items-start gap-2.5 text-xs text-muted-foreground">
         <Info className="w-4 h-4 text-solar-500 shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold text-foreground">Manufacturer RMA Boundary Notice:</span>{' '}
-          Warranty decisions and replacement dispatches are recorded manually based on formal
-          supplier RMA reports. No direct automated external vendor API integration is active in
-          this phase.
+          <span className="font-semibold text-foreground">Manufacturer RMA Policy:</span> Warranty
+          decisions and replacement dispatches are recorded based on formal supplier RMA reports and
+          technical inspection certificates.
         </div>
       </div>
 

@@ -1045,7 +1045,7 @@ export const ProjectDetailPage: React.FC = () => {
             <div>
               <h2 className="text-base font-bold text-foreground">Project Quality Milestones</h2>
               <p className="text-xs text-muted-foreground">
-                Authoritative checklist of installation phase gates and operational approvals.
+                Authoritative checklist of installation milestone gates and operational approvals.
               </p>
             </div>
             {!isTerminal && (
@@ -1483,7 +1483,7 @@ export const ProjectDetailPage: React.FC = () => {
                   rows={3}
                   value={stageNotes}
                   onChange={e => setStageNotes(e.target.value)}
-                  placeholder="Notes regarding phase handover, inspection results, or field sign-offs..."
+                  placeholder="Notes regarding stage handover, inspection results, or field sign-offs..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
