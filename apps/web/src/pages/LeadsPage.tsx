@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -15,6 +15,7 @@ import { apiClient } from '../lib/api.js';
 import { LeadDto, LeadStatus, LeadSource, LeadPriority, SolarRequirement } from '@ins-solar/shared';
 
 export const LeadsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<LeadDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -269,22 +270,35 @@ export const LeadsPage: React.FC = () => {
           <div className="p-8 text-center space-y-3 max-w-xl mx-auto">
             <AlertCircle className="w-10 h-10 mx-auto text-amber-500" />
             <h3 className="text-base font-bold text-foreground">
-              {error.includes('MONGODB_URI') || error.includes('Serverless')
-                ? 'Cloud Database Connection Pending'
-                : 'Unable to Load Leads'}
+              {error.includes('Authentication required')
+                ? 'Sign-In Required'
+                : error.includes('MONGODB_URI') || error.includes('Serverless')
+                  ? 'Cloud Database Connection Pending'
+                  : 'Unable to Load Leads'}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {error.includes('MONGODB_URI') || error.includes('Serverless')
-                ? 'Vercel cloud database (MONGODB_URI) is not configured yet. To connect your live database, add your MongoDB Atlas connection string in Vercel Project Settings > Environment Variables.'
-                : error}
+              {error.includes('Authentication required')
+                ? 'Your workstation session has expired or is not active on the server. Please sign in to access live database records.'
+                : error.includes('MONGODB_URI') || error.includes('Serverless')
+                  ? 'Vercel cloud database (MONGODB_URI) is not configured yet. To connect your live database, add your MongoDB Atlas connection string in Vercel Project Settings > Environment Variables.'
+                  : error}
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={fetchLeads}
-                className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs shadow-sm transition cursor-pointer"
-              >
-                Retry Connection
-              </button>
+              {error.includes('Authentication required') ? (
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-5 py-2.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+                >
+                  Sign In to Workstation
+                </button>
+              ) : (
+                <button
+                  onClick={fetchLeads}
+                  className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs shadow-sm transition cursor-pointer"
+                >
+                  Retry Connection
+                </button>
+              )}
             </div>
           </div>
         ) : leads.length === 0 ? (

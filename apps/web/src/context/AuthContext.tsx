@@ -34,8 +34,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     queryFn: async () => {
       try {
         return await apiClient<AuthUserDto>('/auth/me');
-      } catch {
-        // If server is unreachable or 401/403/503 (e.g. Vercel without cloud DB), check for demo user
+      } catch (err: any) {
+        // If 401 Unauthorized, clear any stale mock user so user is properly redirected to login
+        if (err?.statusCode === 401 || err?.status === 401) {
+          try {
+            localStorage.removeItem('ins_demo_user');
+          } catch {
+            // ignore
+          }
+          return null;
+        }
+
+        // If server is truly unreachable, fallback to offline demo user if present
         try {
           const savedDemo = localStorage.getItem('ins_demo_user');
           if (savedDemo) {
