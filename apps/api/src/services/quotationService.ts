@@ -715,7 +715,7 @@ export class QuotationService {
    */
   public static async getQuotationById(id: string): Promise<IQuotationDocument> {
     const quotation = await Quotation.findById(id)
-      .populate('customerId', 'legalName customerCode primaryPhone email addresses')
+      .populate('customerId', 'name legalName companyName customerCode primaryPhone email addresses')
       .populate('leadId', 'leadCode prospectName prospectPhone')
       .populate(
         'solarDesignId',

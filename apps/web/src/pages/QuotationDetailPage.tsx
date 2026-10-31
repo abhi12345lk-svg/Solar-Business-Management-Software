@@ -27,8 +27,9 @@ interface LineItem {
   discountPaise: number;
   taxableAmountPaise: number;
   gstRateBasisPoints: number;
-  taxPaise: number;
-  itemTotalPaise: number;
+  taxPaise?: number;
+  itemTotalPaise?: number;
+  totalAmountPaise?: number;
 }
 
 interface TaxComponent {
@@ -47,25 +48,12 @@ interface QuotationDetail {
   status: QuotationStatus;
   systemTopology: SolarTopology;
   systemCapacityKwp: number;
-  customerId: {
-    _id: string;
-    legalName?: string;
-    customerCode?: string;
-    primaryPhone?: string;
-    email?: string;
-  };
-  leadId?: {
-    _id: string;
-    leadCode?: string;
-    prospectName?: string;
-  };
-  solarDesignId?: {
-    _id: string;
-    designNumber?: string;
-    proposedCapacityKwp?: number;
-  };
+  customerId: any;
+  leadId?: any;
+  solarDesignId?: any;
   lineItems: LineItem[];
-  grossSubtotalPaise: number;
+  subtotalPaise?: number;
+  grossSubtotalPaise?: number;
   additionalDiscountPaise: number;
   totalDiscountPaise: number;
   discountPercent: number;
@@ -79,8 +67,12 @@ interface QuotationDetail {
   discountRemarks?: string;
   discountRejectionReason?: string;
   taxableAmountPaise: number;
-  totalTaxPaise: number;
-  taxComponents: TaxComponent[];
+  totalTaxPaise?: number;
+  totalTaxAmountPaise?: number;
+  cgstAmountPaise?: number;
+  sgstAmountPaise?: number;
+  igstAmountPaise?: number;
+  taxComponents?: TaxComponent[];
   netTotalPaise: number;
   taxProfile: {
     profileName: string;
@@ -89,12 +81,14 @@ interface QuotationDetail {
     isInterState: boolean;
     accountingNotice: string;
   };
-  paymentMilestones: {
-    name: string;
+  paymentMilestones?: {
+    name?: string;
+    milestoneName?: string;
     percentage: number;
-    description: string;
+    description?: string;
+    dueTrigger?: string;
   }[];
-  termsAndConditions: string[];
+  termsAndConditions?: string[];
   validUntil: string;
   isAccepted: boolean;
   acceptedAt?: string;
@@ -309,21 +303,66 @@ export const QuotationDetailPage: React.FC = () => {
     );
   }
 
-  const grossRs = (quotation.grossSubtotalPaise / 100).toLocaleString('en-IN', {
+  const grossPaise = quotation.grossSubtotalPaise ?? quotation.subtotalPaise ?? 0;
+  const grossRs = (grossPaise / 100).toLocaleString('en-IN', {
     maximumFractionDigits: 2
   });
-  const discountRs = (quotation.totalDiscountPaise / 100).toLocaleString('en-IN', {
+  const discountRs = (
+    (quotation.totalDiscountPaise ?? quotation.additionalDiscountPaise ?? 0) / 100
+  ).toLocaleString('en-IN', {
     maximumFractionDigits: 2
   });
-  const taxableRs = (quotation.taxableAmountPaise / 100).toLocaleString('en-IN', {
+  const taxableRs = ((quotation.taxableAmountPaise ?? 0) / 100).toLocaleString('en-IN', {
     maximumFractionDigits: 2
   });
-  const taxRs = (quotation.totalTaxPaise / 100).toLocaleString('en-IN', {
+  const totalTax = quotation.totalTaxPaise ?? quotation.totalTaxAmountPaise ?? 0;
+  const taxRs = (totalTax / 100).toLocaleString('en-IN', {
     maximumFractionDigits: 2
   });
-  const netRs = (quotation.netTotalPaise / 100).toLocaleString('en-IN', {
+  const netRs = ((quotation.netTotalPaise ?? 0) / 100).toLocaleString('en-IN', {
     maximumFractionDigits: 2
   });
+
+  const taxComponentsList: TaxComponent[] =
+    quotation.taxComponents && quotation.taxComponents.length > 0
+      ? quotation.taxComponents
+      : [
+          ...((quotation.cgstAmountPaise || 0) > 0
+            ? [
+                {
+                  componentName: 'CGST (Central GST)',
+                  rateBasisPoints: quotation.taxProfile?.isInterState ? 0 : 900,
+                  taxAmountPaise: quotation.cgstAmountPaise || 0
+                }
+              ]
+            : []),
+          ...((quotation.sgstAmountPaise || 0) > 0
+            ? [
+                {
+                  componentName: 'SGST (State GST)',
+                  rateBasisPoints: quotation.taxProfile?.isInterState ? 0 : 900,
+                  taxAmountPaise: quotation.sgstAmountPaise || 0
+                }
+              ]
+            : []),
+          ...((quotation.igstAmountPaise || 0) > 0
+            ? [
+                {
+                  componentName: 'IGST (Integrated GST)',
+                  rateBasisPoints: 1800,
+                  taxAmountPaise: quotation.igstAmountPaise || 0
+                }
+              ]
+            : [])
+        ];
+
+  if (taxComponentsList.length === 0 && totalTax > 0) {
+    taxComponentsList.push({
+      componentName: 'GST (Total Tax)',
+      rateBasisPoints: 1800,
+      taxAmountPaise: totalTax
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -417,20 +456,31 @@ export const QuotationDetailPage: React.FC = () => {
               <div>
                 <span className="text-muted-foreground block">Customer Name</span>
                 <span className="font-medium text-foreground text-sm">
-                  {quotation.customerId?.legalName || 'Direct Customer'}
+                  {typeof quotation.customerId === 'object'
+                    ? (quotation.customerId as any)?.legalName ||
+                      (quotation.customerId as any)?.name ||
+                      (quotation.customerId as any)?.companyName ||
+                      'Direct Customer'
+                    : 'Direct Customer'}
                 </span>
                 <span className="text-[11px] text-muted-foreground font-mono block">
-                  {quotation.customerId?.customerCode || '—'}
+                  {typeof quotation.customerId === 'object'
+                    ? (quotation.customerId as any)?.customerCode || '—'
+                    : '—'}
                 </span>
               </div>
 
               <div>
                 <span className="text-muted-foreground block">Contact</span>
                 <span className="font-medium text-foreground">
-                  {quotation.customerId?.primaryPhone || '—'}
+                  {typeof quotation.customerId === 'object'
+                    ? (quotation.customerId as any)?.primaryPhone || '—'
+                    : '—'}
                 </span>
                 <span className="text-muted-foreground block">
-                  {quotation.customerId?.email || '—'}
+                  {typeof quotation.customerId === 'object'
+                    ? (quotation.customerId as any)?.email || '—'
+                    : '—'}
                 </span>
               </div>
 
@@ -475,7 +525,7 @@ export const QuotationDetailPage: React.FC = () => {
                 Bill of Materials & Work Scope
               </h2>
               <span className="text-xs text-muted-foreground">
-                {quotation.lineItems.length} line item(s)
+                {(quotation.lineItems || []).length} line item(s)
               </span>
             </div>
 
@@ -493,11 +543,13 @@ export const QuotationDetailPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {quotation.lineItems.map((item, idx) => {
-                    const rate = (item.unitRatePaise / 100).toLocaleString('en-IN');
-                    const taxable = (item.taxableAmountPaise / 100).toLocaleString('en-IN');
-                    const total = (item.itemTotalPaise / 100).toLocaleString('en-IN');
-                    const gstPercent = (item.gstRateBasisPoints / 100).toFixed(0);
+                  {(quotation.lineItems || []).map((item, idx) => {
+                    const rate = ((item.unitRatePaise || 0) / 100).toLocaleString('en-IN');
+                    const taxable = ((item.taxableAmountPaise || 0) / 100).toLocaleString('en-IN');
+                    const itemTotal =
+                      item.itemTotalPaise ?? (item as any).totalAmountPaise ?? item.taxableAmountPaise ?? 0;
+                    const total = (itemTotal / 100).toLocaleString('en-IN');
+                    const gstPercent = (((item.gstRateBasisPoints || 0) / 100)).toFixed(0);
 
                     return (
                       <tr key={idx} className="hover:bg-muted/30">
@@ -536,24 +588,26 @@ export const QuotationDetailPage: React.FC = () => {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {quotation.paymentMilestones.map((m, idx) => (
+              {(quotation.paymentMilestones || []).map((m: any, idx) => (
                 <div
                   key={idx}
                   className="p-3 bg-secondary/30 rounded-lg border border-border text-xs"
                 >
                   <div className="font-semibold text-foreground flex items-center justify-between">
-                    <span>{m.name}</span>
+                    <span>{m.name || m.milestoneName || `Milestone ${idx + 1}`}</span>
                     <span className="text-solar-600 font-bold">{m.percentage}%</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">{m.description}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {m.description || m.dueTrigger || '—'}
+                  </p>
                 </div>
               ))}
             </div>
 
-            {quotation.termsAndConditions.length > 0 && (
+            {(quotation.termsAndConditions || []).length > 0 && (
               <div className="pt-2 text-xs space-y-1 text-muted-foreground">
                 <div className="font-semibold text-foreground">Commercial Terms:</div>
-                {quotation.termsAndConditions.map((term, i) => (
+                {(quotation.termsAndConditions || []).map((term, i) => (
                   <div key={i}>• {term}</div>
                 ))}
               </div>
@@ -592,7 +646,7 @@ export const QuotationDetailPage: React.FC = () => {
                 <div className="text-[11px] font-semibold text-muted-foreground">
                   GST Breakdown:
                 </div>
-                {quotation.taxComponents.map((c, i) => {
+                {taxComponentsList.map((c, i) => {
                   const compRs = (c.taxAmountPaise / 100).toLocaleString('en-IN');
                   return (
                     <div key={i} className="flex justify-between text-[11px]">
