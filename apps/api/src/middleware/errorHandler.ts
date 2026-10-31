@@ -35,10 +35,17 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
 
   // 2. Known Operational Application Errors
   if (err instanceof AppError) {
-    logger.warn(
-      { correlationId, code: err.code, statusCode: err.statusCode, path: req.path },
-      err.message
-    );
+    if (err.statusCode === 401) {
+      logger.info(
+        { correlationId, code: err.code, statusCode: err.statusCode, path: req.path },
+        err.message
+      );
+    } else {
+      logger.warn(
+        { correlationId, code: err.code, statusCode: err.statusCode, path: req.path },
+        err.message
+      );
+    }
 
     sendError(
       res,
