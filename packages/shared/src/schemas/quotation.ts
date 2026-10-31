@@ -106,6 +106,16 @@ export type PaymentMilestone = z.infer<typeof PaymentMilestoneSchema>;
 export const CreateQuotationInputSchema = z.object({
   customerId: z.string().trim().optional(),
   leadId: z.string().trim().optional(),
+  newCustomer: z
+    .object({
+      name: z.string().trim().min(2, 'Customer name must be at least 2 characters.'),
+      phone: z.string().trim().min(8, 'Phone number must be at least 8 digits.'),
+      email: z.string().trim().email().optional().or(z.literal('')),
+      city: z.string().trim().optional(),
+      state: z.string().trim().optional(),
+      address: z.string().trim().optional()
+    })
+    .optional(),
   solarDesignId: z.string().trim().optional(),
   systemTopology: z.nativeEnum(SolarTopology),
   systemCapacityKwp: z
@@ -150,6 +160,7 @@ export const ReviseQuotationInputSchema = z.object({
     .trim()
     .min(5, 'Revision reason must be at least 5 characters.')
     .max(300),
+  revisionNotes: z.string().trim().max(300).optional(),
   lineItems: z.array(QuotationLineItemInputSchema).min(1).optional(),
   additionalDiscountPaise: MoneyPaiseSchema.optional(),
   systemCapacityKwp: z.number().positive().optional(),

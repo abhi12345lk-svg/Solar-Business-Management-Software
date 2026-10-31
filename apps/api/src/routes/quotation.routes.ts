@@ -242,6 +242,46 @@ quotationRouter.post(
  * GET /api/v1/quotations/:id/pdf
  * View/download compiled proposal document.
  */
+/**
+ * POST /api/v1/quotations/:id/customer-decision
+ * Record customer acceptance or rejection from employee workstation.
+ */
+quotationRouter.post(
+  '/:id/customer-decision',
+  requirePermission('quote:update'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = req.params.id as string;
+      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        return next(AppError.validationFailed('Invalid Quotation ID format.'));
+      }
+
+      const { decision, notes, rejectionReason } = req.body;
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      const result = await QuotationService.recordWorkstationCustomerDecision(
+        id,
+        {
+          action: decision === 'ACCEPT' ? 'ACCEPT' : 'REJECT',
+          notes,
+          rejectionReason
+        },
+        user,
+        context
+      );
+
+      return sendSuccess(req, res, result, 200);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
 quotationRouter.get(
   '/:id/pdf',
   requirePermission('quote:read'),

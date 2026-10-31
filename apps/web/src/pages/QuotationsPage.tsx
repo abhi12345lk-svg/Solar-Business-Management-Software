@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Search, FileSpreadsheet, ArrowRight } from 'lucide-react';
+import { FileText, Plus, Search, FileSpreadsheet, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api.js';
 import { QuotationStatus, SolarTopology, QuotationItemType } from '@ins-solar/shared';
@@ -54,9 +54,13 @@ export const QuotationsPage: React.FC = () => {
   const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
   const [availableLeads, setAvailableLeads] = useState<any[]>([]);
   const [loadingContext, setLoadingContext] = useState(false);
-  const [manualCustomerEntry, setManualCustomerEntry] = useState(false);
 
   // Form Fields for new quotation
+  const [customerMode, setCustomerMode] = useState<'REGISTERED' | 'LEAD' | 'NEW'>('REGISTERED');
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustCity, setNewCustCity] = useState('');
+  const [newCustEmail, setNewCustEmail] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [leadId, setLeadId] = useState('');
   const [topology, setTopology] = useState<SolarTopology>(SolarTopology.ON_GRID);
@@ -132,7 +136,6 @@ export const QuotationsPage: React.FC = () => {
       );
       if (matchedCust) {
         setCustomerId(matchedCust._id || matchedCust.id);
-        setManualCustomerEntry(false);
         return;
       }
       setCustomerId(linkedCustId);
@@ -153,7 +156,6 @@ export const QuotationsPage: React.FC = () => {
     );
     if (matchedByPhone) {
       setCustomerId(matchedByPhone._id || matchedByPhone.id);
-      setManualCustomerEntry(false);
     }
   };
 
@@ -180,9 +182,23 @@ export const QuotationsPage: React.FC = () => {
   const handleCreateQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerId.trim() && !leadId.trim()) {
-      setCreateError('Please select either a Customer Account or an Originating Lead.');
+    if (customerMode === 'REGISTERED' && !customerId.trim()) {
+      setCreateError('Please select a registered customer from the dropdown list.');
       return;
+    }
+    if (customerMode === 'LEAD' && !leadId.trim()) {
+      setCreateError('Please select an originating CRM lead.');
+      return;
+    }
+    if (customerMode === 'NEW') {
+      if (!newCustName.trim() || !newCustPhone.trim()) {
+        setCreateError('Please enter the customer full name and mobile phone number.');
+        return;
+      }
+      if (newCustPhone.trim().length < 8) {
+        setCreateError('Please enter a valid phone number (at least 8 digits).');
+        return;
+      }
     }
 
     setCreating(true);
@@ -193,34 +209,32 @@ export const QuotationsPage: React.FC = () => {
         {
           itemType: QuotationItemType.SOLAR_MODULE,
           description: panelDesc.trim(),
-          quantity: Number(panelQty),
+          quantity: Number(panelQty) || 1,
           unit: 'Nos',
-          unitRatePaise: Math.round(Number(panelRateRs) * 100),
+          unitRatePaise: Math.round(Number(panelRateRs || 0) * 100),
           discountPaise: 0,
           gstRateBasisPoints: 1200 // 12% GST standard on solar hardware
         },
         {
           itemType: QuotationItemType.INVERTER,
           description: inverterDesc.trim(),
-          quantity: Number(inverterQty),
+          quantity: Number(inverterQty) || 1,
           unit: 'Nos',
-          unitRatePaise: Math.round(Number(inverterRateRs) * 100),
+          unitRatePaise: Math.round(Number(inverterRateRs || 0) * 100),
           discountPaise: 0,
           gstRateBasisPoints: 1800 // 18% GST standard on inverters
         }
       ];
 
       const validUntilDate = new Date();
-      validUntilDate.setDate(validUntilDate.getDate() + Number(validDays));
+      validUntilDate.setDate(validUntilDate.getDate() + (Number(validDays) || 30));
 
-      const payload = {
-        customerId: customerId.trim() || undefined,
-        leadId: leadId.trim() || undefined,
+      const payload: any = {
         systemTopology: topology,
-        systemCapacityKwp: Number(capacityKwp),
+        systemCapacityKwp: Number(capacityKwp) || 5,
         validUntil: validUntilDate.toISOString(),
         lineItems,
-        additionalDiscountPaise: Math.round(Number(additionalDiscountRs) * 100),
+        additionalDiscountPaise: Math.round(Number(additionalDiscountRs || 0) * 100),
         taxProfile: {
           profileName: 'Standard Indian Solar EPC Tax Profile',
           profileCode: 'GST-EPC-STD-2026',
@@ -252,12 +266,33 @@ export const QuotationsPage: React.FC = () => {
         ]
       };
 
+      if (customerMode === 'REGISTERED') {
+        payload.customerId = customerId.trim();
+        if (leadId.trim()) payload.leadId = leadId.trim();
+      } else if (customerMode === 'LEAD') {
+        payload.leadId = leadId.trim();
+        if (customerId.trim()) payload.customerId = customerId.trim();
+      } else if (customerMode === 'NEW') {
+        payload.newCustomer = {
+          name: newCustName.trim(),
+          phone: newCustPhone.trim(),
+          email: newCustEmail.trim() || undefined,
+          city: newCustCity.trim() || undefined
+        };
+      }
+
       await apiClient('/quotations', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
       setShowCreateModal(false);
+      setCustomerId('');
+      setLeadId('');
+      setNewCustName('');
+      setNewCustPhone('');
+      setNewCustEmail('');
+      setNewCustCity('');
       fetchQuotations();
     } catch (err: any) {
       setCreateError(err.message || 'Failed to create quotation.');
@@ -516,23 +551,52 @@ export const QuotationsPage: React.FC = () => {
             </p>
 
             <form onSubmit={handleCreateQuotation} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-muted-foreground">
-                      Customer {!leadId && <span className="text-destructive">*</span>}
-                    </label>
+              {/* Customer Mode Selection */}
+              <div className="space-y-2.5 p-3 bg-secondary/30 rounded-lg border border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                  <label className="block text-xs font-semibold text-foreground">
+                    Customer / Recipient <span className="text-destructive">*</span>
+                  </label>
+                  <div className="inline-flex rounded-md border border-border bg-background p-0.5 text-[11px]">
                     <button
                       type="button"
-                      onClick={() => setManualCustomerEntry(!manualCustomerEntry)}
-                      className="text-[10px] text-solar-600 dark:text-solar-400 hover:underline"
+                      onClick={() => setCustomerMode('REGISTERED')}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        customerMode === 'REGISTERED'
+                          ? 'bg-solar-600 text-white shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
                     >
-                      {manualCustomerEntry ? '← Select Customer' : 'Custom Code'}
+                      Registered Customer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerMode('LEAD')}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        customerMode === 'LEAD'
+                          ? 'bg-solar-600 text-white shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      From CRM Lead
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerMode('NEW')}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        customerMode === 'NEW'
+                          ? 'bg-solar-600 text-white shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      + New / Walk-in
                     </button>
                   </div>
-                  {!manualCustomerEntry ? (
+                </div>
+
+                {customerMode === 'REGISTERED' && (
+                  <div>
                     <select
-                      required={!leadId}
                       value={customerId}
                       onChange={e => handleCustomerChange(e.target.value)}
                       className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
@@ -540,49 +604,94 @@ export const QuotationsPage: React.FC = () => {
                       <option value="">
                         {loadingContext
                           ? 'Loading registered customers...'
-                          : '-- Select Registered Customer --'}
+                          : '-- Select Registered Customer Account --'}
                       </option>
                       {availableCustomers.map(c => (
                         <option key={c._id || c.id} value={c._id || c.id}>
-                          {c.customerCode || 'CUST'} — {c.legalName || c.name} (
-                          {c.primaryPhone || c.phone || 'No phone'})
+                          {c.customerCode || 'CUST'} — {c.legalName || c.name} ({c.primaryPhone || 'No phone'})
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <input
-                      type="text"
-                      required={!leadId}
-                      placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
-                      value={customerId}
-                      onChange={e => handleCustomerChange(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                    />
-                  )}
-                  {leadId && customerId && (
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
-                      ✓ Automatically synchronized with Lead account
-                    </p>
-                  )}
-                </div>
+                    {availableCustomers.length === 0 && !loadingContext && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                        No registered customer accounts found. Use <strong>+ New / Walk-in</strong> above to enter customer details directly.
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Originating Lead {!customerId && <span className="text-destructive">*</span>}
-                  </label>
-                  <select
-                    value={leadId}
-                    onChange={e => handleLeadChange(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                  >
-                    <option value="">-- None (Direct Customer) --</option>
-                    {availableLeads.map(l => (
-                      <option key={l.id || l._id} value={l.id || l._id}>
-                        {l.leadCode} — {l.prospectName} ({l.prospectPhone})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {customerMode === 'LEAD' && (
+                  <div>
+                    <select
+                      value={leadId}
+                      onChange={e => handleLeadChange(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
+                    >
+                      <option value="">-- Select Active CRM Lead --</option>
+                      {availableLeads.map(l => (
+                        <option key={l.id || l._id} value={l.id || l._id}>
+                          {l.leadCode} — {l.prospectName} ({l.prospectPhone})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Lead contact information will be automatically synchronized and linked with this proposal.
+                    </p>
+                  </div>
+                )}
+
+                {customerMode === 'NEW' && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                        Customer Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Ramesh Patel"
+                        value={newCustName}
+                        onChange={e => setNewCustName(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                        Mobile Number *
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. 9876543210"
+                        value={newCustPhone}
+                        onChange={e => setNewCustPhone(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                        City / Site Location
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Jaipur"
+                        value={newCustCity}
+                        onChange={e => setNewCustCity(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                        Email (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="customer@email.com"
+                        value={newCustEmail}
+                        onChange={e => setNewCustEmail(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -728,8 +837,9 @@ export const QuotationsPage: React.FC = () => {
               </div>
 
               {createError && (
-                <div className="p-2.5 bg-destructive/10 text-destructive text-xs rounded">
-                  {createError}
+                <div className="p-2.5 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{createError}</span>
                 </div>
               )}
 

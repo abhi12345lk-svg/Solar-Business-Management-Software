@@ -180,6 +180,50 @@ export class QuotationService {
       }
     }
 
+    // Auto-create or resolve customer if newCustomer payload provided
+    if (!customer && (input as any).newCustomer) {
+      const nc = (input as any).newCustomer;
+      const cleanPhone = (nc.phone || '').trim();
+      if (cleanPhone) {
+        customer = await Customer.findOne({
+          $or: [
+            { primaryPhone: cleanPhone },
+            ...(nc.email ? [{ email: nc.email.trim() }] : [])
+          ]
+        });
+      }
+      if (!customer) {
+        const seqResult = await SequenceService.generateNumber(SequenceEntityType.CUSTOMER);
+        customer = await Customer.create({
+          customerCode: seqResult.formattedNumber,
+          name: nc.name.trim(),
+          legalName: nc.name.trim(),
+          primaryPhone: cleanPhone,
+          email: nc.email?.trim() || undefined,
+          customerType: CustomerType.INDIVIDUAL,
+          billingAddress: {
+            street: nc.address?.trim() || nc.name.trim(),
+            city: nc.city?.trim() || 'Jaipur',
+            state: nc.state?.trim() || 'Rajasthan',
+            pincode: '302001',
+            country: 'India'
+          },
+          installationAddresses: [
+            {
+              street: nc.address?.trim() || nc.name.trim(),
+              city: nc.city?.trim() || 'Jaipur',
+              state: nc.state?.trim() || 'Rajasthan',
+              pincode: '302001',
+              country: 'India'
+            }
+          ],
+          createdBy: Types.ObjectId.isValid(user.userId)
+            ? new Types.ObjectId(user.userId)
+            : undefined
+        });
+      }
+    }
+
     // Auto-resolve customer from lead if not explicitly provided
     if (!customer && lead) {
       if (lead.convertedCustomerId) {
@@ -467,7 +511,7 @@ export class QuotationService {
       details: {
         previousCode: currentQuote.fullQuotationCode,
         newCode: revisedQuotation.fullQuotationCode,
-        reason: input.reasonForRevision,
+        reason: input.reasonForRevision || input.revisionNotes || 'Quotation revision created',
         netTotalPaise: revisedQuotation.netTotalPaise
       }
     });
@@ -706,6 +750,66 @@ export class QuotationService {
         'Quotation declined by customer.'
       );
     }
+
+    return quotation;
+  }
+
+  /**
+   * 5b. Record Customer Decision directly from Admin/Sales Workstation (Offline/verbal consent).
+   */
+  public static async recordWorkstationCustomerDecision(
+    quotationId: string,
+    decision: { action: 'ACCEPT' | 'REJECT'; notes?: string; rejectionReason?: string },
+    user: { userId: string },
+    context: { ipAddress?: string; userAgent?: string; correlationId?: string } = {}
+  ): Promise<IQuotationDocument> {
+    const quotation = await Quotation.findById(quotationId);
+    if (!quotation) {
+      throw AppError.notFound('Quotation not found.');
+    }
+
+    if (quotation.status === QuotationStatus.ACCEPTED && decision.action === 'ACCEPT') {
+      return quotation;
+    }
+
+    // Auto-advance draft/approved quotation to sent if accepting directly
+    if (
+      quotation.status === QuotationStatus.DRAFT ||
+      quotation.status === QuotationStatus.APPROVED
+    ) {
+      quotation.status = QuotationStatus.SENT;
+    }
+
+    if (decision.action === 'ACCEPT') {
+      quotation.status = QuotationStatus.ACCEPTED;
+      quotation.acceptedAt = new Date();
+      quotation.decisionIpAddress = context.ipAddress;
+      quotation.customerNotes =
+        decision.notes || 'Proposal confirmed and accepted via sales workstation.';
+    } else {
+      quotation.status = QuotationStatus.REJECTED;
+      quotation.rejectionReason = decision.rejectionReason || 'Declined by customer.';
+    }
+
+    await quotation.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action:
+        decision.action === 'ACCEPT'
+          ? AuditAction.QUOTATION_CUSTOMER_ACCEPTED
+          : AuditAction.QUOTATION_CUSTOMER_REJECTED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      correlationId: context.correlationId || 'quote-decision-workstation',
+      details: {
+        fullQuotationCode: quotation.fullQuotationCode,
+        newStatus: quotation.status,
+        recordedByEmployee: user.userId
+      }
+    });
 
     return quotation;
   }

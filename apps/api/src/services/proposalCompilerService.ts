@@ -46,7 +46,7 @@ export class ProposalCompilerService {
       ? `${customer.billingAddress.addressLine1}, ${customer.billingAddress.city}, ${customer.billingAddress.state} - ${customer.billingAddress.postalCode}`
       : 'Site Location';
 
-    const lineItemsHtml = quotation.lineItems
+    const lineItemsHtml = (quotation.lineItems || [])
       .map(
         (item, index) => `
         <tr>
@@ -56,25 +56,25 @@ export class ProposalCompilerService {
             ${item.sku ? `<div style="font-size: 11px; color: #64748b;">SKU: ${item.sku}</div>` : ''}
           </td>
           <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity} ${item.unit}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatPaiseToInr(item.unitRatePaise)}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatPaiseToInr(item.taxableAmountPaise)}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${(item.gstRateBasisPoints / 100).toFixed(0)}%</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600;">${formatPaiseToInr(item.totalAmountPaise)}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatPaiseToInr(item.unitRatePaise || 0)}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatPaiseToInr(item.taxableAmountPaise || 0)}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${((item.gstRateBasisPoints || 0) / 100).toFixed(0)}%</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600;">${formatPaiseToInr(item.totalAmountPaise ?? item.taxableAmountPaise ?? 0)}</td>
         </tr>
       `
       )
       .join('');
 
-    const termsHtml = quotation.termsAndConditions
+    const termsHtml = (quotation.termsAndConditions || [])
       .map(term => `<li style="margin-bottom: 6px;">${term}</li>`)
       .join('');
 
-    const milestonesHtml = quotation.paymentMilestones
+    const milestonesHtml = (quotation.paymentMilestones || [])
       .map(
         ms => `
         <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #cbd5e1; font-size: 13px;">
-          <span><strong>${ms.milestoneName}</strong> (${ms.percentage}%):</span>
-          <span>${formatPaiseToInr(Math.round((quotation.netTotalPaise * ms.percentage) / 100))}</span>
+          <span><strong>${ms.milestoneName || (ms as any).name || 'Milestone'}</strong> (${ms.percentage}%):</span>
+          <span>${formatPaiseToInr(Math.round(((quotation.netTotalPaise || 0) * ms.percentage) / 100))}</span>
         </div>
       `
       )
@@ -204,44 +204,44 @@ export class ProposalCompilerService {
         <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px; font-size: 13px;">
           <div style="display: flex; justify-content: space-between; padding: 4px 0;">
             <span>Subtotal (Paise):</span>
-            <span>${formatPaiseToInr(quotation.subtotalPaise)}</span>
+            <span>${formatPaiseToInr(quotation.subtotalPaise || 0)}</span>
           </div>
           ${
-            quotation.totalDiscountPaise > 0
+            (quotation.totalDiscountPaise || 0) > 0
               ? `
             <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #b91c1c;">
-              <span>Total Commercial Discount (${quotation.discountPercent}%):</span>
-              <span>-${formatPaiseToInr(quotation.totalDiscountPaise)}</span>
+              <span>Total Commercial Discount (${quotation.discountPercent || 0}%):</span>
+              <span>-${formatPaiseToInr(quotation.totalDiscountPaise || 0)}</span>
             </div>
           `
               : ''
           }
           <div style="display: flex; justify-content: space-between; padding: 4px 0; font-weight: 600; border-top: 1px solid #cbd5e1; margin-top: 4px;">
             <span>Taxable Amount:</span>
-            <span>${formatPaiseToInr(quotation.taxableAmountPaise)}</span>
+            <span>${formatPaiseToInr(quotation.taxableAmountPaise || 0)}</span>
           </div>
           ${
-            quotation.taxProfile.isInterState
+            quotation.taxProfile?.isInterState
               ? `
             <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #475569;">
               <span>IGST (Integrated Tax):</span>
-              <span>${formatPaiseToInr(quotation.igstAmountPaise)}</span>
+              <span>${formatPaiseToInr(quotation.igstAmountPaise || 0)}</span>
             </div>
           `
               : `
             <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #475569;">
               <span>CGST (Central Tax):</span>
-              <span>${formatPaiseToInr(quotation.cgstAmountPaise)}</span>
+              <span>${formatPaiseToInr(quotation.cgstAmountPaise || 0)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #475569;">
               <span>SGST (State Tax):</span>
-              <span>${formatPaiseToInr(quotation.sgstAmountPaise)}</span>
+              <span>${formatPaiseToInr(quotation.sgstAmountPaise || 0)}</span>
             </div>
           `
           }
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; font-weight: 800; color: #0369a1; border-top: 2px solid #0284c7; margin-top: 8px;">
             <span>Net Proposal Total:</span>
-            <span>${formatPaiseToInr(quotation.netTotalPaise)}</span>
+            <span>${formatPaiseToInr(quotation.netTotalPaise || 0)}</span>
           </div>
         </div>
       </td>
