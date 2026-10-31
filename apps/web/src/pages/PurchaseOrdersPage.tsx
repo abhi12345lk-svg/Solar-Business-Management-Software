@@ -43,6 +43,7 @@ export function PurchaseOrdersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [vendorsList, setVendorsList] = useState<any[]>([]);
   const [warehousesList, setWarehousesList] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -68,8 +69,8 @@ export function PurchaseOrdersPage() {
       let query = `?limit=50&search=${encodeURIComponent(search)}`;
       if (statusFilter !== 'ALL') query += `&status=${statusFilter}`;
 
-      const res = await apiClient(`/purchase-orders${query}`);
-      const list = res.data?.items || res.data || [];
+      const res = await apiClient<any>(`/purchase-orders${query}`);
+      const list = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
       setOrders(Array.isArray(list) ? list : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load purchase orders');
@@ -81,13 +82,16 @@ export function PurchaseOrdersPage() {
   const loadDropdowns = async () => {
     try {
       const [vRes, wRes, pRes] = await Promise.all([
-        apiClient('/vendors?limit=100&isActive=true'),
-        apiClient('/warehouses?limit=100'),
-        apiClient('/catalog/products?limit=100&isActive=true')
+        apiClient<any>('/vendors?limit=100&isActive=true'),
+        apiClient<any>('/warehouses?limit=100'),
+        apiClient<any>('/catalog/products?limit=100&isActive=true')
       ]);
-      setVendorsList(vRes.data?.items || vRes.data || []);
-      setWarehousesList(wRes.data || []);
-      setProductsList(pRes.data?.products || pRes.data?.items || pRes.data || []);
+      const vList = vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
+      const wList = wRes?.data || wRes?.items || (Array.isArray(wRes) ? wRes : []);
+      const pList = pRes?.data || pRes?.products || pRes?.items || (Array.isArray(pRes) ? pRes : []);
+      setVendorsList(vList);
+      setWarehousesList(wList);
+      setProductsList(pList);
     } catch (err) {
       console.error('Failed to load master dropdowns', err);
     }
@@ -134,6 +138,22 @@ export function PurchaseOrdersPage() {
 
   const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(null);
+
+    if (!vendorId) {
+      setModalError('Please select a supplier / vendor.');
+      return;
+    }
+    if (!warehouseId) {
+      setModalError('Please select a receiving destination warehouse.');
+      return;
+    }
+    const invalidLine = lineItems.find(l => !l.productId || l.orderedQuantity <= 0);
+    if (invalidLine) {
+      setModalError('Please choose a valid product SKU and quantity greater than zero for all line items.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
@@ -161,10 +181,11 @@ export function PurchaseOrdersPage() {
       setVendorId('');
       setWarehouseId('');
       setNotes('');
+      setModalError(null);
       setLineItems([{ productId: '', orderedQuantity: 1, unitPurchaseRateInr: 0, gstRate: 12 }]);
       await fetchPOs();
     } catch (err: any) {
-      setError(err.message || 'Failed to create purchase order');
+      setModalError(err.message || 'Failed to create purchase order');
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +238,6 @@ export function PurchaseOrdersPage() {
         );
     }
   };
-
   const estimatedTotalInr = lineItems.reduce((acc, line) => {
     const base = Number(line.orderedQuantity || 0) * Number(line.unitPurchaseRateInr || 0);
     const tax = base * (Number(line.gstRate || 0) / 100);
@@ -379,6 +399,11 @@ export function PurchaseOrdersPage() {
             </div>
 
             <form onSubmit={handleCreatePO} className="space-y-4 text-sm">
+              {modalError && (
+                <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                  {modalError}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">

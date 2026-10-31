@@ -106,8 +106,8 @@ export function PurchaseOrderDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient(`/purchase-orders/${id}`);
-      const data = res.data;
+      const res = await apiClient<any>(`/purchase-orders/${id}`);
+      const data = res?.data ?? res;
       setPo(data);
 
       // Pre-fill GRN line items with outstanding quantities
@@ -256,7 +256,7 @@ export function PurchaseOrderDetailPage() {
   }
 
   const isEligibleForReceipt = po.status === 'APPROVED' || po.status === 'PARTIALLY_RECEIVED';
-  const hasReceivedAny = po.lineItems.some(l => l.receivedQuantity > 0);
+  const hasReceivedAny = (po.lineItems || []).some(l => l.receivedQuantity > 0);
 
   return (
     <div className="space-y-6">

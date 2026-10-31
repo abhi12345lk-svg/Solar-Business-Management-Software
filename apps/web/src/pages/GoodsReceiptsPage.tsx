@@ -53,8 +53,8 @@ export function GoodsReceiptsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient('/goods-receipts?limit=50');
-      const list = res.data?.items || res.data || [];
+      const res = await apiClient<any>('/goods-receipts?limit=50');
+      const list = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
       setGrnList(Array.isArray(list) ? list : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load Goods Receipt Notes');

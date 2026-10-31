@@ -58,8 +58,8 @@ export function VendorsPage() {
       if (statusFilter === 'ACTIVE') query += '&isActive=true';
       if (statusFilter === 'INACTIVE') query += '&isActive=false';
 
-      const res = await apiClient(`/vendors${query}`);
-      const list = res.data?.items || res.data || [];
+      const res = await apiClient<any>(`/vendors${query}`);
+      const list = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
       setVendors(Array.isArray(list) ? list : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load vendors');

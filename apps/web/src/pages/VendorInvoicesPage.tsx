@@ -66,8 +66,8 @@ export function VendorInvoicesPage() {
       let query = `?limit=50&search=${encodeURIComponent(search)}`;
       if (statusFilter !== 'ALL') query += `&status=${statusFilter}`;
 
-      const res = await apiClient(`/vendor-invoices${query}`);
-      const list = res.data?.items || res.data || [];
+      const res = await apiClient<any>(`/vendor-invoices${query}`);
+      const list = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
       setInvoices(Array.isArray(list) ? list : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load vendor invoices');
@@ -79,11 +79,13 @@ export function VendorInvoicesPage() {
   const loadDropdowns = async () => {
     try {
       const [vRes, poRes] = await Promise.all([
-        apiClient('/vendors?limit=100&isActive=true'),
-        apiClient('/purchase-orders?limit=100')
+        apiClient<any>('/vendors?limit=100&isActive=true'),
+        apiClient<any>('/purchase-orders?limit=100')
       ]);
-      setVendorsList(vRes.data?.items || vRes.data || []);
-      setPoList(poRes.data?.items || poRes.data || []);
+      const vList = vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
+      const poList = poRes?.items || poRes?.data?.items || poRes?.data || (Array.isArray(poRes) ? poRes : []);
+      setVendorsList(vList);
+      setPoList(poList);
     } catch (err) {
       console.error('Failed to load master dropdowns', err);
     }
