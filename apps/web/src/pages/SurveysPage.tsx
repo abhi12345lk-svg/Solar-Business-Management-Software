@@ -10,7 +10,8 @@ import {
   UploadCloud,
   Eye,
   Check,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
@@ -72,6 +73,15 @@ const compressImage = (
       reader.readAsDataURL(file);
     };
   });
+};
+
+const isPdfPhoto = (p?: { mimeType?: string; fileName?: string; dataUrl?: string } | null) => {
+  if (!p) return false;
+  return (
+    p.mimeType === 'application/pdf' ||
+    Boolean(p.fileName?.toLowerCase().endsWith('.pdf')) ||
+    Boolean(p.dataUrl?.startsWith('data:application/pdf'))
+  );
 };
 
 export const SurveysPage: React.FC = () => {
@@ -843,7 +853,19 @@ export const SurveysPage: React.FC = () => {
                         className="h-36 bg-muted/40 relative overflow-hidden flex items-center justify-center cursor-pointer"
                         onClick={() => setLightboxPhoto(p)}
                       >
-                        {p.dataUrl || p.mimeType.startsWith('image/') ? (
+                        {isPdfPhoto(p) ? (
+                          <div className="flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 w-full h-full">
+                            <div className="p-2.5 bg-red-100 dark:bg-red-900/50 rounded-xl text-red-600 dark:text-red-400 mb-1.5 shadow-sm">
+                              <FileText className="w-8 h-8" />
+                            </div>
+                            <span className="text-[11px] font-bold text-foreground truncate max-w-[140px]">
+                              {p.fileName}
+                            </span>
+                            <span className="text-[9px] text-red-600 dark:text-red-400 font-semibold uppercase mt-0.5">
+                              PDF Document
+                            </span>
+                          </div>
+                        ) : (
                           <img
                             src={
                               p.dataUrl || `/api/v1/surveys/${activeSurvey.id}/photos/${idx}/view`
@@ -851,15 +873,10 @@ export const SurveysPage: React.FC = () => {
                             alt={p.fileName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center p-4 text-muted-foreground">
-                            <FileText className="w-10 h-10 text-solar-600 mb-1" />
-                            <span className="text-[10px] font-mono">PDF Document</span>
-                          </div>
                         )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold space-x-1">
                           <Eye className="w-4 h-4" />
-                          <span>View Full Photo</span>
+                          <span>{isPdfPhoto(p) ? 'View Document' : 'View Full Photo'}</span>
                         </div>
                       </div>
                       <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
@@ -938,20 +955,28 @@ export const SurveysPage: React.FC = () => {
               ) : (
                 <div className="border rounded-xl p-3 bg-muted/20 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <img
-                      src={photoPreviewUrl}
-                      alt="Upload preview"
-                      className="w-16 h-16 object-cover rounded-lg border shadow-sm"
-                    />
+                    {photoFile?.type === 'application/pdf' ||
+                    photoFile?.name.toLowerCase().endsWith('.pdf') ? (
+                      <div className="w-16 h-16 rounded-lg border bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex flex-col items-center justify-center shadow-sm">
+                        <FileText className="w-7 h-7" />
+                        <span className="text-[9px] font-bold">PDF</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={photoPreviewUrl}
+                        alt="Upload preview"
+                        className="w-16 h-16 object-cover rounded-lg border shadow-sm"
+                      />
+                    )}
                     <div>
                       <p className="text-xs font-bold text-foreground truncate max-w-xs">
-                        {photoFile?.name || 'Selected Photo'}
+                        {photoFile?.name || 'Selected File'}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         {photoFile?.size ? `${Math.round(photoFile.size / 1024)} KB` : 'Ready'}
                       </p>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center mt-0.5">
-                        <Check className="w-3 h-3 mr-1" /> Image selected & optimized
+                        <Check className="w-3 h-3 mr-1" /> File selected & ready
                       </span>
                     </div>
                   </div>
@@ -1060,12 +1085,57 @@ export const SurveysPage: React.FC = () => {
                 ✕
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/90 min-h-[300px]">
-              <img
-                src={lightboxPhoto.dataUrl || `/api/v1/surveys/${activeSurvey?.id}/photos/0/view`}
-                alt={lightboxPhoto.fileName}
-                className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-lg"
-              />
+            <div className="flex-1 overflow-auto p-4 flex flex-col items-center justify-center bg-black/90 min-h-[300px]">
+              {isPdfPhoto(lightboxPhoto) ? (
+                <div className="w-full h-[70vh] flex flex-col bg-card rounded-xl p-4 text-center space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <div className="flex items-center space-x-2 text-left">
+                      <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-lg text-red-600 dark:text-red-400">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground truncate max-w-sm">
+                          {lightboxPhoto.fileName}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground">
+                          {lightboxPhoto.fileSizeBytes
+                            ? `${Math.round(lightboxPhoto.fileSizeBytes / 1024)} KB • `
+                            : ''}
+                          PDF Survey Document
+                        </p>
+                      </div>
+                    </div>
+                    {lightboxPhoto.dataUrl && (
+                      <a
+                        href={lightboxPhoto.dataUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={lightboxPhoto.fileName}
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm transition"
+                      >
+                        <Download className="w-3.5 h-3.5 mr-1" />
+                        Download / Open
+                      </a>
+                    )}
+                  </div>
+                  {lightboxPhoto.dataUrl && (
+                    <iframe
+                      src={lightboxPhoto.dataUrl}
+                      title={lightboxPhoto.fileName}
+                      className="w-full flex-1 rounded-lg border bg-white"
+                    />
+                  )}
+                </div>
+              ) : (
+                <img
+                  src={
+                    lightboxPhoto.dataUrl ||
+                    `/api/v1/surveys/${activeSurvey?.id}/photos/0/view`
+                  }
+                  alt={lightboxPhoto.fileName}
+                  className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-lg"
+                />
+              )}
             </div>
             {lightboxPhoto.caption && (
               <div className="p-3 border-t bg-muted/20 text-xs text-foreground italic">
