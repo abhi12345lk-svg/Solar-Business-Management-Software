@@ -617,8 +617,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
 
       {/* Create Application Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">File Net Metering Application</h3>
               <button
@@ -740,8 +740,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
 
       {/* Schedule Inspection Modal */}
       {showInspectionModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">
                 Schedule DISCOM Field Inspection
@@ -822,8 +822,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
 
       {/* Record Outcome Modal */}
       {showOutcomeModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Inspection Outcome</h3>
               <button
@@ -902,8 +902,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
 
       {/* Install Net Meter Modal */}
       {showMeterModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Bi-Directional Net Meter</h3>
               <button
@@ -1005,8 +1005,8 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
 
       {/* Upload Document Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">
                 Upload Document: {uploadDocType}

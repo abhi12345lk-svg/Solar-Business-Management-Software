@@ -586,8 +586,8 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Modal: Review Document */}
       {reviewModalOpen && selectedDoc && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <FileCheck2 className="w-5 h-5 text-indigo-600" />
               Review Document: {selectedDoc.documentNumber}
@@ -670,8 +670,8 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Modal: Upload New Version */}
       {versionModalOpen && selectedDoc && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Layers className="w-5 h-5 text-indigo-600" />
               Upload Version {selectedDoc.version + 1}
@@ -750,8 +750,8 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Modal: Upload to Vault */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <UploadCloud className="w-5 h-5 text-indigo-600" />
               Upload Document to Vault

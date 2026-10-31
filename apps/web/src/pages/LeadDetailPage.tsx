@@ -423,8 +423,8 @@ export const LeadDetailPage: React.FC = () => {
 
       {/* Status Update Modal */}
       {showStatusModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-foreground">Update Lead Status</h3>
             <form onSubmit={handleUpdateStatus} className="space-y-4">
               <div>
@@ -485,8 +485,8 @@ export const LeadDetailPage: React.FC = () => {
 
       {/* Log Activity Modal */}
       {showActivityModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-foreground">Log Interaction or Follow-up</h3>
             <form onSubmit={handleAddActivity} className="space-y-4">
               <div>

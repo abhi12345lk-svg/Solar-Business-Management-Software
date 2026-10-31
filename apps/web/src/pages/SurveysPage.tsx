@@ -405,96 +405,158 @@ export const SurveysPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
-                <tr>
-                  <th className="py-3 px-4">Survey ID</th>
-                  <th className="py-3 px-4">Originating Lead</th>
-                  <th className="py-3 px-4">Site Location</th>
-                  <th className="py-3 px-4">Roof Type</th>
-                  <th className="py-3 px-4">Usable Area</th>
-                  <th className="py-3 px-4">Load / Phase</th>
-                  <th className="py-3 px-4">Proposed</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {surveys.map(srv => (
-                  <tr key={srv.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-solar-600">
-                      {srv.surveyNumber}
-                    </td>
-                    <td className="py-3 px-4 font-medium text-foreground">
-                      {srv.leadCode || '—'}
-                      {srv.prospectName && (
-                        <span className="block text-xs text-muted-foreground">
-                          {srv.prospectName}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {srv.siteAddress.city}, {srv.siteAddress.state}
-                    </td>
-                    <td className="py-3 px-4 font-medium text-foreground">{srv.roofType}</td>
-                    <td className="py-3 px-4 font-medium text-foreground">
-                      {srv.usableRoofAreaSqFt} sq.ft
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {srv.sanctionedLoadKw} kW ({srv.connectionPhase})
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-foreground">
-                      {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
-                          srv.status
-                        )}`}
-                      >
-                        {srv.status}
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="block md:hidden divide-y">
+              {surveys.map(srv => (
+                <div key={srv.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-mono text-xs font-bold text-solar-600 block">
+                        {srv.surveyNumber}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setActiveSurvey(srv)}
-                        className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
-                      >
-                        <Camera className="w-3.5 h-3.5 mr-1" />
-                        <span>Details & Photos ({srv.photos?.length || 0})</span>
-                      </button>
-                    </td>
+                      <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
+                        {srv.prospectName || srv.leadCode || 'Site Survey'}
+                      </h3>
+                      {srv.siteAddress?.city && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          📍 {srv.siteAddress.city}, {srv.siteAddress.state}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
+                        srv.status
+                      )}`}
+                    >
+                      {srv.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Roof & Usable Area</span>
+                      <span className="font-semibold text-foreground">
+                        {srv.roofType} • {srv.usableRoofAreaSqFt} sq.ft
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Proposed Capacity</span>
+                      <span className="font-bold text-solar-600">
+                        {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
+                    <span className="text-[11px] text-muted-foreground">
+                      Photos: {srv.photos?.length || 0} attached
+                    </span>
+                    <button
+                      onClick={() => setActiveSurvey(srv)}
+                      className="inline-flex items-center font-bold text-xs text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800 shrink-0"
+                    >
+                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      <span>Photos & Details</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
+                  <tr>
+                    <th className="py-3 px-4">Survey ID</th>
+                    <th className="py-3 px-4">Originating Lead</th>
+                    <th className="py-3 px-4">Site Location</th>
+                    <th className="py-3 px-4">Roof Type</th>
+                    <th className="py-3 px-4">Usable Area</th>
+                    <th className="py-3 px-4">Load / Phase</th>
+                    <th className="py-3 px-4">Proposed</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y">
+                  {surveys.map(srv => (
+                    <tr key={srv.id} className="hover:bg-muted/40 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-solar-600">
+                        {srv.surveyNumber}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-foreground">
+                        {srv.leadCode || '—'}
+                        {srv.prospectName && (
+                          <span className="block text-xs text-muted-foreground">
+                            {srv.prospectName}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        {srv.siteAddress.city}, {srv.siteAddress.state}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-foreground">{srv.roofType}</td>
+                      <td className="py-3 px-4 font-medium text-foreground">
+                        {srv.usableRoofAreaSqFt} sq.ft
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        {srv.sanctionedLoadKw} kW ({srv.connectionPhase})
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-foreground">
+                        {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
+                            srv.status
+                          )}`}
+                        >
+                          {srv.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => setActiveSurvey(srv)}
+                          className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
+                        >
+                          <Camera className="w-3.5 h-3.5 mr-1" />
+                          <span>Details & Photos ({srv.photos?.length || 0})</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Create Survey Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-lg font-bold text-foreground">Schedule Site Survey</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Schedule Site Survey</h2>
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold"
               >
                 ✕
               </button>
             </div>
 
-            {createError && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{createError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateSurvey} className="space-y-4">
+            <form onSubmit={handleCreateSurvey} className="flex flex-col flex-1 min-h-0">
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                {createError && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{createError}</span>
+                  </div>
+                )}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-foreground">
@@ -776,7 +838,9 @@ export const SurveysPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+              </div>
+
+              <div className="p-3 sm:p-4 border-t bg-card shrink-0 flex items-center justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
@@ -787,7 +851,7 @@ export const SurveysPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 text-sm font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-bold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50"
                 >
                   {creating ? 'Saving...' : 'Create Site Survey'}
                 </button>
@@ -799,25 +863,28 @@ export const SurveysPage: React.FC = () => {
 
       {/* Details & Photos Attachment Modal */}
       {activeSurvey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h2 className="text-lg font-bold text-foreground font-mono">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card border rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
+              <div className="min-w-0 pr-3">
+                <h2 className="text-base sm:text-lg font-bold text-foreground font-mono truncate">
                   {activeSurvey.surveyNumber}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   Status: <strong className="text-foreground">{activeSurvey.status}</strong> •
                   Usable Area: {activeSurvey.usableRoofAreaSqFt} sq.ft
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveSurvey(null)}
-                className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold shrink-0"
               >
                 ✕
               </button>
             </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
 
             {/* Evidence Photos Subdocuments */}
             <div className="space-y-3">
@@ -1055,6 +1122,7 @@ export const SurveysPage: React.FC = () => {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
@@ -1062,11 +1130,11 @@ export const SurveysPage: React.FC = () => {
       {/* Lightbox Fullscreen Photo Viewer Modal */}
       {lightboxPhoto && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 z-60 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md"
           onClick={() => setLightboxPhoto(null)}
         >
           <div
-            className="relative max-w-4xl w-full max-h-[90vh] bg-card border rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            className="relative max-w-4xl w-full max-h-[92vh] bg-card border rounded-2xl overflow-hidden shadow-2xl flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             <div className="p-3 border-b flex items-center justify-between bg-muted/40">

@@ -406,6 +406,7 @@ export class QuotationService {
 
     // Must be an issued or completed state to revise; drafts should be edited directly
     const validReviseStates = [
+      QuotationStatus.DRAFT,
       QuotationStatus.SENT,
       QuotationStatus.APPROVED,
       QuotationStatus.ACCEPTED,

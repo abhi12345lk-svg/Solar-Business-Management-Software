@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Notification Routes
  *
@@ -26,14 +27,7 @@ export const customerNotificationRouter = Router();
 
 // Customer portal session boundary enforcement
 customerNotificationRouter.use(requireAuth);
-customerNotificationRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerNotificationRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/notifications

@@ -32,7 +32,8 @@ export function createApp(): Express {
   // 1. Basic Security Headers via Helmet
   app.use(
     helmet({
-      contentSecurityPolicy: config.NODE_ENV === 'production' ? undefined : false
+      contentSecurityPolicy: config.NODE_ENV === 'production' ? undefined : false,
+      frameguard: config.NODE_ENV === 'production' ? { action: 'sameorigin' } : false
     })
   );
 
@@ -96,6 +97,25 @@ export function createApp(): Express {
         customProps: req => ({
           correlationId: (req as any).correlationId
         }),
+        customSuccessMessage: (req, res, responseTime) => {
+          return `${req.method} ${req.url} -> ${res.statusCode} (${responseTime}ms)`;
+        },
+        customErrorMessage: (req, res, error) => {
+          return `${req.method} ${req.url} -> ${res.statusCode}: ${error.message}`;
+        },
+        serializers:
+          config.NODE_ENV === 'development'
+            ? {
+                req: (req: any) => ({
+                  id: req.id,
+                  method: req.method,
+                  url: req.url
+                }),
+                res: (res: any) => ({
+                  statusCode: res.statusCode
+                })
+              }
+            : undefined,
         autoLogging: {
           ignore: req => req.url?.includes('/health/live') || false
         }

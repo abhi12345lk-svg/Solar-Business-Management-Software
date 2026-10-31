@@ -581,8 +581,8 @@ export const TasksPage: React.FC = () => {
 
       {/* Modal: Update Status */}
       {statusModalOpen && selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900">
               Update Status: {selectedTask.taskNumber}
             </h3>
@@ -677,8 +677,8 @@ export const TasksPage: React.FC = () => {
 
       {/* Modal: Reassign Task */}
       {reassignModalOpen && selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900">
               Reassign Task: {selectedTask.taskNumber}
             </h3>
@@ -755,8 +755,8 @@ export const TasksPage: React.FC = () => {
 
       {/* Modal: Create Unified Task */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-amber-500" />
               Create Unified Task

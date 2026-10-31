@@ -492,7 +492,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
       {/* Create Material Dispatch Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
           <div className="bg-card border rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-2 border-b">
               <h3 className="text-lg font-bold text-foreground flex items-center">
@@ -688,8 +688,8 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
       {/* Cancel Dispatch Confirmation Modal */}
       {cancelModalOpen && dispatchToCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center space-x-2 text-rose-600">
               <ShieldAlert className="w-5 h-5 flex-shrink-0" />
               <h3 className="text-lg font-bold text-foreground">Cancel Dispatch Slip</h3>

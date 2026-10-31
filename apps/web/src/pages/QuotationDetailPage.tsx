@@ -118,6 +118,7 @@ export const QuotationDetailPage: React.FC = () => {
   // Approval Form State
   const [approvalRemarks, setApprovalRemarks] = useState('');
   const [processingApproval, setProcessingApproval] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Revision Modal State
   const [showRevisionModal, setShowRevisionModal] = useState(false);
@@ -200,16 +201,20 @@ export const QuotationDetailPage: React.FC = () => {
 
   const handleMarkAsSent = async () => {
     if (!quotation) return;
+    setSending(true);
     setActionError(null);
     setActionMessage(null);
     try {
       await apiClient(`/quotations/${quotation._id}/send`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({})
       });
       setActionMessage('Quotation marked as sent and issued to customer.');
-      fetchQuotation();
+      await fetchQuotation();
     } catch (err: any) {
       setActionError(err.message || 'Failed to mark quotation as sent.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -395,12 +400,12 @@ export const QuotationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Download/View PDF Action */}
           <button
             type="button"
             onClick={() => setShowDocPreview(true)}
-            className="inline-flex items-center px-3 py-1.5 bg-secondary text-secondary-foreground text-xs font-medium rounded-lg hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center px-3 py-2 bg-secondary text-secondary-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
             View Proposal Document
@@ -412,10 +417,11 @@ export const QuotationDetailPage: React.FC = () => {
             <button
               type="button"
               onClick={handleMarkAsSent}
-              className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
+              disabled={sending}
+              className="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-colors cursor-pointer"
             >
               <Send className="w-3.5 h-3.5 mr-1.5" />
-              Mark as Sent
+              {sending ? 'Marking as Sent...' : 'Mark as Sent'}
             </button>
           )}
 
@@ -423,7 +429,8 @@ export const QuotationDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowRevisionModal(true)}
-            className="inline-flex items-center px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-medium rounded-lg shadow-sm transition-colors"
+            disabled={revising}
+            className="col-span-1 xs:col-span-2 sm:col-span-1 inline-flex items-center justify-center px-3 py-2 bg-solar-600 hover:bg-solar-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
           >
             <History className="w-3.5 h-3.5 mr-1.5" />
             Revise Quotation (R{quotation.revisionNumber + 1})
@@ -432,16 +439,34 @@ export const QuotationDetailPage: React.FC = () => {
       </div>
 
       {actionMessage && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{actionMessage}</span>
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionMessage(null)}
+            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          <span>{actionError}</span>
+        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-xs font-semibold text-destructive hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -533,7 +558,49 @@ export const QuotationDetailPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile BOM Cards (< md) */}
+            <div className="block md:hidden divide-y divide-border">
+              {(quotation.lineItems || []).map((item, idx) => {
+                const rate = ((item.unitRatePaise || 0) / 100).toLocaleString('en-IN');
+                const taxable = ((item.taxableAmountPaise || 0) / 100).toLocaleString('en-IN');
+                const itemTotal =
+                  item.itemTotalPaise ?? (item as any).totalAmountPaise ?? item.taxableAmountPaise ?? 0;
+                const total = (itemTotal / 100).toLocaleString('en-IN');
+                const gstPercent = (((item.gstRateBasisPoints || 0) / 100)).toFixed(0);
+
+                return (
+                  <div key={idx} className="py-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary text-secondary-foreground uppercase">
+                          {item.itemType}
+                        </span>
+                        <h4 className="font-semibold text-xs text-foreground mt-1">
+                          {item.description}
+                        </h4>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-xs text-foreground">
+                          ₹{total}
+                        </span>
+                        <span className="block text-[10px] text-muted-foreground">
+                          GST {gstPercent}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground bg-secondary/30 px-2 py-1 rounded">
+                      <span>Qty: {item.quantity} {item.unit}</span>
+                      <span>Rate: ₹{rate}</span>
+                      <span>Taxable: ₹{taxable}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop BOM Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
@@ -839,8 +906,8 @@ export const QuotationDetailPage: React.FC = () => {
 
       {/* Revise Quotation Modal */}
       {showRevisionModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <History className="w-5 h-5 text-solar-500" />
               Create Quotation Revision (R{quotation.revisionNumber + 1})
@@ -887,16 +954,16 @@ export const QuotationDetailPage: React.FC = () => {
 
       {/* Proposal Document Preview Modal */}
       {showDocPreview && quotation && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-border flex items-center justify-between bg-muted/40">
-              <div className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-solar-500" />
-                <h3 className="text-sm font-bold text-foreground">
-                  Proposal Document — {quotation.fullQuotationCode}
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full h-[90vh] sm:h-[85vh] flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between bg-muted/40 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Download className="w-4 h-4 text-solar-500 shrink-0" />
+                <h3 className="text-sm font-bold text-foreground truncate">
+                  Proposal — {quotation.fullQuotationCode}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-end sm:self-auto">
                 <a
                   href={`/api/v1/quotations/${quotation._id}/pdf`}
                   target="_blank"
@@ -904,7 +971,7 @@ export const QuotationDetailPage: React.FC = () => {
                   className="px-2.5 py-1 text-xs bg-solar-600 text-white rounded hover:bg-solar-700 font-medium inline-flex items-center gap-1 shadow-sm"
                 >
                   <Download className="w-3 h-3" />
-                  Open in New Window / Print
+                  <span>Print / Open</span>
                 </a>
                 <button
                   type="button"

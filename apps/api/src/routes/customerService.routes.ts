@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Portal Service Routes
  *
@@ -26,14 +27,7 @@ export const customerServiceRouter = Router();
 
 // Customer portal session boundary enforcement
 customerServiceRouter.use(requireAuth);
-customerServiceRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerServiceRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/service/complaints

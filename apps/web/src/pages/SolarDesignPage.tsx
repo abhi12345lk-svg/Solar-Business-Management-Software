@@ -429,7 +429,7 @@ export const SolarDesignPage: React.FC = () => {
         </div>
 
         {/* Input Parameters Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-secondary/30 p-4 rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-secondary/30 p-3 sm:p-4 rounded-xl">
           {(calcTopology === SolarTopology.ON_GRID || calcTopology === SolarTopology.HYBRID) && (
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
@@ -780,55 +780,106 @@ export const SolarDesignPage: React.FC = () => {
             technical designs.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="py-2.5 font-medium">Design #</th>
-                  <th className="py-2.5 font-medium">Design Name</th>
-                  <th className="py-2.5 font-medium">Topology</th>
-                  <th className="py-2.5 font-medium">Capacity</th>
-                  <th className="py-2.5 font-medium">Module / Inverter</th>
-                  <th className="py-2.5 font-medium">Annual Yield</th>
-                  <th className="py-2.5 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {designs.map(d => (
-                  <tr key={d._id} className="hover:bg-muted/30">
-                    <td className="py-3 font-mono font-medium text-solar-600 dark:text-solar-400">
-                      {d.designNumber}
-                    </td>
-                    <td className="py-3 font-medium text-foreground">{d.designName}</td>
-                    <td className="py-3">
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-secondary text-secondary-foreground font-medium">
-                        {d.systemTopology}
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="block md:hidden divide-y divide-border">
+              {designs.map(d => (
+                <div key={d._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-mono text-xs font-bold text-solar-600 dark:text-solar-400 block">
+                        {d.designNumber}
                       </span>
-                    </td>
-                    <td className="py-3 font-semibold text-foreground">
-                      {d.proposedCapacityKwp} kWp
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">
-                      {d.module.quantity}× {d.module.wattageWp}Wp | {d.inverter.ratedCapacityKw}kW
-                      (DC:AC {d.inverter.actualDcAcRatio})
-                    </td>
-                    <td className="py-3 text-xs text-foreground">
-                      {d.estimatedGeneration?.annualGenerationKwh?.toLocaleString() || '—'} kWh
-                    </td>
-                    <td className="py-3 text-right">
-                      <a
-                        href={`/quotations?designId=${d._id}`}
-                        className="inline-flex items-center text-xs font-medium text-solar-600 hover:text-solar-700"
-                      >
-                        Create Quotation
-                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                      </a>
-                    </td>
+                      <h4 className="font-bold text-sm text-foreground truncate mt-0.5">
+                        {d.designName}
+                      </h4>
+                    </div>
+                    <span className="px-2 py-0.5 text-xs rounded-full bg-secondary text-secondary-foreground font-semibold shrink-0">
+                      {d.systemTopology}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Proposed Capacity</span>
+                      <span className="font-bold text-foreground">{d.proposedCapacityKwp} kWp</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Annual Est. Yield</span>
+                      <span className="font-bold text-solar-600">
+                        {d.estimatedGeneration?.annualGenerationKwh?.toLocaleString() || '—'} kWh
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground">
+                    ⚡ {d.module?.quantity}× {d.module?.wattageWp}Wp | {d.inverter?.ratedCapacityKw}kW
+                  </div>
+
+                  <div className="pt-2 flex justify-end border-t border-border/50">
+                    <a
+                      href={`/quotations?designId=${d._id}`}
+                      className="inline-flex items-center text-xs font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
+                    >
+                      <span>Create Quotation</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-muted-foreground">
+                    <th className="py-2.5 font-medium">Design #</th>
+                    <th className="py-2.5 font-medium">Design Name</th>
+                    <th className="py-2.5 font-medium">Topology</th>
+                    <th className="py-2.5 font-medium">Capacity</th>
+                    <th className="py-2.5 font-medium">Module / Inverter</th>
+                    <th className="py-2.5 font-medium">Annual Yield</th>
+                    <th className="py-2.5 font-medium text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {designs.map(d => (
+                    <tr key={d._id} className="hover:bg-muted/30">
+                      <td className="py-3 font-mono font-medium text-solar-600 dark:text-solar-400">
+                        {d.designNumber}
+                      </td>
+                      <td className="py-3 font-medium text-foreground">{d.designName}</td>
+                      <td className="py-3">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-secondary text-secondary-foreground font-medium">
+                          {d.systemTopology}
+                        </span>
+                      </td>
+                      <td className="py-3 font-semibold text-foreground">
+                        {d.proposedCapacityKwp} kWp
+                      </td>
+                      <td className="py-3 text-xs text-muted-foreground">
+                        {d.module.quantity}× {d.module.wattageWp}Wp | {d.inverter.ratedCapacityKw}kW
+                        (DC:AC {d.inverter.actualDcAcRatio})
+                      </td>
+                      <td className="py-3 text-xs text-foreground">
+                        {d.estimatedGeneration?.annualGenerationKwh?.toLocaleString() || '—'} kWh
+                      </td>
+                      <td className="py-3 text-right">
+                        <a
+                          href={`/quotations?designId=${d._id}`}
+                          className="inline-flex items-center text-xs font-medium text-solar-600 hover:text-solar-700"
+                        >
+                          Create Quotation
+                          <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

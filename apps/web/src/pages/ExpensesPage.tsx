@@ -780,8 +780,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Record Expense */}
       {recordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center">
               <Receipt className="w-5 h-5 mr-2 text-solar-600" /> Record New Expense
             </h3>
@@ -931,8 +931,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Approve Expense */}
       {approveModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center">
               <ShieldCheck className="w-5 h-5 mr-2 text-emerald-600" /> Approve Expense
             </h3>
@@ -984,8 +984,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Reject Expense */}
       {rejectModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center text-red-600">
               <Ban className="w-5 h-5 mr-2" /> Reject Expense
             </h3>
@@ -1034,8 +1034,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Disburse / Pay Expense */}
       {payModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center">
               <CreditCard className="w-5 h-5 mr-2 text-blue-600" /> Disburse Payment
             </h3>
@@ -1131,8 +1131,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Cancel Expense */}
       {cancelModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center text-destructive">
               <XCircle className="w-5 h-5 mr-2" /> Cancel Expense
             </h3>
@@ -1181,8 +1181,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* MODAL: Detail & Audit History */}
       {detailModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
                 <span className="font-mono font-bold text-lg text-solar-600">

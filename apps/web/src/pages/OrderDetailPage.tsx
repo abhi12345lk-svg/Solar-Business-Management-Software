@@ -356,7 +356,51 @@ export const OrderDetailPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: BOM Line Item Cards */}
+        <div className="block md:hidden divide-y divide-border">
+          {order.lineItems.map((item, idx) => (
+            <div key={idx} className="p-4 space-y-2.5 hover:bg-muted/30 transition-colors">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-semibold text-foreground text-sm">
+                    {item.description}
+                  </div>
+                  {item.productId?.sku && (
+                    <span className="text-[11px] font-mono text-muted-foreground block">
+                      SKU: {item.productId.sku}
+                    </span>
+                  )}
+                </div>
+                <span className="shrink-0 px-2 py-0.5 rounded text-xs font-bold bg-secondary text-secondary-foreground font-mono">
+                  {item.quantity} {item.unit}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Unit Rate</span>
+                  <span className="font-medium text-foreground">₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Taxable Value</span>
+                  <span className="font-medium text-foreground">₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50 bg-muted/20 -mx-4 -mb-4 p-3 rounded-b-lg">
+                <span className="text-[11px] text-muted-foreground">
+                  GST ({(item.gstRateBasisPoints / 100).toFixed(1)}%): ₹{(item.taxPaise / 100).toLocaleString('en-IN')}
+                </span>
+                <span className="font-bold text-foreground text-sm">
+                  ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Full Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
               <tr>
@@ -474,8 +518,8 @@ export const OrderDetailPage: React.FC = () => {
 
       {/* Stock Reservation Modal */}
       {showReserveModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center space-x-2">
               <WarehouseIcon className="w-5 h-5 text-indigo-400" />
               <h2 className="text-lg font-bold text-foreground">Reserve Stock Allocation</h2>
@@ -533,8 +577,8 @@ export const OrderDetailPage: React.FC = () => {
 
       {/* Cancellation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center space-x-2">
               <Ban className="w-5 h-5 text-rose-500" />
               <h2 className="text-lg font-bold text-foreground">Cancel Sales Order</h2>

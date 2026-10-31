@@ -34,7 +34,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     queryFn: async () => {
       try {
         return await apiClient<AuthUserDto>('/auth/me');
-      } catch {
+      } catch (err: any) {
+        // If backend server is still spinning up (503), allow React Query to retry
+        if (err?.statusCode === 503) {
+          throw err;
+        }
         try {
           localStorage.removeItem('ins_demo_user');
         } catch {
@@ -43,7 +47,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return null;
       }
     },
-    retry: false,
+    retry: (failureCount, error: any) => {
+      // Retry up to 3 times if server is warming up or during initial connect
+      if (failureCount < 3 && (error?.statusCode === 503 || error?.message?.includes('Failed to fetch'))) {
+        return true;
+      }
+      return false;
+    },
+    retryDelay: 1000,
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
 

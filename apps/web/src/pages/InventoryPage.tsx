@@ -480,10 +480,10 @@ export const InventoryPage: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="border-b flex items-center space-x-6">
+      <div className="border-b flex items-center space-x-2 sm:space-x-6 text-xs sm:text-sm font-medium overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
         <button
           onClick={() => setActiveTab('balances')}
-          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 sm:space-x-2 border-b-2 -mb-px ${
             activeTab === 'balances'
               ? 'border-solar-500 text-solar-500'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -495,7 +495,7 @@ export const InventoryPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('products')}
-          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 sm:space-x-2 border-b-2 -mb-px ${
             activeTab === 'products'
               ? 'border-solar-500 text-solar-500'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -507,7 +507,7 @@ export const InventoryPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('movements')}
-          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 sm:space-x-2 border-b-2 -mb-px ${
             activeTab === 'movements'
               ? 'border-solar-500 text-solar-500'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -519,7 +519,7 @@ export const InventoryPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('serials')}
-          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 sm:space-x-2 border-b-2 -mb-px ${
             activeTab === 'serials'
               ? 'border-solar-500 text-solar-500'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -531,7 +531,7 @@ export const InventoryPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('warehouses')}
-          className={`pb-3 text-sm font-semibold transition-colors flex items-center space-x-2 border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 text-xs sm:text-sm font-semibold transition-colors flex items-center space-x-1.5 sm:space-x-2 border-b-2 -mb-px ${
             activeTab === 'warehouses'
               ? 'border-solar-500 text-solar-500'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -916,8 +916,8 @@ export const InventoryPage: React.FC = () => {
 
       {/* Add New Product Modal */}
       {showAddProductModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center space-x-2">
                 <Package className="w-5 h-5 text-solar-500" />
@@ -1076,8 +1076,8 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
       {modalType && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center space-x-2">
               <Boxes className="w-5 h-5 text-solar-500" />
               <h2 className="text-lg font-bold text-foreground uppercase tracking-tight">

@@ -196,10 +196,10 @@ export const FollowUpsPage: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center space-x-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-0 border-border/50">
                 <button
                   onClick={() => setSelectedItem(item)}
-                  className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm flex items-center space-x-1"
+                  className="flex-1 sm:flex-none justify-center px-3.5 py-2 text-xs font-semibold bg-emerald-600 min-h-[38px] hover:bg-emerald-700 text-white rounded-lg transition shadow-sm flex items-center space-x-1"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Mark Done</span>
@@ -222,8 +222,8 @@ export const FollowUpsPage: React.FC = () => {
 
       {/* Completion Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-foreground">Complete Follow-up Task</h3>
             <p className="text-xs text-muted-foreground">
               Prospect:{' '}

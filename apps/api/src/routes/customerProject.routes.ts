@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 import { Router, Request, Response, NextFunction } from 'express';
 import { Project } from '../models/Project.js';
 import { ProjectService } from '../services/projectService.js';
@@ -9,20 +10,12 @@ import { NetMeteringApplication } from '../models/NetMeteringApplication.js';
 import { SubsidyApplication } from '../models/SubsidyApplication.js';
 import { requireAuth } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
-import { AppError } from '../errors/AppError.js';
 
 export const customerProjectRouter = Router();
 
 // Customer portal authentication middleware
 customerProjectRouter.use(requireAuth);
-customerProjectRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerProjectRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/projects

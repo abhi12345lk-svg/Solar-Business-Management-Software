@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Portal Quotation Routes
  *
@@ -25,14 +26,7 @@ export const customerQuotationRouter = Router();
 
 // Customer portal authentication middleware
 customerQuotationRouter.use(requireAuth);
-customerQuotationRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerQuotationRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/quotations

@@ -544,8 +544,8 @@ export const ComplaintsPage: React.FC = () => {
 
       {/* Modal: Register New Complaint */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl shadow-xl max-w-lg w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <LifeBuoy className="w-5 h-5 text-solar-500" />
@@ -752,8 +752,8 @@ export const ComplaintsPage: React.FC = () => {
 
       {/* Modal: Transition Complaint Status */}
       {showStatusModal && selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-lg font-bold text-foreground">
                 Update Status: {selectedComplaint.complaintNumber}
@@ -851,8 +851,8 @@ export const ComplaintsPage: React.FC = () => {
 
       {/* Modal: Reopen Complaint */}
       {showReopenModal && selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-lg font-bold text-rose-500 flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" />

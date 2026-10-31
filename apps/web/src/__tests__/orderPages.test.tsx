@@ -67,8 +67,8 @@ describe('Phase 5A Frontend Operational Pages', () => {
     expect(screen.getByText(/Create Order from Quotation/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('Apex Solar Client')).toBeInTheDocument();
-      expect(screen.getByText(/ORD-2026-00001/)).toBeInTheDocument();
+      expect(screen.getAllByText('Apex Solar Client').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/ORD-2026-00001/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText(/Fully Reserved/i).length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -146,8 +146,8 @@ describe('Phase 5A Frontend Operational Pages', () => {
 
     await waitFor(() => {
       expect(screen.getByText('ORD-2026-00001')).toBeInTheDocument();
-      expect(screen.getByText('550Wp Mono Perc Solar Module')).toBeInTheDocument();
-      expect(screen.getByText('20 NOS')).toBeInTheDocument();
+      expect(screen.getAllByText('550Wp Mono Perc Solar Module').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('20 NOS').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('button', { name: /Reserve Stock/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Cancel Order/i })).toBeInTheDocument();
     });

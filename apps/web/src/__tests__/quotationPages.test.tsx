@@ -159,10 +159,10 @@ describe('Phase 4B Frontend Operational Pages', () => {
     expect(screen.getByRole('button', { name: /New Quotation/i })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('QT-2026-00001-R0')).toBeInTheDocument();
-      expect(screen.getByText('Apex Commercial Towers')).toBeInTheDocument();
-      expect(screen.getByText(/Pending Discount Approval/i)).toBeInTheDocument();
-      expect(screen.getByText(/8.0%/i)).toBeInTheDocument();
+      expect(screen.getAllByText('QT-2026-00001-R0').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Apex Commercial Towers').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Pending Discount Approval/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/8.0%/i).length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -255,7 +255,7 @@ describe('Phase 4B Frontend Operational Pages', () => {
       expect(screen.getByText('QT-2026-00001-R0')).toBeInTheDocument();
       expect(screen.getByText(/Revision R0/i)).toBeInTheDocument();
       expect(screen.getByText('Apex Commercial Towers')).toBeInTheDocument();
-      expect(screen.getByText(/550Wp Mono Perc Solar Module/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/550Wp Mono Perc Solar Module/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Commercial Discount Control/i)).toBeInTheDocument();
       expect(screen.getByText(/Exceeds 5.0% Limit/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Approve Discount/i })).toBeInTheDocument();

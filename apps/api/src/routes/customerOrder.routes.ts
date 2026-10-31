@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Portal Order Routes
  *
@@ -14,20 +15,12 @@ import { SalesOrder } from '../models/SalesOrder.js';
 import { OrderService } from '../services/orderService.js';
 import { requireAuth } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
-import { AppError } from '../errors/AppError.js';
 
 export const customerOrderRouter = Router();
 
 // Customer portal authentication middleware
 customerOrderRouter.use(requireAuth);
-customerOrderRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerOrderRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/orders

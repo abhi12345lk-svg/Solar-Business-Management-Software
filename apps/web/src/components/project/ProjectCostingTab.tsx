@@ -606,7 +606,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
       {/* MODAL: Version History */}
       {budgetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-base font-bold text-foreground flex items-center">
                 <Layers className="w-5 h-5 mr-2 text-solar-600" /> Project Budget Version History
@@ -682,7 +682,7 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
       {/* MODAL: Create New Budget Revision */}
       {createBudgetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-foreground flex items-center">
               <Plus className="w-5 h-5 mr-2 text-solar-600" /> Create Budget Baseline Revision
             </h3>

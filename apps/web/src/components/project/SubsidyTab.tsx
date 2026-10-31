@@ -658,8 +658,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
 
       {/* Create Subsidy Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Initiate Subsidy Application</h3>
               <button
@@ -778,8 +778,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
 
       {/* Record Sanction Modal */}
       {showSanctionModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Subsidy Sanction</h3>
               <button
@@ -864,8 +864,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
 
       {/* Record Disbursement Modal */}
       {showDisburseModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">Record Subsidy Disbursement</h3>
               <button
@@ -979,8 +979,8 @@ export const SubsidyTab: React.FC<SubsidyTabProps> = ({ projectId, isTerminal = 
 
       {/* Upload Document Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-sm text-foreground">
                 Upload Document: {uploadDocType}

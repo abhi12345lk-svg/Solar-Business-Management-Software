@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Portal Payment Routes
  *
@@ -10,20 +11,12 @@ import { paymentFilterSchema } from '@ins-solar/shared';
 import { PaymentService } from '../services/paymentService.js';
 import { requireAuth } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
-import { AppError } from '../errors/AppError.js';
 
 export const customerPaymentRouter = Router();
 
 // Boundary guard: requires authenticated customer portal session
 customerPaymentRouter.use(requireAuth);
-customerPaymentRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerPaymentRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/payments

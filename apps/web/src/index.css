@@ -55,5 +55,42 @@
   }
   body {
     @apply bg-background text-foreground antialiased min-h-screen font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* Enterprise ERP Card Layout */
+  .erp-card {
+    @apply bg-card border border-border/80 rounded-xl shadow-xs transition-shadow;
+  }
+
+  .erp-card-header {
+    @apply p-4 sm:p-5 border-b border-border/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3;
+  }
+
+  /* Responsive Table Container with touch momentum scrolling */
+  .erp-table-container {
+    @apply w-full overflow-x-auto rounded-xl border border-border/80 bg-card;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch-friendly buttons (minimum 44px tap target on mobile) */
+  .erp-touch-btn {
+    @apply min-h-[42px] sm:min-h-[38px] px-3.5 py-2 inline-flex items-center justify-center font-semibold rounded-lg transition-all active:scale-[0.98];
+  }
+
+  /* Responsive Page Header */
+  .erp-page-header {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2;
+  }
+
+  /* Responsive Modal Container */
+  .erp-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs;
+  }
+
+  .erp-modal-box {
+    @apply bg-card rounded-2xl border border-border shadow-2xl w-full max-h-[92vh] flex flex-col overflow-hidden;
   }
 }

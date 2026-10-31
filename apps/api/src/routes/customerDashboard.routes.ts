@@ -1,3 +1,4 @@
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 /**
  * INS Solar Business Management Software — Customer Portal Dashboard Routes
  *
@@ -18,20 +19,12 @@ import { NotificationCenterService } from '../services/notificationCenterService
 import { NotificationRecipientType } from '@ins-solar/shared';
 import { requireAuth } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
-import { AppError } from '../errors/AppError.js';
 
 export const customerDashboardRouter = Router();
 
 // Boundary guard: customer portal session required
 customerDashboardRouter.use(requireAuth);
-customerDashboardRouter.use((req: Request, _res: Response, next: NextFunction) => {
-  if (!req.session?.customer?.customerId) {
-    return next(
-      AppError.permissionDenied('Customer portal session required to access this resource.')
-    );
-  }
-  next();
-});
+customerDashboardRouter.use(ensureCustomerPortalSession);
 
 /**
  * GET /api/v1/customer-portal/dashboard

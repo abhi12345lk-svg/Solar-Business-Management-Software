@@ -793,10 +793,10 @@ export const ProjectDetailPage: React.FC = () => {
       </div>
 
       {/* Tabs Bar */}
-      <div className="border-b flex space-x-8 text-sm font-medium">
+      <div className="border-b flex items-center space-x-2 sm:space-x-6 text-xs sm:text-sm font-medium overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'overview'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -808,7 +808,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('dispatch')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'dispatch'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -820,7 +820,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('checklist')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'checklist'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -832,7 +832,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('net-metering')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'net-metering'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -844,7 +844,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('subsidy')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'subsidy'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -856,7 +856,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('service-amc')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'service-amc'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -868,7 +868,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('costing')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'costing'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -880,7 +880,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('milestones')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'milestones'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -892,7 +892,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'tasks'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -904,7 +904,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('history')}
-          className={`pb-3 border-b-2 flex items-center space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
             activeTab === 'history'
               ? 'border-solar-600 text-solar-600 font-semibold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -1406,8 +1406,8 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Project Status Modal */}
       {statusModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Confirm Status Transition</h3>
             <p className="text-sm text-muted-foreground">
               Transition project{' '}
@@ -1454,8 +1454,8 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Stage Advance Modal */}
       {stageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Advance Installation Stage</h3>
             <div className="space-y-3">
               <div>
@@ -1512,8 +1512,8 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Milestone Status Modal */}
       {milestoneStatusModalOpen && selectedMilestone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">
               {milestoneTargetStatus === 'BLOCKED'
                 ? 'Report Milestone Blocker'
@@ -1563,8 +1563,8 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Add Milestone Modal */}
       {addMilestoneModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Add Custom Milestone</h3>
             <form onSubmit={handleAddMilestone} className="space-y-3">
               <div>
@@ -1652,8 +1652,8 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Add Task Modal */}
       {addTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Create Project Task</h3>
             <form onSubmit={handleAddTask} className="space-y-3">
               <div>

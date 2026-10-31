@@ -799,7 +799,7 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 1: Record Payment Modal */}
       {/* ------------------------------------------------------------- */}
       {showRecordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
           <div className="bg-card border rounded-xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">Record Customer Payment</h2>
@@ -953,8 +953,8 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 2: Verify Payment Modal */}
       {/* ------------------------------------------------------------- */}
       {showVerifyModal && selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 shadow-xl max-h-[92vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-2">Verify Customer Payment</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Confirm bank clearance for receipt{' '}
@@ -1002,8 +1002,8 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 3: Allocate Payment to Order */}
       {/* ------------------------------------------------------------- */}
       {showAllocateModal && selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 shadow-xl max-h-[92vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-1">Allocate Funds to Sales Order</h2>
             <p className="text-xs text-muted-foreground mb-4">
               Receipt:{' '}
@@ -1086,8 +1086,8 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 4: Reverse Payment Modal */}
       {/* ------------------------------------------------------------- */}
       {showReverseModal && selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 shadow-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center space-x-2 text-destructive mb-2">
               <ShieldAlert className="w-5 h-5" />
               <h2 className="text-lg font-bold">Reverse Customer Payment</h2>
@@ -1139,8 +1139,8 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 5: Refund Unallocated Funds Modal */}
       {/* ------------------------------------------------------------- */}
       {showRefundModal && selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 shadow-xl max-h-[92vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-1">Refund Unallocated Credit</h2>
             <p className="text-xs text-muted-foreground mb-4">
               Receipt:{' '}
@@ -1225,7 +1225,7 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 6: Printable Operational Payment Receipt */}
       {/* ------------------------------------------------------------- */}
       {showReceiptModal && receiptData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
           <div className="bg-card border rounded-2xl max-w-2xl w-full p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
             {/* Header & Print Action */}
             <div className="flex justify-between items-start pb-6 border-b">
@@ -1393,7 +1393,7 @@ export const PaymentsPage: React.FC = () => {
       {/* MODAL 7: Receivables Statement & Aging Breakdown */}
       {/* ------------------------------------------------------------- */}
       {showStatementModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
           <div className="bg-card border rounded-2xl max-w-3xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start pb-4 border-b">
               <div>

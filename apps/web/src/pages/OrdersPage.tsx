@@ -224,26 +224,26 @@ export const OrdersPage: React.FC = () => {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-xs font-medium text-muted-foreground uppercase">Total Orders</p>
-          <p className="text-2xl font-bold mt-1 text-foreground">{orders.length}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
+          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">Total Orders</p>
+          <p className="text-xl sm:text-2xl font-black mt-1 text-foreground">{orders.length}</p>
         </div>
-        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-xs font-medium text-emerald-400 uppercase">Confirmed</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">
+        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
+          <p className="text-[11px] sm:text-xs font-semibold text-emerald-500 uppercase">Confirmed</p>
+          <p className="text-xl sm:text-2xl font-black mt-1 text-emerald-500">
             {orders.filter(o => o.status === 'CONFIRMED').length}
           </p>
         </div>
-        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-xs font-medium text-amber-400 uppercase">In Progress</p>
-          <p className="text-2xl font-bold mt-1 text-amber-400">
+        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
+          <p className="text-[11px] sm:text-xs font-semibold text-amber-500 uppercase">In Progress</p>
+          <p className="text-xl sm:text-2xl font-black mt-1 text-amber-500">
             {orders.filter(o => o.status === 'IN_PROGRESS').length}
           </p>
         </div>
-        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-xs font-medium text-indigo-400 uppercase">Stock Allocated</p>
-          <p className="text-2xl font-bold mt-1 text-indigo-400">
+        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
+          <p className="text-[11px] sm:text-xs font-semibold text-indigo-500 uppercase">Allocated</p>
+          <p className="text-xl sm:text-2xl font-black mt-1 text-indigo-500">
             {orders.filter(o => o.reservationStatus === 'FULLY_RESERVED').length}
           </p>
         </div>
@@ -300,89 +300,150 @@ export const OrdersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Orders Table */}
+      {/* Orders Table & Mobile Cards */}
       <div className="border rounded-xl bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3">Order Number</th>
-                <th className="px-6 py-3">Customer</th>
-                <th className="px-6 py-3">Capacity</th>
-                <th className="px-6 py-3">Net Agreed Total</th>
-                <th className="px-6 py-3">Order Status</th>
-                <th className="px-6 py-3">Stock Allocation</th>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
-                    <div className="inline-flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-solar-500 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading orders...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : orders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
-                    No sales orders found matching your filters.
-                  </td>
-                </tr>
-              ) : (
-                orders.map(order => (
-                  <tr key={order._id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-foreground">
+        {loading ? (
+          <div className="px-6 py-12 text-center text-muted-foreground">
+            <div className="inline-flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-solar-500 border-t-transparent rounded-full animate-spin" />
+              <span>Loading orders...</span>
+            </div>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="px-6 py-12 text-center text-muted-foreground">
+            No sales orders found matching your filters.
+          </div>
+        ) : (
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="block md:hidden divide-y divide-border">
+              {orders.map(order => (
+                <div key={order._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
                       <Link
                         to={`/orders/${order._id}`}
-                        className="text-solar-500 hover:text-solar-400 flex items-center group"
+                        className="font-mono font-bold text-solar-600 hover:text-solar-700 text-xs block"
                       >
-                        <span>{order.orderNumber}</span>
-                        <ArrowRight className="w-3.5 h-3.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {order.orderNumber}
                       </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-foreground">
+                      <h4 className="font-bold text-sm text-foreground truncate mt-0.5">
                         {order.customerId?.legalName || 'N/A'}
-                      </div>
+                      </h4>
                       {order.customerId?.customerCode && (
-                        <div className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground font-mono">
                           {order.customerId.customerCode}
-                        </div>
+                        </p>
                       )}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-foreground">
-                      {order.systemCapacityKwp} kWp
-                    </td>
-                    <td className="px-6 py-4 font-medium text-foreground">
-                      ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
-                    <td className="px-6 py-4">{getReservationBadge(order.reservationStatus)}</td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                    </div>
+                    <div className="shrink-0">{getStatusBadge(order.status)}</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">System Capacity</span>
+                      <span className="font-semibold text-foreground">{order.systemCapacityKwp} kWp</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Net Agreed Total</span>
+                      <span className="font-bold text-foreground text-sm">
+                        ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Stock:</span>
+                    <div>{getReservationBadge(order.reservationStatus)}</div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
+                    <span className="text-[11px] text-muted-foreground">
                       {new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN', {
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric'
                       })}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        to={`/orders/${order._id}`}
-                        className="inline-flex items-center text-xs font-medium text-solar-500 hover:text-solar-400"
-                      >
-                        View Details
-                      </Link>
-                    </td>
+                    </span>
+                    <Link
+                      to={`/orders/${order._id}`}
+                      className="inline-flex items-center font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
+                    >
+                      <span>View Order</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-3">Order Number</th>
+                    <th className="px-6 py-3">Customer</th>
+                    <th className="px-6 py-3">Capacity</th>
+                    <th className="px-6 py-3">Net Agreed Total</th>
+                    <th className="px-6 py-3">Order Status</th>
+                    <th className="px-6 py-3">Stock Allocation</th>
+                    <th className="px-6 py-3">Date</th>
+                    <th className="px-6 py-3 text-right">Action</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {orders.map(order => (
+                    <tr key={order._id} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-foreground">
+                        <Link
+                          to={`/orders/${order._id}`}
+                          className="text-solar-500 hover:text-solar-400 flex items-center group"
+                        >
+                          <span>{order.orderNumber}</span>
+                          <ArrowRight className="w-3.5 h-3.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-foreground">
+                          {order.customerId?.legalName || 'N/A'}
+                        </div>
+                        {order.customerId?.customerCode && (
+                          <div className="text-xs text-muted-foreground">
+                            {order.customerId.customerCode}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        {order.systemCapacityKwp} kWp
+                      </td>
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                      <td className="px-6 py-4">{getReservationBadge(order.reservationStatus)}</td>
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          to={`/orders/${order._id}`}
+                          className="inline-flex items-center text-xs font-medium text-solar-500 hover:text-solar-400"
+                        >
+                          View Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Create Order From Quotation Modal */}

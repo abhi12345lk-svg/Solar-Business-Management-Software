@@ -434,106 +434,180 @@ export const QuotationsPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                  <th className="py-3 px-4 font-medium">Quotation Code</th>
-                  <th className="py-3 px-4 font-medium">Customer</th>
-                  <th className="py-3 px-4 font-medium">Topology / Size</th>
-                  <th className="py-3 px-4 font-medium text-right">Gross Subtotal</th>
-                  <th className="py-3 px-4 font-medium text-right">Discount</th>
-                  <th className="py-3 px-4 font-medium text-right">Net Payable</th>
-                  <th className="py-3 px-4 font-medium text-center">Status</th>
-                  <th className="py-3 px-4 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {quotations.map(q => {
-                  const grossRs = (q.grossSubtotalPaise / 100).toLocaleString('en-IN', {
-                    maximumFractionDigits: 2
-                  });
-                  const netRs = (q.netTotalPaise / 100).toLocaleString('en-IN', {
-                    maximumFractionDigits: 2
-                  });
-                  const discountRs = (q.totalDiscountPaise / 100).toLocaleString('en-IN', {
-                    maximumFractionDigits: 2
-                  });
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="block md:hidden divide-y divide-border">
+              {quotations.map(q => {
+                const netRs = (q.netTotalPaise / 100).toLocaleString('en-IN', {
+                  maximumFractionDigits: 2
+                });
+                const discountRs = (q.totalDiscountPaise / 100).toLocaleString('en-IN', {
+                  maximumFractionDigits: 2
+                });
 
-                  return (
-                    <tr key={q._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 px-4">
+                return (
+                  <div key={q._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         <Link
                           to={`/quotations/${q._id}`}
                           className="font-mono font-bold text-solar-600 hover:text-solar-700 text-xs flex items-center gap-1.5"
                         >
-                          {q.fullQuotationCode}
+                          <span>{q.fullQuotationCode}</span>
                           {q.isLatestRevision && (
-                            <span className="text-[10px] font-normal px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 rounded">
+                            <span className="text-[9px] font-semibold px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 rounded">
                               Latest
                             </span>
                           )}
                         </Link>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Issued: {new Date(q.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-xs">
-                        <div className="font-medium text-foreground">
+                        <h4 className="font-bold text-sm text-foreground truncate mt-0.5">
                           {q.customerId?.legalName || 'Direct Customer'}
-                        </div>
-                        <div className="text-muted-foreground font-mono text-[11px]">
-                          {q.customerId?.customerCode || '—'}
-                        </div>
-                      </td>
+                        </h4>
+                      </div>
+                      <div className="shrink-0">{getStatusBadge(q.status)}</div>
+                    </div>
 
-                      <td className="py-3.5 px-4 text-xs">
-                        <span className="font-medium text-foreground">
-                          {q.systemCapacityKwp} kWp
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                      <div>
+                        <span className="text-[11px] text-muted-foreground block">System Capacity</span>
+                        <span className="font-semibold text-foreground">
+                          {q.systemCapacityKwp} kWp • {q.systemTopology}
                         </span>
-                        <div className="text-muted-foreground">{q.systemTopology}</div>
-                      </td>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-muted-foreground block">Net Payable Total</span>
+                        <span className="font-bold text-foreground text-sm">₹{netRs}</span>
+                      </div>
+                    </div>
 
-                      <td className="py-3.5 px-4 text-right font-mono text-xs text-muted-foreground">
-                        ₹{grossRs}
-                      </td>
+                    {q.discountPercent > 0 && (
+                      <div className="text-xs text-amber-600 flex items-center justify-between">
+                        <span>Discount Applied:</span>
+                        <span className="font-semibold">
+                          ₹{discountRs} ({q.discountPercent.toFixed(1)}%)
+                        </span>
+                      </div>
+                    )}
 
-                      <td className="py-3.5 px-4 text-right text-xs">
-                        <div className="font-mono text-amber-600">
-                          {q.discountPercent > 0 ? `₹${discountRs}` : '—'}
-                        </div>
-                        {q.discountPercent > 0 && (
-                          <div className="text-[11px] text-muted-foreground">
-                            {q.discountPercent.toFixed(1)}%
-                            {q.requiresDiscountApproval && (
-                              <span className="ml-1 text-destructive font-semibold">(&gt;5%)</span>
+                    <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
+                      <span className="text-[11px] text-muted-foreground">
+                        Issued: {new Date(q.createdAt).toLocaleDateString()}
+                      </span>
+                      <Link
+                        to={`/quotations/${q._id}`}
+                        className="inline-flex items-center text-xs font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
+                      >
+                        <span>Open Workstation</span>
+                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                    <th className="py-3 px-4 font-medium">Quotation Code</th>
+                    <th className="py-3 px-4 font-medium">Customer</th>
+                    <th className="py-3 px-4 font-medium">Topology / Size</th>
+                    <th className="py-3 px-4 font-medium text-right">Gross Subtotal</th>
+                    <th className="py-3 px-4 font-medium text-right">Discount</th>
+                    <th className="py-3 px-4 font-medium text-right">Net Payable</th>
+                    <th className="py-3 px-4 font-medium text-center">Status</th>
+                    <th className="py-3 px-4 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {quotations.map(q => {
+                    const grossRs = (q.grossSubtotalPaise / 100).toLocaleString('en-IN', {
+                      maximumFractionDigits: 2
+                    });
+                    const netRs = (q.netTotalPaise / 100).toLocaleString('en-IN', {
+                      maximumFractionDigits: 2
+                    });
+                    const discountRs = (q.totalDiscountPaise / 100).toLocaleString('en-IN', {
+                      maximumFractionDigits: 2
+                    });
+
+                    return (
+                      <tr key={q._id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <Link
+                            to={`/quotations/${q._id}`}
+                            className="font-mono font-bold text-solar-600 hover:text-solar-700 text-xs flex items-center gap-1.5"
+                          >
+                            {q.fullQuotationCode}
+                            {q.isLatestRevision && (
+                              <span className="text-[10px] font-normal px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 rounded">
+                                Latest
+                              </span>
                             )}
+                          </Link>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            Issued: {new Date(q.createdAt).toLocaleDateString()}
                           </div>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground text-xs">
-                        ₹{netRs}
-                      </td>
+                        <td className="py-3.5 px-4 text-xs">
+                          <div className="font-medium text-foreground">
+                            {q.customerId?.legalName || 'Direct Customer'}
+                          </div>
+                          <div className="text-muted-foreground font-mono text-[11px]">
+                            {q.customerId?.customerCode || '—'}
+                          </div>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-center">{getStatusBadge(q.status)}</td>
+                        <td className="py-3.5 px-4 text-xs">
+                          <span className="font-medium text-foreground">
+                            {q.systemCapacityKwp} kWp
+                          </span>
+                          <div className="text-muted-foreground">{q.systemTopology}</div>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <Link
-                          to={`/quotations/${q._id}`}
-                          className="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded"
-                        >
-                          View Details
-                          <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <td className="py-3.5 px-4 text-right font-mono text-xs text-muted-foreground">
+                          ₹{grossRs}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right text-xs">
+                          <div className="font-mono text-amber-600">
+                            {q.discountPercent > 0 ? `₹${discountRs}` : '—'}
+                          </div>
+                          {q.discountPercent > 0 && (
+                            <div className="text-[11px] text-muted-foreground">
+                              {q.discountPercent.toFixed(1)}%
+                              {q.requiresDiscountApproval && (
+                                <span className="ml-1 text-destructive font-semibold">(&gt;5%)</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground text-xs">
+                          ₹{netRs}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">{getStatusBadge(q.status)}</td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <Link
+                            to={`/quotations/${q._id}`}
+                            className="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded"
+                          >
+                            View Details
+                            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

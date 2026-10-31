@@ -313,109 +313,171 @@ export const LeadsPage: React.FC = () => {
             <p className="text-sm">Create a new prospect inquiry to begin the sales workflow.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
-                <tr>
-                  <th className="py-3 px-4">Lead Code</th>
-                  <th className="py-3 px-4">Prospect Name</th>
-                  <th className="py-3 px-4">Contact</th>
-                  <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">Capacity</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Assigned To</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {leads.map(lead => (
-                  <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-medium text-solar-600">
-                      {lead.leadCode}
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">
-                      {lead.prospectName}
-                      {lead.companyName && (
-                        <span className="block text-xs text-muted-foreground">
-                          {lead.companyName}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center space-x-1 text-foreground">
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span>{lead.prospectPhone}</span>
-                      </div>
-                      {lead.prospectEmail && (
-                        <span className="text-xs text-muted-foreground">{lead.prospectEmail}</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-muted-foreground">
-                      {lead.location.city}, {lead.location.state}
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">
-                      {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
-                          lead.status
-                        )}`}
-                      >
-                        {lead.status}
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="block md:hidden divide-y">
+              {leads.map(lead => (
+                <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-mono text-xs font-bold text-solar-600 block">
+                        {lead.leadCode}
                       </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-muted-foreground">
-                      {lead.assignedEmployeeName || (
-                        <span className="italic text-xs">Unassigned</span>
+                      <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
+                        {lead.prospectName}
+                      </h3>
+                      {lead.companyName && (
+                        <p className="text-xs text-muted-foreground truncate">{lead.companyName}</p>
                       )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Link
-                        to={`/leads/${lead.id}`}
-                        className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
-                      >
-                        <span>Details</span>
-                        <ArrowRight className="w-3 h-3 ml-1" />
-                      </Link>
-                    </td>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
+                        lead.status
+                      )}`}
+                    >
+                      {lead.status}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <a
+                      href={`tel:${lead.prospectPhone}`}
+                      className="flex items-center text-foreground hover:text-solar-600 font-medium"
+                    >
+                      <Phone className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                      <span>{lead.prospectPhone}</span>
+                    </a>
+                    {lead.location?.city && (
+                      <span>📍 {lead.location.city}</span>
+                    )}
+                    {lead.estimatedCapacityKw && (
+                      <span className="font-semibold text-solar-600">
+                        ⚡ {lead.estimatedCapacityKw} kWp
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                      {lead.assignedEmployeeName ? `Staff: ${lead.assignedEmployeeName}` : 'Unassigned'}
+                    </span>
+                    <Link
+                      to={`/leads/${lead.id}`}
+                      className="inline-flex items-center font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-2.5 py-1 rounded-md border border-solar-200 dark:border-solar-800 shrink-0 ml-2"
+                    >
+                      <span>Details</span>
+                      <ArrowRight className="w-3 h-3 ml-1" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
+                  <tr>
+                    <th className="py-3 px-4">Lead Code</th>
+                    <th className="py-3 px-4">Prospect Name</th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Location</th>
+                    <th className="py-3 px-4">Capacity</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Assigned To</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y">
+                  {leads.map(lead => (
+                    <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-medium text-solar-600">
+                        {lead.leadCode}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-foreground">
+                        {lead.prospectName}
+                        {lead.companyName && (
+                          <span className="block text-xs text-muted-foreground">
+                            {lead.companyName}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center space-x-1 text-foreground">
+                          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>{lead.prospectPhone}</span>
+                        </div>
+                        {lead.prospectEmail && (
+                          <span className="text-xs text-muted-foreground">{lead.prospectEmail}</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-muted-foreground">
+                        {lead.location.city}, {lead.location.state}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-foreground">
+                        {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
+                            lead.status
+                          )}`}
+                        >
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-muted-foreground">
+                        {lead.assignedEmployeeName || (
+                          <span className="italic text-xs">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Link
+                          to={`/leads/${lead.id}`}
+                          className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
+                        >
+                          <span>Details</span>
+                          <ArrowRight className="w-3 h-3 ml-1" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* New Lead Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-lg font-bold text-foreground">Record New Solar Lead</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Record New Solar Lead</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold"
               >
                 ✕
               </button>
             </div>
 
-            {createError && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{createError}</span>
-              </div>
-            )}
+            <form onSubmit={handleCreateLead} className="flex flex-col flex-1 min-h-0">
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                {createError && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{createError}</span>
+                  </div>
+                )}
 
-            {dupWarning && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-700 text-sm rounded-lg flex items-start space-x-2">
-                <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{dupWarning}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateLead} className="space-y-4">
+                {dupWarning && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-700 text-sm rounded-lg flex items-start space-x-2">
+                    <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{dupWarning}</span>
+                  </div>
+                )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
@@ -582,7 +644,9 @@ export const LeadsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3 border-t">
+              </div>
+
+              <div className="p-3 sm:p-4 border-t bg-card shrink-0 flex items-center justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -593,7 +657,7 @@ export const LeadsPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 text-sm font-medium bg-solar-600 text-white hover:bg-solar-700 rounded-lg transition shadow-sm disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-bold bg-solar-600 text-white hover:bg-solar-700 rounded-lg transition shadow-sm disabled:opacity-50"
                 >
                   {creating ? 'Saving...' : 'Save Lead'}
                 </button>
