@@ -430,8 +430,8 @@ export const QuotationsPage: React.FC = () => {
             Quotations & Commercial Proposals
           </h1>
           <p className="text-sm text-muted-foreground">
-            Immutable quotation revision tracking (QT-YYYY-NNNNN-Rx), integer-paise financial
-            engine, and approval control.
+            Immutable quotation revision tracking, GST breakdown (INR ₹), and commercial discount
+            approval workflows.
           </p>
         </div>
 

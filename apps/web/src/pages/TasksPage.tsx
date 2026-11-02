@@ -112,10 +112,10 @@ export const TasksPage: React.FC = () => {
       if (categoryFilter) queryParams.set('category', categoryFilter);
       if (isOverdueOnly) queryParams.set('isOverdue', 'true');
 
-      const res = await apiClient<{ items?: TaskItem[]; tasks?: TaskItem[] }>(
+      const res = await apiClient<any>(
         `/tasks?${queryParams.toString()}`
       );
-      setTasks(res?.items || res?.tasks || []);
+      setTasks(Array.isArray(res) ? res : res?.items || res?.tasks || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load unified tasks.');
     } finally {

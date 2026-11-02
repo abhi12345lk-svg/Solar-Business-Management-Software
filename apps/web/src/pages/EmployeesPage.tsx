@@ -85,10 +85,10 @@ export const EmployeesPage: React.FC = () => {
       if (selectedAvailability) queryParams.set('availability', selectedAvailability);
       if (selectedStatus) queryParams.set('employmentStatus', selectedStatus);
 
-      const res = await apiClient<{ items: EmployeeItem[] }>(
+      const res = await apiClient<any>(
         `/employees?${queryParams.toString()}`
       );
-      setEmployees(res?.items || []);
+      setEmployees(Array.isArray(res) ? res : res?.items || res?.employees || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load employees.');
     } finally {

@@ -121,11 +121,13 @@ export function ProjectsPage() {
     setIsModalOpen(true);
     try {
       const [custRes, ordRes] = await Promise.all([
-        apiClient<{ customers: any[] }>('/customers?limit=100').catch(() => ({ customers: [] })),
-        apiClient<{ items: any[] }>('/orders?limit=100').catch(() => ({ items: [] }))
+        apiClient<any>('/customers?limit=100').catch(() => []),
+        apiClient<any>('/orders?limit=100').catch(() => [])
       ]);
-      setCustomersList(custRes.customers || []);
-      setOrdersList(ordRes.items || []);
+      const custs = Array.isArray(custRes) ? custRes : custRes?.customers || custRes?.items || [];
+      const ords = Array.isArray(ordRes) ? ordRes : ordRes?.items || ordRes?.orders || [];
+      setCustomersList(custs);
+      setOrdersList(ords);
     } catch {
       // Non-critical background fetch
     }

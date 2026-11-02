@@ -113,10 +113,10 @@ export const DocumentsPage: React.FC = () => {
       if (classificationFilter) queryParams.set('accessClassification', classificationFilter);
       if (isArchivedFilter) queryParams.set('isArchived', 'true');
 
-      const res = await apiClient<{ items: DocumentItem[] }>(
+      const res = await apiClient<any>(
         `/documents?${queryParams.toString()}`
       );
-      setDocuments(res?.items || []);
+      setDocuments(Array.isArray(res) ? res : res?.items || res?.documents || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load documents.');
     } finally {

@@ -140,8 +140,9 @@ export const SurveysPage: React.FC = () => {
       if (search.trim()) params.set('search', search.trim());
       params.set('limit', '50');
 
-      const data = await apiClient<SiteSurveyDto[]>(`/surveys?${params.toString()}`);
-      setSurveys(data || []);
+      const data = await apiClient<any>(`/surveys?${params.toString()}`);
+      const list = Array.isArray(data) ? data : data?.items || data?.surveys || [];
+      setSurveys(list);
     } catch (err: any) {
       setError(err?.message || 'Failed to load surveys.');
     } finally {
@@ -152,8 +153,9 @@ export const SurveysPage: React.FC = () => {
   const fetchAvailableLeads = async () => {
     setLoadingLeads(true);
     try {
-      const data = await apiClient<LeadDto[]>('/leads?limit=100');
-      setAvailableLeads(data || []);
+      const data = await apiClient<any>('/leads?limit=100');
+      const list = Array.isArray(data) ? data : data?.items || data?.leads || [];
+      setAvailableLeads(list);
     } catch {
       // Non-blocking
     } finally {

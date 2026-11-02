@@ -66,8 +66,8 @@ export const TeamsPage: React.FC = () => {
       if (selectedDept) queryParams.set('department', selectedDept);
       if (activeFilter !== '') queryParams.set('isActive', activeFilter);
 
-      const res = await apiClient<{ items: TeamItem[] }>(`/teams?${queryParams.toString()}`);
-      setTeams(res?.items || []);
+      const res = await apiClient<any>(`/teams?${queryParams.toString()}`);
+      setTeams(Array.isArray(res) ? res : res?.items || res?.teams || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load teams.');
     } finally {

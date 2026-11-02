@@ -17,7 +17,8 @@ import {
   Banknote,
   FileSpreadsheet,
   Wrench,
-  PackageCheck
+  PackageCheck,
+  LifeBuoy
 } from 'lucide-react';
 import { SYSTEM_TITLE } from '@ins-solar/shared';
 import { apiClient } from '../lib/api.js';
@@ -140,6 +141,15 @@ export const DashboardPage: React.FC = () => {
       badgeColor: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20',
       desc: 'Supplier master directory, GSTINs, purchase orders, and goods receipt tracking.',
       stat: 'Active Suppliers'
+    },
+    {
+      title: 'After-Sales & Asset Care',
+      to: '/service',
+      icon: LifeBuoy,
+      badge: 'Service Suite',
+      badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+      desc: 'Customer breakdown tickets, technician dispatches, 25-yr warranties, and AMC renewals.',
+      stat: 'Service & AMC Hub'
     }
   ];
 
@@ -174,8 +184,8 @@ export const DashboardPage: React.FC = () => {
       status: 'VERIFIED'
     },
     {
-      title: 'Commercial Proposal Revision Accepted by Client',
-      ref: 'QT-2026-00055-R0',
+      title: 'Commercial Proposal Accepted by Client',
+      ref: 'QT-2026-00055',
       category: 'Sales Pipeline',
       date: 'Yesterday, 04:45 PM',
       icon: FileSpreadsheet,
