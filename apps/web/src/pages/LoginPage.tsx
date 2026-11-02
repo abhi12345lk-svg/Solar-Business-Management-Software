@@ -23,8 +23,11 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'CUSTOMER';
+  const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
+
+  const [email, setEmail] = useState('admin@inssolar.com');
+  const [password, setPassword] = useState('SolarAdmin2026!');
   const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showMfaInput, setShowMfaInput] = useState(false);
@@ -32,6 +35,61 @@ export const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = (location.state as any)?.from?.pathname || '/';
+
+  // Synchronize credentials and active workstation title when portal tab is switched
+  const handleSelectPortal = (portal: PortalType) => {
+    setSelectedPortal(portal);
+    setErrorMessage(null);
+    if (portal === 'ADMIN') {
+      setEmail('admin@inssolar.com');
+      setPassword('SolarAdmin2026!');
+    } else if (portal === 'SALES') {
+      setEmail('sales@inssolar.com');
+      setPassword('SolarSales2026!');
+    } else if (portal === 'ACCOUNTS') {
+      setEmail('accounts@inssolar.com');
+      setPassword('SolarAccounts2026!');
+    } else if (portal === 'CUSTOMER') {
+      navigate('/customer-portal');
+    }
+  };
+
+  const portalConfig = {
+    ADMIN: {
+      badge: 'Admin Workstation',
+      badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+      title: 'Administrator Workstation',
+      description: 'Sign in to access corporate governance, EPC project execution, and full ERP operations.',
+      themeColor: 'from-amber-500 to-amber-600',
+      tabActive: 'bg-amber-500 text-slate-950 font-bold shadow-md'
+    },
+    SALES: {
+      badge: 'Sales CRM & Commercial',
+      badgeClass: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+      title: 'Sales & Commercial Workstation',
+      description: 'Sign in to manage lead pipelines, site surveys, solar PV sizing, and client proposals.',
+      themeColor: 'from-sky-500 to-sky-600',
+      tabActive: 'bg-sky-500 text-white font-bold shadow-md'
+    },
+    ACCOUNTS: {
+      badge: 'Accounts & Finance',
+      badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+      title: 'Accounts & Billing Workstation',
+      description: 'Sign in to oversee payment collections, vendor 3-way matching, DBT subsidies, and costing.',
+      themeColor: 'from-emerald-500 to-emerald-600',
+      tabActive: 'bg-emerald-500 text-white font-bold shadow-md'
+    },
+    CUSTOMER: {
+      badge: 'Client Portal',
+      badgeClass: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+      title: 'Customer Self-Service Portal',
+      description: 'Redirecting to customer milestone tracking, subsidy status, and digital document vault.',
+      themeColor: 'from-purple-500 to-purple-600',
+      tabActive: 'bg-purple-500 text-white font-bold shadow-md'
+    }
+  };
+
+  const currentConfig = portalConfig[selectedPortal];
 
   // If already authenticated, redirect to target or dashboard
   React.useEffect(() => {
@@ -50,31 +108,6 @@ export const LoginPage: React.FC = () => {
         email,
         password,
         totpCode: totpCode.trim() || undefined
-      });
-
-      if (result.requiresMfa) {
-        navigate('/mfa-challenge');
-      } else {
-        navigate(from, { replace: true });
-      }
-    } catch (err: any) {
-      const msg = err.message || '';
-      setErrorMessage(msg || 'Login failed. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickFillAndLogin = async (fillEmail: string, fillPass: string) => {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setErrorMessage(null);
-    setIsLoading(true);
-
-    try {
-      const result = await login({
-        email: fillEmail,
-        password: fillPass
       });
 
       if (result.requiresMfa) {
@@ -215,13 +248,13 @@ export const LoginPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="hidden sm:inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Operational Workstation</span>
+          <div className="hidden sm:inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Multi-Portal Authentication</span>
           </div>
 
           <Link
-            to="/portal"
+            to="/customer-portal"
             className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
           >
             <span>Customer Portal</span>
@@ -230,13 +263,62 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Center: Sign-In Card Container */}
-        <div className="my-auto mx-auto w-full max-w-md py-8">
-          <div className="space-y-2 mb-8">
+        <div className="my-auto mx-auto w-full max-w-md py-6">
+          {/* Workstation Selector Tabs */}
+          <div className="mb-6 space-y-2">
+            <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Select Operating Portal
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => handleSelectPortal('ADMIN')}
+                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                  selectedPortal === 'ADMIN'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>⚡</span>
+                <span className="truncate">Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPortal('SALES')}
+                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                  selectedPortal === 'SALES'
+                    ? 'bg-sky-500 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>💼</span>
+                <span className="truncate">Sales</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPortal('ACCOUNTS')}
+                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                  selectedPortal === 'ACCOUNTS'
+                    ? 'bg-emerald-500 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>💳</span>
+                <span className="truncate">Accounts</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Dynamic Workstation Header */}
+          <div className="space-y-2 mb-6">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border tracking-wide uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700">
+              <span>{currentConfig.badge}</span>
+            </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Sign in to Workstation
+              {currentConfig.title}
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Enter your corporate email and password to access the INS Solar management system.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              {currentConfig.description}
             </p>
           </div>
 
@@ -252,13 +334,13 @@ export const LoginPage: React.FC = () => {
           )}
 
           {/* Authentication Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label
                 htmlFor="email"
                 className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2"
               >
-                Corporate Email Address
+                Workstation Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -272,7 +354,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@inssolar.com"
+                  placeholder="name@inssolar.com"
                   className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white transition-all shadow-sm"
                 />
               </div>
@@ -287,7 +369,7 @@ export const LoginPage: React.FC = () => {
                   Password
                 </label>
                 <span className="text-xs text-slate-400 cursor-not-allowed">
-                  Forgot password? Contact Admin
+                  Forgot password? Contact IT
                 </span>
               </div>
               <div className="relative">
@@ -367,93 +449,26 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/35 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-xl bg-gradient-to-r ${currentConfig.themeColor} text-white font-bold text-sm transition-all shadow-lg hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                  <span>Validating session credentials...</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Authenticating secure session...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In to Workstation</span>
-                  <ArrowRight className="w-4 h-4 text-slate-950" />
+                  <span>Sign In to {selectedPortal.charAt(0) + selectedPortal.slice(1).toLowerCase()} Portal</span>
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Direct Role Login Bar (Three-Panel Workstation Access) */}
-          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80">
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center space-x-1.5">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Direct Workstation Access
-                </p>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                  3 Panels
-                </span>
-              </div>
-              <span className="text-[10px] text-amber-500 font-semibold">1-Click Sign-In</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {/* 1. Admin Panel */}
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() => handleQuickFillAndLogin('admin@inssolar.com', 'SolarAdmin2026!')}
-                className="p-2.5 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all text-center border border-amber-500/30 hover:border-amber-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
-              >
-                <div className="flex items-center space-x-1">
-                  <span>⚡</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">
-                    Admin Panel
-                  </span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  Super Administrator
-                </span>
-              </button>
-
-              {/* 2. Sales Panel */}
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() => handleQuickFillAndLogin('sales@inssolar.com', 'SolarSales2026!')}
-                className="p-2.5 text-xs font-bold rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 transition-all text-center border border-sky-500/30 hover:border-sky-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
-              >
-                <div className="flex items-center space-x-1">
-                  <span>💼</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">
-                    Sales Panel
-                  </span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  Sales Executive
-                </span>
-              </button>
-
-              {/* 3. Accounts Panel */}
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() =>
-                  handleQuickFillAndLogin('accounts@inssolar.com', 'SolarAccounts2026!')
-                }
-                className="p-2.5 text-xs font-bold rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 transition-all text-center border border-emerald-500/30 hover:border-emerald-500 shadow-xs flex flex-col items-center justify-center space-y-1 cursor-pointer disabled:opacity-50 group"
-              >
-                <div className="flex items-center space-x-1">
-                  <span>💳</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">
-                    Accounts Panel
-                  </span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  Accounts Officer
-                </span>
-              </button>
-            </div>
+          {/* Secure Workstation Note */}
+          <div className="mt-6 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>Role-Based Access Control (RBAC) enforced with session token integrity.</span>
           </div>
         </div>
 

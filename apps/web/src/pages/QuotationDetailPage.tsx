@@ -433,7 +433,7 @@ export const QuotationDetailPage: React.FC = () => {
             className="col-span-1 xs:col-span-2 sm:col-span-1 inline-flex items-center justify-center px-3 py-2 bg-solar-600 hover:bg-solar-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
           >
             <History className="w-3.5 h-3.5 mr-1.5" />
-            Revise Quotation (R{quotation.revisionNumber + 1})
+            Create Revised Quotation (R{quotation.revisionNumber + 1})
           </button>
         </div>
       </div>
@@ -690,8 +690,9 @@ export const QuotationDetailPage: React.FC = () => {
         <div className="space-y-6">
           {/* Financial Calculation Summary Card */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-              Financial Breakdown (Integer Paise Engine)
+            <h2 className="text-sm font-semibold text-foreground border-b border-border pb-2 flex items-center justify-between">
+              <span>Commercial Pricing & Tax Summary</span>
+              <span className="text-[10px] font-mono text-muted-foreground font-normal">INR (₹)</span>
             </h2>
 
             <div className="space-y-2.5 text-xs">

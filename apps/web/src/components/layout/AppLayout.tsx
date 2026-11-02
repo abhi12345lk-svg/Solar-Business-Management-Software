@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
-import { PanelType, getDefaultPanelForRole, UserRole } from '@ins-solar/shared';
+import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 
 interface NavItem {
   to: string;
@@ -209,18 +209,10 @@ export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Derive default panel from logged in user role & department
-  const defaultPanel: PanelType = user?.role
+  // Strictly determine active panel from user role & department
+  const activePanel: PanelType = user?.role
     ? getDefaultPanelForRole(user.role, user.department)
     : PanelType.ADMIN;
-
-  // Allow Superadmin & Admin to switch panel viewports dynamically
-  const canSwitchPanels = user?.role === UserRole.SUPERADMIN || user?.role === UserRole.ADMIN;
-  const [activePanel, setActivePanel] = useState<PanelType>(defaultPanel);
-
-  useEffect(() => {
-    setActivePanel(defaultPanel);
-  }, [defaultPanel]);
 
   const currentSections =
     activePanel === PanelType.SALES
@@ -295,83 +287,44 @@ export const AppLayout: React.FC = () => {
         </div>
       )}
 
-      {/* Panel Switcher / Badge */}
+      {/* Dedicated Workstation Badge (Role-Enforced) */}
       <div className={`p-3 shrink-0 ${isCollapsed ? 'flex justify-center' : ''}`}>
         {!isCollapsed ? (
-          canSwitchPanels ? (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-                Active Workstation Panel
-              </div>
-              <div className="grid grid-cols-3 gap-1 bg-muted/50 p-1 rounded-xl border border-border/80">
-                <button
-                  type="button"
-                  onClick={() => setActivePanel(PanelType.ADMIN)}
-                  className={`text-[11px] font-bold py-1.5 rounded-lg transition-all ${
-                    activePanel === PanelType.ADMIN
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                  }`}
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePanel(PanelType.SALES)}
-                  className={`text-[11px] font-bold py-1.5 rounded-lg transition-all ${
-                    activePanel === PanelType.SALES
-                      ? 'bg-sky-500 text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                  }`}
-                >
-                  Sales
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePanel(PanelType.ACCOUNTS)}
-                  className={`text-[11px] font-bold py-1.5 rounded-lg transition-all ${
-                    activePanel === PanelType.ACCOUNTS
-                      ? 'bg-emerald-500 text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                  }`}
-                >
-                  Accounts
-                </button>
-              </div>
-            </div>
-          ) : (
+          <div
+            className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-xl border shadow-xs ${
+              activePanel === PanelType.ADMIN
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+                : activePanel === PanelType.SALES
+                  ? 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-400'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+            }`}
+          >
             <div
-              className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl border shadow-xs ${
+              className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
                 activePanel === PanelType.ADMIN
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+                  ? 'bg-amber-500 shadow-sm shadow-amber-500/50'
                   : activePanel === PanelType.SALES
-                    ? 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-400'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                    ? 'bg-sky-500 shadow-sm shadow-sky-500/50'
+                    : 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
               }`}
-            >
-              <div
-                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  activePanel === PanelType.ADMIN
-                    ? 'bg-amber-500'
-                    : activePanel === PanelType.SALES
-                      ? 'bg-sky-500'
-                      : 'bg-emerald-500'
-                }`}
-              />
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-black uppercase tracking-wider truncate">
-                  {activePanel} PANEL
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium truncate">
-                  {activePanel === PanelType.ADMIN
-                    ? 'Operations & Management'
-                    : activePanel === PanelType.SALES
-                      ? 'CRM & Commercial'
-                      : 'Finance & Controlling'}
-                </span>
-              </div>
+            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-black uppercase tracking-wider truncate">
+                {activePanel === PanelType.ADMIN
+                  ? '⚡ Admin Workstation'
+                  : activePanel === PanelType.SALES
+                    ? '💼 Sales & CRM Suite'
+                    : '💳 Accounts & Finance'}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium truncate">
+                {activePanel === PanelType.ADMIN
+                  ? 'Full EPC Operations & Oversight'
+                  : activePanel === PanelType.SALES
+                    ? 'Proposals, PV Sizing & Pipeline'
+                    : 'Billing, Invoices & Subsidies'}
+              </span>
             </div>
-          )
+          </div>
         ) : (
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border shadow-xs ${
@@ -383,7 +336,7 @@ export const AppLayout: React.FC = () => {
             }`}
             title={`${activePanel} Panel Active`}
           >
-            {activePanel[0]}
+            {activePanel === PanelType.ADMIN ? '⚡' : activePanel === PanelType.SALES ? '💼' : '💳'}
           </div>
         )}
       </div>
@@ -551,25 +504,17 @@ export const AppLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: User Profile, Notifications & Controls */}
+          {/* Right: User Profile, Tasks Alert & Sign Out */}
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            {/* Customer Portal Shortcut */}
+            {/* Operational Tasks & Alerts Quick Link */}
             <Link
-              to="/customer-portal"
-              className="hidden md:inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground transition-colors border"
-            >
-              <Users className="w-3.5 h-3.5 text-solar-600" />
-              <span>Customer Portal</span>
-            </Link>
-
-            {/* Notification Bell */}
-            <Link
-              to="/customer-portal"
+              to="/tasks"
               className="p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors relative"
-              title="Notifications"
+              title="Operational Tasks & Approvals"
+              aria-label="Operational Tasks and Approvals"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-solar-500"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             </Link>
 
             {/* Authenticated User Badge & Logout */}

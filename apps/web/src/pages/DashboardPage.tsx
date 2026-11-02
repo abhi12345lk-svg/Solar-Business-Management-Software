@@ -3,9 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Sun,
-  Activity,
+  ShieldCheck,
   CheckCircle2,
-  AlertCircle,
   Users,
   FolderKanban,
   Zap,
@@ -23,27 +22,7 @@ import {
 import { SYSTEM_TITLE } from '@ins-solar/shared';
 import { apiClient } from '../lib/api.js';
 
-interface HealthData {
-  success: boolean;
-  data: {
-    status: string;
-    uptimeSeconds: number;
-    timestamp: string;
-  };
-}
-
 export const DashboardPage: React.FC = () => {
-  // Real-time API Liveness Probe via TanStack Query
-  const { data: healthData, isLoading: healthLoading } = useQuery<HealthData>({
-    queryKey: ['apiHealthLive'],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/health/live');
-      if (!res.ok) throw new Error('API unreachable');
-      return res.json();
-    },
-    refetchInterval: 30000
-  });
-
   // Query Real Projects
   const { data: projectsData } = useQuery({
     queryKey: ['dashboardProjects'],
@@ -462,58 +441,49 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right (1 col): System Operations & Quick Diagnostics */}
+        {/* Right (1 col): Solar Statutory Compliance & Field Quality */}
         <div className="bg-card border rounded-xl p-5 space-y-4 shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center space-x-2.5 border-b pb-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Activity className="w-5 h-5" />
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Operations Engine Status</h3>
-                <p className="text-xs text-muted-foreground">Connected Services & Database</p>
+                <h3 className="text-sm font-bold text-foreground">Compliance & Quality Control</h3>
+                <p className="text-xs text-muted-foreground">Statutory DISCOM & Subsidy Oversight</p>
               </div>
             </div>
 
             <div className="space-y-2 pt-1 text-xs">
               <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border">
-                <span className="text-muted-foreground">API Server</span>
-                {healthLoading ? (
-                  <span className="text-muted-foreground font-mono text-[11px]">Probing...</span>
-                ) : healthData?.success ? (
-                  <span className="text-emerald-600 font-bold inline-flex items-center">
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Online ({healthData.data.uptimeSeconds}s)
-                  </span>
-                ) : (
-                  <span className="text-destructive font-bold inline-flex items-center">
-                    <AlertCircle className="w-3.5 h-3.5 mr-1" />
-                    Offline
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border">
-                <span className="text-muted-foreground">Database Engine</span>
+                <span className="text-muted-foreground">DISCOM Net Metering</span>
                 <span className="text-emerald-600 font-bold inline-flex items-center">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  Connected (MongoDB)
+                  Active / Bi-Directional
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border">
-                <span className="text-muted-foreground">Document Storage</span>
+                <span className="text-muted-foreground">Govt Subsidy (DBT)</span>
                 <span className="text-emerald-600 font-bold inline-flex items-center">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  Encrypted & Active
+                  PM Surya Ghar Sanctioned
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border">
-                <span className="text-muted-foreground">Job Queue Worker</span>
+                <span className="text-muted-foreground">10-Stage Milestone Gate</span>
                 <span className="text-emerald-600 font-bold inline-flex items-center">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  Durable Lease Active
+                  Linear QA Enforced
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 border">
+                <span className="text-muted-foreground">Module & Inverter Warranty</span>
+                <span className="text-emerald-600 font-bold inline-flex items-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                  25-Yr Performance Tracked
                 </span>
               </div>
             </div>
@@ -521,11 +491,11 @@ export const DashboardPage: React.FC = () => {
 
           <div className="pt-3 border-t">
             <Link
-              to="/health"
+              to="/net-metering"
               className="w-full inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-semibold text-foreground transition-colors border"
             >
-              <Activity className="w-3.5 h-3.5 text-emerald-500" />
-              <span>View Full Health Diagnostic</span>
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              <span>Review Net Metering & Utility Compliance</span>
             </Link>
           </div>
         </div>
