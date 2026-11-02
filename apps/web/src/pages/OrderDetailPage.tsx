@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Layers,
   Warehouse as WarehouseIcon,
-  Ban
+  Ban,
+  FolderKanban
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -84,10 +85,17 @@ interface OrderDetail {
 
 export const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // EPC Project Handover state
+  const [linkedProject, setLinkedProject] = useState<any | null>(null);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
 
   // Reservation Modal state
   const [showReserveModal, setShowReserveModal] = useState(false);
@@ -119,6 +127,60 @@ export const OrderDetailPage: React.FC = () => {
   useEffect(() => {
     fetchOrderDetail();
   }, [id]);
+
+  // Check if an EPC project has already been launched for this order
+  useEffect(() => {
+    if (order) {
+      apiClient<any>(`/projects?limit=100`)
+        .then(res => {
+          const list = res?.items || res?.data || (Array.isArray(res) ? res : []);
+          const match = list.find(
+            (p: any) =>
+              p.orderId?._id === order._id ||
+              p.orderId === order._id
+          );
+          if (match) setLinkedProject(match);
+        })
+        .catch(() => {});
+    }
+  }, [order]);
+
+  const handleInitializeProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order) return;
+    setCreatingProject(true);
+    setProjectError(null);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const targetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0];
+
+      const newProj = await apiClient<any>('/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: `${order.customerId.legalName} — ${order.systemCapacityKwp} kWp Rooftop Solar`,
+          customerId: order.customerId._id,
+          orderId: order._id,
+          quotationId: order.quotationRevisionId?._id,
+          solarDesignId: order.solarDesignId?._id,
+          systemCapacityKwp: order.systemCapacityKwp,
+          systemTopology: order.systemTopology || 'ON_GRID',
+          plannedStartDate: today,
+          targetCompletionDate: targetDate,
+          priority: 'HIGH',
+          notes: `10-Stage EPC Project initiated from confirmed sales order ${order.orderNumber}`
+        })
+      });
+      setShowCreateProjectModal(false);
+      setActionSuccess(`EPC Project successfully initialized: ${newProj.projectCode}`);
+      navigate(`/projects/${newProj._id}`);
+    } catch (err: any) {
+      setProjectError(err.message || 'Failed to initialize EPC project.');
+    } finally {
+      setCreatingProject(false);
+    }
+  };
 
   const openReserveModal = async () => {
     setShowReserveModal(true);
@@ -220,6 +282,31 @@ export const OrderDetailPage: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-3">
+          {/* EPC Project Handover Action */}
+          {order.status !== 'CANCELLED' && (
+            linkedProject ? (
+              <Link
+                to={`/projects/${linkedProject._id}`}
+                className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs"
+              >
+                <FolderKanban className="w-4 h-4 mr-1.5" />
+                <span>View EPC Project ({linkedProject.projectCode})</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateProjectModal(true);
+                  setProjectError(null);
+                }}
+                className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+              >
+                <FolderKanban className="w-4 h-4 mr-1.5" />
+                <span>Initialize EPC Project Execution</span>
+              </button>
+            )
+          )}
+
           {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
             <button
               onClick={openReserveModal}
@@ -571,6 +658,82 @@ export const OrderDetailPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Initialize EPC Project Modal */}
+      {showCreateProjectModal && order && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center space-x-2.5 border-b pb-3">
+              <div className="p-2 rounded-lg bg-solar-500/10 text-solar-600">
+                <FolderKanban className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Launch 10-Stage EPC Project Execution
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Initialize linear engineering, Net Metering DISCOM liaison, material dispatch, and commissioning pipeline.
+                </p>
+              </div>
+            </div>
+
+            {projectError && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                {projectError}
+              </div>
+            )}
+
+            <div className="space-y-2.5 bg-secondary/30 p-3 rounded-lg border text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Originating Order:</span>
+                <span className="font-mono font-bold text-foreground">{order.orderNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Client Legal Entity:</span>
+                <span className="font-bold text-foreground">{order.customerId?.legalName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Solar Capacity:</span>
+                <span className="font-bold text-solar-600 dark:text-solar-400">{order.systemCapacityKwp} kWp</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">System Topology:</span>
+                <span className="font-semibold">{order.systemTopology}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Contract Total:</span>
+                <span className="font-mono font-bold text-foreground">₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-lg text-xs flex items-start space-x-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+              <span>
+                Project will start at <strong>Stage 1 (Engineering Design)</strong> with all 10 standard milestone blockers,
+                QA checklists, and Net Metering utility compliance gates enabled.
+              </span>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateProjectModal(false)}
+                className="px-3.5 py-1.5 rounded-lg border text-xs font-semibold text-muted-foreground hover:bg-muted cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleInitializeProject}
+                disabled={creatingProject}
+                className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {creatingProject ? 'Initializing Project...' : 'Launch EPC Execution'}
+              </button>
+            </div>
           </div>
         </div>
       )}

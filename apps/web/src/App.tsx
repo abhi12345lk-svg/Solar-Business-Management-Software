@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.js';
 import { AppLayout } from './components/layout/AppLayout.js';
 import { DashboardPage } from './pages/DashboardPage.js';
@@ -27,10 +27,7 @@ import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
 import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
 import { NetMeteringPage } from './pages/NetMeteringPage.js';
 import { SubsidyPage } from './pages/SubsidyPage.js';
-import { ComplaintsPage } from './pages/ComplaintsPage.js';
-import { WarrantiesPage } from './pages/WarrantiesPage.js';
-import { AmcPage } from './pages/AmcPage.js';
-import { ServiceVisitsPage } from './pages/ServiceVisitsPage.js';
+import { ServiceHubPage } from './pages/ServiceHubPage.js';
 import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
@@ -221,10 +218,18 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="service"
+            element={
+              <ProtectedRoute>
+                <ServiceHubPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="complaints"
             element={
               <ProtectedRoute>
-                <ComplaintsPage />
+                <Navigate to="/service?tab=tickets" replace />
               </ProtectedRoute>
             }
           />
@@ -232,7 +237,7 @@ export const App: React.FC = () => {
             path="warranties"
             element={
               <ProtectedRoute>
-                <WarrantiesPage />
+                <Navigate to="/service?tab=warranties" replace />
               </ProtectedRoute>
             }
           />
@@ -240,7 +245,7 @@ export const App: React.FC = () => {
             path="amc"
             element={
               <ProtectedRoute>
-                <AmcPage />
+                <Navigate to="/service?tab=amc" replace />
               </ProtectedRoute>
             }
           />
@@ -248,7 +253,7 @@ export const App: React.FC = () => {
             path="service-visits"
             element={
               <ProtectedRoute>
-                <ServiceVisitsPage />
+                <Navigate to="/service?tab=visits" replace />
               </ProtectedRoute>
             }
           />

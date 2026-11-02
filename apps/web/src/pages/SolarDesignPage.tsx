@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Sun,
   Zap,
@@ -45,6 +46,12 @@ interface SolarDesignItem {
 }
 
 export const SolarDesignPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const paramSurveyId = searchParams.get('surveyId');
+  const paramCapacity = searchParams.get('capacity');
+  const paramLeadId = searchParams.get('leadId');
+  const paramCustomerId = searchParams.get('customerId');
+
   const [designs, setDesigns] = useState<SolarDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +60,7 @@ export const SolarDesignPage: React.FC = () => {
 
   // Calculator Form State
   const [calcTopology, setCalcTopology] = useState<SolarTopology>(SolarTopology.ON_GRID);
-  const [targetCapacityKwp, setTargetCapacityKwp] = useState('10.0');
+  const [targetCapacityKwp, setTargetCapacityKwp] = useState(paramCapacity || '10.0');
   const [moduleWattageWp, setModuleWattageWp] = useState('550');
   const [peakSunHours, setPeakSunHours] = useState('4.8');
   const [performanceRatio, setPerformanceRatio] = useState('75.0');
@@ -76,13 +83,14 @@ export const SolarDesignPage: React.FC = () => {
 
   // Save Modal State
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveCustomerId, setSaveCustomerId] = useState('');
-  const [saveLeadId, setSaveLeadId] = useState('');
+  const [saveCustomerId, setSaveCustomerId] = useState(paramCustomerId || '');
+  const [saveLeadId, setSaveLeadId] = useState(paramLeadId || '');
   const [saveDesignName, setSaveDesignName] = useState('');
   const [saveNotes, setSaveNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [createdDesignId, setCreatedDesignId] = useState<string | null>(null);
   const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
 
   // CRM context for dropdowns
@@ -320,11 +328,9 @@ export const SolarDesignPage: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
+      setCreatedDesignId(created._id || created.id);
       setSaveSuccess(`Design ${created.designNumber} created and saved successfully!`);
-      setTimeout(() => {
-        setShowSaveModal(false);
-        fetchDesigns();
-      }, 1500);
+      fetchDesigns();
     } catch (err: any) {
       setSaveError(err.message || 'Failed to save solar design.');
     } finally {
@@ -347,6 +353,21 @@ export const SolarDesignPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Survey Context Banner if navigated from Site Survey */}
+      {paramSurveyId && (
+        <div className="bg-solar-500/10 border border-solar-500/30 rounded-lg p-3 text-sm flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sun className="w-4 h-4 text-solar-600 shrink-0" />
+            <span className="text-foreground">
+              <strong>Site Survey Parameters Pre-loaded:</strong> Sizing PV array for Proposed Capacity of <strong>{paramCapacity || targetCapacityKwp} kWp</strong>.
+            </span>
+          </div>
+          <span className="text-xs font-mono bg-solar-500/20 text-solar-700 dark:text-solar-300 px-2 py-0.5 rounded font-medium">
+            Survey Pre-load
+          </span>
+        </div>
+      )}
 
       {/* Top Section: Interactive Sizing Calculator */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-6">
@@ -994,8 +1015,22 @@ export const SolarDesignPage: React.FC = () => {
                 </div>
               )}
               {saveSuccess && (
-                <div className="p-2.5 bg-emerald-500/10 text-emerald-600 text-xs rounded">
-                  {saveSuccess}
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-lg space-y-2">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{saveSuccess}</span>
+                  </div>
+                  {createdDesignId && (
+                    <div className="pt-1">
+                      <a
+                        href={`/quotations?designId=${createdDesignId}&customerId=${saveCustomerId}&leadId=${saveLeadId}&capacity=${calcResult?.actualDcCapacityKwp || targetCapacityKwp}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white rounded text-xs font-semibold shadow transition-colors"
+                      >
+                        <span>📄 Generate Quotation for this Design</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

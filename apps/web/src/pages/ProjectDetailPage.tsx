@@ -36,7 +36,7 @@ import {
   ClipboardCheck,
   Landmark,
   LifeBuoy,
-  DollarSign
+  IndianRupee
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
@@ -487,6 +487,33 @@ export const ProjectDetailPage: React.FC = () => {
     }
   };
 
+  const handleStageClick = (stageKey: string) => {
+    switch (stageKey) {
+      case 'STAGE_1_ENGINEERING_DESIGN':
+        setActiveTab('overview');
+        break;
+      case 'STAGE_2_NET_METERING_APPLY':
+      case 'STAGE_9_DISCOM_METER_INSTALL':
+        setActiveTab('net-metering');
+        break;
+      case 'STAGE_3_MATERIAL_DISPATCH':
+        setActiveTab('dispatch');
+        break;
+      case 'STAGE_4_CIVIL_STRUCTURE':
+      case 'STAGE_5_MODULE_DC_CABLING':
+      case 'STAGE_6_INVERTER_ACDB':
+      case 'STAGE_7_EARTHING_LIGHTNING':
+      case 'STAGE_8_TESTING_PRE_COMMISSION':
+        setActiveTab('checklist');
+        break;
+      case 'STAGE_10_COMMISSION_HANDOVER':
+        setActiveTab('service-amc');
+        break;
+      default:
+        break;
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PLANNING':
@@ -706,6 +733,16 @@ export const ProjectDetailPage: React.FC = () => {
             </button>
           )}
 
+          {project.status === 'COMPLETED' && (
+            <Link
+              to={`/service?tab=warranties&projectId=${project._id}`}
+              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-semibold shadow-sm gap-1.5"
+            >
+              <LifeBuoy className="w-4 h-4" />
+              <span>Plant Commissioned — After-Sales Hub</span>
+            </Link>
+          )}
+
           {!isTerminal && (
             <button
               onClick={() => {
@@ -764,18 +801,22 @@ export const ProjectDetailPage: React.FC = () => {
                   )}
                   {/* Node Circle */}
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-colors shadow-sm ${
+                    onClick={() => handleStageClick(s.key)}
+                    title={`Jump to ${s.fullName} workspace tab`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-all shadow-sm cursor-pointer hover:scale-110 ${
                       isPast
                         ? 'bg-solar-600 text-white'
                         : isCurrent
                           ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
-                          : 'bg-muted text-muted-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
                     {isPast ? <Check className="w-4 h-4" /> : s.step}
                   </div>
                   <span
-                    className={`mt-2 text-[11px] text-center font-medium line-clamp-1 max-w-[85px] ${
+                    onClick={() => handleStageClick(s.key)}
+                    title={`Jump to ${s.fullName} workspace tab`}
+                    className={`mt-2 text-[11px] text-center font-medium line-clamp-1 max-w-[85px] hover:underline cursor-pointer ${
                       isCurrent
                         ? 'text-solar-600 font-bold'
                         : isPast
@@ -874,7 +915,7 @@ export const ProjectDetailPage: React.FC = () => {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          <DollarSign className="w-4 h-4" />
+          <IndianRupee className="w-4 h-4" />
           <span>Costing & Profitability</span>
         </button>
 

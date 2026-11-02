@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Plus,
   Sun,
-  Loader2
+  Loader2,
+  Layers
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
@@ -215,6 +216,16 @@ export const LeadDetailPage: React.FC = () => {
           >
             Update Status
           </button>
+
+          {lead.status !== LeadStatus.LOST && (
+            <Link
+              to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+              className="px-3.5 py-2 text-sm font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Schedule Site Survey</span>
+            </Link>
+          )}
 
           {lead.status !== LeadStatus.CONVERTED && (
             <button

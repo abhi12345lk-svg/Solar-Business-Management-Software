@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Search, FileSpreadsheet, ArrowRight, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FileText, Plus, Search, FileSpreadsheet, ArrowRight, AlertTriangle, Zap } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../lib/api.js';
 import { QuotationStatus, SolarTopology, QuotationItemType } from '@ins-solar/shared';
 
@@ -73,6 +73,69 @@ export const QuotationsPage: React.FC = () => {
   const [inverterRateRs, setInverterRateRs] = useState('65000');
   const [additionalDiscountRs, setAdditionalDiscountRs] = useState('0');
   const [validDays, setValidDays] = useState('30');
+
+  const [searchParams] = useSearchParams();
+  const paramDesignId = searchParams.get('designId');
+  const paramCustomerId = searchParams.get('customerId');
+  const paramLeadId = searchParams.get('leadId');
+  const paramCapacity = searchParams.get('capacity');
+
+  const [linkedDesignId, setLinkedDesignId] = useState<string>(paramDesignId || '');
+  const [designPreloadNotice, setDesignPreloadNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (paramDesignId || paramCustomerId || paramLeadId || paramCapacity) {
+      setShowCreateModal(true);
+      if (paramCapacity) setCapacityKwp(paramCapacity);
+      if (paramCustomerId) {
+        setCustomerId(paramCustomerId);
+        setCustomerMode('REGISTERED');
+      }
+      if (paramLeadId) {
+        setLeadId(paramLeadId);
+        if (!paramCustomerId) setCustomerMode('LEAD');
+      }
+      if (paramDesignId) {
+        setLinkedDesignId(paramDesignId);
+        apiClient<any>(`/solar-designs/${paramDesignId}`)
+          .then(design => {
+            if (design) {
+              if (design.proposedCapacityKwp) {
+                setCapacityKwp(String(design.proposedCapacityKwp));
+              }
+              if (design.systemTopology) {
+                setTopology(design.systemTopology);
+              }
+              if (design.module) {
+                setPanelDesc(`${design.module.wattageWp || 550}Wp Mono Perc Solar Module`);
+                setPanelQty(String(design.module.quantity || 1));
+              }
+              if (design.inverter) {
+                setInverterDesc(`${design.inverter.ratedCapacityKw || 5}kW Solar Inverter`);
+                setInverterQty(String(design.inverter.quantity || 1));
+              }
+              if (design.customerId?._id) {
+                setCustomerId(design.customerId._id);
+                setCustomerMode('REGISTERED');
+              } else if (typeof design.customerId === 'string' && design.customerId) {
+                setCustomerId(design.customerId);
+                setCustomerMode('REGISTERED');
+              }
+              if (design.leadId?._id || (typeof design.leadId === 'string' && design.leadId)) {
+                setLeadId(design.leadId?._id || design.leadId);
+                if (!design.customerId) setCustomerMode('LEAD');
+              }
+              setDesignPreloadNotice(
+                `Technical Array Sizing #${design.designNumber} pre-loaded: ${design.proposedCapacityKwp} kWp (${design.systemTopology})`
+              );
+            }
+          })
+          .catch(err => {
+            console.warn('Could not pre-load solar design:', err);
+          });
+      }
+    }
+  }, [paramDesignId, paramCustomerId, paramLeadId, paramCapacity]);
 
   const fetchQuotations = async () => {
     setLoading(true);
@@ -234,6 +297,7 @@ export const QuotationsPage: React.FC = () => {
         systemCapacityKwp: Number(capacityKwp) || 5,
         validUntil: validUntilDate.toISOString(),
         lineItems,
+        solarDesignId: linkedDesignId.trim() || undefined,
         additionalDiscountPaise: Math.round(Number(additionalDiscountRs || 0) * 100),
         taxProfile: {
           profileName: 'Standard Indian Solar EPC Tax Profile',
@@ -289,6 +353,8 @@ export const QuotationsPage: React.FC = () => {
       setShowCreateModal(false);
       setCustomerId('');
       setLeadId('');
+      setLinkedDesignId('');
+      setDesignPreloadNotice(null);
       setNewCustName('');
       setNewCustPhone('');
       setNewCustEmail('');
@@ -617,12 +683,26 @@ export const QuotationsPage: React.FC = () => {
           <div className="bg-card border border-border rounded-xl shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-solar-500" />
-              Generate Commercial Quotation (R0)
+              Generate Commercial Quotation
             </h3>
             <p className="text-xs text-muted-foreground">
-              Drafts an initial revision R0 quotation using server-side integer-paise monetary
-              engine and GST rules.
+              Drafts an initial commercial quotation with standard Indian solar GST rules and payment
+              milestones.
             </p>
+
+            {designPreloadNotice && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2 font-medium">
+                  <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{designPreloadNotice}</span>
+                </div>
+                {linkedDesignId && (
+                  <span className="font-mono text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-semibold shrink-0">
+                    Engineering Linked
+                  </span>
+                )}
+              </div>
+            )}
 
             <form onSubmit={handleCreateQuotation} className="space-y-4">
               {/* Customer Mode Selection */}

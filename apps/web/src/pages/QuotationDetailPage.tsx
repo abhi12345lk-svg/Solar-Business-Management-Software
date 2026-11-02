@@ -12,7 +12,12 @@ import {
   Download,
   Send,
   History,
-  Info
+  Info,
+  ShoppingCart,
+  Sun,
+  Zap,
+  TrendingUp,
+  Landmark
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { QuotationStatus, SolarTopology, QuotationItemType } from '@ins-solar/shared';
@@ -133,6 +138,54 @@ export const QuotationDetailPage: React.FC = () => {
   // Customer Simulation State
   const [customerDecisionNotes, setCustomerDecisionNotes] = useState('');
   const [submittingCustomerAction, setSubmittingCustomerAction] = useState(false);
+
+  // Sales Order Handover State
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertingOrder, setConvertingOrder] = useState(false);
+  const [existingOrder, setExistingOrder] = useState<any | null>(null);
+
+  // Check if an order already exists for this quotation revision
+  useEffect(() => {
+    if (quotation && quotation.status === QuotationStatus.ACCEPTED) {
+      apiClient<any>(`/orders?limit=100`)
+        .then(res => {
+          const list = res?.items || res?.data || (Array.isArray(res) ? res : []);
+          const match = list.find(
+            (o: any) =>
+              o.quotationRevisionId?._id === quotation._id ||
+              o.quotationRevisionId === quotation._id
+          );
+          if (match) setExistingOrder(match);
+        })
+        .catch(() => {});
+    }
+  }, [quotation]);
+
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quotation) return;
+    setConvertingOrder(true);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const parentId = (quotation as any).parentQuotationId || quotation._id;
+      const newOrder = await apiClient<any>('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          quotationId: parentId,
+          quotationRevisionId: quotation._id,
+          notes: `Sales Order generated from accepted proposal ${quotation.fullQuotationCode}`
+        })
+      });
+      setShowConvertModal(false);
+      setActionMessage(`Sales Order generated successfully: ${newOrder.orderNumber}`);
+      navigate(`/orders/${newOrder._id}`);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to generate sales order.');
+    } finally {
+      setConvertingOrder(false);
+    }
+  };
 
   const fetchQuotation = async () => {
     if (!id) return;
@@ -333,6 +386,25 @@ export const QuotationDetailPage: React.FC = () => {
     maximumFractionDigits: 2
   });
 
+  // Solar Domain ROI & Yield Calculations
+  const capacityKwp = quotation.systemCapacityKwp || 5.0;
+  const estimatedMonthlyUnits = Math.round(capacityKwp * 120);
+  const estimatedAnnualUnits = estimatedMonthlyUnits * 12;
+  const estimatedMonthlySavings = Math.round(estimatedMonthlyUnits * 7.5);
+  const estimatedAnnualSavings = estimatedMonthlySavings * 12;
+  const centralSubsidyEstimated =
+    quotation.systemTopology === SolarTopology.ON_GRID ||
+    quotation.systemTopology === SolarTopology.HYBRID
+      ? capacityKwp <= 2
+        ? capacityKwp * 30000
+        : 78000
+      : 0;
+  const netTotalPaiseVal = quotation.netTotalPaise || 0;
+  const effectiveCostRs = Math.max(
+    0,
+    netTotalPaiseVal / 100 - centralSubsidyEstimated
+  ).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
   const taxComponentsList: TaxComponent[] =
     quotation.taxComponents && quotation.taxComponents.length > 0
       ? quotation.taxComponents
@@ -401,6 +473,29 @@ export const QuotationDetailPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Generate Sales Order or View Linked Order (When Accepted) */}
+          {quotation.status === QuotationStatus.ACCEPTED && (
+            existingOrder ? (
+              <Link
+                to={`/orders/${existingOrder._id}`}
+                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                <span>View Order ({existingOrder.orderNumber})</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(true)}
+                disabled={convertingOrder}
+                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                <span>Generate Confirmed Sales Order</span>
+              </button>
+            )
+          )}
+
           {/* Download/View PDF Action */}
           <button
             type="button"
@@ -748,6 +843,68 @@ export const QuotationDetailPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Solar Generation Yield & PM Surya Ghar Subsidy Card */}
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-semibold text-foreground flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center gap-1.5">
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span>Solar Yield & Commercial ROI</span>
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                {capacityKwp} kWp System
+              </span>
+            </h2>
+
+            <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="p-3 bg-secondary/30 rounded-lg border">
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Est. Monthly Yield</span>
+                </div>
+                <div className="text-base font-black text-foreground">
+                  ~{estimatedMonthlyUnits.toLocaleString('en-IN')} kWh
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  ~{estimatedAnnualUnits.toLocaleString('en-IN')} Units / Year
+                </div>
+              </div>
+
+              <div className="p-3 bg-secondary/30 rounded-lg border">
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Est. Bill Savings</span>
+                </div>
+                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  ₹{estimatedMonthlySavings.toLocaleString('en-IN')}/mo
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  ₹{estimatedAnnualSavings.toLocaleString('en-IN')} / Year (@ ₹7.5/u)
+                </div>
+              </div>
+            </div>
+
+            {centralSubsidyEstimated > 0 && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+                    <Landmark className="w-4 h-4 text-emerald-600" />
+                    <span>PM Surya Ghar Direct Subsidy (DBT)</span>
+                  </div>
+                  <span className="font-mono font-black text-emerald-700 dark:text-emerald-300">
+                    - ₹{centralSubsidyEstimated.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400/90">
+                  Direct central subsidy credited to client's bank account upon National Portal commissioning sync.
+                </p>
+                <div className="flex justify-between pt-1.5 border-t border-emerald-500/30 font-bold text-xs">
+                  <span className="text-foreground">Effective Client Investment:</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-300">₹{effectiveCostRs}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Discount Approval Workflow Card */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-foreground flex items-center justify-between border-b border-border pb-2">
@@ -949,6 +1106,76 @@ export const QuotationDetailPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Generate Confirmed Sales Order Modal */}
+      {showConvertModal && quotation && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-4">
+            <div className="flex items-center space-x-2.5 border-b pb-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                <ShoppingCart className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Generate Confirmed Sales Order
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Convert accepted quotation into a binding commercial contract and reservation docket.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 bg-secondary/30 p-3 rounded-lg border text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Proposal Code:</span>
+                <span className="font-mono font-bold text-foreground">{quotation.fullQuotationCode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Customer:</span>
+                <span className="font-bold text-foreground">{quotation.customerId.legalName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Net Commercial Total:</span>
+                <span className="font-mono font-bold text-solar-600 dark:text-solar-400">₹{netRs}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Line Items BOM:</span>
+                <span className="font-semibold">{quotation.lineItems?.length || 0} Products</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment Milestones:</span>
+                <span className="font-semibold">{quotation.paymentMilestones?.length || 0} Stages</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs flex items-start space-x-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+              <span>
+                Sales Order generation will lock this commercial pricing and enable warehouse hardware reservation
+                and 10-stage EPC project execution.
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(false)}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateOrder}
+                disabled={convertingOrder}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {convertingOrder ? 'Creating Sales Order...' : 'Confirm & Create Order'}
+              </button>
+            </div>
           </div>
         </div>
       )}

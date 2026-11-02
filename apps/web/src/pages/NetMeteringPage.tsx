@@ -305,6 +305,11 @@ export const NetMeteringPage: React.FC = () => {
                       <span className="text-muted-foreground text-[11px] block">
                         Sanction: {app.sanctionedLoadKw || 0} kW
                       </span>
+                      {(app.proposedCapacityKw || 0) > (app.sanctionedLoadKw || 0) && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold inline-block mt-1 border border-amber-500/20">
+                          ⚠️ Load Enh. Req.
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
                     <td className="py-3 px-4">
@@ -341,10 +346,11 @@ export const NetMeteringPage: React.FC = () => {
                       {app.projectId?._id && (
                         <Link
                           to={`/projects/${app.projectId._id}`}
-                          className="inline-flex items-center text-solar-600 hover:text-solar-700 font-semibold text-xs"
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border transition-colors"
+                          title="Open 10-Stage EPC Project"
                         >
-                          <span>Manage</span>
-                          <ExternalLink className="w-3 h-3 ml-1" />
+                          <span>Open Project</span>
+                          <ExternalLink className="w-3 h-3 text-solar-500" />
                         </Link>
                       )}
                     </td>

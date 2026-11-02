@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -11,7 +12,8 @@ import {
   Eye,
   Check,
   FileText,
-  Download
+  Download,
+  Sun
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
@@ -448,17 +450,21 @@ export const SurveysPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
-                    <span className="text-[11px] text-muted-foreground">
-                      Photos: {srv.photos?.length || 0} attached
-                    </span>
+                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
                     <button
                       onClick={() => setActiveSurvey(srv)}
-                      className="inline-flex items-center font-bold text-xs text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800 shrink-0"
+                      className="inline-flex items-center font-bold text-xs text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
                     >
                       <Camera className="w-3.5 h-3.5 mr-1" />
-                      <span>Photos & Details</span>
+                      <span>Photos ({srv.photos?.length || 0})</span>
                     </button>
+                    <Link
+                      to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                      className="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-md border border-emerald-500/30 transition"
+                    >
+                      <Sun className="w-3.5 h-3.5 mr-1" />
+                      <span>PV Sizing</span>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -506,6 +512,11 @@ export const SurveysPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-semibold text-foreground">
                         {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
+                        {Boolean(srv.proposedCapacityKw && srv.sanctionedLoadKw && srv.proposedCapacityKw > srv.sanctionedLoadKw) && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold block mt-1 border border-amber-500/20">
+                            ⚠️ Load Enh. Req.
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span
@@ -517,13 +528,23 @@ export const SurveysPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => setActiveSurvey(srv)}
-                          className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
-                        >
-                          <Camera className="w-3.5 h-3.5 mr-1" />
-                          <span>Details & Photos ({srv.photos?.length || 0})</span>
-                        </button>
+                        <div className="inline-flex items-center space-x-1.5">
+                          <button
+                            onClick={() => setActiveSurvey(srv)}
+                            className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
+                          >
+                            <Camera className="w-3.5 h-3.5 mr-1" />
+                            <span>Details ({srv.photos?.length || 0})</span>
+                          </button>
+                          <Link
+                            to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                            className="inline-flex items-center text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded-md border border-emerald-500/30 transition"
+                            title="Generate PV Sizing"
+                          >
+                            <Sun className="w-3.5 h-3.5 mr-1" />
+                            <span>PV Sizing</span>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -812,6 +833,17 @@ export const SurveysPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {parseFloat(proposedCapacityKw) > parseFloat(sanctionedLoadKw) && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center space-x-2">
+                  <span className="text-base">⚠️</span>
+                  <span>
+                    <strong>DISCOM Load Advisory:</strong> Proposed system capacity ({proposedCapacityKw} kWp) exceeds
+                    the customer's sanctioned load ({sanctionedLoadKw} kW). Net Metering utility clearance will require
+                    a formal Load Enhancement filing with the DISCOM division.
+                  </span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">

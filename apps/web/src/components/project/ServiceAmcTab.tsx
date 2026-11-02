@@ -128,7 +128,7 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
 
           <div className="border-t pt-2">
             <Link
-              to="/amc"
+              to={`/service?tab=amc&projectId=${projectId}`}
               className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
             >
               Manage AMC Contracts <ArrowRight className="w-3 h-3" />
@@ -164,7 +164,7 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
 
           <div className="border-t pt-2">
             <Link
-              to="/complaints"
+              to={`/service?tab=tickets&projectId=${projectId}`}
               className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
             >
               View Complaints Register <ArrowRight className="w-3 h-3" />
@@ -206,7 +206,7 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
 
           <div className="border-t pt-2">
             <Link
-              to="/warranties"
+              to={`/service?tab=warranties&projectId=${projectId}`}
               className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
             >
               View Warranty Cards <ArrowRight className="w-3 h-3" />
@@ -225,7 +225,7 @@ export const ServiceAmcTab: React.FC<ServiceAmcTabProps> = ({ projectId }) => {
             </h3>
           </div>
           <Link
-            to="/service-visits"
+            to={`/service?tab=visits&projectId=${projectId}`}
             className="text-xs font-medium text-solar-600 hover:underline flex items-center gap-1"
           >
             All Visits Calendar <ExternalLink className="w-3 h-3" />

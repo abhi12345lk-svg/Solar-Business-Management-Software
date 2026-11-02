@@ -23,7 +23,7 @@ import {
   XCircle,
   CreditCard,
   Tag,
-  DollarSign,
+  IndianRupee,
   Clock,
   ShieldCheck,
   Ban
@@ -488,7 +488,7 @@ export const ExpensesPage: React.FC = () => {
 
         <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
           <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider flex items-center">
-            <DollarSign className="w-3.5 h-3.5 mr-1" /> Approved & Unpaid
+            <IndianRupee className="w-3.5 h-3.5 mr-1" /> Approved & Unpaid
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(approvedUnpaidPaise)}</p>
           <p className="text-xs text-blue-700 font-medium">

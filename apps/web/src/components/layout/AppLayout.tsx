@@ -19,8 +19,6 @@ import {
   Zap,
   Landmark,
   LifeBuoy,
-  Wrench,
-  FileCheck2,
   Menu,
   X,
   Bell,
@@ -70,13 +68,12 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Supply Chain & Procurement',
+    title: 'Supply Chain & Warehouse',
     items: [
-      { to: '/inventory', label: 'Inventory Management', icon: Boxes },
-      { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
-      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck },
-      { to: '/vendor-invoices', label: 'Vendor Invoices', icon: Receipt }
+      { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes },
+      { to: '/goods-receipts', label: 'Goods Inward & Inspection (GRN)', icon: PackageCheck },
+      { to: '/purchase-orders', label: 'Material Purchase Orders', icon: FileText },
+      { to: '/vendors', label: 'Vendor Directory', icon: Building2 }
     ]
   },
   {
@@ -87,12 +84,9 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'After-Sales & Service',
+    title: 'After-Sales & Asset Care',
     items: [
-      { to: '/complaints', label: 'Service Complaints', icon: LifeBuoy },
-      { to: '/warranties', label: 'Asset Warranties', icon: ShieldCheck },
-      { to: '/amc', label: 'AMC & Service Visits', icon: FileCheck2 },
-      { to: '/service-visits', label: 'Field Service Visits', icon: Wrench }
+      { to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy }
     ]
   },
   {
@@ -151,12 +145,12 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Procurement & 3-Way Match',
+    title: 'Accounts Payable & 3-Way Match',
     items: [
-      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipts (GRN QA)', icon: PackageCheck },
       { to: '/vendor-invoices', label: 'Vendor Invoices & Aging', icon: Receipt },
-      { to: '/vendors', label: 'Vendor Directory & Balances', icon: Building2 }
+      { to: '/purchase-orders', label: 'PO Financial Review', icon: FileText },
+      { to: '/goods-receipts', label: 'GRN 3-Way Verification', icon: PackageCheck },
+      { to: '/vendors', label: 'Vendor Ledgers & Balances', icon: Building2 }
     ]
   },
   {
@@ -187,6 +181,7 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/vendor-invoices')) return { section: 'Procurement', title: 'Vendor Invoices' };
   if (pathname.startsWith('/payments')) return { section: 'Accounts', title: 'Payments & Receipts' };
   if (pathname.startsWith('/expenses')) return { section: 'Accounts', title: 'Project Costing' };
+  if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
   if (pathname.startsWith('/warranties')) return { section: 'Service', title: 'Asset Warranties' };
   if (pathname.startsWith('/amc')) return { section: 'Service', title: 'AMC Contracts' };
