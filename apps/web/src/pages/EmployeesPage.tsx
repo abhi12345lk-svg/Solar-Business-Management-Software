@@ -85,9 +85,7 @@ export const EmployeesPage: React.FC = () => {
       if (selectedAvailability) queryParams.set('availability', selectedAvailability);
       if (selectedStatus) queryParams.set('employmentStatus', selectedStatus);
 
-      const res = await apiClient<any>(
-        `/employees?${queryParams.toString()}`
-      );
+      const res = await apiClient<any>(`/employees?${queryParams.toString()}`);
       setEmployees(Array.isArray(res) ? res : res?.items || res?.employees || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load employees.');
@@ -315,8 +313,8 @@ export const EmployeesPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">Employee</th>

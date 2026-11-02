@@ -396,8 +396,8 @@ export const ServiceVisitsPage: React.FC = () => {
 
       {/* Main Visits Table */}
       <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-sm text-left min-w-[700px]">
             <thead className="bg-muted/40 text-muted-foreground text-xs uppercase border-b">
               <tr>
                 <th className="px-4 py-3">Visit #</th>
@@ -567,7 +567,7 @@ export const ServiceVisitsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleScheduleVisit} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Solar Project *
@@ -598,7 +598,7 @@ export const ServiceVisitsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Visit Type *
@@ -630,7 +630,7 @@ export const ServiceVisitsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Time Slot *

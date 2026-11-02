@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   FolderKanban,
   Search,
@@ -64,12 +64,37 @@ const STAGE_LABELS: Record<string, { step: number; label: string }> = {
 };
 
 export function ProjectsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStage = searchParams.get('stage') || 'ALL';
+
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [stageFilter, setStageFilter] = useState<string>(initialStage);
+
+  // Sync state if URL search param changes
+  useEffect(() => {
+    const stageFromUrl = searchParams.get('stage');
+    if (stageFromUrl && stageFromUrl !== stageFilter) {
+      setStageFilter(stageFromUrl);
+    } else if (!stageFromUrl && stageFilter !== 'ALL') {
+      setStageFilter('ALL');
+    }
+  }, [searchParams]);
+
+  const handleStageFilterChange = (val: string) => {
+    setStageFilter(val);
+    const newParams = new URLSearchParams(searchParams);
+    if (val === 'ALL') {
+      newParams.delete('stage');
+    } else {
+      newParams.set('stage', val);
+    }
+    setSearchParams(newParams);
+  };
 
   // New Project Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,6 +126,7 @@ export function ProjectsPage() {
       let query = `?limit=50&search=${encodeURIComponent(search)}`;
       if (statusFilter !== 'ALL') query += `&status=${statusFilter}`;
       if (priorityFilter !== 'ALL') query += `&priority=${priorityFilter}`;
+      if (stageFilter !== 'ALL') query += `&currentStage=${stageFilter}`;
 
       const res = await apiClient<{ projects: ProjectListItem[]; total: number }>(
         `/projects${query}`
@@ -115,7 +141,7 @@ export function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
-  }, [search, statusFilter, priorityFilter]);
+  }, [search, statusFilter, priorityFilter, stageFilter]);
 
   const openNewProjectModal = async () => {
     setIsModalOpen(true);
@@ -304,6 +330,27 @@ export function ProjectsPage() {
         </div>
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <select
+            value={stageFilter}
+            onChange={e => handleStageFilterChange(e.target.value)}
+            className={`px-3 py-2 rounded-lg border text-xs font-medium focus:outline-none transition-colors ${
+              stageFilter !== 'ALL'
+                ? 'border-solar-500 bg-solar-500/10 text-solar-800 dark:text-solar-300 font-semibold ring-1 ring-solar-500/30'
+                : 'border-input bg-background text-foreground'
+            }`}
+          >
+            <option value="ALL">All 10 Stages</option>
+            <option value="STAGE_1_ENGINEERING_DESIGN">Stage 01: Design & Engineering</option>
+            <option value="STAGE_2_NET_METERING_APPLY">Stage 02: Net Metering Apply</option>
+            <option value="STAGE_3_MATERIAL_DISPATCH">Stage 03: Material Dispatch</option>
+            <option value="STAGE_4_CIVIL_STRUCTURE">Stage 04: Civil Structure</option>
+            <option value="STAGE_5_MODULE_DC_CABLING">Stage 05: DC Cabling & Wiring</option>
+            <option value="STAGE_6_INVERTER_ACDB">Stage 06: Inverter & ACDB</option>
+            <option value="STAGE_7_EARTHING_LIGHTNING">Stage 07: Earthing & Protection</option>
+            <option value="STAGE_8_TESTING_PRE_COMMISSION">Stage 08: Pre-Commission Test</option>
+            <option value="STAGE_9_DISCOM_METER_INSTALL">Stage 09: DISCOM Meter Install</option>
+            <option value="STAGE_10_COMMISSION_HANDOVER">Stage 10: Handover & COD</option>
+          </select>
+          <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 rounded-lg border border-input bg-background text-xs font-medium focus:outline-none"
@@ -328,6 +375,24 @@ export function ProjectsPage() {
           </select>
         </div>
       </div>
+
+      {/* Active Stage Filter Banner */}
+      {stageFilter !== 'ALL' && (
+        <div className="flex items-center justify-between p-3 px-4 bg-solar-500/10 border border-solar-500/30 rounded-xl text-xs animate-in fade-in-50">
+          <div className="flex items-center space-x-2 text-solar-900 dark:text-solar-200">
+            <Layers className="w-4 h-4 text-solar-600 shrink-0" />
+            <span>
+              Showing projects in <strong className="font-bold">{STAGE_LABELS[stageFilter]?.label || stageFilter}</strong> (Stage {STAGE_LABELS[stageFilter]?.step || '?'}/10)
+            </span>
+          </div>
+          <button
+            onClick={() => handleStageFilterChange('ALL')}
+            className="text-xs font-bold text-solar-700 dark:text-solar-300 hover:underline cursor-pointer inline-flex items-center"
+          >
+            Clear Filter (Show All 10 Stages) &times;
+          </button>
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -465,13 +530,41 @@ export function ProjectsPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <Link
-                          to={`/projects/${proj._id}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                        >
-                          Manage
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                        {proj.status === 'PLANNING' ? (
+                          <Link
+                            to={`/projects/${proj._id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 px-2.5 py-1 rounded-lg transition-colors border border-amber-500/30"
+                            title="Open project and start execution to advance through 10 stages"
+                          >
+                            <span>Start Project</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        ) : proj.status === 'IN_PROGRESS' ? (
+                          <Link
+                            to={`/projects/${proj._id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-solar-700 dark:text-solar-300 bg-solar-500/15 hover:bg-solar-500/25 px-2.5 py-1 rounded-lg transition-colors border border-solar-500/30"
+                            title={`Currently at Stage ${stageInfo.step}/10. Click to advance or inspect checklists`}
+                          >
+                            <span>Advance Stage</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        ) : proj.status === 'COMPLETED' ? (
+                          <Link
+                            to={`/projects/${proj._id}`}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                          >
+                            <span>COD Complete</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        ) : (
+                          <Link
+                            to={`/projects/${proj._id}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <span>Manage</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   );

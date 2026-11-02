@@ -144,7 +144,7 @@ export const CustomerServicePortalPage: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b space-x-6 text-sm">
+      <div className="flex border-b space-x-3 sm:space-x-6 text-xs sm:text-sm overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
         <button
           onClick={() => setActiveTab('COMPLAINTS')}
           className={`pb-3 font-semibold transition-colors flex items-center gap-2 ${
@@ -375,8 +375,8 @@ export const CustomerServicePortalPage: React.FC = () => {
 
       {/* Modal: Request Service / Register Complaint */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="bg-card border rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <LifeBuoy className="w-5 h-5 text-solar-500" />
@@ -435,7 +435,7 @@ export const CustomerServicePortalPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Category

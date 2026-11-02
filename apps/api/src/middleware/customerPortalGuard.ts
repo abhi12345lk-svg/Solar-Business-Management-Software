@@ -21,8 +21,7 @@ export async function ensureCustomerPortalSession(
   // Workstation employee simulation mode
   if (req.session?.user) {
     const targetCustomerId =
-      (req.query.customerId as string) ||
-      (req.headers['x-customer-id'] as string);
+      (req.query.customerId as string) || (req.headers['x-customer-id'] as string);
 
     if (targetCustomerId && /^[0-9a-fA-F]{24}$/.test(targetCustomerId)) {
       req.session.customer = {
@@ -33,7 +32,9 @@ export async function ensureCustomerPortalSession(
     }
 
     // Default to the first active customer for employee preview
-    const firstCustomer = await Customer.findOne({ isActive: true }).select('_id email primaryPhone');
+    const firstCustomer = await Customer.findOne({ isActive: true }).select(
+      '_id email primaryPhone'
+    );
     if (firstCustomer) {
       req.session.customer = {
         customerId: firstCustomer._id.toString(),

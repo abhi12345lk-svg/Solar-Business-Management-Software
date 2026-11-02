@@ -85,9 +85,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
   },
   {
     title: 'After-Sales & Asset Care',
-    items: [
-      { to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy }
-    ]
+    items: [{ to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy }]
   },
   {
     title: 'Workforce & Governance',
@@ -169,17 +167,22 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
   if (pathname.startsWith('/surveys')) return { section: 'Engineering', title: 'Site Surveys' };
   if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'PV Sizing' };
-  if (pathname.startsWith('/quotations')) return { section: 'Commercial', title: 'Quotation Suite' };
+  if (pathname.startsWith('/quotations'))
+    return { section: 'Commercial', title: 'Quotation Suite' };
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };
   if (pathname.startsWith('/projects')) return { section: 'Operations', title: 'Project Pipeline' };
   if (pathname.startsWith('/net-metering')) return { section: 'Compliance', title: 'Net Metering' };
   if (pathname.startsWith('/subsidies')) return { section: 'Govt Liaisons', title: 'Subsidies' };
   if (pathname.startsWith('/inventory')) return { section: 'Supply Chain', title: 'Inventory' };
   if (pathname.startsWith('/vendors')) return { section: 'Procurement', title: 'Vendors' };
-  if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement', title: 'Purchase Orders' };
-  if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement', title: 'Goods Receipts' };
-  if (pathname.startsWith('/vendor-invoices')) return { section: 'Procurement', title: 'Vendor Invoices' };
-  if (pathname.startsWith('/payments')) return { section: 'Accounts', title: 'Payments & Receipts' };
+  if (pathname.startsWith('/purchase-orders'))
+    return { section: 'Procurement', title: 'Purchase Orders' };
+  if (pathname.startsWith('/goods-receipts'))
+    return { section: 'Procurement', title: 'Goods Receipts' };
+  if (pathname.startsWith('/vendor-invoices'))
+    return { section: 'Procurement', title: 'Vendor Invoices' };
+  if (pathname.startsWith('/payments'))
+    return { section: 'Accounts', title: 'Payments & Receipts' };
   if (pathname.startsWith('/expenses')) return { section: 'Accounts', title: 'Project Costing' };
   if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
@@ -190,7 +193,8 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/teams')) return { section: 'HR', title: 'Field Crews' };
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
   if (pathname.startsWith('/documents')) return { section: 'Workspace', title: 'Document Vault' };
-  if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };
+  if (pathname.startsWith('/customer-portal'))
+    return { section: 'Customer', title: 'Client Portal' };
   if (pathname.startsWith('/mfa')) return { section: 'Security', title: 'MFA Security' };
   if (pathname.startsWith('/health')) return { section: 'System', title: 'System Health' };
   return { section: 'INS Solar', title: 'ERP Workstation' };
@@ -231,7 +235,9 @@ export const AppLayout: React.FC = () => {
   const renderNavContent = (isCollapsed = false) => (
     <div className="flex flex-col h-full select-none">
       {/* Brand Header */}
-      <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-border/70 shrink-0 bg-card`}>
+      <div
+        className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-border/70 shrink-0 bg-card`}
+      >
         <Link to="/" className="flex items-center space-x-2.5 group overflow-hidden">
           <div className="w-9 h-9 rounded-xl bg-solar-500/15 border border-solar-500/30 flex items-center justify-center text-solar-600 group-hover:bg-solar-500/25 transition-all shadow-xs shrink-0">
             <Sun className="w-5 h-5 text-solar-500" />
@@ -337,7 +343,9 @@ export const AppLayout: React.FC = () => {
       </div>
 
       {/* Navigation Sections */}
-      <nav className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-3'} py-2 space-y-5 scrollbar-thin scrollbar-thumb-muted-foreground/20`}>
+      <nav
+        className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-3'} py-2 space-y-5 scrollbar-thin scrollbar-thumb-muted-foreground/20`}
+      >
         {currentSections.map((section, idx) => (
           <div key={idx} className="space-y-1">
             {!isCollapsed && (
@@ -361,14 +369,16 @@ export const AppLayout: React.FC = () => {
                     title={isCollapsed ? item.label : undefined}
                     className={({ isActive: navActive }) => {
                       const active = isExact ? navActive : isActive;
-                      return `flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-medium transition-all group ${
+                      return `flex items-center ${isCollapsed ? 'justify-center p-2.5 min-h-[44px]' : 'justify-between px-3 py-2.5 min-h-[44px]'} rounded-lg text-xs font-medium transition-all group ${
                         active
                           ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border-l-3 border-solar-500 shadow-xs'
                           : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                       }`;
                     }}
                   >
-                    <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2.5'} truncate`}>
+                    <div
+                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2.5'} truncate`}
+                    >
                       <ItemIcon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
                     </div>
@@ -386,7 +396,9 @@ export const AppLayout: React.FC = () => {
       </nav>
 
       {/* Sidebar Footer */}
-      <div className={`p-3 border-t border-border/70 shrink-0 bg-card/50 space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+      <div
+        className={`p-3 border-t border-border/70 shrink-0 bg-card/50 space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
+      >
         <NavLink
           to="/health"
           title="Health Status"
@@ -482,9 +494,7 @@ export const AppLayout: React.FC = () => {
                 {breadcrumb.section}
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 hidden sm:inline shrink-0" />
-              <span className="text-foreground font-bold truncate">
-                {breadcrumb.title}
-              </span>
+              <span className="text-foreground font-bold truncate">{breadcrumb.title}</span>
               <span
                 className={`ml-1.5 hidden xs:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                   activePanel === PanelType.ADMIN
@@ -514,17 +524,17 @@ export const AppLayout: React.FC = () => {
 
             {/* Authenticated User Badge & Logout */}
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-2 sm:space-x-3 pl-1.5 sm:pl-2 border-l border-border/80">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-3 pl-1.5 sm:pl-2 border-l border-border/80">
+                <div className="flex items-center space-x-1.5 sm:space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-solar-500 to-amber-400 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     {user.firstName ? user.firstName[0] : 'U'}
                     {user.lastName ? user.lastName[0] : ''}
                   </div>
-                  <div className="hidden xl:block text-left">
-                    <div className="text-xs font-bold text-foreground leading-tight truncate max-w-[120px]">
+                  <div className="flex flex-col text-left">
+                    <div className="text-xs font-bold text-foreground leading-tight truncate max-w-[85px] sm:max-w-[130px]">
                       {user.firstName || 'System'} {user.lastName || 'Admin'}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate">
+                    <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate max-w-[85px] sm:max-w-[130px]">
                       {user.role}
                     </div>
                   </div>
@@ -533,7 +543,7 @@ export const AppLayout: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors border border-rose-200 dark:border-rose-900/50"
+                  className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors border border-rose-200 dark:border-rose-900/50"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -553,7 +563,7 @@ export const AppLayout: React.FC = () => {
         </header>
 
         {/* Page View Body */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-6 w-full max-w-7xl mx-auto min-w-0">
+        <main className="flex-1 p-3 sm:p-5 lg:p-6 w-full max-w-7xl mx-auto min-w-0 overflow-x-hidden">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

@@ -406,8 +406,8 @@ export const ComplaintsPage: React.FC = () => {
 
       {/* Main Complaints Table */}
       <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-sm text-left min-w-[700px]">
             <thead className="bg-muted/40 text-muted-foreground text-xs uppercase border-b">
               <tr>
                 <th className="px-4 py-3">Complaint #</th>
@@ -560,7 +560,7 @@ export const ComplaintsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateComplaint} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-medium text-muted-foreground">
@@ -644,7 +644,7 @@ export const ComplaintsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Category

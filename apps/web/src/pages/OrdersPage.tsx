@@ -226,23 +226,31 @@ export const OrdersPage: React.FC = () => {
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">Total Orders</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
+            Total Orders
+          </p>
           <p className="text-xl sm:text-2xl font-black mt-1 text-foreground">{orders.length}</p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-emerald-500 uppercase">Confirmed</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-emerald-500 uppercase">
+            Confirmed
+          </p>
           <p className="text-xl sm:text-2xl font-black mt-1 text-emerald-500">
             {orders.filter(o => o.status === 'CONFIRMED').length}
           </p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-amber-500 uppercase">In Progress</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-amber-500 uppercase">
+            In Progress
+          </p>
           <p className="text-xl sm:text-2xl font-black mt-1 text-amber-500">
             {orders.filter(o => o.status === 'IN_PROGRESS').length}
           </p>
         </div>
         <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-indigo-500 uppercase">Allocated</p>
+          <p className="text-[11px] sm:text-xs font-semibold text-indigo-500 uppercase">
+            Allocated
+          </p>
           <p className="text-xl sm:text-2xl font-black mt-1 text-indigo-500">
             {orders.filter(o => o.reservationStatus === 'FULLY_RESERVED').length}
           </p>
@@ -318,7 +326,10 @@ export const OrdersPage: React.FC = () => {
             {/* Mobile Cards (< md) */}
             <div className="block md:hidden divide-y divide-border">
               {orders.map(order => (
-                <div key={order._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                <div
+                  key={order._id}
+                  className="p-4 hover:bg-muted/30 transition-colors space-y-2.5"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <Link
@@ -341,11 +352,17 @@ export const OrdersPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">System Capacity</span>
-                      <span className="font-semibold text-foreground">{order.systemCapacityKwp} kWp</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        System Capacity
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {order.systemCapacityKwp} kWp
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">Net Agreed Total</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Net Agreed Total
+                      </span>
                       <span className="font-bold text-foreground text-sm">
                         ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
                       </span>

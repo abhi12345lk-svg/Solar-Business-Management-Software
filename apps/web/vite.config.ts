@@ -33,8 +33,7 @@ export default defineConfig({
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, res) => {
             const isConnRefused =
-              (err as any)?.code === 'ECONNREFUSED' ||
-              err?.message?.includes('ECONNREFUSED');
+              (err as any)?.code === 'ECONNREFUSED' || err?.message?.includes('ECONNREFUSED');
             if (isConnRefused && res && 'writeHead' in res && !(res as any).headersSent) {
               (res as any).writeHead(503, {
                 'Content-Type': 'application/json',

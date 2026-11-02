@@ -186,10 +186,7 @@ export class QuotationService {
       const cleanPhone = (nc.phone || '').trim();
       if (cleanPhone) {
         customer = await Customer.findOne({
-          $or: [
-            { primaryPhone: cleanPhone },
-            ...(nc.email ? [{ email: nc.email.trim() }] : [])
-          ]
+          $or: [{ primaryPhone: cleanPhone }, ...(nc.email ? [{ email: nc.email.trim() }] : [])]
         });
       }
       if (!customer) {
@@ -820,7 +817,10 @@ export class QuotationService {
    */
   public static async getQuotationById(id: string): Promise<IQuotationDocument> {
     const quotation = await Quotation.findById(id)
-      .populate('customerId', 'name legalName companyName customerCode primaryPhone email addresses')
+      .populate(
+        'customerId',
+        'name legalName companyName customerCode primaryPhone email addresses'
+      )
       .populate('leadId', 'leadCode prospectName prospectPhone')
       .populate(
         'solarDesignId',

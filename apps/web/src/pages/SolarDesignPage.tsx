@@ -360,7 +360,8 @@ export const SolarDesignPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Sun className="w-4 h-4 text-solar-600 shrink-0" />
             <span className="text-foreground">
-              <strong>Site Survey Parameters Pre-loaded:</strong> Sizing PV array for Proposed Capacity of <strong>{paramCapacity || targetCapacityKwp} kWp</strong>.
+              <strong>Site Survey Parameters Pre-loaded:</strong> Sizing PV array for Proposed
+              Capacity of <strong>{paramCapacity || targetCapacityKwp} kWp</strong>.
             </span>
           </div>
           <span className="text-xs font-mono bg-solar-500/20 text-solar-700 dark:text-solar-300 px-2 py-0.5 rounded font-medium">
@@ -822,11 +823,15 @@ export const SolarDesignPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">Proposed Capacity</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Proposed Capacity
+                      </span>
                       <span className="font-bold text-foreground">{d.proposedCapacityKwp} kWp</span>
                     </div>
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">Annual Est. Yield</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Annual Est. Yield
+                      </span>
                       <span className="font-bold text-solar-600">
                         {d.estimatedGeneration?.annualGenerationKwh?.toLocaleString() || '—'} kWh
                       </span>
@@ -834,7 +839,8 @@ export const SolarDesignPage: React.FC = () => {
                   </div>
 
                   <div className="text-xs text-muted-foreground">
-                    ⚡ {d.module?.quantity}× {d.module?.wattageWp}Wp | {d.inverter?.ratedCapacityKw}kW
+                    ⚡ {d.module?.quantity}× {d.module?.wattageWp}Wp | {d.inverter?.ratedCapacityKw}
+                    kW
                   </div>
 
                   <div className="pt-2 flex justify-end border-t border-border/50">

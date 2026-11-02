@@ -112,9 +112,7 @@ export const TasksPage: React.FC = () => {
       if (categoryFilter) queryParams.set('category', categoryFilter);
       if (isOverdueOnly) queryParams.set('isOverdue', 'true');
 
-      const res = await apiClient<any>(
-        `/tasks?${queryParams.toString()}`
-      );
+      const res = await apiClient<any>(`/tasks?${queryParams.toString()}`);
       setTasks(Array.isArray(res) ? res : res?.items || res?.tasks || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load unified tasks.');
@@ -416,8 +414,8 @@ export const TasksPage: React.FC = () => {
             <p className="text-sm text-gray-400">Click &apos;Create Task&apos; to schedule work.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">Task Details</th>

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Search, FileSpreadsheet, ArrowRight, AlertTriangle, Zap } from 'lucide-react';
+import {
+  FileText,
+  Plus,
+  Search,
+  FileSpreadsheet,
+  ArrowRight,
+  AlertTriangle,
+  Zap
+} from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../lib/api.js';
 import { QuotationStatus, SolarTopology, QuotationItemType } from '@ins-solar/shared';
@@ -535,13 +543,17 @@ export const QuotationsPage: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
                       <div>
-                        <span className="text-[11px] text-muted-foreground block">System Capacity</span>
+                        <span className="text-[11px] text-muted-foreground block">
+                          System Capacity
+                        </span>
                         <span className="font-semibold text-foreground">
                           {q.systemCapacityKwp} kWp • {q.systemTopology}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[11px] text-muted-foreground block">Net Payable Total</span>
+                        <span className="text-[11px] text-muted-foreground block">
+                          Net Payable Total
+                        </span>
                         <span className="font-bold text-foreground text-sm">₹{netRs}</span>
                       </div>
                     </div>
@@ -646,7 +658,9 @@ export const QuotationsPage: React.FC = () => {
                             <div className="text-[11px] text-muted-foreground">
                               {q.discountPercent.toFixed(1)}%
                               {q.requiresDiscountApproval && (
-                                <span className="ml-1 text-destructive font-semibold">(&gt;5%)</span>
+                                <span className="ml-1 text-destructive font-semibold">
+                                  (&gt;5%)
+                                </span>
                               )}
                             </div>
                           )}
@@ -686,8 +700,8 @@ export const QuotationsPage: React.FC = () => {
               Generate Commercial Quotation
             </h3>
             <p className="text-xs text-muted-foreground">
-              Drafts an initial commercial quotation with standard Indian solar GST rules and payment
-              milestones.
+              Drafts an initial commercial quotation with standard Indian solar GST rules and
+              payment milestones.
             </p>
 
             {designPreloadNotice && (
@@ -762,13 +776,15 @@ export const QuotationsPage: React.FC = () => {
                       </option>
                       {availableCustomers.map(c => (
                         <option key={c._id || c.id} value={c._id || c.id}>
-                          {c.customerCode || 'CUST'} — {c.legalName || c.name} ({c.primaryPhone || 'No phone'})
+                          {c.customerCode || 'CUST'} — {c.legalName || c.name} (
+                          {c.primaryPhone || 'No phone'})
                         </option>
                       ))}
                     </select>
                     {availableCustomers.length === 0 && !loadingContext && (
                       <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                        No registered customer accounts found. Use <strong>+ New / Walk-in</strong> above to enter customer details directly.
+                        No registered customer accounts found. Use <strong>+ New / Walk-in</strong>{' '}
+                        above to enter customer details directly.
                       </p>
                     )}
                   </div>
@@ -789,7 +805,8 @@ export const QuotationsPage: React.FC = () => {
                       ))}
                     </select>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Lead contact information will be automatically synchronized and linked with this proposal.
+                      Lead contact information will be automatically synchronized and linked with
+                      this proposal.
                     </p>
                   </div>
                 )}

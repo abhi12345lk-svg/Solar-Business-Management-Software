@@ -135,9 +135,7 @@ export const OrderDetailPage: React.FC = () => {
         .then(res => {
           const list = res?.items || res?.data || (Array.isArray(res) ? res : []);
           const match = list.find(
-            (p: any) =>
-              p.orderId?._id === order._id ||
-              p.orderId === order._id
+            (p: any) => p.orderId?._id === order._id || p.orderId === order._id
           );
           if (match) setLinkedProject(match);
         })
@@ -283,8 +281,8 @@ export const OrderDetailPage: React.FC = () => {
         {/* Action Controls */}
         <div className="flex items-center space-x-3">
           {/* EPC Project Handover Action */}
-          {order.status !== 'CANCELLED' && (
-            linkedProject ? (
+          {order.status !== 'CANCELLED' &&
+            (linkedProject ? (
               <Link
                 to={`/projects/${linkedProject._id}`}
                 className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs"
@@ -304,8 +302,7 @@ export const OrderDetailPage: React.FC = () => {
                 <FolderKanban className="w-4 h-4 mr-1.5" />
                 <span>Initialize EPC Project Execution</span>
               </button>
-            )
-          )}
+            ))}
 
           {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
             <button
@@ -449,9 +446,7 @@ export const OrderDetailPage: React.FC = () => {
             <div key={idx} className="p-4 space-y-2.5 hover:bg-muted/30 transition-colors">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="font-semibold text-foreground text-sm">
-                    {item.description}
-                  </div>
+                  <div className="font-semibold text-foreground text-sm">{item.description}</div>
                   {item.productId?.sku && (
                     <span className="text-[11px] font-mono text-muted-foreground block">
                       SKU: {item.productId.sku}
@@ -465,18 +460,27 @@ export const OrderDetailPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
                 <div>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Unit Rate</span>
-                  <span className="font-medium text-foreground">₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
+                    Unit Rate
+                  </span>
+                  <span className="font-medium text-foreground">
+                    ₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Taxable Value</span>
-                  <span className="font-medium text-foreground">₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
+                    Taxable Value
+                  </span>
+                  <span className="font-medium text-foreground">
+                    ₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}
+                  </span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50 bg-muted/20 -mx-4 -mb-4 p-3 rounded-b-lg">
                 <span className="text-[11px] text-muted-foreground">
-                  GST ({(item.gstRateBasisPoints / 100).toFixed(1)}%): ₹{(item.taxPaise / 100).toLocaleString('en-IN')}
+                  GST ({(item.gstRateBasisPoints / 100).toFixed(1)}%): ₹
+                  {(item.taxPaise / 100).toLocaleString('en-IN')}
                 </span>
                 <span className="font-bold text-foreground text-sm">
                   ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
@@ -675,7 +679,8 @@ export const OrderDetailPage: React.FC = () => {
                   Launch 10-Stage EPC Project Execution
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Initialize linear engineering, Net Metering DISCOM liaison, material dispatch, and commissioning pipeline.
+                  Initialize linear engineering, Net Metering DISCOM liaison, material dispatch, and
+                  commissioning pipeline.
                 </p>
               </div>
             </div>
@@ -697,7 +702,9 @@ export const OrderDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Solar Capacity:</span>
-                <span className="font-bold text-solar-600 dark:text-solar-400">{order.systemCapacityKwp} kWp</span>
+                <span className="font-bold text-solar-600 dark:text-solar-400">
+                  {order.systemCapacityKwp} kWp
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">System Topology:</span>
@@ -705,15 +712,18 @@ export const OrderDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Contract Total:</span>
-                <span className="font-mono font-bold text-foreground">₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold text-foreground">
+                  ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-lg text-xs flex items-start space-x-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
               <span>
-                Project will start at <strong>Stage 1 (Engineering Design)</strong> with all 10 standard milestone blockers,
-                QA checklists, and Net Metering utility compliance gates enabled.
+                Project will start at <strong>Stage 1 (Engineering Design)</strong> with all 10
+                standard milestone blockers, QA checklists, and Net Metering utility compliance
+                gates enabled.
               </span>
             </div>
 

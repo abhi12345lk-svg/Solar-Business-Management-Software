@@ -59,7 +59,8 @@ export const LoginPage: React.FC = () => {
       badge: 'Admin Workstation',
       badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
       title: 'Administrator Workstation',
-      description: 'Sign in to access corporate governance, EPC project execution, and full ERP operations.',
+      description:
+        'Sign in to access corporate governance, EPC project execution, and full ERP operations.',
       themeColor: 'from-amber-500 to-amber-600',
       tabActive: 'bg-amber-500 text-slate-950 font-bold shadow-md'
     },
@@ -67,7 +68,8 @@ export const LoginPage: React.FC = () => {
       badge: 'Sales CRM & Commercial',
       badgeClass: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
       title: 'Sales & Commercial Workstation',
-      description: 'Sign in to manage lead pipelines, site surveys, solar PV sizing, and client proposals.',
+      description:
+        'Sign in to manage lead pipelines, site surveys, solar PV sizing, and client proposals.',
       themeColor: 'from-sky-500 to-sky-600',
       tabActive: 'bg-sky-500 text-white font-bold shadow-md'
     },
@@ -75,7 +77,8 @@ export const LoginPage: React.FC = () => {
       badge: 'Accounts & Finance',
       badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
       title: 'Accounts & Billing Workstation',
-      description: 'Sign in to oversee payment collections, vendor 3-way matching, DBT subsidies, and costing.',
+      description:
+        'Sign in to oversee payment collections, vendor 3-way matching, DBT subsidies, and costing.',
       themeColor: 'from-emerald-500 to-emerald-600',
       tabActive: 'bg-emerald-500 text-white font-bold shadow-md'
     },
@@ -83,7 +86,8 @@ export const LoginPage: React.FC = () => {
       badge: 'Client Portal',
       badgeClass: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
       title: 'Customer Self-Service Portal',
-      description: 'Redirecting to customer milestone tracking, subsidy status, and digital document vault.',
+      description:
+        'Redirecting to customer milestone tracking, subsidy status, and digital document vault.',
       themeColor: 'from-purple-500 to-purple-600',
       tabActive: 'bg-purple-500 text-white font-bold shadow-md'
     }
@@ -458,7 +462,10 @@ export const LoginPage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <span>Sign In to {selectedPortal.charAt(0) + selectedPortal.slice(1).toLowerCase()} Portal</span>
+                  <span>
+                    Sign In to {selectedPortal.charAt(0) + selectedPortal.slice(1).toLowerCase()}{' '}
+                    Portal
+                  </span>
                   <ArrowRight className="w-4 h-4 text-white" />
                 </>
               )}

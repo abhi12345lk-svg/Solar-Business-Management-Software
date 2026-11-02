@@ -121,8 +121,8 @@ export function GoodsReceiptsPage() {
 
       {/* GRN Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[700px]">
             <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">GRN Number</th>

@@ -67,7 +67,7 @@ test.describe('Master Route Audit: 38 Distinct Routes & Panels Verification', ()
 
       // Verify page is not a React crash screen
       expect(pageErrors.length).toBe(0);
-      expect(failedHttp.length).toBe(0);
+      expect(failedHttp, `Failed HTTP: ${failedHttp.join(', ')}`).toEqual([]);
 
       // Ensure no raw uncaught crash text is rendered in the DOM
       const bodyText = await page.locator('body').innerText();

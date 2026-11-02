@@ -82,8 +82,10 @@ export function VendorInvoicesPage() {
         apiClient<any>('/vendors?limit=100&isActive=true'),
         apiClient<any>('/purchase-orders?limit=100')
       ]);
-      const vList = vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
-      const poList = poRes?.items || poRes?.data?.items || poRes?.data || (Array.isArray(poRes) ? poRes : []);
+      const vList =
+        vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
+      const poList =
+        poRes?.items || poRes?.data?.items || poRes?.data || (Array.isArray(poRes) ? poRes : []);
       setVendorsList(vList);
       setPoList(poList);
     } catch (err) {
@@ -277,8 +279,8 @@ export function VendorInvoicesPage() {
 
       {/* Invoices Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[700px]">
             <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Invoice #</th>
@@ -365,8 +367,8 @@ export function VendorInvoicesPage() {
 
       {/* Register Invoice Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg bg-card rounded-xl border border-border shadow-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="w-full max-w-lg bg-card rounded-xl border border-border shadow-xl p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-primary" />
@@ -381,7 +383,7 @@ export function VendorInvoicesPage() {
             </div>
 
             <form onSubmit={handleCreateInvoice} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Select Vendor *
@@ -435,7 +437,7 @@ export function VendorInvoicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Supplier Bill Number *
@@ -465,7 +467,7 @@ export function VendorInvoicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 p-3 rounded-lg border border-border bg-secondary/20">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-border bg-secondary/20">
                 <div>
                   <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
                     Subtotal (₹)

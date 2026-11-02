@@ -307,7 +307,8 @@ export const QuotationDetailPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           decision: 'ACCEPT',
-          notes: customerDecisionNotes.trim() || 'Proposal formally accepted and signed via workstation.'
+          notes:
+            customerDecisionNotes.trim() || 'Proposal formally accepted and signed via workstation.'
         })
       });
       setActionMessage('Quotation accepted successfully.');
@@ -329,8 +330,7 @@ export const QuotationDetailPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           decision: 'REJECT',
-          rejectionReason:
-            customerDecisionNotes.trim() || 'Declined by customer.'
+          rejectionReason: customerDecisionNotes.trim() || 'Declined by customer.'
         })
       });
       setActionMessage('Quotation declined by customer.');
@@ -474,8 +474,8 @@ export const QuotationDetailPage: React.FC = () => {
 
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Generate Sales Order or View Linked Order (When Accepted) */}
-          {quotation.status === QuotationStatus.ACCEPTED && (
-            existingOrder ? (
+          {quotation.status === QuotationStatus.ACCEPTED &&
+            (existingOrder ? (
               <Link
                 to={`/orders/${existingOrder._id}`}
                 className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
@@ -493,8 +493,7 @@ export const QuotationDetailPage: React.FC = () => {
                 <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
                 <span>Generate Confirmed Sales Order</span>
               </button>
-            )
-          )}
+            ))}
 
           {/* Download/View PDF Action */}
           <button
@@ -659,9 +658,12 @@ export const QuotationDetailPage: React.FC = () => {
                 const rate = ((item.unitRatePaise || 0) / 100).toLocaleString('en-IN');
                 const taxable = ((item.taxableAmountPaise || 0) / 100).toLocaleString('en-IN');
                 const itemTotal =
-                  item.itemTotalPaise ?? (item as any).totalAmountPaise ?? item.taxableAmountPaise ?? 0;
+                  item.itemTotalPaise ??
+                  (item as any).totalAmountPaise ??
+                  item.taxableAmountPaise ??
+                  0;
                 const total = (itemTotal / 100).toLocaleString('en-IN');
-                const gstPercent = (((item.gstRateBasisPoints || 0) / 100)).toFixed(0);
+                const gstPercent = ((item.gstRateBasisPoints || 0) / 100).toFixed(0);
 
                 return (
                   <div key={idx} className="py-3 space-y-1.5">
@@ -685,7 +687,9 @@ export const QuotationDetailPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground bg-secondary/30 px-2 py-1 rounded">
-                      <span>Qty: {item.quantity} {item.unit}</span>
+                      <span>
+                        Qty: {item.quantity} {item.unit}
+                      </span>
                       <span>Rate: ₹{rate}</span>
                       <span>Taxable: ₹{taxable}</span>
                     </div>
@@ -713,9 +717,12 @@ export const QuotationDetailPage: React.FC = () => {
                     const rate = ((item.unitRatePaise || 0) / 100).toLocaleString('en-IN');
                     const taxable = ((item.taxableAmountPaise || 0) / 100).toLocaleString('en-IN');
                     const itemTotal =
-                      item.itemTotalPaise ?? (item as any).totalAmountPaise ?? item.taxableAmountPaise ?? 0;
+                      item.itemTotalPaise ??
+                      (item as any).totalAmountPaise ??
+                      item.taxableAmountPaise ??
+                      0;
                     const total = (itemTotal / 100).toLocaleString('en-IN');
-                    const gstPercent = (((item.gstRateBasisPoints || 0) / 100)).toFixed(0);
+                    const gstPercent = ((item.gstRateBasisPoints || 0) / 100).toFixed(0);
 
                     return (
                       <tr key={idx} className="hover:bg-muted/30">
@@ -787,7 +794,9 @@ export const QuotationDetailPage: React.FC = () => {
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-foreground border-b border-border pb-2 flex items-center justify-between">
               <span>Commercial Pricing & Tax Summary</span>
-              <span className="text-[10px] font-mono text-muted-foreground font-normal">INR (₹)</span>
+              <span className="text-[10px] font-mono text-muted-foreground font-normal">
+                INR (₹)
+              </span>
             </h2>
 
             <div className="space-y-2.5 text-xs">
@@ -895,11 +904,14 @@ export const QuotationDetailPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400/90">
-                  Direct central subsidy credited to client's bank account upon National Portal commissioning sync.
+                  Direct central subsidy credited to client's bank account upon National Portal
+                  commissioning sync.
                 </p>
                 <div className="flex justify-between pt-1.5 border-t border-emerald-500/30 font-bold text-xs">
                   <span className="text-foreground">Effective Client Investment:</span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-300">₹{effectiveCostRs}</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-300">
+                    ₹{effectiveCostRs}
+                  </span>
                 </div>
               </div>
             )}
@@ -1123,7 +1135,8 @@ export const QuotationDetailPage: React.FC = () => {
                   Generate Confirmed Sales Order
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Convert accepted quotation into a binding commercial contract and reservation docket.
+                  Convert accepted quotation into a binding commercial contract and reservation
+                  docket.
                 </p>
               </div>
             </div>
@@ -1131,7 +1144,9 @@ export const QuotationDetailPage: React.FC = () => {
             <div className="space-y-2.5 bg-secondary/30 p-3 rounded-lg border text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Proposal Code:</span>
-                <span className="font-mono font-bold text-foreground">{quotation.fullQuotationCode}</span>
+                <span className="font-mono font-bold text-foreground">
+                  {quotation.fullQuotationCode}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Customer:</span>
@@ -1139,7 +1154,9 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Net Commercial Total:</span>
-                <span className="font-mono font-bold text-solar-600 dark:text-solar-400">₹{netRs}</span>
+                <span className="font-mono font-bold text-solar-600 dark:text-solar-400">
+                  ₹{netRs}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Line Items BOM:</span>
@@ -1147,15 +1164,17 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Milestones:</span>
-                <span className="font-semibold">{quotation.paymentMilestones?.length || 0} Stages</span>
+                <span className="font-semibold">
+                  {quotation.paymentMilestones?.length || 0} Stages
+                </span>
               </div>
             </div>
 
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs flex items-start space-x-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
               <span>
-                Sales Order generation will lock this commercial pricing and enable warehouse hardware reservation
-                and 10-stage EPC project execution.
+                Sales Order generation will lock this commercial pricing and enable warehouse
+                hardware reservation and 10-stage EPC project execution.
               </span>
             </div>
 

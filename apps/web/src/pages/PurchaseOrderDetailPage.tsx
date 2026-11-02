@@ -399,8 +399,8 @@ export function PurchaseOrderDetailPage() {
           <span>Ordered Hardware Specifications</span>
           <span className="text-xs text-muted-foreground">Status: {po.status}</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[650px]">
             <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">SKU / Item</th>
@@ -446,8 +446,8 @@ export function PurchaseOrderDetailPage() {
 
       {/* Goods Receipt (GRN) Modal */}
       {isGrnModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl bg-card rounded-xl border border-border shadow-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="w-full max-w-3xl bg-card rounded-xl border border-border shadow-xl p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <PackageCheck className="w-5 h-5 text-primary" />

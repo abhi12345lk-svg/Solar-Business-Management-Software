@@ -347,9 +347,7 @@ export const LeadsPage: React.FC = () => {
                       <Phone className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
                       <span>{lead.prospectPhone}</span>
                     </a>
-                    {lead.location?.city && (
-                      <span>📍 {lead.location.city}</span>
-                    )}
+                    {lead.location?.city && <span>📍 {lead.location.city}</span>}
                     {lead.estimatedCapacityKw && (
                       <span className="font-semibold text-solar-600">
                         ⚡ {lead.estimatedCapacityKw} kWp
@@ -359,7 +357,9 @@ export const LeadsPage: React.FC = () => {
 
                   <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
                     <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
-                      {lead.assignedEmployeeName ? `Staff: ${lead.assignedEmployeeName}` : 'Unassigned'}
+                      {lead.assignedEmployeeName
+                        ? `Staff: ${lead.assignedEmployeeName}`
+                        : 'Unassigned'}
                     </span>
                     <Link
                       to={`/leads/${lead.id}`}
@@ -408,7 +408,9 @@ export const LeadsPage: React.FC = () => {
                           <span>{lead.prospectPhone}</span>
                         </div>
                         {lead.prospectEmail && (
-                          <span className="text-xs text-muted-foreground">{lead.prospectEmail}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {lead.prospectEmail}
+                          </span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground">
@@ -454,7 +456,9 @@ export const LeadsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
-              <h2 className="text-base sm:text-lg font-bold text-foreground">Record New Solar Lead</h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">
+                Record New Solar Lead
+              </h2>
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold"
@@ -478,172 +482,177 @@ export const LeadsPage: React.FC = () => {
                     <span>{dupWarning}</span>
                   </div>
                 )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Prospect Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={prospectName}
-                    onChange={e => setProspectName(e.target.value)}
-                    placeholder="e.g. Ramesh Patel"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Prospect Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={prospectName}
+                      onChange={e => setProspectName(e.target.value)}
+                      placeholder="e.g. Ramesh Patel"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Phone (E.164 / 10 Digits) *
+                      {checkingDup && (
+                        <span className="text-[10px] text-muted-foreground ml-2 animate-pulse">
+                          (Checking duplicate...)
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={prospectPhone}
+                      onChange={handlePhoneChange}
+                      placeholder="e.g. 9876543210 or +919876543210"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={prospectEmail}
+                      onChange={e => setProspectEmail(e.target.value)}
+                      placeholder="prospect@example.com"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">City *</label>
+                    <input
+                      type="text"
+                      required
+                      value={city}
+                      onChange={e => setCity(e.target.value)}
+                      placeholder="e.g. Jaipur"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      State *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={state}
+                      onChange={e => setState(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      PIN Code
+                    </label>
+                    <input
+                      type="text"
+                      value={pinCode}
+                      onChange={e => setPinCode(e.target.value)}
+                      placeholder="302001"
+                      maxLength={6}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Capacity (kWp)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      value={estimatedCapacityKw}
+                      onChange={e => setEstimatedCapacityKw(e.target.value)}
+                      placeholder="5.0"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Requirement Type
+                    </label>
+                    <select
+                      value={solarRequirement}
+                      onChange={e => setSolarRequirement(e.target.value as SolarRequirement)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      {Object.values(SolarRequirement).map(r => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Lead Source
+                    </label>
+                    <select
+                      value={source}
+                      onChange={e => setSource(e.target.value as LeadSource)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      {Object.values(LeadSource).map(s => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={priority}
+                      onChange={e => setPriority(e.target.value as LeadPriority)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      {Object.values(LeadPriority).map(p => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Phone (E.164 / 10 Digits) *
-                    {checkingDup && (
-                      <span className="text-[10px] text-muted-foreground ml-2 animate-pulse">
-                        (Checking duplicate...)
-                      </span>
-                    )}
+                    Inquiry Remarks & Notes
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={prospectPhone}
-                    onChange={handlePhoneChange}
-                    placeholder="e.g. 9876543210 or +919876543210"
+                  <textarea
+                    rows={3}
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Notes regarding electricity bill, shadow constraints, consumer subsidy..."
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={prospectEmail}
-                    onChange={e => setProspectEmail(e.target.value)}
-                    placeholder="prospect@example.com"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">City *</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    placeholder="e.g. Jaipur"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">State *</label>
-                  <input
-                    type="text"
-                    required
-                    value={state}
-                    onChange={e => setState(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">PIN Code</label>
-                  <input
-                    type="text"
-                    value={pinCode}
-                    onChange={e => setPinCode(e.target.value)}
-                    placeholder="302001"
-                    maxLength={6}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Capacity (kWp)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0.5"
-                    value={estimatedCapacityKw}
-                    onChange={e => setEstimatedCapacityKw(e.target.value)}
-                    placeholder="5.0"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Requirement Type
-                  </label>
-                  <select
-                    value={solarRequirement}
-                    onChange={e => setSolarRequirement(e.target.value as SolarRequirement)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    {Object.values(SolarRequirement).map(r => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Lead Source
-                  </label>
-                  <select
-                    value={source}
-                    onChange={e => setSource(e.target.value as LeadSource)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    {Object.values(LeadSource).map(s => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Priority</label>
-                  <select
-                    value={priority}
-                    onChange={e => setPriority(e.target.value as LeadPriority)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    {Object.values(LeadPriority).map(p => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Inquiry Remarks & Notes
-                </label>
-                <textarea
-                  rows={3}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Notes regarding electricity bill, shadow constraints, consumer subsidy..."
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
               </div>
 
               <div className="p-3 sm:p-4 border-t bg-card shrink-0 flex items-center justify-end space-x-3">

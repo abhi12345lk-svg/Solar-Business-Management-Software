@@ -131,8 +131,8 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <table className="w-full text-left border-collapse text-sm min-w-[650px]">
                 <thead>
                   <tr className="border-b bg-muted/40 text-xs font-semibold text-muted-foreground">
                     <th className="py-3 px-4">Receipt #</th>
@@ -230,8 +230,8 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
             <div className="px-5 py-4 border-b bg-muted/20">
               <h3 className="font-bold text-sm">Contracted Solar Orders</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground">
                     <th className="py-2.5 px-4">Order #</th>
@@ -284,8 +284,8 @@ export const CustomerPaymentsPortalPage: React.FC = () => {
 
       {/* Printable Receipt Modal */}
       {showReceiptModal && receiptData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border rounded-2xl max-w-xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-start pb-4 border-b">
               <div>
                 <h2 className="text-lg font-bold">{receiptData.company?.companyName}</h2>

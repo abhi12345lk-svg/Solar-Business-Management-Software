@@ -86,9 +86,11 @@ export function PurchaseOrdersPage() {
         apiClient<any>('/warehouses?limit=100'),
         apiClient<any>('/catalog/products?limit=100&isActive=true')
       ]);
-      const vList = vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
+      const vList =
+        vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
       const wList = wRes?.data || wRes?.items || (Array.isArray(wRes) ? wRes : []);
-      const pList = pRes?.data || pRes?.products || pRes?.items || (Array.isArray(pRes) ? pRes : []);
+      const pList =
+        pRes?.data || pRes?.products || pRes?.items || (Array.isArray(pRes) ? pRes : []);
       setVendorsList(vList);
       setWarehousesList(wList);
       setProductsList(pList);
@@ -150,7 +152,9 @@ export function PurchaseOrdersPage() {
     }
     const invalidLine = lineItems.find(l => !l.productId || l.orderedQuantity <= 0);
     if (invalidLine) {
-      setModalError('Please choose a valid product SKU and quantity greater than zero for all line items.');
+      setModalError(
+        'Please choose a valid product SKU and quantity greater than zero for all line items.'
+      );
       return;
     }
 
@@ -308,8 +312,8 @@ export function PurchaseOrdersPage() {
 
       {/* PO Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[650px]">
             <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">PO Number</th>
@@ -383,8 +387,8 @@ export function PurchaseOrdersPage() {
 
       {/* Create Purchase Order Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl bg-card rounded-xl border border-border shadow-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="w-full max-w-3xl bg-card rounded-xl border border-border shadow-xl p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />

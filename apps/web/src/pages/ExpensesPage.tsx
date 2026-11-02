@@ -467,7 +467,7 @@ export const ExpensesPage: React.FC = () => {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Total Recorded Expenses
@@ -587,8 +587,8 @@ export const ExpensesPage: React.FC = () => {
 
       {/* Expense Register Table */}
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-foreground">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm text-foreground min-w-[750px]">
             <thead className="bg-muted/50 border-b text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="py-3 px-4">Expense #</th>
@@ -821,7 +821,7 @@ export const ExpensesPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Base Amount (₹) <span className="text-destructive">*</span>
@@ -856,7 +856,7 @@ export const ExpensesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Payee Name / Vendor

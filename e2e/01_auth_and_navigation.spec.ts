@@ -11,7 +11,7 @@ test.describe('Module 28 & Auth: Authentication, MFA, Navigation & Viewport Audi
     await expect(page).toHaveTitle(/INS Solar/i);
     await expect(page.locator('#email')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Sign In to Workstation/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Sign In/i })).toBeVisible();
   });
 
   test('TC-AUTH-02: Submitting invalid credentials shows error banner and rejects access', async ({
@@ -20,7 +20,7 @@ test.describe('Module 28 & Auth: Authentication, MFA, Navigation & Viewport Audi
     await page.goto('/login');
     await page.locator('#email').fill('nonexistent@inssolar.com');
     await page.locator('#password').fill('InvalidPassword999!');
-    await page.getByRole('button', { name: /Sign In to Workstation/i }).click();
+    await page.getByRole('button', { name: /Sign In/i }).click();
 
     // Verify error banner is visible
     const errorBanner = page.locator('text=Authentication Denied');
@@ -33,7 +33,7 @@ test.describe('Module 28 & Auth: Authentication, MFA, Navigation & Viewport Audi
     await page.goto('/login');
     await page.locator('#email').fill('admin@inssolar.com');
     await page.locator('#password').fill('SolarAdmin2026!');
-    await page.getByRole('button', { name: /Sign In to Workstation/i }).click();
+    await page.getByRole('button', { name: /Sign In/i }).click();
 
     // Verify redirection to dashboard
     await expect(page).toHaveURL(/\/(dashboard)?$/, { timeout: 10000 });
@@ -47,7 +47,7 @@ test.describe('Module 28 & Auth: Authentication, MFA, Navigation & Viewport Audi
     await page.goto('/login');
     await page.locator('#email').fill('admin@inssolar.com');
     await page.locator('#password').fill('SolarAdmin2026!');
-    await page.getByRole('button', { name: /Sign In to Workstation/i }).click();
+    await page.getByRole('button', { name: /Sign In/i }).click();
     await expect(page).toHaveURL(/\/(dashboard)?$/, { timeout: 10000 });
 
     // Click Sign Out

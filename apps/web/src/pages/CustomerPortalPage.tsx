@@ -640,7 +640,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center space-x-1 overflow-x-auto border-b pb-1 text-sm font-semibold">
+      <div className="flex items-center space-x-1.5 overflow-x-auto border-b pb-2 -mx-2 px-2 sm:mx-0 sm:px-0 text-sm font-semibold scrollbar-none">
         <button
           onClick={() => setActiveTab('DASHBOARD')}
           className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors whitespace-nowrap ${

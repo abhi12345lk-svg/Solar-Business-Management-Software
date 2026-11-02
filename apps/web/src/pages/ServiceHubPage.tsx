@@ -10,13 +10,7 @@
 
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  LifeBuoy,
-  Wrench,
-  ShieldCheck,
-  FileCheck2,
-  Sparkles
-} from 'lucide-react';
+import { LifeBuoy, Wrench, ShieldCheck, FileCheck2, Sparkles } from 'lucide-react';
 import { ComplaintsPage } from './ComplaintsPage.js';
 import { ServiceVisitsPage } from './ServiceVisitsPage.js';
 import { WarrantiesPage } from './WarrantiesPage.js';
@@ -32,9 +26,9 @@ export const ServiceHubPage: React.FC = () => {
   const currentTab: ServiceTab =
     tabParam === 'complaints'
       ? 'tickets'
-      : (['tickets', 'visits', 'warranties', 'amc'].includes(tabParam || '')
-          ? (tabParam as ServiceTab)
-          : 'tickets');
+      : ['tickets', 'visits', 'warranties', 'amc'].includes(tabParam || '')
+        ? (tabParam as ServiceTab)
+        : 'tickets';
 
   const handleTabChange = (tab: ServiceTab) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -42,7 +36,11 @@ export const ServiceHubPage: React.FC = () => {
     setSearchParams(nextParams);
   };
 
-  const tabs: Array<{ id: ServiceTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const tabs: Array<{
+    id: ServiceTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
     { id: 'tickets', label: 'Complaints & Tickets', icon: LifeBuoy },
     { id: 'visits', label: 'Field Technician Visits', icon: Wrench },
     { id: 'warranties', label: 'Asset Warranties', icon: ShieldCheck },
@@ -63,8 +61,9 @@ export const ServiceHubPage: React.FC = () => {
               After-Sales & Asset Care Hub
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-              Unified post-commissioning customer care: resolve breakdown tickets, dispatch field technicians,
-              verify 25-year panel degradation warranties, and manage recurring AMC schedules.
+              Unified post-commissioning customer care: resolve breakdown tickets, dispatch field
+              technicians, verify 25-year panel degradation warranties, and manage recurring AMC
+              schedules.
             </p>
           </div>
 

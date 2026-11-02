@@ -113,9 +113,7 @@ export const DocumentsPage: React.FC = () => {
       if (classificationFilter) queryParams.set('accessClassification', classificationFilter);
       if (isArchivedFilter) queryParams.set('isArchived', 'true');
 
-      const res = await apiClient<any>(
-        `/documents?${queryParams.toString()}`
-      );
+      const res = await apiClient<any>(`/documents?${queryParams.toString()}`);
       setDocuments(Array.isArray(res) ? res : res?.items || res?.documents || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load documents.');
@@ -435,8 +433,8 @@ export const DocumentsPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">Document Details</th>

@@ -545,22 +545,25 @@ export const InventoryPage: React.FC = () => {
       {/* Tab 1: Stock Balances */}
       {activeTab === 'balances' && (
         <div className="border rounded-xl bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto -mx-1 sm:mx-0">
+            <table className="w-full text-left text-sm min-w-[600px]">
               <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
                 <tr>
-                  <th className="px-6 py-3">Product Name & SKU</th>
-                  <th className="px-6 py-3">Warehouse Location</th>
-                  <th className="px-6 py-3 text-center">On-Hand Qty</th>
-                  <th className="px-6 py-3 text-center">Reserved Qty</th>
-                  <th className="px-6 py-3 text-center">Available Qty</th>
-                  <th className="px-6 py-3 text-right">Status</th>
+                  <th className="px-4 sm:px-6 py-3">Product Name & SKU</th>
+                  <th className="px-4 sm:px-6 py-3">Warehouse Location</th>
+                  <th className="px-4 sm:px-6 py-3 text-center">On-Hand Qty</th>
+                  <th className="px-4 sm:px-6 py-3 text-center">Reserved Qty</th>
+                  <th className="px-4 sm:px-6 py-3 text-center">Available Qty</th>
+                  <th className="px-4 sm:px-6 py-3 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {loadingBalances ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <td
+                      colSpan={6}
+                      className="px-4 sm:px-6 py-12 text-center text-muted-foreground"
+                    >
                       <div className="inline-flex items-center space-x-2">
                         <div className="w-4 h-4 border-2 border-solar-500 border-t-transparent rounded-full animate-spin" />
                         <span>Loading stock balances...</span>
@@ -569,7 +572,10 @@ export const InventoryPage: React.FC = () => {
                   </tr>
                 ) : balances.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <td
+                      colSpan={6}
+                      className="px-4 sm:px-6 py-12 text-center text-muted-foreground"
+                    >
                       No stock balances found. Record an authorized receipt or opening balance to
                       initialize stock.
                     </td>
@@ -577,13 +583,13 @@ export const InventoryPage: React.FC = () => {
                 ) : (
                   balances.map(b => (
                     <tr key={b._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-foreground">
+                      <td className="px-4 sm:px-6 py-4 font-semibold text-foreground">
                         {b.productId?.name || 'Hardware Asset'}
                         <span className="block text-xs font-mono text-muted-foreground">
                           {b.productId?.sku}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-4">
                         <div className="font-medium text-foreground">
                           {b.warehouseId?.name || 'Central Hub'}
                         </div>
@@ -591,16 +597,16 @@ export const InventoryPage: React.FC = () => {
                           Code: {b.warehouseId?.code}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-foreground">
+                      <td className="px-4 sm:px-6 py-4 text-center font-bold text-foreground">
                         {b.onHandQuantity}
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-indigo-400">
+                      <td className="px-4 sm:px-6 py-4 text-center font-bold text-indigo-400">
                         {b.reservedQuantity}
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-emerald-400">
+                      <td className="px-4 sm:px-6 py-4 text-center font-bold text-emerald-400">
                         {b.availableQuantity}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 sm:px-6 py-4 text-right">
                         {b.availableQuantity > 0 ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                             In Stock
@@ -648,7 +654,75 @@ export const InventoryPage: React.FC = () => {
           </div>
 
           <div className="border rounded-xl bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y divide-border">
+              {loadingProducts ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <div className="inline-flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-solar-500" />
+                    <span>Loading product catalogue...</span>
+                  </div>
+                </div>
+              ) : catalogProducts.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-xs">
+                  No product items found. Click "+ Add New Product / Item" to define your hardware
+                  catalogue.
+                </div>
+              ) : (
+                catalogProducts
+                  .filter(p =>
+                    productSearch
+                      ? p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                        p.sku.toLowerCase().includes(productSearch.toLowerCase()) ||
+                        (p.brand && p.brand.toLowerCase().includes(productSearch.toLowerCase()))
+                      : true
+                  )
+                  .map(p => (
+                    <div key={p._id} className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-foreground truncate">{p.name}</p>
+                          <p className="text-xs font-mono text-muted-foreground">{p.sku}</p>
+                        </div>
+                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground border">
+                          <Tag className="w-3 h-3 mr-1" />
+                          {p.categoryId?.name || 'Hardware'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          Brand: <strong className="text-foreground">{p.brand || '—'}</strong>
+                        </span>
+                        <span>
+                          Unit:{' '}
+                          <strong className="text-foreground font-mono">{p.uom || 'PCS'}</strong>
+                        </span>
+                        {p.isSerialized ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            Serial Tracked
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">Bulk Batch</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t text-xs">
+                        <span className="text-muted-foreground">
+                          Buy: ₹
+                          {(p.purchaseRatePaise ? p.purchaseRatePaise / 100 : 0).toLocaleString(
+                            'en-IN'
+                          )}
+                        </span>
+                        <span className="font-bold text-foreground">
+                          Sell: ₹{(p.sellingPricePaise / 100).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
                   <tr>
@@ -736,7 +810,62 @@ export const InventoryPage: React.FC = () => {
       {/* Tab 3: Stock Movement Ledger */}
       {activeTab === 'movements' && (
         <div className="border rounded-xl bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile Card View */}
+          <div className="block md:hidden divide-y divide-border">
+            {loadingMovements ? (
+              <div className="p-8 text-center text-muted-foreground text-xs">
+                Loading material ledger...
+              </div>
+            ) : movements.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-xs">
+                No stock movement records found in ledger.
+              </div>
+            ) : (
+              movements.map(m => (
+                <div key={m._id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-semibold text-xs text-solar-500">
+                      {m.movementNumber}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border">
+                      {m.movementType}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-xs text-foreground">{m.productId?.name}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground">
+                      {m.productId?.sku}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-foreground">Qty: {m.quantity}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(m.createdAt).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  {(m.sourceWarehouseId || m.destinationWarehouseId) && (
+                    <div className="text-[11px] text-muted-foreground flex gap-2">
+                      {m.sourceWarehouseId && <span>From: {m.sourceWarehouseId.code}</span>}
+                      {m.destinationWarehouseId && <span>To: {m.destinationWarehouseId.code}</span>}
+                    </div>
+                  )}
+                  {m.reason && (
+                    <p className="text-[11px] text-muted-foreground italic truncate">
+                      Note: {m.reason}
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
                 <tr>
@@ -806,10 +935,45 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 3: Serial Numbers */}
+      {/* Tab 4: Serial Numbers */}
       {activeTab === 'serials' && (
         <div className="border rounded-xl bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile Card View */}
+          <div className="block md:hidden divide-y divide-border">
+            {loadingSerials ? (
+              <div className="p-8 text-center text-muted-foreground text-xs">
+                Loading serial number database...
+              </div>
+            ) : serials.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-xs">
+                No serialized assets registered yet. Click &quot;Register Serials&quot; to track
+                solar panels or inverters.
+              </div>
+            ) : (
+              serials.map(s => (
+                <div key={s._id} className="p-4 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-foreground">
+                      {s.serialNumber}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      {s.status}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-foreground">{s.productId?.name}</p>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>
+                      {s.warehouseId?.name} ({s.warehouseId?.code})
+                    </span>
+                    <span>{new Date(s.createdAt).toLocaleDateString('en-IN')}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
                 <tr>
@@ -946,7 +1110,7 @@ export const InventoryPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
                     SKU / Code *
@@ -974,7 +1138,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
                     Category *
@@ -1013,7 +1177,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
                     Purchase Rate (₹)

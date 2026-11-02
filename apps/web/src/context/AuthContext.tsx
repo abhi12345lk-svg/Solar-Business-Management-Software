@@ -49,7 +49,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
     retry: (failureCount, error: any) => {
       // Retry up to 3 times if server is warming up or during initial connect
-      if (failureCount < 3 && (error?.statusCode === 503 || error?.message?.includes('Failed to fetch'))) {
+      if (
+        failureCount < 3 &&
+        (error?.statusCode === 503 || error?.message?.includes('Failed to fetch'))
+      ) {
         return true;
       }
       return false;

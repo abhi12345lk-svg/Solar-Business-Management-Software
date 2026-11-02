@@ -514,6 +514,19 @@ export const ProjectDetailPage: React.FC = () => {
     }
   };
 
+  const handleStageNodeClick = (stageKey: string, stageIndex: number) => {
+    handleStageClick(stageKey);
+
+    // If clicking next stage directly while in progress, open advance stage modal
+    if (project?.status === 'IN_PROGRESS' && stageIndex === currentStageIndex + 1) {
+      setTargetStage(stageKey);
+      setStageModalOpen(true);
+    } else if (project?.status === 'PLANNING') {
+      setTargetStatus('IN_PROGRESS');
+      setStatusModalOpen(true);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PLANNING':
@@ -789,6 +802,7 @@ export const ProjectDetailPage: React.FC = () => {
             {STAGES.map((s, idx) => {
               const isPast = idx < currentStageIndex;
               const isCurrent = idx === currentStageIndex;
+              const isNext = idx === currentStageIndex + 1;
               return (
                 <div key={s.key} className="flex-1 flex flex-col items-center relative group">
                   {/* Connecting Line */}
@@ -801,27 +815,39 @@ export const ProjectDetailPage: React.FC = () => {
                   )}
                   {/* Node Circle */}
                   <div
-                    onClick={() => handleStageClick(s.key)}
-                    title={`Jump to ${s.fullName} workspace tab`}
+                    onClick={() => handleStageNodeClick(s.key, idx)}
+                    title={
+                      isNext
+                        ? `Next Milestone: Click to Advance to ${s.fullName}`
+                        : `Jump to ${s.fullName} workspace tab`
+                    }
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-all shadow-sm cursor-pointer hover:scale-110 ${
                       isPast
                         ? 'bg-solar-600 text-white'
                         : isCurrent
                           ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          : isNext
+                            ? 'bg-solar-500/20 border-2 border-solar-500 text-solar-700 dark:text-solar-300 hover:bg-solar-500 hover:text-white ring-2 ring-solar-500/10 animate-pulse'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
                     {isPast ? <Check className="w-4 h-4" /> : s.step}
                   </div>
                   <span
-                    onClick={() => handleStageClick(s.key)}
-                    title={`Jump to ${s.fullName} workspace tab`}
+                    onClick={() => handleStageNodeClick(s.key, idx)}
+                    title={
+                      isNext
+                        ? `Next Milestone: Click to Advance to ${s.fullName}`
+                        : `Jump to ${s.fullName} workspace tab`
+                    }
                     className={`mt-2 text-[11px] text-center font-medium line-clamp-1 max-w-[85px] hover:underline cursor-pointer ${
                       isCurrent
                         ? 'text-solar-600 font-bold'
                         : isPast
                           ? 'text-foreground'
-                          : 'text-muted-foreground'
+                          : isNext
+                            ? 'text-solar-600 dark:text-solar-400 font-semibold'
+                            : 'text-muted-foreground'
                     }`}
                   >
                     {s.label}
@@ -831,6 +857,63 @@ export const ProjectDetailPage: React.FC = () => {
             })}
           </div>
         </div>
+
+        {/* Operational Guidance Banner depending on status & stage */}
+        {project.status === 'PLANNING' && (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mt-2">
+            <div className="flex items-start sm:items-center space-x-2.5">
+              <PlayCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-200">
+                  Project is currently in PLANNING Phase — On-Site Mobilization Pending
+                </span>
+                <p className="text-amber-700 dark:text-amber-300 text-[11px] mt-0.5">
+                  Click <strong>&quot;Start Project&quot;</strong> to activate the 10-Stage EPC Pipeline and advance from Stage 1 (Engineering) to Stage 10 (COD Handover).
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setTargetStatus('IN_PROGRESS');
+                setStatusModalOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <PlayCircle className="w-4 h-4" />
+              <span>Start Project Now</span>
+            </button>
+          </div>
+        )}
+
+        {project.status === 'IN_PROGRESS' && (
+          <div className="p-3 bg-solar-500/10 border border-solar-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mt-2">
+            <div className="flex items-center space-x-2.5">
+              <Zap className="w-4 h-4 text-solar-600 shrink-0" />
+              <div>
+                <span className="font-bold text-solar-900 dark:text-solar-200">
+                  Active Stage {currentStageIndex + 1}/10: {STAGES[currentStageIndex]?.fullName}
+                </span>
+                <span className="text-muted-foreground ml-2 hidden sm:inline">
+                  &bull; Complete tab tasks &amp; quality checklists to move forward
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              {currentStageIndex < STAGES.length - 1 && (
+                <button
+                  onClick={() => {
+                    setTargetStage(STAGES[currentStageIndex + 1].key);
+                    setStageModalOpen(true);
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Advance to Stage {currentStageIndex + 2}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs Bar */}
@@ -1515,6 +1598,19 @@ export const ProjectDetailPage: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {(targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ||
+                targetStage === 'STAGE_10_COMMISSION_HANDOVER') && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>EPC Quality &amp; Safety Gate Notice</span>
+                  </div>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    Advancing to <strong>{targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ? 'Stage 8 (Pre-Commissioning)' : 'Stage 10 (COD Handover)'}</strong> strictly requires all mandatory installation checklist items (Civil rails, DC cabling, Inverter mounting, and Earthing &lt; 5&Omega;) to be marked <strong>PASSED</strong> in the <em>Installation Checklist</em> tab.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">

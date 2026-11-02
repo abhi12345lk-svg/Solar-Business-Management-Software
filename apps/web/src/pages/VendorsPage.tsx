@@ -232,8 +232,8 @@ export function VendorsPage() {
 
       {/* Vendors Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto -mx-1 sm:mx-0">
+          <table className="w-full text-left text-sm min-w-[650px]">
             <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Vendor Code</th>
@@ -321,8 +321,8 @@ export function VendorsPage() {
 
       {/* Add Vendor Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg bg-card rounded-xl border border-border shadow-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
+          <div className="w-full max-w-lg bg-card rounded-xl border border-border shadow-xl p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <h2 className="text-lg font-bold text-foreground">Register New Vendor</h2>
               <button
@@ -348,7 +348,7 @@ export function VendorsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Contact Person
@@ -375,7 +375,7 @@ export function VendorsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Business Email
@@ -405,7 +405,7 @@ export function VendorsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     GSTIN (15-char)
@@ -443,7 +443,7 @@ export function VendorsPage() {
                   onChange={e => setFormData({ ...formData, addressLine1: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none"
                 />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input
                     type="text"
                     placeholder="City"

@@ -439,13 +439,17 @@ export const SurveysPage: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">Roof & Usable Area</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Roof & Usable Area
+                      </span>
                       <span className="font-semibold text-foreground">
                         {srv.roofType} • {srv.usableRoofAreaSqFt} sq.ft
                       </span>
                     </div>
                     <div>
-                      <span className="text-[11px] text-muted-foreground block">Proposed Capacity</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Proposed Capacity
+                      </span>
                       <span className="font-bold text-solar-600">
                         {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
                       </span>
@@ -514,7 +518,11 @@ export const SurveysPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-semibold text-foreground">
                         {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
-                        {Boolean(srv.proposedCapacityKw && srv.sanctionedLoadKw && srv.proposedCapacityKw > srv.sanctionedLoadKw) && (
+                        {Boolean(
+                          srv.proposedCapacityKw &&
+                          srv.sanctionedLoadKw &&
+                          srv.proposedCapacityKw > srv.sanctionedLoadKw
+                        ) && (
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold block mt-1 border border-amber-500/20">
                             ⚠️ Load Enh. Req.
                           </span>
@@ -562,7 +570,9 @@ export const SurveysPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
-              <h2 className="text-base sm:text-lg font-bold text-foreground">Schedule Site Survey</h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">
+                Schedule Site Survey
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
@@ -580,298 +590,301 @@ export const SurveysPage: React.FC = () => {
                     <span>{createError}</span>
                   </div>
                 )}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-foreground">
-                    Originating Solar Lead <span className="text-destructive">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setManualLeadEntry(!manualLeadEntry);
-                      setLeadId('');
-                    }}
-                    className="text-[11px] text-solar-600 dark:text-solar-400 hover:underline font-medium"
-                  >
-                    {manualLeadEntry ? '← Select from CRM Leads' : 'Custom / Search by Code'}
-                  </button>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-foreground">
+                      Originating Solar Lead <span className="text-destructive">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualLeadEntry(!manualLeadEntry);
+                        setLeadId('');
+                      }}
+                      className="text-[11px] text-solar-600 dark:text-solar-400 hover:underline font-medium"
+                    >
+                      {manualLeadEntry ? '← Select from CRM Leads' : 'Custom / Search by Code'}
+                    </button>
+                  </div>
+
+                  {!manualLeadEntry ? (
+                    <div className="space-y-2">
+                      <select
+                        required
+                        value={leadId}
+                        onChange={e => handleSelectLead(e.target.value)}
+                        className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                      >
+                        <option value="">
+                          {loadingLeads
+                            ? 'Loading CRM leads...'
+                            : '-- Select Active Lead from CRM --'}
+                        </option>
+                        {availableLeads.map(lead => (
+                          <option key={lead.id} value={lead.id}>
+                            {lead.leadCode} — {lead.prospectName} ({lead.prospectPhone})
+                            {lead.location?.city ? ` • ${lead.location.city}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {availableLeads.length === 0 && !loadingLeads && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          No active leads found. Switch to custom entry or create a Lead in CRM
+                          first.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        required
+                        value={leadId}
+                        onChange={e => setLeadId(e.target.value)}
+                        placeholder="Enter Lead Code (e.g. LEAD-2026-00001) or Phone"
+                        className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        System will automatically resolve and link the survey to this Lead record.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Selected Lead Summary Preview */}
+                  {leadId &&
+                    !manualLeadEntry &&
+                    (() => {
+                      const selectedLead = availableLeads.find(l => l.id === leadId);
+                      if (!selectedLead) return null;
+                      return (
+                        <div className="mt-2 p-2.5 bg-solar-50/70 dark:bg-solar-950/30 border border-solar-200 dark:border-solar-800/60 rounded-lg text-xs flex items-center justify-between">
+                          <div>
+                            <span className="font-semibold text-solar-800 dark:text-solar-300">
+                              {selectedLead.prospectName}
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              📞 {selectedLead.prospectPhone}
+                            </span>
+                            {selectedLead.location?.city && (
+                              <span className="text-muted-foreground ml-2">
+                                📍 {selectedLead.location.city}, {selectedLead.location.state}
+                              </span>
+                            )}
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 font-mono">
+                            {selectedLead.leadCode}
+                          </span>
+                        </div>
+                      );
+                    })()}
                 </div>
 
-                {!manualLeadEntry ? (
-                  <div className="space-y-2">
-                    <select
-                      required
-                      value={leadId}
-                      onChange={e => handleSelectLead(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                    >
-                      <option value="">
-                        {loadingLeads
-                          ? 'Loading CRM leads...'
-                          : '-- Select Active Lead from CRM --'}
-                      </option>
-                      {availableLeads.map(lead => (
-                        <option key={lead.id} value={lead.id}>
-                          {lead.leadCode} — {lead.prospectName} ({lead.prospectPhone})
-                          {lead.location?.city ? ` • ${lead.location.city}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    {availableLeads.length === 0 && !loadingLeads && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        No active leads found. Switch to custom entry or create a Lead in CRM first.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Street Address *
+                    </label>
                     <input
                       type="text"
                       required
-                      value={leadId}
-                      onChange={e => setLeadId(e.target.value)}
-                      placeholder="Enter Lead Code (e.g. LEAD-2026-00001) or Phone"
+                      value={addressLine1}
+                      onChange={e => setAddressLine1(e.target.value)}
+                      placeholder="e.g. Plot 12, Industrial Area"
                       className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      System will automatically resolve and link the survey to this Lead record.
-                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">City *</label>
+                    <input
+                      type="text"
+                      required
+                      value={city}
+                      onChange={e => setCity(e.target.value)}
+                      placeholder="Jaipur"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      State *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={state}
+                      onChange={e => setState(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      PIN Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={postalCode}
+                      onChange={e => setPostalCode(e.target.value)}
+                      placeholder="302001"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Roof Type *
+                    </label>
+                    <select
+                      value={roofType}
+                      onChange={e => setRoofType(e.target.value as RoofType)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      {Object.values(RoofType).map(r => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Usable Roof Area (sq.ft) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={usableRoofAreaSqFt}
+                      onChange={e => setUsableRoofAreaSqFt(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Sanctioned Load (kW) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      required
+                      value={sanctionedLoadKw}
+                      onChange={e => setSanctionedLoadKw(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Phase</label>
+                    <select
+                      value={connectionPhase}
+                      onChange={e => setConnectionPhase(e.target.value as ConnectionPhase)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      <option value={ConnectionPhase.SINGLE}>Single Phase</option>
+                      <option value={ConnectionPhase.THREE}>Three Phase</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Proposed (kWp)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={proposedCapacityKw}
+                      onChange={e => setProposedCapacityKw(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Units (kWh/mo)
+                    </label>
+                    <input
+                      type="number"
+                      value={monthlyUnitsKwh}
+                      onChange={e => setMonthlyUnitsKwh(e.target.value)}
+                      placeholder="500"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Monthly Bill (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={averageMonthlyBillRs}
+                      onChange={e => setAverageMonthlyBillRs(e.target.value)}
+                      placeholder="4000"
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Scheduled Date
+                    </label>
+                    <input
+                      type="date"
+                      value={scheduledDate}
+                      onChange={e => setScheduledDate(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                {parseFloat(proposedCapacityKw) > parseFloat(sanctionedLoadKw) && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center space-x-2">
+                    <span className="text-base">⚠️</span>
+                    <span>
+                      <strong>DISCOM Load Advisory:</strong> Proposed system capacity (
+                      {proposedCapacityKw} kWp) exceeds the customer's sanctioned load (
+                      {sanctionedLoadKw} kW). Net Metering utility clearance will require a formal
+                      Load Enhancement filing with the DISCOM division.
+                    </span>
                   </div>
                 )}
 
-                {/* Selected Lead Summary Preview */}
-                {leadId &&
-                  !manualLeadEntry &&
-                  (() => {
-                    const selectedLead = availableLeads.find(l => l.id === leadId);
-                    if (!selectedLead) return null;
-                    return (
-                      <div className="mt-2 p-2.5 bg-solar-50/70 dark:bg-solar-950/30 border border-solar-200 dark:border-solar-800/60 rounded-lg text-xs flex items-center justify-between">
-                        <div>
-                          <span className="font-semibold text-solar-800 dark:text-solar-300">
-                            {selectedLead.prospectName}
-                          </span>
-                          <span className="text-muted-foreground ml-2">
-                            📞 {selectedLead.prospectPhone}
-                          </span>
-                          {selectedLead.location?.city && (
-                            <span className="text-muted-foreground ml-2">
-                              📍 {selectedLead.location.city}, {selectedLead.location.state}
-                            </span>
-                          )}
-                        </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 font-mono">
-                          {selectedLead.leadCode}
-                        </span>
-                      </div>
-                    );
-                  })()}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Street Address *
+                    Orientation & Azimuth
                   </label>
                   <input
                     type="text"
-                    required
-                    value={addressLine1}
-                    onChange={e => setAddressLine1(e.target.value)}
-                    placeholder="e.g. Plot 12, Industrial Area"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">City *</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    placeholder="Jaipur"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">State *</label>
-                  <input
-                    type="text"
-                    required
-                    value={state}
-                    onChange={e => setState(e.target.value)}
+                    value={orientationAzimuth}
+                    onChange={e => setOrientationAzimuth(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    PIN Code *
+                    Surveyor Observations
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={postalCode}
-                    onChange={e => setPostalCode(e.target.value)}
-                    placeholder="302001"
+                  <textarea
+                    rows={2}
+                    value={observations}
+                    onChange={e => setObservations(e.target.value)}
+                    placeholder="Waterproofing status, RCC parapet wall height, tree shadows..."
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Roof Type *
-                  </label>
-                  <select
-                    value={roofType}
-                    onChange={e => setRoofType(e.target.value as RoofType)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    {Object.values(RoofType).map(r => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Usable Roof Area (sq.ft) *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={usableRoofAreaSqFt}
-                    onChange={e => setUsableRoofAreaSqFt(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Sanctioned Load (kW) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0.5"
-                    required
-                    value={sanctionedLoadKw}
-                    onChange={e => setSanctionedLoadKw(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Phase</label>
-                  <select
-                    value={connectionPhase}
-                    onChange={e => setConnectionPhase(e.target.value as ConnectionPhase)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    <option value={ConnectionPhase.SINGLE}>Single Phase</option>
-                    <option value={ConnectionPhase.THREE}>Three Phase</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Proposed (kWp)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={proposedCapacityKw}
-                    onChange={e => setProposedCapacityKw(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Units (kWh/mo)
-                  </label>
-                  <input
-                    type="number"
-                    value={monthlyUnitsKwh}
-                    onChange={e => setMonthlyUnitsKwh(e.target.value)}
-                    placeholder="500"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Monthly Bill (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={averageMonthlyBillRs}
-                    onChange={e => setAverageMonthlyBillRs(e.target.value)}
-                    placeholder="4000"
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Scheduled Date
-                  </label>
-                  <input
-                    type="date"
-                    value={scheduledDate}
-                    onChange={e => setScheduledDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-              </div>
-
-              {parseFloat(proposedCapacityKw) > parseFloat(sanctionedLoadKw) && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center space-x-2">
-                  <span className="text-base">⚠️</span>
-                  <span>
-                    <strong>DISCOM Load Advisory:</strong> Proposed system capacity ({proposedCapacityKw} kWp) exceeds
-                    the customer's sanctioned load ({sanctionedLoadKw} kW). Net Metering utility clearance will require
-                    a formal Load Enhancement filing with the DISCOM division.
-                  </span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Orientation & Azimuth
-                </label>
-                <input
-                  type="text"
-                  value={orientationAzimuth}
-                  onChange={e => setOrientationAzimuth(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Surveyor Observations
-                </label>
-                <textarea
-                  rows={2}
-                  value={observations}
-                  onChange={e => setObservations(e.target.value)}
-                  placeholder="Waterproofing status, RCC parapet wall height, tree shadows..."
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
               </div>
 
               <div className="p-3 sm:p-4 border-t bg-card shrink-0 flex items-center justify-end space-x-3">
@@ -919,243 +932,244 @@ export const SurveysPage: React.FC = () => {
             </div>
 
             <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
-
-            {/* Evidence Photos Subdocuments */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground flex items-center justify-between">
-                <span className="flex items-center space-x-1.5">
-                  <Camera className="w-4 h-4 text-solar-500" />
-                  <span>Site Photos & Document Evidence ({activeSurvey.photos.length})</span>
-                </span>
-                {activeSurvey.photos.length > 0 && (
-                  <span className="text-[11px] text-muted-foreground font-normal">
-                    Click any photo to view full resolution
+              {/* Evidence Photos Subdocuments */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center justify-between">
+                  <span className="flex items-center space-x-1.5">
+                    <Camera className="w-4 h-4 text-solar-500" />
+                    <span>Site Photos & Document Evidence ({activeSurvey.photos.length})</span>
                   </span>
-                )}
-              </h3>
+                  {activeSurvey.photos.length > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-normal">
+                      Click any photo to view full resolution
+                    </span>
+                  )}
+                </h3>
 
-              {activeSurvey.photos.length === 0 ? (
-                <div className="text-center py-8 border border-dashed rounded-xl bg-muted/20 text-muted-foreground text-xs space-y-1">
-                  <Camera className="w-8 h-8 mx-auto text-solar-500 opacity-60" />
-                  <p className="font-semibold text-foreground">No site photos attached yet</p>
-                  <p className="text-[11px]">
-                    Upload photos of rooftop, parapet walls, shadow obstacles, and electrical panels
-                    below.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {activeSurvey.photos.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="group relative border rounded-xl overflow-hidden bg-card shadow-sm hover:shadow-md transition flex flex-col"
-                    >
+                {activeSurvey.photos.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed rounded-xl bg-muted/20 text-muted-foreground text-xs space-y-1">
+                    <Camera className="w-8 h-8 mx-auto text-solar-500 opacity-60" />
+                    <p className="font-semibold text-foreground">No site photos attached yet</p>
+                    <p className="text-[11px]">
+                      Upload photos of rooftop, parapet walls, shadow obstacles, and electrical
+                      panels below.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {activeSurvey.photos.map((p, idx) => (
                       <div
-                        className="h-36 bg-muted/40 relative overflow-hidden flex items-center justify-center cursor-pointer"
-                        onClick={() => setLightboxPhoto(p)}
+                        key={idx}
+                        className="group relative border rounded-xl overflow-hidden bg-card shadow-sm hover:shadow-md transition flex flex-col"
                       >
-                        {isPdfPhoto(p) ? (
-                          <div className="flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 w-full h-full">
-                            <div className="p-2.5 bg-red-100 dark:bg-red-900/50 rounded-xl text-red-600 dark:text-red-400 mb-1.5 shadow-sm">
-                              <FileText className="w-8 h-8" />
+                        <div
+                          className="h-36 bg-muted/40 relative overflow-hidden flex items-center justify-center cursor-pointer"
+                          onClick={() => setLightboxPhoto(p)}
+                        >
+                          {isPdfPhoto(p) ? (
+                            <div className="flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 w-full h-full">
+                              <div className="p-2.5 bg-red-100 dark:bg-red-900/50 rounded-xl text-red-600 dark:text-red-400 mb-1.5 shadow-sm">
+                                <FileText className="w-8 h-8" />
+                              </div>
+                              <span className="text-[11px] font-bold text-foreground truncate max-w-[140px]">
+                                {p.fileName}
+                              </span>
+                              <span className="text-[9px] text-red-600 dark:text-red-400 font-semibold uppercase mt-0.5">
+                                PDF Document
+                              </span>
                             </div>
-                            <span className="text-[11px] font-bold text-foreground truncate max-w-[140px]">
-                              {p.fileName}
-                            </span>
-                            <span className="text-[9px] text-red-600 dark:text-red-400 font-semibold uppercase mt-0.5">
-                              PDF Document
-                            </span>
-                          </div>
-                        ) : (
-                          <img
-                            src={
-                              p.dataUrl || `/api/v1/surveys/${activeSurvey.id}/photos/${idx}/view`
-                            }
-                            alt={p.fileName}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold space-x-1">
-                          <Eye className="w-4 h-4" />
-                          <span>{isPdfPhoto(p) ? 'View Document' : 'View Full Photo'}</span>
-                        </div>
-                      </div>
-                      <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 uppercase tracking-wide">
-                              {p.category}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              {p.fileSizeBytes ? `${Math.round(p.fileSizeBytes / 1024)} KB` : ''}
-                            </span>
-                          </div>
-                          <p
-                            className="text-xs font-semibold text-foreground truncate mt-1"
-                            title={p.fileName}
-                          >
-                            {p.fileName}
-                          </p>
-                          {p.caption && (
-                            <p
-                              className="text-[11px] text-muted-foreground italic truncate"
-                              title={p.caption}
-                            >
-                              "{p.caption}"
-                            </p>
+                          ) : (
+                            <img
+                              src={
+                                p.dataUrl || `/api/v1/surveys/${activeSurvey.id}/photos/${idx}/view`
+                              }
+                              alt={p.fileName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
                           )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold space-x-1">
+                            <Eye className="w-4 h-4" />
+                            <span>{isPdfPhoto(p) ? 'View Document' : 'View Full Photo'}</span>
+                          </div>
+                        </div>
+                        <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-100 text-solar-800 dark:bg-solar-900/60 dark:text-solar-300 uppercase tracking-wide">
+                                {p.category}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {p.fileSizeBytes ? `${Math.round(p.fileSizeBytes / 1024)} KB` : ''}
+                              </span>
+                            </div>
+                            <p
+                              className="text-xs font-semibold text-foreground truncate mt-1"
+                              title={p.fileName}
+                            >
+                              {p.fileName}
+                            </p>
+                            {p.caption && (
+                              <p
+                                className="text-[11px] text-muted-foreground italic truncate"
+                                title={p.caption}
+                              >
+                                "{p.caption}"
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Attach Photo Form */}
-            <form onSubmit={handleAttachPhoto} className="border-t pt-4 space-y-3">
-              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center space-x-1.5">
-                <UploadCloud className="w-4 h-4 text-solar-500" />
-                <span>Upload New Rooftop Photo / Document</span>
-              </h4>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-
-              {/* Real Drag & Drop / File Selector Area */}
-              {!photoPreviewUrl ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) {
-                      const syntheticEvent = { target: { files: [file] } } as any;
-                      handleFileChange(syntheticEvent);
-                    }
-                  }}
-                  className="border-2 border-dashed border-border hover:border-solar-500 hover:bg-solar-50/10 cursor-pointer rounded-xl p-6 text-center transition space-y-2"
-                >
-                  <Camera className="w-9 h-9 mx-auto text-solar-500" />
-                  <div>
-                    <p className="text-xs font-bold text-foreground">
-                      Click to choose rooftop photo from computer/mobile or drag & drop here
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Supports JPEG, PNG, WebP, HEIC & PDF (Automatic client-side optimization for
-                      fast upload)
-                    </p>
+                    ))}
                   </div>
-                </div>
-              ) : (
-                <div className="border rounded-xl p-3 bg-muted/20 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {photoFile?.type === 'application/pdf' ||
-                    photoFile?.name.toLowerCase().endsWith('.pdf') ? (
-                      <div className="w-16 h-16 rounded-lg border bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex flex-col items-center justify-center shadow-sm">
-                        <FileText className="w-7 h-7" />
-                        <span className="text-[9px] font-bold">PDF</span>
-                      </div>
-                    ) : (
-                      <img
-                        src={photoPreviewUrl}
-                        alt="Upload preview"
-                        className="w-16 h-16 object-cover rounded-lg border shadow-sm"
-                      />
-                    )}
-                    <div>
-                      <p className="text-xs font-bold text-foreground truncate max-w-xs">
-                        {photoFile?.name || 'Selected File'}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {photoFile?.size ? `${Math.round(photoFile.size / 1024)} KB` : 'Ready'}
-                      </p>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center mt-0.5">
-                        <Check className="w-3 h-3 mr-1" /> File selected & ready
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhotoFile(null);
-                      setPhotoPreviewUrl(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
+                )}
+              </div>
+
+              {/* Attach Photo Form */}
+              <form onSubmit={handleAttachPhoto} className="border-t pt-4 space-y-3">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center space-x-1.5">
+                  <UploadCloud className="w-4 h-4 text-solar-500" />
+                  <span>Upload New Rooftop Photo / Document</span>
+                </h4>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+
+                {/* Real Drag & Drop / File Selector Area */}
+                {!photoPreviewUrl ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        const syntheticEvent = { target: { files: [file] } } as any;
+                        handleFileChange(syntheticEvent);
+                      }
                     }}
-                    className="px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition font-medium"
+                    className="border-2 border-dashed border-border hover:border-solar-500 hover:bg-solar-50/10 cursor-pointer rounded-xl p-6 text-center transition space-y-2"
                   >
-                    Remove
+                    <Camera className="w-9 h-9 mx-auto text-solar-500" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">
+                        Click to choose rooftop photo from computer/mobile or drag & drop here
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Supports JPEG, PNG, WebP, HEIC & PDF (Automatic client-side optimization for
+                        fast upload)
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border rounded-xl p-3 bg-muted/20 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {photoFile?.type === 'application/pdf' ||
+                      photoFile?.name.toLowerCase().endsWith('.pdf') ? (
+                        <div className="w-16 h-16 rounded-lg border bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex flex-col items-center justify-center shadow-sm">
+                          <FileText className="w-7 h-7" />
+                          <span className="text-[9px] font-bold">PDF</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={photoPreviewUrl}
+                          alt="Upload preview"
+                          className="w-16 h-16 object-cover rounded-lg border shadow-sm"
+                        />
+                      )}
+                      <div>
+                        <p className="text-xs font-bold text-foreground truncate max-w-xs">
+                          {photoFile?.name || 'Selected File'}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {photoFile?.size ? `${Math.round(photoFile.size / 1024)} KB` : 'Ready'}
+                        </p>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center mt-0.5">
+                          <Check className="w-3 h-3 mr-1" /> File selected & ready
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoFile(null);
+                        setPhotoPreviewUrl(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Photo Category
+                    </label>
+                    <select
+                      value={photoCategory}
+                      onChange={e => setPhotoCategory(e.target.value as SurveyPhotoCategory)}
+                      className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      <option value={SurveyPhotoCategory.ROOF}>🏠 Rooftop & Civil Structure</option>
+                      <option value={SurveyPhotoCategory.DISTRIBUTION_BOARD}>
+                        ⚡ Electrical Distribution Board
+                      </option>
+                      <option value={SurveyPhotoCategory.METER}>
+                        ⚡ Energy Meter & Service Line
+                      </option>
+                      <option value={SurveyPhotoCategory.EARTHING_PIT}>
+                        ⚡ Earthing Pit & Grounding
+                      </option>
+                      <option value={SurveyPhotoCategory.SHADOW_OBSTRUCTION}>
+                        🌳 Obstacle & Shadow Source (Trees/Chimneys)
+                      </option>
+                      <option value={SurveyPhotoCategory.OTHER}>
+                        📄 Document / Other Evidence
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Caption / Observations
+                    </label>
+                    <input
+                      type="text"
+                      value={photoCaption}
+                      onChange={e => setPhotoCaption(e.target.value)}
+                      placeholder="e.g. South azimuth unshaded zone, 3-phase meter board..."
+                      className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={attachingPhoto || !photoPreviewUrl}
+                    className="px-4 py-2 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50 flex items-center space-x-1.5"
+                  >
+                    {attachingPhoto ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading Photo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Upload & Attach Photo</span>
+                      </>
+                    )}
                   </button>
                 </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Photo Category
-                  </label>
-                  <select
-                    value={photoCategory}
-                    onChange={e => setPhotoCategory(e.target.value as SurveyPhotoCategory)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    <option value={SurveyPhotoCategory.ROOF}>🏠 Rooftop & Civil Structure</option>
-                    <option value={SurveyPhotoCategory.DISTRIBUTION_BOARD}>
-                      ⚡ Electrical Distribution Board
-                    </option>
-                    <option value={SurveyPhotoCategory.METER}>
-                      ⚡ Energy Meter & Service Line
-                    </option>
-                    <option value={SurveyPhotoCategory.EARTHING_PIT}>
-                      ⚡ Earthing Pit & Grounding
-                    </option>
-                    <option value={SurveyPhotoCategory.SHADOW_OBSTRUCTION}>
-                      🌳 Obstacle & Shadow Source (Trees/Chimneys)
-                    </option>
-                    <option value={SurveyPhotoCategory.OTHER}>📄 Document / Other Evidence</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Caption / Observations
-                  </label>
-                  <input
-                    type="text"
-                    value={photoCaption}
-                    onChange={e => setPhotoCaption(e.target.value)}
-                    placeholder="e.g. South azimuth unshaded zone, 3-phase meter board..."
-                    className="w-full px-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  disabled={attachingPhoto || !photoPreviewUrl}
-                  className="px-4 py-2 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 shadow-sm disabled:opacity-50 flex items-center space-x-1.5"
-                >
-                  {attachingPhoto ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Uploading Photo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud className="w-3.5 h-3.5" />
-                      <span>Upload & Attach Photo</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              </form>
             </div>
           </div>
         </div>
@@ -1230,10 +1244,7 @@ export const SurveysPage: React.FC = () => {
                 </div>
               ) : (
                 <img
-                  src={
-                    lightboxPhoto.dataUrl ||
-                    `/api/v1/surveys/${activeSurvey?.id}/photos/0/view`
-                  }
+                  src={lightboxPhoto.dataUrl || `/api/v1/surveys/${activeSurvey?.id}/photos/0/view`}
                   alt={lightboxPhoto.fileName}
                   className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-lg"
                 />

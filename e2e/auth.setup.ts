@@ -6,7 +6,7 @@ setup('authenticate as Superadmin', async ({ page }) => {
   await page.goto('/login');
   await page.locator('#email').fill('admin@inssolar.com');
   await page.locator('#password').fill('SolarAdmin2026!');
-  await page.getByRole('button', { name: /Sign In to Workstation/i }).click();
+  await page.getByRole('button', { name: /Sign In/i }).click();
 
   // Wait until dashboard is rendered
   await expect(page).toHaveURL(/\/(dashboard)?$/, { timeout: 15000 });
