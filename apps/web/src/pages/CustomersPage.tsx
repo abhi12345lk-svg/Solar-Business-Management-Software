@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Users,
   UserCheck,
   Search,
   Plus,
@@ -12,7 +11,6 @@ import {
   Sun,
   FileSpreadsheet,
   FolderKanban,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   ArrowRight,
@@ -138,9 +136,15 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
-  // Filtered by type in client if requested
+  // Filtered by type in client
   const filteredCustomers = customers.filter(c => {
-    if (typeFilter !== 'ALL' && c.type !== typeFilter) return false;
+    if (typeFilter !== 'ALL') {
+      if (typeFilter === CustomerType.COMMERCIAL) {
+        if (c.type !== CustomerType.COMMERCIAL && c.type !== CustomerType.INDUSTRIAL) return false;
+      } else if (c.type !== typeFilter) {
+        return false;
+      }
+    }
     return true;
   });
 
@@ -150,126 +154,92 @@ export const CustomersPage: React.FC = () => {
   const commercialCount = customers.filter(
     c => c.type === CustomerType.COMMERCIAL || c.type === CustomerType.INDUSTRIAL
   ).length;
-  const activeCount = customers.filter(c => c.status === CustomerStatus.ACTIVE || (c as any).isActive).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Customer Directory</h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Customer Directory</h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              Active Solar Clients
+              {totalCount} Active Clients
             </span>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Registered customer accounts, site installation addresses, CAD engineering, and billing profiles.
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Registered solar clients, rooftop site installation profiles, and ongoing projects.
           </p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+          className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Register New Customer</span>
         </button>
       </div>
 
-      {/* KPI Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Total Customers</span>
-            <div className="w-7 h-7 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-foreground mt-2 font-mono">{totalCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Onboarded accounts</p>
+      {/* Sleek Filter & Search Strip */}
+      <div className="p-2.5 bg-card border rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shadow-xs">
+        {/* Quick Filter Tabs */}
+        <div className="inline-flex rounded-lg bg-muted/60 p-0.5 border border-border text-xs">
+          <button
+            type="button"
+            onClick={() => setTypeFilter('ALL')}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              typeFilter === 'ALL'
+                ? 'bg-background text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            All Clients ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter(CustomerType.INDIVIDUAL)}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              typeFilter === CustomerType.INDIVIDUAL
+                ? 'bg-background text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Residential ({residentialCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter(CustomerType.COMMERCIAL)}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              typeFilter === CustomerType.COMMERCIAL || typeFilter === CustomerType.INDUSTRIAL
+                ? 'bg-background text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Commercial & Industrial ({commercialCount})
+          </button>
         </div>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Residential Homes</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Sun className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-foreground mt-2 font-mono">{residentialCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Rooftop installations</p>
-        </div>
-
-        <div className="bg-card border rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Commercial / Industrial</span>
-            <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center">
-              <Building2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-foreground mt-2 font-mono">{commercialCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">High-capacity projects</p>
-        </div>
-
-        <div className="bg-card border rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Active Status</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-emerald-600 mt-2 font-mono">
-            {totalCount > 0 ? `${Math.round((activeCount / totalCount) * 100)}%` : '100%'}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{activeCount} active in system</p>
-        </div>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-3">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
+        {/* Live Search & Status */}
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 sm:max-w-md">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by customer code, name, phone, email, city..."
+              placeholder="Search by name, phone, code, city..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-            >
-              <option value="ALL">All Account Types</option>
-              <option value={CustomerType.INDIVIDUAL}>Residential / Individual</option>
-              <option value={CustomerType.COMMERCIAL}>Commercial Enterprise</option>
-              <option value={CustomerType.INDUSTRIAL}>Industrial Plant</option>
-              <option value={CustomerType.INSTITUTIONAL}>Institutional / School / NGO</option>
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value={CustomerStatus.ACTIVE}>Active</option>
-              <option value={CustomerStatus.INACTIVE}>Inactive</option>
-            </select>
-
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
-            >
-              Search
-            </button>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value={CustomerStatus.ACTIVE}>Active</option>
+            <option value={CustomerStatus.INACTIVE}>Inactive</option>
+          </select>
         </form>
       </div>
 
@@ -436,27 +406,16 @@ export const CustomersPage: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Action Links */}
+                      {/* Action */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link
-                            to={`/quotations?customerId=${customer.id}`}
-                            title="Draft new quotation for this customer"
-                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border"
-                          >
-                            <FileSpreadsheet className="w-3.5 h-3.5 text-solar-500" />
-                            <span>+ New Quote</span>
-                          </Link>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCustomer(customer)}
-                            className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer"
-                          >
-                            <span>View Profile</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white transition shadow-xs cursor-pointer"
+                        >
+                          <span>View Profile</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
