@@ -48,41 +48,46 @@ interface NavSection {
 
 const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Executive & Commercial',
+    title: 'Executive',
+    items: [{ to: '/', label: 'Admin Dashboard', icon: LayoutDashboard }]
+  },
+  {
+    title: 'CRM & Sales Pipeline',
     items: [
-      { to: '/', label: 'Admin Dashboard', icon: LayoutDashboard },
       { to: '/leads', label: 'Inquiries & Leads', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/surveys', label: 'Site Surveys', icon: Layers },
-      { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
       { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
       { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
   },
   {
-    title: 'Project & Field Operations',
+    title: 'Engineering & Feasibility',
     items: [
-      { to: '/projects', label: 'Project Management (10-Stage)', icon: FolderKanban },
-      { to: '/tasks', label: 'Operational Tasks', icon: CheckSquare },
-      { to: '/documents', label: 'Document Vault', icon: FileText },
+      { to: '/surveys', label: 'Site Surveys', icon: Layers },
+      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun }
+    ]
+  },
+  {
+    title: 'EPC Project Execution',
+    items: [
+      { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
       { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
   },
   {
-    title: 'Supply Chain & Warehouse',
+    title: 'Supply Chain & Stores',
     items: [
       { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes },
-      { to: '/goods-receipts', label: 'Goods Inward & Inspection (GRN)', icon: PackageCheck },
-      { to: '/purchase-orders', label: 'Material Purchase Orders', icon: FileText },
+      { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: FileText },
       { to: '/vendors', label: 'Vendor Directory', icon: Building2 }
     ]
   },
   {
-    title: 'Accounts & Controlling',
+    title: 'Finance & Controlling',
     items: [
       { to: '/payments', label: 'Accounts & Receivables', icon: CreditCard },
-      { to: '/expenses', label: 'Project Costing & Profitability', icon: TrendingUp }
+      { to: '/expenses', label: 'Project Costing & P&L', icon: TrendingUp }
     ]
   },
   {
@@ -90,12 +95,8 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [{ to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy }]
   },
   {
-    title: 'Workforce & Governance',
-    items: [
-      { to: '/employees', label: 'Employee Management', icon: Users },
-      { to: '/teams', label: 'Teams & Field Crews', icon: Users },
-      { to: '/mfa-setup', label: 'Users & Roles (MFA)', icon: ShieldCheck }
-    ]
+    title: 'Workforce & Team',
+    items: [{ to: '/employees', label: 'Staff & Employees', icon: Users }]
   }
 ];
 
@@ -119,18 +120,11 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Execution & Milestone Tracking',
+    title: 'Execution & Milestones',
     items: [
       { to: '/projects', label: 'Project Progress', icon: FolderKanban },
       { to: '/net-metering', label: 'Net Metering Status', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
-    ]
-  },
-  {
-    title: 'Workspace & Documents',
-    items: [
-      { to: '/tasks', label: 'Sales Tasks', icon: CheckSquare },
-      { to: '/documents', label: 'Client Document Vault', icon: FileText }
     ]
   }
 ];
@@ -543,6 +537,15 @@ export const AppLayout: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <Link
+                  to="/mfa-setup"
+                  className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-border"
+                  title="Security & 2FA Setup"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-solar-500" />
+                  <span className="hidden md:inline">2FA</span>
+                </Link>
 
                 <button
                   type="button"
