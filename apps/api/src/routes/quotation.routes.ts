@@ -91,8 +91,8 @@ quotationRouter.get(
   requirePermission('quote:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -113,8 +113,8 @@ quotationRouter.post(
   requirePermission('quote:update'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -147,8 +147,8 @@ quotationRouter.post(
   requirePermission('quote:discount_approve'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -181,8 +181,8 @@ quotationRouter.post(
   requirePermission('quote:discount_approve'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -218,8 +218,8 @@ quotationRouter.post(
   requirePermission('quote:update'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -239,10 +239,6 @@ quotationRouter.post(
 );
 
 /**
- * GET /api/v1/quotations/:id/pdf
- * View/download compiled proposal document.
- */
-/**
  * POST /api/v1/quotations/:id/customer-decision
  * Record customer acceptance or rejection from employee workstation.
  */
@@ -251,8 +247,8 @@ quotationRouter.post(
   requirePermission('quote:update'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -287,8 +283,8 @@ quotationRouter.get(
   requirePermission('quote:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 

@@ -44,7 +44,8 @@ interface TaxComponent {
 }
 
 interface QuotationDetail {
-  _id: string;
+  _id?: string;
+  id?: string;
   quotationNumber: string;
   revisionNumber: number;
   fullQuotationCode: string;
@@ -144,22 +145,31 @@ export const QuotationDetailPage: React.FC = () => {
   const [convertingOrder, setConvertingOrder] = useState(false);
   const [existingOrder, setExistingOrder] = useState<any | null>(null);
 
+  // Robust quotation ID resolver (supports both _id and id safely)
+  const quotationId = (quotation as any)?._id || (quotation as any)?.id || id || '';
+
   // Check if an order already exists for this quotation revision
   useEffect(() => {
     if (quotation && quotation.status === QuotationStatus.ACCEPTED) {
+      const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+      if (!qId) return;
       apiClient<any>(`/orders?limit=100`)
         .then(res => {
           const list = res?.items || res?.data || (Array.isArray(res) ? res : []);
           const match = list.find(
             (o: any) =>
-              o.quotationRevisionId?._id === quotation._id ||
-              o.quotationRevisionId === quotation._id
+              o.quotationRevisionId?._id === qId ||
+              o.quotationRevisionId?.id === qId ||
+              o.quotationRevisionId === qId ||
+              o.quotationId?._id === qId ||
+              o.quotationId?.id === qId ||
+              o.quotationId === qId
           );
           if (match) setExistingOrder(match);
         })
         .catch(() => {});
     }
-  }, [quotation]);
+  }, [quotation, id]);
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,18 +178,19 @@ export const QuotationDetailPage: React.FC = () => {
     setActionError(null);
     setActionMessage(null);
     try {
-      const parentId = (quotation as any).parentQuotationId || quotation._id;
+      const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+      const parentId = (quotation as any).parentQuotationId || qId;
       const newOrder = await apiClient<any>('/orders', {
         method: 'POST',
         body: JSON.stringify({
           quotationId: parentId,
-          quotationRevisionId: quotation._id,
+          quotationRevisionId: qId,
           notes: `Sales Order generated from accepted proposal ${quotation.fullQuotationCode}`
         })
       });
       setShowConvertModal(false);
       setActionMessage(`Sales Order generated successfully: ${newOrder.orderNumber}`);
-      navigate(`/orders/${newOrder._id}`);
+      navigate(`/orders/${newOrder._id || newOrder.id}`);
     } catch (err: any) {
       setActionError(err.message || 'Failed to generate sales order.');
     } finally {
@@ -206,12 +217,13 @@ export const QuotationDetailPage: React.FC = () => {
   }, [id]);
 
   const handleApproveDiscount = async () => {
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setProcessingApproval(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      await apiClient(`/quotations/${quotation._id}/approve-discount`, {
+      await apiClient(`/quotations/${qId}/approve-discount`, {
         method: 'POST',
         body: JSON.stringify({
           isApproved: true,
@@ -228,12 +240,13 @@ export const QuotationDetailPage: React.FC = () => {
   };
 
   const handleRejectDiscount = async () => {
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setProcessingApproval(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      await apiClient(`/quotations/${quotation._id}/reject-discount`, {
+      await apiClient(`/quotations/${qId}/reject-discount`, {
         method: 'POST',
         body: JSON.stringify({
           isApproved: false,
@@ -253,12 +266,13 @@ export const QuotationDetailPage: React.FC = () => {
   };
 
   const handleMarkAsSent = async () => {
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setSending(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      await apiClient(`/quotations/${quotation._id}/send`, {
+      await apiClient(`/quotations/${qId}/send`, {
         method: 'POST',
         body: JSON.stringify({})
       });
@@ -273,13 +287,14 @@ export const QuotationDetailPage: React.FC = () => {
 
   const handleCreateRevision = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setRevising(true);
     setActionError(null);
 
     try {
       const reasonText = revisionNotes.trim() || 'Client requested revised specifications';
-      const newRev = await apiClient(`/quotations/${quotation._id}/revisions`, {
+      const newRev = await apiClient(`/quotations/${qId}/revisions`, {
         method: 'POST',
         body: JSON.stringify({
           reasonForRevision: reasonText,
@@ -289,7 +304,7 @@ export const QuotationDetailPage: React.FC = () => {
 
       setShowRevisionModal(false);
       setActionMessage(`Revision created successfully: ${newRev.fullQuotationCode}`);
-      navigate(`/quotations/${newRev._id}`);
+      navigate(`/quotations/${newRev._id || newRev.id}`);
     } catch (err: any) {
       setActionError(err.message || 'Failed to create new revision.');
     } finally {
@@ -298,12 +313,13 @@ export const QuotationDetailPage: React.FC = () => {
   };
 
   const handleCustomerAccept = async () => {
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setSubmittingCustomerAction(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      await apiClient(`/quotations/${quotation._id}/customer-decision`, {
+      await apiClient(`/quotations/${qId}/customer-decision`, {
         method: 'POST',
         body: JSON.stringify({
           decision: 'ACCEPT',
@@ -321,12 +337,13 @@ export const QuotationDetailPage: React.FC = () => {
   };
 
   const handleCustomerReject = async () => {
-    if (!quotation) return;
+    const qId = (quotation as any)?._id || (quotation as any)?.id || id;
+    if (!qId) return;
     setSubmittingCustomerAction(true);
     setActionError(null);
     setActionMessage(null);
     try {
-      await apiClient(`/quotations/${quotation._id}/customer-decision`, {
+      await apiClient(`/quotations/${qId}/customer-decision`, {
         method: 'POST',
         body: JSON.stringify({
           decision: 'REJECT',
@@ -477,7 +494,7 @@ export const QuotationDetailPage: React.FC = () => {
           {quotation.status === QuotationStatus.ACCEPTED &&
             (existingOrder ? (
               <Link
-                to={`/orders/${existingOrder._id}`}
+                to={`/orders/${existingOrder._id || existingOrder.id}`}
                 className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
               >
                 <ShoppingCart className="w-4 h-4 mr-1.5" />
@@ -1393,7 +1410,7 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <a
-                  href={`/api/v1/quotations/${quotation._id}/pdf`}
+                  href={`/api/v1/quotations/${quotationId}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-2.5 py-1 text-xs bg-solar-600 text-white rounded hover:bg-solar-700 font-medium inline-flex items-center gap-1 shadow-sm"
@@ -1412,7 +1429,7 @@ export const QuotationDetailPage: React.FC = () => {
             </div>
             <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900 p-2 overflow-hidden">
               <iframe
-                src={`/api/v1/quotations/${quotation._id}/pdf`}
+                src={`/api/v1/quotations/${quotationId}/pdf`}
                 className="w-full h-full border border-border rounded bg-white shadow-sm"
                 title="Proposal Document"
               />

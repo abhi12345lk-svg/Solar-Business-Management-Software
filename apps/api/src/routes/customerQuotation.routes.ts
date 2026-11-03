@@ -58,8 +58,8 @@ customerQuotationRouter.get('/', async (req: Request, res: Response, next: NextF
  */
 customerQuotationRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = req.params.id as string;
-    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+    const id = String(req.params.id || '').trim();
+    if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
       return next(AppError.validationFailed('Invalid Quotation ID format.'));
     }
 
@@ -89,8 +89,8 @@ customerQuotationRouter.post(
   '/:id/accept',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -130,8 +130,8 @@ customerQuotationRouter.post(
   '/:id/reject',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
-      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      const id = String(req.params.id || '').trim();
+      if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
         return next(AppError.validationFailed('Invalid Quotation ID format.'));
       }
 
@@ -169,8 +169,8 @@ customerQuotationRouter.post(
  */
 customerQuotationRouter.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = req.params.id as string;
-    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+    const id = String(req.params.id || '').trim();
+    if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
       return next(AppError.validationFailed('Invalid Quotation ID format.'));
     }
 

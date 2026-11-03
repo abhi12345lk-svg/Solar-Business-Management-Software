@@ -184,8 +184,9 @@ const SolarDesignSchema = new Schema<ISolarDesignDocument>(
     timestamps: true,
     toJSON: {
       transform(_doc, ret: Record<string, any>) {
-        ret.id = ret._id?.toString();
-        delete ret._id;
+        const idStr = ret._id?.toString();
+        ret.id = idStr;
+        ret._id = idStr;
         delete ret.__v;
         return ret;
       }

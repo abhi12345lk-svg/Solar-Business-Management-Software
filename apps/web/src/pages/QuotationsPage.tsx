@@ -14,7 +14,8 @@ import { apiClient } from '../lib/api.js';
 import { QuotationStatus, SolarTopology, QuotationItemType } from '@ins-solar/shared';
 
 interface QuotationListItem {
-  _id: string;
+  _id?: string;
+  id?: string;
   quotationNumber: string;
   revisionNumber: number;
   fullQuotationCode: string;
@@ -563,12 +564,14 @@ export const QuotationsPage: React.FC = () => {
                   q.customerId?.companyName ||
                   'Direct Customer';
 
+                const qId = q._id || q.id;
+
                 return (
-                  <div key={q._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                  <div key={qId} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
-                          to={`/quotations/${q._id}`}
+                          to={`/quotations/${qId}`}
                           className="font-mono font-bold text-solar-600 hover:text-solar-700 text-xs flex items-center gap-1.5"
                         >
                           <span>{q.fullQuotationCode}</span>
@@ -616,7 +619,7 @@ export const QuotationsPage: React.FC = () => {
                         Issued: {new Date(q.createdAt).toLocaleDateString()}
                       </span>
                       <Link
-                        to={`/quotations/${q._id}`}
+                        to={`/quotations/${qId}`}
                         className="inline-flex items-center text-xs font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
                       >
                         <span>
@@ -666,11 +669,13 @@ export const QuotationsPage: React.FC = () => {
                       q.customerId?.companyName ||
                       'Direct Customer';
 
+                    const qId = q._id || q.id;
+
                     return (
-                      <tr key={q._id} className="hover:bg-muted/30 transition-colors">
+                      <tr key={qId} className="hover:bg-muted/30 transition-colors">
                         <td className="py-3.5 px-4">
                           <Link
-                            to={`/quotations/${q._id}`}
+                            to={`/quotations/${qId}`}
                             className="font-mono font-bold text-solar-600 hover:text-solar-700 text-xs flex items-center gap-1.5"
                           >
                             {q.fullQuotationCode}
@@ -730,7 +735,7 @@ export const QuotationsPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-right">
                           {q.status === QuotationStatus.ACCEPTED ? (
                             <Link
-                              to={`/quotations/${q._id}`}
+                              to={`/quotations/${qId}`}
                               className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-all shadow-xs"
                               title="Proposal accepted by customer. Click to generate confirmed Sales Order"
                             >
@@ -739,7 +744,7 @@ export const QuotationsPage: React.FC = () => {
                             </Link>
                           ) : q.status === QuotationStatus.DRAFT ? (
                             <Link
-                              to={`/quotations/${q._id}`}
+                              to={`/quotations/${qId}`}
                               className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/20 transition-all shadow-xs"
                               title="Draft proposal. Click to review, print PDF, or issue to customer"
                             >
@@ -748,7 +753,7 @@ export const QuotationsPage: React.FC = () => {
                             </Link>
                           ) : q.status === QuotationStatus.SENT ? (
                             <Link
-                              to={`/quotations/${q._id}`}
+                              to={`/quotations/${qId}`}
                               className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 transition-all shadow-xs"
                               title="Sent to customer. Click to record customer decision or accept"
                             >
@@ -757,7 +762,7 @@ export const QuotationsPage: React.FC = () => {
                             </Link>
                           ) : (
                             <Link
-                              to={`/quotations/${q._id}`}
+                              to={`/quotations/${qId}`}
                               className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border border-border/80 transition-all shadow-xs"
                             >
                               <span>View Details</span>
