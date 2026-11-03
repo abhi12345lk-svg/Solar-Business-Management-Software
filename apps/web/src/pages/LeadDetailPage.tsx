@@ -100,6 +100,11 @@ export const LeadDetailPage: React.FC = () => {
   const [editSource, setEditSource] = useState<LeadSource>(LeadSource.WEBSITE);
   const [editNotes, setEditNotes] = useState('');
 
+  // Milestone Transition Modal State
+  const [stageModal, setStageModal] = useState<{ key: LeadStatus; label: string; desc: string } | null>(null);
+  const [stageRemark, setStageRemark] = useState('');
+  const [advancingStage, setAdvancingStage] = useState(false);
+
   const loadData = async () => {
     if (!id) return;
     setLoading(true);
@@ -163,6 +168,40 @@ export const LeadDetailPage: React.FC = () => {
       alert(err?.message || 'Failed to update lead status.');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleConfirmStageAdvance = async () => {
+    if (!id || !stageModal) return;
+    setAdvancingStage(true);
+    try {
+      await apiClient<LeadDto>(`/leads/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: stageModal.key,
+          lostReason: stageModal.key === LeadStatus.LOST ? stageRemark.trim() || undefined : undefined
+        })
+      });
+
+      if (stageRemark.trim()) {
+        await apiClient(`/leads/${id}/activities`, {
+          method: 'POST',
+          body: JSON.stringify({
+            activityType: ActivityType.NOTE,
+            summary: `Milestone advanced to ${stageModal.label}`,
+            remarks: stageRemark.trim(),
+            status: ActivityStatus.COMPLETED
+          })
+        });
+      }
+
+      setStageModal(null);
+      setStageRemark('');
+      loadData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update milestone.');
+    } finally {
+      setAdvancingStage(false);
     }
   };
 
@@ -343,23 +382,54 @@ export const LeadDetailPage: React.FC = () => {
           )}
 
           {lead.status === LeadStatus.CONTACTED && (
-            <Link
-              to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Schedule Site Survey →</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link
+                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Schedule Site Survey →</span>
+              </Link>
+              <button
+                onClick={() =>
+                  setStageModal({
+                    key: LeadStatus.QUOTED,
+                    label: '04. Proposal Delivered',
+                    desc: 'Advance directly to Proposal Delivered if physical survey is complete or bypassed.'
+                  })
+                }
+                title="If site survey is already done or bypassed, advance to Proposal Delivered"
+                className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1 cursor-pointer"
+              >
+                <span>Advance to Quoted →</span>
+              </button>
+            </div>
           )}
 
           {lead.status === LeadStatus.SURVEY_SCHEDULED && (
-            <Link
-              to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
-            >
-              <Sun className="w-3.5 h-3.5" />
-              <span>Solar PV Sizing →</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() =>
+                  setStageModal({
+                    key: LeadStatus.QUOTED,
+                    label: '04. Proposal Delivered',
+                    desc: 'Site survey completed. Transition lead to quotation & proposal delivered stage.'
+                  })
+                }
+                disabled={updatingStatus}
+                className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Mark Proposal Delivered →</span>
+              </button>
+              <Link
+                to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1"
+              >
+                <Sun className="w-3.5 h-3.5 text-solar-500" />
+                <span>Solar PV CAD</span>
+              </Link>
+            </div>
           )}
 
           {lead.status === LeadStatus.QUOTED && (
@@ -452,15 +522,13 @@ export const LeadDetailPage: React.FC = () => {
                   if (st.key === LeadStatus.CONVERTED) {
                     handleConvertLead();
                   } else if (st.key !== lead.status && lead.status !== LeadStatus.CONVERTED) {
-                    if (window.confirm(`Transition lead to "${st.label}"?`)) {
-                      handleQuickStatusChange(st.key);
-                    }
+                    setStageModal({ key: st.key, label: st.label, desc: st.desc });
                   }
                 }}
                 title={
                   st.key === lead.status
                     ? 'Current active milestone'
-                    : `Click to transition to ${st.label}`
+                    : `Click to advance milestone to ${st.label}`
                 }
                 className={`p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
                   isCurrent
@@ -1185,6 +1253,79 @@ export const LeadDetailPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Milestone Advance Modal */}
+      {stageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Advance Lead Milestone
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Transition this prospect into the next operational phase.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStageModal(null)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-solar-50/60 dark:bg-solar-950/30 border border-solar-200 dark:border-solar-800 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Current Stage:</span>
+                <span className="font-semibold text-foreground">{lead.status}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-bold text-solar-700 dark:text-solar-400">
+                <span>Target Stage:</span>
+                <span>{stageModal.label}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground pt-1 border-t border-solar-200/50">
+                {stageModal.desc}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">
+                Milestone Note / Activity Remarks (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={stageRemark}
+                onChange={e => setStageRemark(e.target.value)}
+                placeholder="e.g. Completed site survey observations, or Sent official Waaree proposal..."
+                className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => {
+                  setStageModal(null);
+                  setStageRemark('');
+                }}
+                className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmStageAdvance}
+                disabled={advancingStage}
+                className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50"
+              >
+                {advancingStage ? 'Updating...' : 'Advance Milestone ➔'}
+              </button>
+            </div>
           </div>
         </div>
       )}
