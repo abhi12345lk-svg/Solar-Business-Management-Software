@@ -22,6 +22,7 @@ import {
   Check,
   XCircle,
   AlertCircle,
+  AlertTriangle,
   Plus,
   Layers,
   Zap,
@@ -902,7 +903,7 @@ export const ProjectDetailPage: React.FC = () => {
               {currentStageIndex < STAGES.length - 1 && (
                 <button
                   onClick={() => {
-                    setTargetStage(STAGES[currentStageIndex + 1].key);
+                    setTargetStage(STAGES[currentStageIndex + 1]?.key || '');
                     setStageModalOpen(true);
                   }}
                   className="px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs inline-flex items-center gap-1 cursor-pointer"
