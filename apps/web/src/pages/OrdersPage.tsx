@@ -10,7 +10,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShoppingCart,
   Search,
-  Filter,
   ArrowRight,
   CheckCircle2,
   Clock,
@@ -227,83 +226,82 @@ export const OrdersPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
-            Total Orders
-          </p>
-          <p className="text-xl sm:text-2xl font-black mt-1 text-foreground">{orders.length}</p>
-        </div>
-        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-emerald-500 uppercase">
+      {/* Sleek Filter & Search Toolbar */}
+      <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Status Category Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === ''
+                ? 'bg-solar-500 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            All Orders ({orders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('CONFIRMED')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'CONFIRMED'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10'
+            }`}
+          >
             Confirmed
-          </p>
-          <p className="text-xl sm:text-2xl font-black mt-1 text-emerald-500">
-            {orders.filter(o => o.status === 'CONFIRMED').length}
-          </p>
-        </div>
-        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-amber-500 uppercase">
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('IN_PROGRESS')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'IN_PROGRESS'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10'
+            }`}
+          >
             In Progress
-          </p>
-          <p className="text-xl sm:text-2xl font-black mt-1 text-amber-500">
-            {orders.filter(o => o.status === 'IN_PROGRESS').length}
-          </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('COMPLETED')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'COMPLETED'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10'
+            }`}
+          >
+            Completed
+          </button>
         </div>
-        <div className="p-3 sm:p-4 rounded-xl border bg-card/60 backdrop-blur-sm">
-          <p className="text-[11px] sm:text-xs font-semibold text-indigo-500 uppercase">
-            Allocated
-          </p>
-          <p className="text-xl sm:text-2xl font-black mt-1 text-indigo-500">
-            {orders.filter(o => o.reservationStatus === 'FULLY_RESERVED').length}
-          </p>
-        </div>
-      </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="space-y-2">
-        <div className="p-4 rounded-xl border bg-card/40 backdrop-blur-sm flex flex-col sm:flex-row gap-3">
-          <form onSubmit={handleSearchSubmit} className="flex-1 relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+        {/* Search & Reservation Filter */}
+        <div className="flex items-center gap-2">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 md:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by order number (e.g. ORD-2026-00001)..."
+              placeholder="Search by order #..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-background border border-border/80 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-solar-500"
             />
           </form>
 
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Filter className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-            </div>
-
-            <select
-              value={reservationFilter}
-              onChange={e => setReservationFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
-            >
-              <option value="">All Allocations</option>
-              <option value="NONE">No Allocation</option>
-              <option value="PARTIALLY_RESERVED">Partially Reserved</option>
-              <option value="FULLY_RESERVED">Fully Reserved</option>
-              <option value="RELEASED">Released</option>
-            </select>
-          </div>
+          <select
+            value={reservationFilter}
+            onChange={e => setReservationFilter(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg bg-background border border-border/80 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-solar-500"
+          >
+            <option value="">All Allocations</option>
+            <option value="NONE">No Stock Reserved</option>
+            <option value="PARTIALLY_RESERVED">Partially Reserved</option>
+            <option value="FULLY_RESERVED">Fully Reserved</option>
+            <option value="RELEASED">Released</option>
+          </select>
         </div>
+      </div>
 
         {customerIdParam && (
           <div className="flex items-center justify-between text-xs bg-solar-500/10 text-solar-700 dark:text-solar-300 px-3 py-1.5 rounded-lg border border-solar-500/20">
@@ -321,7 +319,6 @@ export const OrdersPage: React.FC = () => {
             </button>
           </div>
         )}
-      </div>
 
       {/* Error display */}
       {error && (
@@ -472,9 +469,10 @@ export const OrdersPage: React.FC = () => {
                       <td className="px-6 py-4 text-right">
                         <Link
                           to={`/orders/${order._id}`}
-                          className="inline-flex items-center text-xs font-medium text-solar-500 hover:text-solar-400"
+                          className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/20 transition-all shadow-xs"
                         >
-                          View Details
+                          <span>View Order</span>
+                          <ArrowRight className="w-3.5 h-3.5 ml-1" />
                         </Link>
                       </td>
                     </tr>

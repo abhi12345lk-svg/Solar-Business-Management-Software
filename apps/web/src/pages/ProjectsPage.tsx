@@ -5,8 +5,6 @@ import {
   Search,
   Plus,
   ArrowRight,
-  Clock,
-  CheckCircle2,
   AlertTriangle,
   Calendar,
   Layers,
@@ -306,73 +304,87 @@ export function ProjectsPage() {
         </button>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Projects</span>
-            <FolderKanban className="w-4 h-4 text-primary" />
-          </div>
-          <div className="text-2xl font-bold text-foreground">{totalCount}</div>
+      {/* Sleek Filter & Search Toolbar */}
+      <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Status Category Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'ALL'
+                ? 'bg-solar-500 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            All Projects ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('IN_PROGRESS')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'IN_PROGRESS'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10'
+            }`}
+          >
+            In Progress ({inProgressCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('PLANNING')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'PLANNING'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10'
+            }`}
+          >
+            Planning ({planningCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('COMPLETED')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'COMPLETED'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10'
+            }`}
+          >
+            Completed ({completedCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('ON_HOLD')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === 'ON_HOLD'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-orange-600 hover:bg-orange-500/10'
+            }`}
+          >
+            On Hold ({onHoldCount})
+          </button>
         </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider">In Progress</span>
-            <Layers className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {inProgressCount}
-          </div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider">Planning</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-            {planningCount}
-          </div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider">Completed</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            {completedCount}
-          </div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider">On Hold</span>
-            <AlertTriangle className="w-4 h-4 text-orange-500" />
-          </div>
-          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-            {onHoldCount}
-          </div>
-        </div>
-      </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-card border border-border p-3.5 rounded-xl flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by project code, project name..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        {/* Search & Stage/Priority Selectors */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 md:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search code, name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-background border border-border/80 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-solar-500"
+            />
+          </div>
+
           <select
             value={stageFilter}
             onChange={e => handleStageFilterChange(e.target.value)}
-            className={`px-3 py-2 rounded-lg border text-xs font-medium focus:outline-none transition-colors ${
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium focus:outline-none transition-colors ${
               stageFilter !== 'ALL'
                 ? 'border-solar-500 bg-solar-500/10 text-solar-800 dark:text-solar-300 font-semibold ring-1 ring-solar-500/30'
-                : 'border-input bg-background text-foreground'
+                : 'border-border/80 bg-background text-foreground'
             }`}
           >
             <option value="ALL">All 10 Stages</option>
@@ -387,22 +399,11 @@ export function ProjectsPage() {
             <option value="STAGE_9_DISCOM_METER_INSTALL">Stage 09: DISCOM Meter Install</option>
             <option value="STAGE_10_COMMISSION_HANDOVER">Stage 10: Handover & COD</option>
           </select>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-input bg-background text-xs font-medium focus:outline-none"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PLANNING">Planning</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="ON_HOLD">On Hold</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-input bg-background text-xs font-medium focus:outline-none"
+            className="px-2.5 py-1.5 rounded-lg border border-border/80 bg-background text-xs font-medium focus:outline-none"
           >
             <option value="ALL">All Priorities</option>
             <option value="URGENT">Urgent</option>
