@@ -35,7 +35,8 @@ import {
   PurchaseOrderStatus,
   RoofType,
   ConnectionPhase,
-  SurveyStatus
+  SurveyStatus,
+  SequenceEntityType
 } from '@ins-solar/shared';
 import { ProjectService } from '../services/projectService.js';
 import { NetMeteringService } from '../services/netMeteringService.js';
@@ -276,7 +277,7 @@ export async function seedDemoData(): Promise<void> {
     // 5. Customer
     let customer = (await Customer.findOne({ primaryPhone: '+919829012345' })) || (await Customer.findOne());
     if (!customer) {
-      const codeRes = await SequenceService.getNextSequence({ entityType: SequenceEntityType.CUSTOMER });
+      const codeRes = await SequenceService.generateNextSequence({ entityType: SequenceEntityType.CUSTOMER });
       customer = await Customer.create({
         customerCode: codeRes.formattedNumber,
         name: 'Ramesh Sharma',

@@ -13,7 +13,15 @@ import {
   Plus,
   Sun,
   Loader2,
-  Layers
+  Layers,
+  Sparkles,
+  XCircle,
+  Zap,
+  FileText,
+  ShoppingBag,
+  FolderGit2,
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
@@ -25,6 +33,24 @@ import {
   ActivitySentiment,
   CustomerType
 } from '@ins-solar/shared';
+
+const COMMERCIAL_STAGES = [
+  { key: LeadStatus.NEW, label: '01. Inbound Inquiry', desc: 'Captured & awaiting qualification' },
+  { key: LeadStatus.CONTACTED, label: '02. Discussion & Qualification', desc: 'Phone consultation & requirement check' },
+  { key: LeadStatus.SURVEY_SCHEDULED, label: '03. Site Survey', desc: 'Rooftop audit & meter room inspection' },
+  { key: LeadStatus.QUOTED, label: '04. Proposal Delivered', desc: 'Solar PV proposal & BOM delivered' },
+  { key: LeadStatus.NEGOTIATION, label: '05. Negotiation', desc: 'Commercial terms & financing review' },
+  { key: LeadStatus.CONVERTED, label: '06. Won & Converted', desc: 'Signed EPC contract & customer onboarded' }
+];
+
+const STAGE_ORDER = [
+  LeadStatus.NEW,
+  LeadStatus.CONTACTED,
+  LeadStatus.SURVEY_SCHEDULED,
+  LeadStatus.QUOTED,
+  LeadStatus.NEGOTIATION,
+  LeadStatus.CONVERTED
+];
 
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +117,27 @@ export const LeadDetailPage: React.FC = () => {
       });
       setLead(updated);
       setShowStatusModal(false);
+      loadData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update lead status.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleQuickStatusChange = async (newStatus: LeadStatus, reason?: string) => {
+    if (!id) return;
+    setUpdatingStatus(true);
+    try {
+      const updated = await apiClient<LeadDto>(`/leads/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: newStatus,
+          lostReason: reason
+        })
+      });
+      setLead(updated);
+      setSelectedStatus(newStatus);
       loadData();
     } catch (err: any) {
       alert(err?.message || 'Failed to update lead status.');
@@ -258,6 +305,278 @@ export const LeadDetailPage: React.FC = () => {
         <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-center space-x-2">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span className="text-sm font-medium">{convertError}</span>
+        </div>
+      )}
+
+      {/* 6-Stage Commercial Lead Conversion Stepper */}
+      <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-3">
+          <div>
+            <h2 className="text-sm font-bold text-foreground flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-solar-500" />
+              <span>Commercial Lead Qualification & Conversion Stepper</span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Standard 6-stage solar sales process from inbound inquiry to customer conversion.
+            </p>
+          </div>
+          {lead.status === LeadStatus.LOST && (
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/30">
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Inquiry Dropped / Lost</span>
+            </div>
+          )}
+        </div>
+
+        {/* 6 Steps Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5">
+          {COMMERCIAL_STAGES.map((st, idx) => {
+            const currentStageIdx = STAGE_ORDER.indexOf(lead.status);
+            const isCompleted = currentStageIdx !== -1 && currentStageIdx > idx;
+            const isCurrent = currentStageIdx === idx;
+
+            return (
+              <div
+                key={st.key}
+                className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                  isCurrent
+                    ? 'bg-solar-50/80 dark:bg-solar-950/40 border-solar-400 dark:border-solar-700 ring-2 ring-solar-500/20 shadow-xs'
+                    : isCompleted
+                      ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-muted/30 border-border opacity-70'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-muted-foreground">
+                      Stage 0{idx + 1}
+                    </span>
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : isCurrent ? (
+                      <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse" />
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    )}
+                  </div>
+                  <h4
+                    className={`text-xs font-bold ${
+                      isCurrent
+                        ? 'text-solar-800 dark:text-solar-300'
+                        : isCompleted
+                          ? 'text-emerald-800 dark:text-emerald-300'
+                          : 'text-foreground'
+                    }`}
+                  >
+                    {st.label}
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
+                    {st.desc}
+                  </p>
+                </div>
+
+                {isCurrent && lead.status !== LeadStatus.CONVERTED && (
+                  <div className="mt-2 pt-2 border-t border-solar-200 dark:border-solar-800/50">
+                    <span className="text-[10px] font-bold text-solar-700 dark:text-solar-400 uppercase tracking-wider">
+                      Current Milestone
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Converted Customer Celebration & Quick-Action Hub */}
+      {lead.status === LeadStatus.CONVERTED && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-solar-500/10 border-2 border-emerald-500/30 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                  ✓
+                </div>
+                <h3 className="text-lg font-bold text-foreground">
+                  Inquiry Successfully Converted to Official Customer
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This prospect is officially onboarded. Proceed with technical engineering, quotation, order booking, and project installation.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/customers"
+                className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Customer Directory</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-emerald-500/20">
+            <Link
+              to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <Sun className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <h4 className="text-xs font-bold text-foreground">1. Solar PV Sizing & CAD</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Simulate generation, roof geometry & inverter sizing.
+              </p>
+            </Link>
+
+            <Link
+              to="/quotations"
+              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <FileText className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <h4 className="text-xs font-bold text-foreground">2. Quotation Suite</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Draft official proposal with BOM & subsidy calculations.
+              </p>
+            </Link>
+
+            <Link
+              to="/orders"
+              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <ShoppingBag className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <h4 className="text-xs font-bold text-foreground">3. Confirmed Sales Order</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Lock payment milestones, billing & procurement.
+              </p>
+            </Link>
+
+            <Link
+              to="/projects"
+              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <FolderGit2 className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <h4 className="text-xs font-bold text-foreground">4. 10-Stage EPC Pipeline</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Manage net metering, dispatch, structure & COD.
+              </p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Lost / Dropped Banner */}
+      {lead.status === LeadStatus.LOST && (
+        <div className="bg-rose-500/10 border-2 border-rose-500/30 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
+              <XCircle className="w-4 h-4" />
+              <span>This Lead is Marked as Lost / Dropped</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Reason:{' '}
+              <span className="font-semibold text-foreground">
+                {lead.lostReason || 'No reason specified'}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={() => handleQuickStatusChange(LeadStatus.CONTACTED)}
+            disabled={updatingStatus}
+            className="px-4 py-2 text-xs font-semibold bg-white dark:bg-card border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 rounded-lg transition flex items-center space-x-1.5 shrink-0 cursor-pointer shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${updatingStatus ? 'animate-spin' : ''}`} />
+            <span>Re-Open Inquiry</span>
+          </button>
+        </div>
+      )}
+
+      {/* Active Pipeline Next-Step Guidance Card */}
+      {lead.status !== LeadStatus.CONVERTED && lead.status !== LeadStatus.LOST && (
+        <div className="bg-solar-500/5 border border-solar-500/20 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start space-x-3">
+            <div className="p-2 rounded-xl bg-solar-500/10 text-solar-600 mt-0.5 shrink-0">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[11px] uppercase tracking-wider font-bold text-solar-600 block">
+                Recommended Next Step ({lead.status})
+              </span>
+              <p className="text-xs text-foreground mt-0.5 font-medium">
+                {lead.status === LeadStatus.NEW &&
+                  'Contact the prospect to qualify their solar capacity requirement, monthly electricity bill, and sanctioned load.'}
+                {lead.status === LeadStatus.CONTACTED &&
+                  'Requirement qualified. Schedule a technician site survey to inspect roof azimuth, shading obstacles, and DISCOM meter.'}
+                {lead.status === LeadStatus.SURVEY_SCHEDULED &&
+                  'Site survey scheduled. After engineer completes survey observations, proceed to Solar PV Sizing & generate Quotation.'}
+                {lead.status === LeadStatus.QUOTED &&
+                  'Official quotation delivered. Follow up with prospect to address technical queries, warranty terms, and discounts.'}
+                {lead.status === LeadStatus.NEGOTIATION &&
+                  'Final negotiations in progress. Once terms are accepted, convert this prospect into an official Customer to initiate installation.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            {lead.status === LeadStatus.NEW && (
+              <button
+                onClick={() => handleQuickStatusChange(LeadStatus.CONTACTED)}
+                disabled={updatingStatus}
+                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
+              >
+                <span>Mark Contacted & Qualified →</span>
+              </button>
+            )}
+            {lead.status === LeadStatus.CONTACTED && (
+              <Link
+                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1"
+              >
+                <Layers className="w-3.5 h-3.5 mr-1" />
+                <span>Schedule Site Survey →</span>
+              </Link>
+            )}
+            {lead.status === LeadStatus.SURVEY_SCHEDULED && (
+              <Link
+                to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1"
+              >
+                <Sun className="w-3.5 h-3.5 mr-1" />
+                <span>Solar PV Sizing →</span>
+              </Link>
+            )}
+            {lead.status === LeadStatus.QUOTED && (
+              <button
+                onClick={() => handleQuickStatusChange(LeadStatus.NEGOTIATION)}
+                disabled={updatingStatus}
+                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
+              >
+                <span>Mark Under Negotiation →</span>
+              </button>
+            )}
+            {lead.status === LeadStatus.NEGOTIATION && (
+              <button
+                onClick={handleConvertLead}
+                disabled={converting}
+                className="px-3.5 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
+              >
+                <UserCheck className="w-3.5 h-3.5 mr-1" />
+                <span>{converting ? 'Converting...' : 'Convert to Customer ✓'}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 

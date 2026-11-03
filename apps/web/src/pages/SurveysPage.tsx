@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -87,6 +87,9 @@ const isPdfPhoto = (p?: { mimeType?: string; fileName?: string; dataUrl?: string
 };
 
 export const SurveysPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const leadIdFromUrl = searchParams.get('leadId');
+
   const [surveys, setSurveys] = useState<SiteSurveyDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +175,29 @@ export const SurveysPage: React.FC = () => {
       fetchAvailableLeads();
     }
   }, [showCreateModal]);
+
+  useEffect(() => {
+    if (leadIdFromUrl) {
+      setLeadId(leadIdFromUrl);
+      setShowCreateModal(true);
+      fetchAvailableLeads();
+      apiClient<LeadDto>(`/leads/${leadIdFromUrl}`)
+        .then(lead => {
+          if (lead) {
+            if (lead.location) {
+              if (lead.location.street) setAddressLine1(lead.location.street);
+              if (lead.location.city) setCity(lead.location.city);
+              if (lead.location.state) setState(lead.location.state);
+              if (lead.location.pinCode) setPostalCode(lead.location.pinCode);
+            }
+            if (lead.estimatedCapacityKw) {
+              setProposedCapacityKw(String(lead.estimatedCapacityKw));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [leadIdFromUrl]);
 
   const handleSelectLead = (selectedId: string) => {
     setLeadId(selectedId);

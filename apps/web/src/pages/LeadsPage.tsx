@@ -6,10 +6,14 @@ import {
   Filter,
   Phone,
   AlertCircle,
-  ArrowRight,
   Sun,
   ShieldAlert,
-  Loader2
+  Loader2,
+  Users,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { LeadDto, LeadStatus, LeadSource, LeadPriority, SolarRequirement } from '@ins-solar/shared';
@@ -55,10 +59,12 @@ export const LeadsPage: React.FC = () => {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+      if (statusFilter !== 'ALL' && statusFilter !== 'PIPELINE') {
+        params.set('status', statusFilter);
+      }
       if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
       if (search.trim()) params.set('search', search.trim());
-      params.set('limit', '50');
+      params.set('limit', '100');
 
       const data = await apiClient<LeadDto[]>(`/leads?${params.toString()}`);
       setLeads(data || []);
@@ -188,6 +194,92 @@ export const LeadsPage: React.FC = () => {
     }
   };
 
+  const filteredLeads = leads.filter(lead => {
+    if (statusFilter === 'PIPELINE') {
+      return [
+        LeadStatus.CONTACTED,
+        LeadStatus.SURVEY_SCHEDULED,
+        LeadStatus.QUOTED,
+        LeadStatus.NEGOTIATION
+      ].includes(lead.status);
+    }
+    return true;
+  });
+
+  const totalCount = leads.length;
+  const newCount = leads.filter(l => l.status === LeadStatus.NEW).length;
+  const inPipelineCount = leads.filter(l =>
+    [
+      LeadStatus.CONTACTED,
+      LeadStatus.SURVEY_SCHEDULED,
+      LeadStatus.QUOTED,
+      LeadStatus.NEGOTIATION
+    ].includes(l.status)
+  ).length;
+  const convertedCount = leads.filter(l => l.status === LeadStatus.CONVERTED).length;
+  const lostCount = leads.filter(l => l.status === LeadStatus.LOST).length;
+  const winRate = totalCount > 0 ? Math.round((convertedCount / totalCount) * 100) : 0;
+
+  const getActionConfig = (lead: LeadDto) => {
+    switch (lead.status) {
+      case LeadStatus.NEW:
+        return {
+          label: 'Qualify Lead →',
+          to: `/leads/${lead.id}`,
+          style:
+            'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+        };
+      case LeadStatus.CONTACTED:
+        return {
+          label: 'Book Survey →',
+          to: `/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`,
+          style:
+            'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+        };
+      case LeadStatus.SURVEY_SCHEDULED:
+        return {
+          label: 'Survey Stage →',
+          to: `/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`,
+          style:
+            'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800'
+        };
+      case LeadStatus.QUOTED:
+        return {
+          label: 'View Proposal →',
+          to: `/leads/${lead.id}`,
+          style:
+            'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+        };
+      case LeadStatus.NEGOTIATION:
+        return {
+          label: 'Negotiation →',
+          to: `/leads/${lead.id}`,
+          style:
+            'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800'
+        };
+      case LeadStatus.CONVERTED:
+        return {
+          label: 'Customer Won ✓',
+          to: `/leads/${lead.id}`,
+          style:
+            'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+        };
+      case LeadStatus.LOST:
+        return {
+          label: 'Dropped Inquiry',
+          to: `/leads/${lead.id}`,
+          style:
+            'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+        };
+      default:
+        return {
+          label: 'Details →',
+          to: `/leads/${lead.id}`,
+          style: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border-border'
+        };
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner & Action */}
@@ -212,6 +304,98 @@ export const LeadsPage: React.FC = () => {
             <span>New Lead</span>
           </button>
         </div>
+      </div>
+
+      {/* Commercial Sales Pipeline KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <button
+          onClick={() => setStatusFilter('ALL')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            statusFilter === 'ALL'
+              ? 'bg-solar-50/80 dark:bg-solar-950/30 border-solar-300 dark:border-solar-800 ring-2 ring-solar-500/20 shadow-xs'
+              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider">Total Inquiries</span>
+            <Users className="w-4 h-4 text-solar-500" />
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">All prospective leads</div>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter(LeadStatus.NEW)}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            statusFilter === LeadStatus.NEW
+              ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 ring-2 ring-blue-500/20 shadow-xs'
+              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider">New Inquiries</span>
+            <Sparkles className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{newCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Awaiting initial call</div>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter('PIPELINE')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            statusFilter === 'PIPELINE'
+              ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 ring-2 ring-amber-500/20 shadow-xs'
+              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider">Active Pipeline</span>
+            <Clock className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{inPipelineCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Survey / Quoted / Negot.</div>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter(LeadStatus.CONVERTED)}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            statusFilter === LeadStatus.CONVERTED
+              ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-500/20 shadow-xs'
+              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider">Converted</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {convertedCount}
+            </span>
+            {totalCount > 0 && (
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                {winRate}% Won
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Became active customers</div>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter(LeadStatus.LOST)}
+          className={`p-4 rounded-xl border text-left col-span-2 md:col-span-1 transition-all cursor-pointer ${
+            statusFilter === LeadStatus.LOST
+              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 ring-2 ring-rose-500/20 shadow-xs'
+              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider">Lost / Dropped</span>
+            <XCircle className="w-4 h-4 text-rose-500" />
+          </div>
+          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{lostCount}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Pricing / roof / delay</div>
+        </button>
       </div>
 
       {/* Filter & Search Bar */}
@@ -306,71 +490,91 @@ export const LeadsPage: React.FC = () => {
               )}
             </div>
           </div>
-        ) : leads.length === 0 ? (
+        ) : filteredLeads.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-3">
             <Sun className="w-12 h-12 mx-auto text-solar-400 opacity-50" />
-            <p className="text-base font-medium text-foreground">No leads found</p>
-            <p className="text-sm">Create a new prospect inquiry to begin the sales workflow.</p>
+            <p className="text-base font-medium text-foreground">No leads in this view</p>
+            <p className="text-sm">Try resetting filters or record a new prospect inquiry.</p>
+            <button
+              onClick={() => {
+                setStatusFilter('ALL');
+                setPriorityFilter('ALL');
+                setSearch('');
+              }}
+              className="px-3.5 py-1.5 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
+            >
+              Reset All Filters
+            </button>
           </div>
         ) : (
           <>
             {/* Mobile Cards (< md) */}
             <div className="block md:hidden divide-y">
-              {leads.map(lead => (
-                <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="font-mono text-xs font-bold text-solar-600 block">
-                        {lead.leadCode}
+              {filteredLeads.map(lead => {
+                const action = getActionConfig(lead);
+                return (
+                  <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-mono text-xs font-bold text-solar-600 block">
+                          {lead.leadCode}
+                        </span>
+                        <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
+                          {lead.prospectName}
+                        </h3>
+                        {lead.companyName && (
+                          <p className="text-xs text-muted-foreground truncate">{lead.companyName}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
+                          lead.status
+                        )}`}
+                      >
+                        {lead.status}
                       </span>
-                      <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
-                        {lead.prospectName}
-                      </h3>
-                      {lead.companyName && (
-                        <p className="text-xs text-muted-foreground truncate">{lead.companyName}</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <a
+                        href={`tel:${lead.prospectPhone}`}
+                        className="flex items-center text-foreground hover:text-solar-600 font-medium"
+                      >
+                        <Phone className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                        <span>{lead.prospectPhone}</span>
+                      </a>
+                      {lead.location?.city && <span>📍 {lead.location.city}</span>}
+                      {lead.estimatedCapacityKw && (
+                        <span className="font-semibold text-solar-600">
+                          ⚡ {lead.estimatedCapacityKw} kWp
+                        </span>
                       )}
                     </div>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
-                        lead.status
-                      )}`}
-                    >
-                      {lead.status}
-                    </span>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <a
-                      href={`tel:${lead.prospectPhone}`}
-                      className="flex items-center text-foreground hover:text-solar-600 font-medium"
-                    >
-                      <Phone className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-                      <span>{lead.prospectPhone}</span>
-                    </a>
-                    {lead.location?.city && <span>📍 {lead.location.city}</span>}
-                    {lead.estimatedCapacityKw && (
-                      <span className="font-semibold text-solar-600">
-                        ⚡ {lead.estimatedCapacityKw} kWp
+                    <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
+                      <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">
+                        {lead.assignedEmployeeName
+                          ? `Staff: ${lead.assignedEmployeeName}`
+                          : 'Unassigned'}
                       </span>
-                    )}
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        <Link
+                          to={action.to}
+                          className={`inline-flex items-center font-bold px-2 py-1 rounded-md border text-xs transition ${action.style}`}
+                        >
+                          <span>{action.label}</span>
+                        </Link>
+                        <Link
+                          to={`/leads/${lead.id}`}
+                          className="inline-flex items-center font-bold text-muted-foreground hover:text-foreground bg-muted/60 px-2 py-1 rounded-md border border-border text-xs"
+                        >
+                          <span>Details</span>
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
-                    <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
-                      {lead.assignedEmployeeName
-                        ? `Staff: ${lead.assignedEmployeeName}`
-                        : 'Unassigned'}
-                    </span>
-                    <Link
-                      to={`/leads/${lead.id}`}
-                      className="inline-flex items-center font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-2.5 py-1 rounded-md border border-solar-200 dark:border-solar-800 shrink-0 ml-2"
-                    >
-                      <span>Details</span>
-                      <ArrowRight className="w-3 h-3 ml-1" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Desktop Table (>= md) */}
@@ -385,65 +589,76 @@ export const LeadsPage: React.FC = () => {
                     <th className="py-3 px-4">Capacity</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Assigned To</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="py-3 px-4 text-right">Pipeline Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {leads.map(lead => (
-                    <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-medium text-solar-600">
-                        {lead.leadCode}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-foreground">
-                        {lead.prospectName}
-                        {lead.companyName && (
-                          <span className="block text-xs text-muted-foreground">
-                            {lead.companyName}
+                  {filteredLeads.map(lead => {
+                    const action = getActionConfig(lead);
+                    return (
+                      <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-medium text-solar-600">
+                          {lead.leadCode}
+                        </td>
+                        <td className="py-3.5 px-4 font-medium text-foreground">
+                          {lead.prospectName}
+                          {lead.companyName && (
+                            <span className="block text-xs text-muted-foreground">
+                              {lead.companyName}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center space-x-1 text-foreground">
+                            <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span>{lead.prospectPhone}</span>
+                          </div>
+                          {lead.prospectEmail && (
+                            <span className="text-xs text-muted-foreground">
+                              {lead.prospectEmail}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-muted-foreground">
+                          {lead.location.city}, {lead.location.state}
+                        </td>
+                        <td className="py-3.5 px-4 font-medium text-foreground">
+                          {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
+                              lead.status
+                            )}`}
+                          >
+                            {lead.status}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center space-x-1 text-foreground">
-                          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span>{lead.prospectPhone}</span>
-                        </div>
-                        {lead.prospectEmail && (
-                          <span className="text-xs text-muted-foreground">
-                            {lead.prospectEmail}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-muted-foreground">
-                        {lead.location.city}, {lead.location.state}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-foreground">
-                        {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
-                            lead.status
-                          )}`}
-                        >
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-muted-foreground">
-                        {lead.assignedEmployeeName || (
-                          <span className="italic text-xs">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <Link
-                          to={`/leads/${lead.id}`}
-                          className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
-                        >
-                          <span>Details</span>
-                          <ArrowRight className="w-3 h-3 ml-1" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3.5 px-4 text-muted-foreground">
+                          {lead.assignedEmployeeName || (
+                            <span className="italic text-xs">Unassigned</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="inline-flex items-center justify-end space-x-1.5">
+                            <Link
+                              to={action.to}
+                              className={`inline-flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-md border transition ${action.style}`}
+                            >
+                              <span>{action.label}</span>
+                            </Link>
+                            <Link
+                              to={`/leads/${lead.id}`}
+                              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted px-2 py-1.5 rounded-md border border-border transition"
+                              title="View Lead Details"
+                            >
+                              <span>Details</span>
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
