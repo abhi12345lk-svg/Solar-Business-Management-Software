@@ -22,7 +22,8 @@ interface QuotationListItem {
   status: QuotationStatus;
   systemTopology: SolarTopology;
   systemCapacityKwp: number;
-  grossSubtotalPaise: number;
+  grossSubtotalPaise?: number;
+  subtotalPaise?: number;
   additionalDiscountPaise: number;
   totalDiscountPaise: number;
   discountPercent: number;
@@ -36,6 +37,8 @@ interface QuotationListItem {
   customerId: {
     _id: string;
     legalName?: string;
+    name?: string;
+    companyName?: string;
     customerCode?: string;
   };
   createdBy: {
@@ -45,7 +48,7 @@ interface QuotationListItem {
 }
 
 export const QuotationsPage: React.FC = () => {
-  const [quotations, setQuotations] = useState<QuotationListItem[]>([]);
+  const [allQuotations, setAllQuotations] = useState<QuotationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,21 +149,27 @@ export const QuotationsPage: React.FC = () => {
     }
   }, [paramDesignId, paramCustomerId, paramLeadId, paramCapacity]);
 
+  const handleCapacityChange = (val: string) => {
+    setCapacityKwp(val);
+    const numCap = parseFloat(val);
+    if (!isNaN(numCap) && numCap > 0) {
+      // Standard 550Wp modules
+      const calculatedPanels = Math.ceil((numCap * 1000) / 550);
+      setPanelQty(String(calculatedPanels));
+      // Recommended inverter sizing
+      const inverterKw =
+        numCap <= 3 ? 3 : numCap <= 5 ? 5 : numCap <= 8 ? 8 : numCap <= 10 ? 8 : Math.round(numCap * 0.85);
+      setInverterDesc(`${inverterKw}kW On-Grid Solar Inverter`);
+    }
+  };
+
   const fetchQuotations = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (activeTab === 'PENDING_APPROVAL') {
-        params.set('requiresDiscountApproval', 'true');
-      } else if (activeTab !== 'ALL') {
-        params.set('status', activeTab);
-      }
-      if (search.trim()) params.set('search', search.trim());
-      params.set('limit', '50');
-
-      const data = await apiClient<QuotationListItem[]>(`/quotations?${params.toString()}`);
-      setQuotations(data || []);
+      const data = await apiClient<any>('/quotations?limit=100');
+      const list = Array.isArray(data) ? data : data?.items || [];
+      setAllQuotations(list);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch quotations.');
     } finally {
@@ -170,7 +179,41 @@ export const QuotationsPage: React.FC = () => {
 
   useEffect(() => {
     fetchQuotations();
-  }, [activeTab]);
+  }, []);
+
+  const totalCount = allQuotations.length;
+  const draftCount = allQuotations.filter(q => q.status === QuotationStatus.DRAFT).length;
+  const sentCount = allQuotations.filter(q => q.status === QuotationStatus.SENT).length;
+  const acceptedCount = allQuotations.filter(q => q.status === QuotationStatus.ACCEPTED).length;
+  const pendingDiscountCount = allQuotations.filter(
+    q => q.requiresDiscountApproval && q.discountApprovalStatus === 'PENDING'
+  ).length;
+
+  const filteredQuotations = allQuotations.filter(q => {
+    if (activeTab === 'DRAFT' && q.status !== QuotationStatus.DRAFT) return false;
+    if (activeTab === 'SENT' && q.status !== QuotationStatus.SENT) return false;
+    if (activeTab === 'ACCEPTED' && q.status !== QuotationStatus.ACCEPTED) return false;
+    if (
+      activeTab === 'PENDING_APPROVAL' &&
+      (!q.requiresDiscountApproval || q.discountApprovalStatus !== 'PENDING')
+    )
+      return false;
+
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      const code = (q.fullQuotationCode || q.quotationNumber || '').toLowerCase();
+      const name = (
+        q.customerId?.legalName ||
+        q.customerId?.name ||
+        q.customerId?.companyName ||
+        ''
+      ).toLowerCase();
+      const custCode = (q.customerId?.customerCode || '').toLowerCase();
+      return code.includes(s) || name.includes(s) || custCode.includes(s);
+    }
+    return true;
+  });
+
 
   useEffect(() => {
     if (showCreateModal && availableCustomers.length === 0) {
@@ -187,12 +230,7 @@ export const QuotationsPage: React.FC = () => {
         })
         .finally(() => setLoadingContext(false));
     }
-  }, [showCreateModal]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchQuotations();
-  };
+  }, [showCreateModal, availableCustomers.length]);
 
   const handleLeadChange = (selectedLeadId: string) => {
     setLeadId(selectedLeadId);
@@ -455,22 +493,22 @@ export const QuotationsPage: React.FC = () => {
       </div>
 
       {/* Tabs & Search Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-3">
-        <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto">
+      <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {[
-            { id: 'ALL', label: 'All Quotations' },
-            { id: 'PENDING_APPROVAL', label: 'Discount Approval Queue' },
-            { id: 'SENT', label: 'Sent to Customer' },
-            { id: 'ACCEPTED', label: 'Accepted' },
-            { id: 'DRAFT', label: 'Drafts' }
+            { id: 'ALL', label: `All Quotations (${totalCount})` },
+            { id: 'DRAFT', label: `Drafts (${draftCount})` },
+            { id: 'SENT', label: `Sent to Customer (${sentCount})` },
+            { id: 'ACCEPTED', label: `Accepted (${acceptedCount})` },
+            { id: 'PENDING_APPROVAL', label: `Discount Approval Queue (${pendingDiscountCount})` }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-solar-600 text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  ? 'bg-solar-500 text-white shadow-xs'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               {tab.label}
@@ -478,16 +516,16 @@ export const QuotationsPage: React.FC = () => {
           ))}
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="relative">
+        <div className="relative md:w-60">
           <input
             type="text"
-            placeholder="Search code or number..."
+            placeholder="Search code, customer..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-8 pr-3 py-1.5 text-xs bg-background border border-input rounded-md w-56"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-solar-500"
           />
           <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-        </form>
+        </div>
       </div>
 
       {/* Quotations Table */}
@@ -498,7 +536,7 @@ export const QuotationsPage: React.FC = () => {
           </div>
         ) : error ? (
           <div className="p-6 text-center text-sm text-destructive">{error}</div>
-        ) : quotations.length === 0 ? (
+        ) : filteredQuotations.length === 0 ? (
           <div className="text-center py-16 space-y-3">
             <FileText className="w-10 h-10 text-muted-foreground mx-auto stroke-1" />
             <div className="text-sm font-medium text-foreground">No quotations found</div>
@@ -512,13 +550,18 @@ export const QuotationsPage: React.FC = () => {
           <>
             {/* Mobile Cards (< md) */}
             <div className="block md:hidden divide-y divide-border">
-              {quotations.map(q => {
-                const netRs = (q.netTotalPaise / 100).toLocaleString('en-IN', {
+              {filteredQuotations.map(q => {
+                const netRs = ((q.netTotalPaise || 0) / 100).toLocaleString('en-IN', {
                   maximumFractionDigits: 2
                 });
-                const discountRs = (q.totalDiscountPaise / 100).toLocaleString('en-IN', {
+                const discountRs = ((q.totalDiscountPaise || 0) / 100).toLocaleString('en-IN', {
                   maximumFractionDigits: 2
                 });
+                const customerName =
+                  q.customerId?.legalName ||
+                  q.customerId?.name ||
+                  q.customerId?.companyName ||
+                  'Direct Customer';
 
                 return (
                   <div key={q._id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
@@ -536,7 +579,7 @@ export const QuotationsPage: React.FC = () => {
                           )}
                         </Link>
                         <h4 className="font-bold text-sm text-foreground truncate mt-0.5">
-                          {q.customerId?.legalName || 'Direct Customer'}
+                          {customerName}
                         </h4>
                       </div>
                       <div className="shrink-0">{getStatusBadge(q.status)}</div>
@@ -576,8 +619,13 @@ export const QuotationsPage: React.FC = () => {
                         to={`/quotations/${q._id}`}
                         className="inline-flex items-center text-xs font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
                       >
-                        <span>Open Workstation</span>
-                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        <span>
+                          {q.status === QuotationStatus.ACCEPTED
+                            ? 'Create Order →'
+                            : q.status === QuotationStatus.DRAFT
+                              ? 'Review & Send →'
+                              : 'Open Workstation →'}
+                        </span>
                       </Link>
                     </div>
                   </div>
@@ -601,16 +649,22 @@ export const QuotationsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {quotations.map(q => {
-                    const grossRs = (q.grossSubtotalPaise / 100).toLocaleString('en-IN', {
+                  {filteredQuotations.map(q => {
+                    const grossPaise = q.grossSubtotalPaise ?? q.subtotalPaise ?? 0;
+                    const grossRs = (grossPaise / 100).toLocaleString('en-IN', {
                       maximumFractionDigits: 2
                     });
-                    const netRs = (q.netTotalPaise / 100).toLocaleString('en-IN', {
+                    const netRs = ((q.netTotalPaise || 0) / 100).toLocaleString('en-IN', {
                       maximumFractionDigits: 2
                     });
-                    const discountRs = (q.totalDiscountPaise / 100).toLocaleString('en-IN', {
+                    const discountRs = ((q.totalDiscountPaise || 0) / 100).toLocaleString('en-IN', {
                       maximumFractionDigits: 2
                     });
+                    const customerName =
+                      q.customerId?.legalName ||
+                      q.customerId?.name ||
+                      q.customerId?.companyName ||
+                      'Direct Customer';
 
                     return (
                       <tr key={q._id} className="hover:bg-muted/30 transition-colors">
@@ -633,7 +687,7 @@ export const QuotationsPage: React.FC = () => {
 
                         <td className="py-3.5 px-4 text-xs">
                           <div className="font-medium text-foreground">
-                            {q.customerId?.legalName || 'Direct Customer'}
+                            {customerName}
                           </div>
                           <div className="text-muted-foreground font-mono text-[11px]">
                             {q.customerId?.customerCode || '—'}
@@ -674,13 +728,42 @@ export const QuotationsPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-center">{getStatusBadge(q.status)}</td>
 
                         <td className="py-3.5 px-4 text-right">
-                          <Link
-                            to={`/quotations/${q._id}`}
-                            className="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded"
-                          >
-                            View Details
-                            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                          </Link>
+                          {q.status === QuotationStatus.ACCEPTED ? (
+                            <Link
+                              to={`/quotations/${q._id}`}
+                              className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-all shadow-xs"
+                              title="Proposal accepted by customer. Click to generate confirmed Sales Order"
+                            >
+                              <span>Create Order</span>
+                              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Link>
+                          ) : q.status === QuotationStatus.DRAFT ? (
+                            <Link
+                              to={`/quotations/${q._id}`}
+                              className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/20 transition-all shadow-xs"
+                              title="Draft proposal. Click to review, print PDF, or issue to customer"
+                            >
+                              <span>Review & Send</span>
+                              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Link>
+                          ) : q.status === QuotationStatus.SENT ? (
+                            <Link
+                              to={`/quotations/${q._id}`}
+                              className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 transition-all shadow-xs"
+                              title="Sent to customer. Click to record customer decision or accept"
+                            >
+                              <span>Record Decision</span>
+                              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Link>
+                          ) : (
+                            <Link
+                              to={`/quotations/${q._id}`}
+                              className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border border-border/80 transition-all shadow-xs"
+                            >
+                              <span>View Details</span>
+                              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     );
@@ -886,7 +969,7 @@ export const QuotationsPage: React.FC = () => {
                       min="0.5"
                       required
                       value={capacityKwp}
-                      onChange={e => setCapacityKwp(e.target.value)}
+                      onChange={e => handleCapacityChange(e.target.value)}
                       className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg font-bold text-solar-600"
                     />
                   </div>

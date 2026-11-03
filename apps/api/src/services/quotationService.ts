@@ -875,7 +875,7 @@ export class QuotationService {
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
-        .populate('customerId', 'legalName customerCode')
+        .populate('customerId', 'name legalName companyName customerCode primaryPhone email')
         .populate('createdBy', 'firstName lastName')
         .lean(),
       Quotation.countDocuments(query)
