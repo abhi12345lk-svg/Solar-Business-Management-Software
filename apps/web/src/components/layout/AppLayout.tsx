@@ -7,6 +7,7 @@ import {
   LogOut,
   LogIn,
   Users,
+  UserCheck,
   Layers,
   FileSpreadsheet,
   ShoppingCart,
@@ -50,7 +51,8 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'Executive & Commercial',
     items: [
       { to: '/', label: 'Admin Dashboard', icon: LayoutDashboard },
-      { to: '/leads', label: 'Lead & Customer CRM', icon: Users },
+      { to: '/leads', label: 'Inquiries & Leads', icon: Users },
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/surveys', label: 'Site Surveys', icon: Layers },
       { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
       { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
@@ -102,7 +104,8 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     title: 'CRM & Sales Pipeline',
     items: [
       { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
-      { to: '/leads', label: 'Lead Management', icon: Users },
+      { to: '/leads', label: 'Inquiries & Leads', icon: Users },
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell }
     ]
   },
@@ -163,7 +166,8 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname === '/') return { section: 'Executive', title: 'Dashboard' };
-  if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Leads & Customers' };
+  if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Inquiries & Leads' };
+  if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
   if (pathname.startsWith('/surveys')) return { section: 'Engineering', title: 'Site Surveys' };
   if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'PV Sizing' };

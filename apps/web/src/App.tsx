@@ -10,6 +10,7 @@ import { MfaSetupPage } from './pages/MfaSetupPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
 import { LeadDetailPage } from './pages/LeadDetailPage.js';
+import { CustomersPage } from './pages/CustomersPage.js';
 import { FollowUpsPage } from './pages/FollowUpsPage.js';
 import { SurveysPage } from './pages/SurveysPage.js';
 import { SolarDesignPage } from './pages/SolarDesignPage.js';
@@ -78,6 +79,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <LeadDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customers"
+            element={
+              <ProtectedRoute>
+                <CustomersPage />
               </ProtectedRoute>
             }
           />
