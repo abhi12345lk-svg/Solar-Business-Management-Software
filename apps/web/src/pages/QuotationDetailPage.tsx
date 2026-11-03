@@ -472,63 +472,217 @@ export const QuotationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Generate Sales Order or View Linked Order (When Accepted) */}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* 1. When ACCEPTED: Direct Sales Order Actions */}
           {quotation.status === QuotationStatus.ACCEPTED &&
             (existingOrder ? (
               <Link
                 to={`/orders/${existingOrder._id}`}
-                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
               >
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                <span>View Order ({existingOrder.orderNumber})</span>
+                <ShoppingCart className="w-4 h-4 mr-1.5" />
+                <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={() => setShowConvertModal(true)}
                 disabled={convertingOrder}
-                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer ring-2 ring-emerald-500/20"
               >
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                <span>Generate Confirmed Sales Order</span>
+                <ShoppingCart className="w-4 h-4 mr-1.5" />
+                <span>Generate Confirmed Sales Order →</span>
               </button>
             ))}
 
-          {/* Download/View PDF Action */}
+          {/* 2. When DRAFT: Mark as Sent (Primary) + Direct Quick Accept */}
+          {(quotation.status === QuotationStatus.DRAFT ||
+            quotation.status === QuotationStatus.APPROVED) && (
+            <>
+              <button
+                type="button"
+                onClick={handleMarkAsSent}
+                disabled={sending}
+                className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg disabled:opacity-50 shadow-sm transition-colors cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                <span>{sending ? 'Issuing...' : 'Mark as Sent to Client'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCustomerAccept}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+                title="If client accepted on the spot, record direct acceptance"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                <span>Accept Proposal ✓</span>
+              </button>
+            </>
+          )}
+
+          {/* 3. When SENT: Customer Acceptance / Decision Controls */}
+          {quotation.status === QuotationStatus.SENT && (
+            <>
+              <button
+                type="button"
+                onClick={handleCustomerAccept}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                <span>Client Accepted ✓</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRevisionModal(true)}
+                disabled={revising}
+                className="inline-flex items-center justify-center px-3 py-2 bg-solar-600 hover:bg-solar-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <History className="w-3.5 h-3.5 mr-1.5" />
+                <span>Revise (R{quotation.revisionNumber + 1})</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCustomerReject}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center justify-center px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                <span>Decline</span>
+              </button>
+            </>
+          )}
+
+          {/* Download/View PDF Proposal Action */}
           <button
             type="button"
             onClick={() => setShowDocPreview(true)}
             className="inline-flex items-center justify-center px-3 py-2 bg-secondary text-secondary-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
-            View Proposal Document
+            <span>View Proposal PDF</span>
           </button>
+        </div>
+      </div>
 
-          {/* Mark As Sent Action */}
-          {(quotation.status === QuotationStatus.DRAFT ||
-            quotation.status === QuotationStatus.APPROVED) && (
-            <button
-              type="button"
-              onClick={handleMarkAsSent}
-              disabled={sending}
-              className="inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-colors cursor-pointer"
+      {/* 4-Stage Commercial Lifecycle Pipeline Bar */}
+      <div className="bg-card border border-border/80 rounded-xl p-3.5 sm:p-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Commercial Proposal Pipeline Stage:
+            </span>
+            <span
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                quotation.status === QuotationStatus.ACCEPTED
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                  : quotation.status === QuotationStatus.SENT
+                    ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
+                    : quotation.status === QuotationStatus.REJECTED
+                      ? 'bg-destructive/10 text-destructive border border-destructive/30'
+                      : 'bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-500/30'
+              }`}
             >
-              <Send className="w-3.5 h-3.5 mr-1.5" />
-              {sending ? 'Marking as Sent...' : 'Mark as Sent'}
-            </button>
-          )}
+              {quotation.status === QuotationStatus.ACCEPTED
+                ? '3. Customer Accepted (Ready for Order)'
+                : quotation.status === QuotationStatus.SENT
+                  ? '2. Sent to Customer (Awaiting Decision)'
+                  : quotation.status === QuotationStatus.REJECTED
+                    ? 'Declined by Customer'
+                    : '1. Draft Proposal (Initial Spec)'}
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {quotation.status === QuotationStatus.ACCEPTED
+              ? existingOrder
+                ? 'Sales Order active in EPC execution'
+                : 'Next Action: Click "Generate Confirmed Sales Order" to advance'
+              : quotation.status === QuotationStatus.SENT
+                ? 'Next Action: Record customer acceptance or revision'
+                : 'Next Action: Review proposal PDF and mark as sent to client'}
+          </span>
+        </div>
 
-          {/* Create Revision Action */}
-          <button
-            type="button"
-            onClick={() => setShowRevisionModal(true)}
-            disabled={revising}
-            className="col-span-1 xs:col-span-2 sm:col-span-1 inline-flex items-center justify-center px-3 py-2 bg-solar-600 hover:bg-solar-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+        {/* Visual 4-Step Stepper */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2.5 text-xs">
+          <div
+            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
+              quotation.status === QuotationStatus.DRAFT
+                ? 'bg-solar-500/10 border-solar-500/40 text-solar-900 dark:text-solar-200 font-bold'
+                : 'bg-muted/40 border-border text-muted-foreground'
+            }`}
           >
-            <History className="w-3.5 h-3.5 mr-1.5" />
-            Create Revised Quotation (R{quotation.revisionNumber + 1})
-          </button>
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                quotation.status !== QuotationStatus.DRAFT
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-solar-500 text-white'
+              }`}
+            >
+              {quotation.status !== QuotationStatus.DRAFT ? '✓' : '1'}
+            </div>
+            <span>1. Draft Proposal</span>
+          </div>
+
+          <div
+            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
+              quotation.status === QuotationStatus.SENT
+                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-900 dark:text-indigo-200 font-bold'
+                : [QuotationStatus.ACCEPTED].includes(quotation.status)
+                  ? 'bg-muted/40 border-border text-muted-foreground'
+                  : 'bg-muted/20 border-border/50 text-muted-foreground/60'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                [QuotationStatus.ACCEPTED].includes(quotation.status)
+                  ? 'bg-emerald-500 text-white'
+                  : quotation.status === QuotationStatus.SENT
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {[QuotationStatus.ACCEPTED].includes(quotation.status) ? '✓' : '2'}
+            </div>
+            <span>2. Sent to Client</span>
+          </div>
+
+          <div
+            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
+              quotation.status === QuotationStatus.ACCEPTED
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-bold'
+                : 'bg-muted/20 border-border/50 text-muted-foreground/60'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                quotation.status === QuotationStatus.ACCEPTED
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {quotation.status === QuotationStatus.ACCEPTED ? '✓' : '3'}
+            </div>
+            <span>3. Client Accepted</span>
+          </div>
+
+          <div
+            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
+              existingOrder
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-bold'
+                : 'bg-muted/20 border-border/50 text-muted-foreground/60'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                existingOrder ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {existingOrder ? '✓' : '4'}
+            </div>
+            <span>4. Sales Order & EPC</span>
+          </div>
         </div>
       </div>
 
@@ -1017,7 +1171,7 @@ export const QuotationDetailPage: React.FC = () => {
             </h2>
 
             {quotation.isAccepted ? (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 space-y-2">
                 <div className="font-bold flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   Proposal Formally Accepted
@@ -1027,6 +1181,27 @@ export const QuotationDetailPage: React.FC = () => {
                   Digital Sign IP: {quotation.decisionIpAddress || 'Authenticated Portal Session'}
                 </div>
                 {quotation.customerNotes && <div>Notes: {quotation.customerNotes}</div>}
+
+                {/* Direct Conversion to Sales Order from bottom card */}
+                {existingOrder ? (
+                  <Link
+                    to={`/orders/${existingOrder._id}`}
+                    className="inline-flex items-center justify-center w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                    <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowConvertModal(true)}
+                    disabled={convertingOrder}
+                    className="inline-flex items-center justify-center w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer ring-2 ring-emerald-500/20"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Proceed to Generate Sales Order →</span>
+                  </button>
+                )}
               </div>
             ) : quotation.status === QuotationStatus.REJECTED ? (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive space-y-1">
@@ -1055,15 +1230,16 @@ export const QuotationDetailPage: React.FC = () => {
                     type="button"
                     onClick={handleCustomerAccept}
                     disabled={submittingCustomerAction}
-                    className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs shadow-sm"
+                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center justify-center gap-1 cursor-pointer transition-colors"
                   >
-                    Accept Proposal
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Accept Proposal</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleCustomerReject}
                     disabled={submittingCustomerAction}
-                    className="flex-1 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded font-medium text-xs shadow-sm"
+                    className="flex-1 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
                   >
                     Decline
                   </button>
@@ -1150,7 +1326,12 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Customer:</span>
-                <span className="font-bold text-foreground">{quotation.customerId.legalName}</span>
+                <span className="font-bold text-foreground">
+                  {quotation.customerId?.legalName ||
+                    (quotation.customerId as any)?.name ||
+                    (quotation.customerId as any)?.companyName ||
+                    'Customer'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Net Commercial Total:</span>
