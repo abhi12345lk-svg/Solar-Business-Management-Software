@@ -16,7 +16,6 @@ import {
   Layers,
   Sparkles,
   XCircle,
-  Zap,
   FileText,
   ShoppingBag,
   FolderGit2,
@@ -329,31 +328,24 @@ export const LeadDetailPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setShowStatusModal(true)}
-            className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
-          >
-            Update Status
-          </button>
-
-          {/* Contextual Primary Action based on Stage */}
+        {/* Simple & Clean Action Controls */}
+        <div className="flex items-center gap-2">
+          {/* Main Contextual Next Action Button */}
           {lead.status === LeadStatus.NEW && (
             <button
               onClick={() => handleQuickStatusChange(LeadStatus.CONTACTED)}
               disabled={updatingStatus}
-              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>Mark Contacted & Qualified →</span>
+              <span>Mark as Contacted →</span>
             </button>
           )}
 
           {lead.status === LeadStatus.CONTACTED && (
             <Link
               to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <Layers className="w-3.5 h-3.5" />
               <span>Schedule Site Survey →</span>
@@ -363,10 +355,10 @@ export const LeadDetailPage: React.FC = () => {
           {lead.status === LeadStatus.SURVEY_SCHEDULED && (
             <Link
               to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <Sun className="w-3.5 h-3.5" />
-              <span>Solar PV Sizing & CAD →</span>
+              <span>Solar PV Sizing →</span>
             </Link>
           )}
 
@@ -374,10 +366,10 @@ export const LeadDetailPage: React.FC = () => {
             <button
               onClick={() => handleQuickStatusChange(LeadStatus.NEGOTIATION)}
               disabled={updatingStatus}
-              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <ArrowRight className="w-3.5 h-3.5" />
-              <span>Advance to Negotiation →</span>
+              <span>Move to Negotiation →</span>
             </button>
           )}
 
@@ -392,41 +384,23 @@ export const LeadDetailPage: React.FC = () => {
             </button>
           )}
 
-          {/* Secondary Survey shortcut if not on NEW or CONTACTED */}
-          {lead.status !== LeadStatus.NEW &&
-            lead.status !== LeadStatus.CONTACTED &&
-            lead.status !== LeadStatus.LOST &&
-            lead.status !== LeadStatus.CONVERTED && (
-              <Link
-                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-                className="px-3 py-2 text-xs font-semibold bg-muted/70 hover:bg-muted text-foreground rounded-lg transition border border-border flex items-center space-x-1.5"
-              >
-                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Site Survey</span>
-              </Link>
-            )}
-
-          {/* Direct Convert fast-track for admins when not already in negotiation or converted */}
-          {lead.status !== LeadStatus.CONVERTED &&
-            lead.status !== LeadStatus.LOST &&
-            lead.status !== LeadStatus.NEGOTIATION && (
-              <button
-                onClick={handleConvertLead}
-                disabled={converting}
-                title="Fast-track conversion into official customer record"
-                className="px-3 py-2 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-lg transition flex items-center space-x-1 cursor-pointer"
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Fast-Track Convert</span>
-              </button>
-            )}
-
           {lead.status === LeadStatus.CONVERTED && (
-            <div className="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Converted Customer</span>
-            </div>
+            <Link
+              to="/customers"
+              className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Customer Profile →</span>
+            </Link>
           )}
+
+          {/* Update / Change Status Modal */}
+          <button
+            onClick={() => setShowStatusModal(true)}
+            className="px-3.5 py-2 text-xs font-medium bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
+          >
+            Update Status
+          </button>
         </div>
       </div>
 
@@ -650,83 +624,6 @@ export const LeadDetailPage: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 ${updatingStatus ? 'animate-spin' : ''}`} />
             <span>Re-Open Inquiry</span>
           </button>
-        </div>
-      )}
-
-      {/* Active Pipeline Next-Step Guidance Card */}
-      {lead.status !== LeadStatus.CONVERTED && lead.status !== LeadStatus.LOST && (
-        <div className="bg-solar-500/5 border border-solar-500/20 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start space-x-3">
-            <div className="p-2 rounded-xl bg-solar-500/10 text-solar-600 mt-0.5 shrink-0">
-              <Zap className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[11px] uppercase tracking-wider font-bold text-solar-600 block">
-                Recommended Next Step ({lead.status})
-              </span>
-              <p className="text-xs text-foreground mt-0.5 font-medium">
-                {lead.status === LeadStatus.NEW &&
-                  'Contact the prospect to qualify their solar capacity requirement, monthly electricity bill, and sanctioned load.'}
-                {lead.status === LeadStatus.CONTACTED &&
-                  'Requirement qualified. Schedule a technician site survey to inspect roof azimuth, shading obstacles, and DISCOM meter.'}
-                {lead.status === LeadStatus.SURVEY_SCHEDULED &&
-                  'Site survey scheduled. After engineer completes survey observations, proceed to Solar PV Sizing & generate Quotation.'}
-                {lead.status === LeadStatus.QUOTED &&
-                  'Official quotation delivered. Follow up with prospect to address technical queries, warranty terms, and discounts.'}
-                {lead.status === LeadStatus.NEGOTIATION &&
-                  'Final negotiations in progress. Once terms are accepted, convert this prospect into an official Customer to initiate installation.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 shrink-0">
-            {lead.status === LeadStatus.NEW && (
-              <button
-                onClick={() => handleQuickStatusChange(LeadStatus.CONTACTED)}
-                disabled={updatingStatus}
-                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
-              >
-                <span>Mark Contacted & Qualified →</span>
-              </button>
-            )}
-            {lead.status === LeadStatus.CONTACTED && (
-              <Link
-                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1"
-              >
-                <Layers className="w-3.5 h-3.5 mr-1" />
-                <span>Schedule Site Survey →</span>
-              </Link>
-            )}
-            {lead.status === LeadStatus.SURVEY_SCHEDULED && (
-              <Link
-                to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1"
-              >
-                <Sun className="w-3.5 h-3.5 mr-1" />
-                <span>Solar PV Sizing →</span>
-              </Link>
-            )}
-            {lead.status === LeadStatus.QUOTED && (
-              <button
-                onClick={() => handleQuickStatusChange(LeadStatus.NEGOTIATION)}
-                disabled={updatingStatus}
-                className="px-3.5 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
-              >
-                <span>Mark Under Negotiation →</span>
-              </button>
-            )}
-            {lead.status === LeadStatus.NEGOTIATION && (
-              <button
-                onClick={handleConvertLead}
-                disabled={converting}
-                className="px-3.5 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs cursor-pointer flex items-center space-x-1"
-              >
-                <UserCheck className="w-3.5 h-3.5 mr-1" />
-                <span>{converting ? 'Converting...' : 'Convert to Customer ✓'}</span>
-              </button>
-            )}
-          </div>
         </div>
       )}
 

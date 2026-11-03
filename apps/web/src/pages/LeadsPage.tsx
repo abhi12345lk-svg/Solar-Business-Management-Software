@@ -557,20 +557,12 @@ export const LeadsPage: React.FC = () => {
                           ? `Staff: ${lead.assignedEmployeeName}`
                           : 'Unassigned'}
                       </span>
-                      <div className="flex items-center space-x-1.5 shrink-0">
-                        <Link
-                          to={action.to}
-                          className={`inline-flex items-center font-bold px-2 py-1 rounded-md border text-xs transition ${action.style}`}
-                        >
-                          <span>{action.label}</span>
-                        </Link>
-                        <Link
-                          to={`/leads/${lead.id}`}
-                          className="inline-flex items-center font-bold text-muted-foreground hover:text-foreground bg-muted/60 px-2 py-1 rounded-md border border-border text-xs"
-                        >
-                          <span>Details</span>
-                        </Link>
-                      </div>
+                      <Link
+                        to={`/leads/${lead.id}`}
+                        className={`inline-flex items-center font-bold px-2.5 py-1 rounded-md border text-xs transition ${action.style}`}
+                      >
+                        <span>{action.label}</span>
+                      </Link>
                     </div>
                   </div>
                 );
@@ -597,11 +589,21 @@ export const LeadsPage: React.FC = () => {
                     const action = getActionConfig(lead);
                     return (
                       <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-medium text-solar-600">
-                          {lead.leadCode}
+                        <td className="py-3.5 px-4 font-mono font-medium">
+                          <Link
+                            to={`/leads/${lead.id}`}
+                            className="text-solar-600 hover:text-solar-700 hover:underline"
+                          >
+                            {lead.leadCode}
+                          </Link>
                         </td>
                         <td className="py-3.5 px-4 font-medium text-foreground">
-                          {lead.prospectName}
+                          <Link
+                            to={`/leads/${lead.id}`}
+                            className="hover:text-solar-600 hover:underline block"
+                          >
+                            {lead.prospectName}
+                          </Link>
                           {lead.companyName && (
                             <span className="block text-xs text-muted-foreground">
                               {lead.companyName}
@@ -640,21 +642,12 @@ export const LeadsPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center justify-end space-x-1.5">
-                            <Link
-                              to={action.to}
-                              className={`inline-flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-md border transition ${action.style}`}
-                            >
-                              <span>{action.label}</span>
-                            </Link>
-                            <Link
-                              to={`/leads/${lead.id}`}
-                              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted px-2 py-1.5 rounded-md border border-border transition"
-                              title="View Lead Details"
-                            >
-                              <span>Details</span>
-                            </Link>
-                          </div>
+                          <Link
+                            to={`/leads/${lead.id}`}
+                            className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-md border transition cursor-pointer ${action.style}`}
+                          >
+                            <span>{action.label}</span>
+                          </Link>
                         </td>
                       </tr>
                     );
