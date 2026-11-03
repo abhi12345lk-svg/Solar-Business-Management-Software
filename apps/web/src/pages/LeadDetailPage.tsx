@@ -364,9 +364,11 @@ export const LeadDetailPage: React.FC = () => {
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
             <span>Back to Leads Directory</span>
           </Link>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-              {lead.leadCode}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center space-x-2">
+              <span className="font-mono">{lead.leadCode}</span>
+              <span className="text-muted-foreground font-normal">•</span>
+              <span>{lead.prospectName}</span>
             </h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-solar-500/10 text-solar-600 border border-solar-500/20">
               {lead.status}
@@ -478,13 +480,15 @@ export const LeadDetailPage: React.FC = () => {
             </Link>
           )}
 
-          {/* Update / Change Status Modal */}
-          <button
-            onClick={() => setShowStatusModal(true)}
-            className="px-3.5 py-2 text-xs font-medium bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
-          >
-            Update Status
-          </button>
+          {/* Update / Change Status Modal (Only for non-converted leads) */}
+          {lead.status !== LeadStatus.CONVERTED && (
+            <button
+              onClick={() => setShowStatusModal(true)}
+              className="px-3.5 py-2 text-xs font-medium bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
+            >
+              Update Status
+            </button>
+          )}
         </div>
       </div>
 
@@ -503,27 +507,21 @@ export const LeadDetailPage: React.FC = () => {
       )}
 
       {/* 6-Stage Commercial Lead Conversion Stepper */}
-      <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-foreground flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-solar-500" />
-              <span>Commercial Lead Qualification & Conversion Stepper</span>
+      <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b pb-2">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-solar-500" />
+            <h2 className="text-sm font-bold text-foreground">
+              Sales Pipeline Progress
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Standard 6-stage solar sales process from inbound inquiry to customer conversion.
-            </p>
           </div>
-          {lead.status === LeadStatus.LOST && (
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/30">
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Inquiry Dropped / Lost</span>
-            </div>
-          )}
+          <span className="text-xs text-muted-foreground font-medium">
+            Stage {STAGE_ORDER.indexOf(lead.status) + 1} of 6: <strong className="text-foreground">{lead.status}</strong>
+          </span>
         </div>
 
         {/* 6 Steps Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
           {COMMERCIAL_STAGES.map((st, idx) => {
             const currentStageIdx = STAGE_ORDER.indexOf(lead.status);
             const isCompleted = currentStageIdx !== -1 && currentStageIdx > idx;
@@ -551,27 +549,27 @@ export const LeadDetailPage: React.FC = () => {
                         ? `${st.label} (Completed)`
                         : `Click to advance milestone to ${st.label}`
                 }
-                className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between ${
                   lead.status === LeadStatus.CONVERTED ? 'cursor-default' : 'cursor-pointer'
                 } select-none ${
                   isCurrent
                     ? 'bg-solar-50/80 dark:bg-solar-950/40 border-solar-400 dark:border-solar-700 ring-2 ring-solar-500/20 shadow-xs'
                     : isCompleted
-                      ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800 hover:border-emerald-400'
-                      : 'bg-muted/30 border-border opacity-70 hover:opacity-100 hover:border-solar-300'
+                      ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-muted/30 border-border opacity-60 hover:opacity-100'
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-muted-foreground">
-                      Stage 0{idx + 1}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-mono uppercase font-semibold text-muted-foreground">
+                      0{idx + 1}
                     </span>
                     {isCompleted ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     ) : isCurrent ? (
-                      <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-solar-500 animate-pulse" />
                     ) : (
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
                     )}
                   </div>
                   <h4
@@ -583,113 +581,82 @@ export const LeadDetailPage: React.FC = () => {
                           : 'text-foreground'
                     }`}
                   >
-                    {st.label}
+                    {st.label.replace(/^\d+\.\s*/, '')}
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
-                    {st.desc}
-                  </p>
                 </div>
-
-                {isCurrent && lead.status !== LeadStatus.CONVERTED && (
-                  <div className="mt-2 pt-2 border-t border-solar-200 dark:border-solar-800/50">
-                    <span className="text-[10px] font-bold text-solar-700 dark:text-solar-400 uppercase tracking-wider">
-                      Current Milestone
-                    </span>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Converted Customer Celebration & Quick-Action Hub */}
+      {/* Converted Customer Quick-Action Strip */}
       {lead.status === LeadStatus.CONVERTED && (
-        <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-solar-500/10 border-2 border-emerald-500/30 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-base shadow-xs">
-                  ✓
-                </div>
-                <h3 className="text-lg font-bold text-foreground">
-                  Inquiry Successfully Converted to Official Customer
-                </h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {convertSuccess ? (
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 mr-1.5">{convertSuccess}.</span>
-                ) : null}
-                This prospect is officially onboarded. Proceed with technical engineering, quotation, order booking, and project installation.
-              </p>
-            </div>
-
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center space-x-2">
-              <Link
-                to="/customers"
-                className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Customer Directory</span>
-              </Link>
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">
+                ✓
+              </div>
+              <h3 className="text-sm font-bold text-foreground">
+                Inquiry Won & Converted to Official Customer
+              </h3>
             </div>
+            <Link
+              to="/customers"
+              className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center"
+            >
+              <span>View in Customer Directory →</span>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-emerald-500/20">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <Link
               to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
             >
               <div className="flex items-center justify-between mb-1">
-                <Sun className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+                <Sun className="w-4 h-4 text-solar-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
               </div>
-              <h4 className="text-xs font-bold text-foreground">1. Solar PV Sizing & CAD</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Simulate generation, roof geometry & inverter sizing.
-              </p>
+              <h4 className="text-xs font-bold text-foreground">1. Solar PV CAD</h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5">3D Roof & simulation</p>
             </Link>
 
             <Link
               to="/quotations"
-              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
             >
               <div className="flex items-center justify-between mb-1">
-                <FileText className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+                <FileText className="w-4 h-4 text-solar-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
               </div>
               <h4 className="text-xs font-bold text-foreground">2. Quotation Suite</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Draft official proposal with BOM & subsidy calculations.
-              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Draft proposal & BOM</p>
             </Link>
 
             <Link
               to="/orders"
-              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
             >
               <div className="flex items-center justify-between mb-1">
-                <ShoppingBag className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+                <ShoppingBag className="w-4 h-4 text-solar-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
               </div>
-              <h4 className="text-xs font-bold text-foreground">3. Confirmed Sales Order</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Lock payment milestones, billing & procurement.
-              </p>
+              <h4 className="text-xs font-bold text-foreground">3. Confirmed Order</h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5">EPC contract & billing</p>
             </Link>
 
             <Link
               to="/projects"
-              className="p-3.5 bg-card/80 hover:bg-card border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl transition shadow-xs group"
+              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
             >
               <div className="flex items-center justify-between mb-1">
-                <FolderGit2 className="w-4 h-4 text-solar-500 group-hover:scale-110 transition-transform" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 group-hover:translate-x-0.5 transition" />
+                <FolderGit2 className="w-4 h-4 text-solar-500" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
               </div>
               <h4 className="text-xs font-bold text-foreground">4. 10-Stage EPC Pipeline</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Manage net metering, dispatch, structure & COD.
-              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Execution & Net Metering</p>
             </Link>
           </div>
         </div>
@@ -866,70 +833,79 @@ export const LeadDetailPage: React.FC = () => {
               )}
             </div>
 
-            {activities.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground space-y-2">
-                <Clock className="w-8 h-8 mx-auto opacity-50" />
-                <p className="text-sm font-medium">No recorded activities yet.</p>
-                <p className="text-xs">Log phone calls or site visits to track this lead.</p>
-              </div>
-            ) : (
-              <div className="relative border-l border-solar-200 ml-4 space-y-4 py-2">
-                {activities.map(act => {
-                  const isSystemLog =
-                    act.summary.startsWith('Status changed') ||
-                    act.summary.startsWith('Lead converted') ||
-                    act.summary.startsWith('Lead captured');
+            {(() => {
+              const displayActivities = activities.filter(
+                act => !act.summary.startsWith('Status changed from')
+              );
 
-                  if (isSystemLog) {
+              if (displayActivities.length === 0) {
+                return (
+                  <div className="py-8 text-center text-muted-foreground space-y-2">
+                    <Clock className="w-8 h-8 mx-auto opacity-50 text-solar-500" />
+                    <p className="text-sm font-medium">No recorded interaction notes yet.</p>
+                    <p className="text-xs">Log phone calls or site consultation notes to track this inquiry.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="relative border-l border-solar-200 ml-4 space-y-4 py-2">
+                  {displayActivities.map(act => {
+                    const isSystemLog =
+                      act.summary.startsWith('Lead converted') ||
+                      act.summary.startsWith('Lead captured');
+
+                    if (isSystemLog) {
+                      return (
+                        <div key={act.id} className="relative pl-6">
+                          <div className="absolute -left-2 top-2 w-3.5 h-3.5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                          </div>
+                          <div className="py-1.5 px-3 bg-muted/20 border border-border/60 rounded-lg flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
+                            <span className="font-semibold text-foreground">{act.summary}</span>
+                            <span className="text-[10px]">
+                              {new Date(act.activityDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.activityDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={act.id} className="relative pl-6">
-                        <div className="absolute -left-2 top-2 w-3.5 h-3.5 rounded-full bg-secondary border border-border flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                        {/* Timeline Node Icon */}
+                        <div className="absolute -left-2.5 top-1.5 w-5 h-5 rounded-full bg-solar-50 border-2 border-solar-500 flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-solar-600" />
                         </div>
-                        <div className="py-1 px-3 bg-muted/20 border border-border/60 rounded-lg flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
-                          <span className="font-medium text-foreground">{act.summary}</span>
-                          <span className="text-[10px]">
-                            {new Date(act.activityDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.activityDate).toLocaleDateString()}
-                          </span>
+
+                        <div className="bg-muted/30 border rounded-xl p-3.5 space-y-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
+                            <span className="font-semibold text-solar-700 uppercase tracking-wide">
+                              {act.activityType}
+                            </span>
+                            <span>{new Date(act.activityDate).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm font-medium text-foreground">{act.summary}</p>
+                          {act.remarks && (
+                            <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
+                              {act.remarks}
+                            </p>
+                          )}
+                          {act.nextFollowUpDate && (
+                            <div className="pt-1 text-xs text-solar-700 font-medium flex items-center space-x-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>
+                                Next Follow-up: {new Date(act.nextFollowUpDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
-                  }
-
-                  return (
-                    <div key={act.id} className="relative pl-6">
-                      {/* Timeline Node Icon */}
-                      <div className="absolute -left-2.5 top-1.5 w-5 h-5 rounded-full bg-solar-50 border-2 border-solar-500 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-solar-600" />
-                      </div>
-
-                      <div className="bg-muted/30 border rounded-xl p-3.5 space-y-1.5">
-                        <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
-                          <span className="font-semibold text-solar-700 uppercase tracking-wide">
-                            {act.activityType}
-                          </span>
-                          <span>{new Date(act.activityDate).toLocaleString()}</span>
-                        </div>
-                        <p className="text-sm font-medium text-foreground">{act.summary}</p>
-                        {act.remarks && (
-                          <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
-                            {act.remarks}
-                          </p>
-                        )}
-                        {act.nextFollowUpDate && (
-                          <div className="pt-1 text-xs text-solar-700 font-medium flex items-center space-x-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>
-                              Next Follow-up: {new Date(act.nextFollowUpDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
