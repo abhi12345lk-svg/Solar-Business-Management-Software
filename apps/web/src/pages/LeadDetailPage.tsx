@@ -439,7 +439,7 @@ export const LeadDetailPage: React.FC = () => {
                 <span>Mark Proposal Delivered →</span>
               </button>
               <Link
-                to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
                 className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1"
               >
                 <Sun className="w-3.5 h-3.5 text-solar-500" />
@@ -612,7 +612,7 @@ export const LeadDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <Link
-              to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+              to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
               className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
             >
               <div className="flex items-center justify-between mb-1">

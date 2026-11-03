@@ -150,14 +150,51 @@ export function ProjectsPage() {
         apiClient<any>('/customers?limit=100').catch(() => []),
         apiClient<any>('/orders?limit=100').catch(() => [])
       ]);
-      const custs = Array.isArray(custRes) ? custRes : custRes?.customers || custRes?.items || [];
-      const ords = Array.isArray(ordRes) ? ordRes : ordRes?.items || ordRes?.orders || [];
+      const custs = Array.isArray(custRes) ? custRes : custRes?.customers || custRes?.items || custRes?.data || [];
+      const ords = Array.isArray(ordRes) ? ordRes : ordRes?.items || ordRes?.orders || ordRes?.data || [];
       setCustomersList(custs);
       setOrdersList(ords);
+      return { custs, ords };
     } catch {
-      // Non-critical background fetch
+      return { custs: [], ords: [] };
     }
   };
+
+  // Auto-open modal when customerId or orderId is present in URL search params
+  useEffect(() => {
+    const custId = searchParams.get('customerId');
+    const ordId = searchParams.get('orderId');
+    const custName = searchParams.get('customerName');
+    if (custId || ordId) {
+      openNewProjectModal().then(data => {
+        setFormData(prev => {
+          const updated = { ...prev };
+          if (custId) updated.customerId = custId;
+          if (ordId) {
+            updated.orderId = ordId;
+            const matchedOrder = data?.ords?.find((o: any) => o._id === ordId || o.id === ordId);
+            if (matchedOrder) {
+              updated.customerId =
+                matchedOrder.customerId?._id ||
+                matchedOrder.customerId?.id ||
+                matchedOrder.customerId ||
+                updated.customerId;
+              if (matchedOrder.systemCapacityKwp) {
+                updated.systemCapacityKwp = String(matchedOrder.systemCapacityKwp);
+              }
+              if (matchedOrder.systemTopology) {
+                updated.systemTopology = matchedOrder.systemTopology;
+              }
+            }
+          }
+          if (custName && !updated.name) {
+            updated.name = `Solar Installation - ${custName}`;
+          }
+          return updated;
+        });
+      });
+    }
+  }, [searchParams]);
 
   const handleOrderSelect = (orderId: string) => {
     setFormData(prev => ({ ...prev, orderId }));
@@ -646,11 +683,14 @@ export function ProjectsPage() {
                   className="w-full px-3 py-2 rounded-lg border border-input bg-background text-xs"
                 >
                   <option value="">-- Select Customer --</option>
-                  {customersList.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} ({c.customerCode || c.phone})
-                    </option>
-                  ))}
+                  {customersList.map(c => {
+                    const cid = c.id || c._id;
+                    return (
+                      <option key={cid} value={cid}>
+                        {c.name || c.legalName} ({c.customerCode || c.primaryPhone || c.phone || 'Client'})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

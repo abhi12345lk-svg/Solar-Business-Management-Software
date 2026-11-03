@@ -114,6 +114,13 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="solar-design" element={<Navigate to="/solar-designs" replace />} />
+          <Route path="customer" element={<Navigate to="/customers" replace />} />
+          <Route path="lead" element={<Navigate to="/leads" replace />} />
+          <Route path="survey" element={<Navigate to="/surveys" replace />} />
+          <Route path="quotation" element={<Navigate to="/quotations" replace />} />
+          <Route path="order" element={<Navigate to="/orders" replace />} />
+          <Route path="project" element={<Navigate to="/projects" replace />} />
           <Route
             path="quotations"
             element={

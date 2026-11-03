@@ -14,7 +14,9 @@ import {
   FolderKanban,
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  ArrowRight,
+  ShoppingCart
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
@@ -320,7 +322,7 @@ export const CustomersPage: React.FC = () => {
                   <th className="py-3 px-4">Contact Details</th>
                   <th className="py-3 px-4">Installation Site</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">EPC Actions</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -363,12 +365,16 @@ export const CustomersPage: React.FC = () => {
                             {initial}
                           </div>
                           <div>
-                            <div className="font-bold text-foreground flex items-center space-x-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCustomer(customer)}
+                              className="font-bold text-foreground hover:text-solar-600 text-left flex items-center space-x-1.5 transition cursor-pointer"
+                            >
                               <span>{customer.name}</span>
                               {isCommercial && (
                                 <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                               )}
-                            </div>
+                            </button>
                             {customer.companyName && (
                               <div className="text-[11px] text-muted-foreground font-medium">
                                 {customer.companyName}
@@ -432,31 +438,23 @@ export const CustomersPage: React.FC = () => {
 
                       {/* Action Links */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end space-x-1.5">
-                          <Link
-                            to={`/solar-designs?customerId=${customer.id}&customerName=${encodeURIComponent(customer.name)}`}
-                            title="Open Solar CAD sizing for this customer"
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1"
-                          >
-                            <Sun className="w-3 h-3 text-solar-500" />
-                            <span>CAD</span>
-                          </Link>
-
+                        <div className="flex items-center justify-end space-x-2">
                           <Link
                             to={`/quotations?customerId=${customer.id}`}
-                            title="Generate Solar Proposal"
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1"
+                            title="Draft new quotation for this customer"
+                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border"
                           >
-                            <FileSpreadsheet className="w-3 h-3 text-solar-500" />
-                            <span>Quote</span>
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-solar-500" />
+                            <span>+ New Quote</span>
                           </Link>
 
                           <button
                             type="button"
                             onClick={() => setSelectedCustomer(customer)}
-                            className="px-3 py-1 text-[11px] font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition cursor-pointer"
+                            className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs cursor-pointer"
                           >
-                            Profile Details →
+                            <span>View Profile</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -503,32 +501,55 @@ export const CustomersPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Quick Action Hub */}
-            <div className="p-3.5 bg-gradient-to-r from-solar-500/10 to-emerald-500/10 border rounded-xl flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-foreground">
-                Quick Project Launch:
+            {/* Direct Workflow Launch Hub */}
+            <div className="p-3.5 bg-gradient-to-r from-solar-500/10 via-solar-500/5 to-emerald-500/10 border rounded-xl space-y-2">
+              <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Direct Workflow Launch:</span>
+                <span className="text-[11px] text-muted-foreground font-normal">Pre-filled with customer details</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <Link
                   to={`/solar-designs?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
-                  className="px-3 py-1.5 text-xs font-semibold bg-card hover:bg-card/80 border rounded-lg transition shadow-xs flex items-center space-x-1"
+                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
                 >
-                  <Sun className="w-3.5 h-3.5 text-solar-500" />
-                  <span>Solar CAD</span>
+                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>1. Solar CAD</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">PV sizing simulation</span>
                 </Link>
+
                 <Link
                   to={`/quotations?customerId=${selectedCustomer.id}`}
-                  className="px-3 py-1.5 text-xs font-semibold bg-card hover:bg-card/80 border rounded-lg transition shadow-xs flex items-center space-x-1"
+                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
                 >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-solar-500" />
-                  <span>Draft Quotation</span>
+                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>2. Quotation</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Draft proposal & BOM</span>
                 </Link>
+
                 <Link
-                  to="/orders"
-                  className="px-3 py-1.5 text-xs font-semibold bg-card hover:bg-card/80 border rounded-lg transition shadow-xs flex items-center space-x-1"
+                  to={`/orders?customerId=${selectedCustomer.id}`}
+                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
                 >
-                  <FolderKanban className="w-3.5 h-3.5 text-solar-500" />
-                  <span>Sales Orders</span>
+                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>3. Sales Order</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Billing & payments</span>
+                </Link>
+
+                <Link
+                  to={`/projects?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
+                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
+                >
+                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                    <FolderKanban className="w-3.5 h-3.5" />
+                    <span>4. 10-Stage EPC</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Installation tracker</span>
                 </Link>
               </div>
             </div>

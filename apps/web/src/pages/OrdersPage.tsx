@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShoppingCart,
   Search,
@@ -44,6 +44,9 @@ interface OrderItem {
 
 export const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const customerIdParam = searchParams.get('customerId');
+
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export const OrdersPage: React.FC = () => {
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
       if (reservationFilter) params.append('reservationStatus', reservationFilter);
+      if (customerIdParam) params.append('customerId', customerIdParam);
 
       const endpoint = `/orders?${params.toString()}`;
       const data = await apiClient(endpoint);
@@ -83,7 +87,7 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, reservationFilter]);
+  }, [statusFilter, reservationFilter, customerIdParam]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,46 +262,65 @@ export const OrdersPage: React.FC = () => {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="p-4 rounded-xl border bg-card/40 backdrop-blur-sm flex flex-col sm:flex-row gap-3">
-        <form onSubmit={handleSearchSubmit} className="flex-1 relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by order number (e.g. ORD-2026-00001)..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
-          />
-        </form>
+      <div className="space-y-2">
+        <div className="p-4 rounded-xl border bg-card/40 backdrop-blur-sm flex flex-col sm:flex-row gap-3">
+          <form onSubmit={handleSearchSubmit} className="flex-1 relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by order number (e.g. ORD-2026-00001)..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
+            />
+          </form>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Filter className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+
             <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="pl-9 pr-8 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
+              value={reservationFilter}
+              onChange={e => setReservationFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
             >
-              <option value="">All Statuses</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="">All Allocations</option>
+              <option value="NONE">No Allocation</option>
+              <option value="PARTIALLY_RESERVED">Partially Reserved</option>
+              <option value="FULLY_RESERVED">Fully Reserved</option>
+              <option value="RELEASED">Released</option>
             </select>
           </div>
-
-          <select
-            value={reservationFilter}
-            onChange={e => setReservationFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
-          >
-            <option value="">All Allocations</option>
-            <option value="NONE">No Allocation</option>
-            <option value="PARTIALLY_RESERVED">Partially Reserved</option>
-            <option value="FULLY_RESERVED">Fully Reserved</option>
-            <option value="RELEASED">Released</option>
-          </select>
         </div>
+
+        {customerIdParam && (
+          <div className="flex items-center justify-between text-xs bg-solar-500/10 text-solar-700 dark:text-solar-300 px-3 py-1.5 rounded-lg border border-solar-500/20">
+            <span>Filtered by Customer Account (ID: {customerIdParam})</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('customerId');
+                setSearchParams(next);
+              }}
+              className="hover:underline font-semibold cursor-pointer"
+            >
+              Clear Filter ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Error display */}
