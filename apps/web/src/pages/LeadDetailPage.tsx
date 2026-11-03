@@ -21,7 +21,8 @@ import {
   ShoppingBag,
   FolderGit2,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Pencil
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import {
@@ -31,7 +32,10 @@ import {
   ActivityType,
   ActivityStatus,
   ActivitySentiment,
-  CustomerType
+  CustomerType,
+  SolarRequirement,
+  LeadPriority,
+  LeadSource
 } from '@ins-solar/shared';
 
 const COMMERCIAL_STAGES = [
@@ -79,6 +83,23 @@ export const LeadDetailPage: React.FC = () => {
   const [activityRemarks, setActivityRemarks] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [activitySentiment, setActivitySentiment] = useState<ActivitySentiment | ''>('');
+
+  // Edit Lead Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editCompanyName, setEditCompanyName] = useState('');
+  const [editStreet, setEditStreet] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('Rajasthan');
+  const [editPinCode, setEditPinCode] = useState('');
+  const [editCapacity, setEditCapacity] = useState('');
+  const [editRequirement, setEditRequirement] = useState<SolarRequirement>(SolarRequirement.RESIDENTIAL);
+  const [editPriority, setEditPriority] = useState<LeadPriority>(LeadPriority.MEDIUM);
+  const [editSource, setEditSource] = useState<LeadSource>(LeadSource.WEBSITE);
+  const [editNotes, setEditNotes] = useState('');
 
   const loadData = async () => {
     if (!id) return;
@@ -174,6 +195,59 @@ export const LeadDetailPage: React.FC = () => {
     }
   };
 
+  const openEditModal = () => {
+    if (!lead) return;
+    setEditName(lead.prospectName || '');
+    setEditPhone(lead.prospectPhone || '');
+    setEditEmail(lead.prospectEmail || '');
+    setEditCompanyName(lead.companyName || '');
+    setEditStreet(lead.location?.street || '');
+    setEditCity(lead.location?.city || '');
+    setEditState(lead.location?.state || 'Rajasthan');
+    setEditPinCode(lead.location?.pinCode || '');
+    setEditCapacity(lead.estimatedCapacityKw ? String(lead.estimatedCapacityKw) : '');
+    setEditRequirement(lead.solarRequirement || SolarRequirement.RESIDENTIAL);
+    setEditPriority(lead.priority || LeadPriority.MEDIUM);
+    setEditSource(lead.source || LeadSource.WEBSITE);
+    setEditNotes(lead.notes || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setSavingEdit(true);
+    try {
+      const updated = await apiClient<LeadDto>(`/leads/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          prospectName: editName.trim(),
+          prospectPhone: editPhone.trim(),
+          prospectEmail: editEmail.trim() || undefined,
+          companyName: editCompanyName.trim() || undefined,
+          location: {
+            street: editStreet.trim() || undefined,
+            city: editCity.trim(),
+            state: editState.trim(),
+            pinCode: editPinCode.trim() || undefined
+          },
+          estimatedCapacityKw: editCapacity ? parseFloat(editCapacity) : null,
+          solarRequirement: editRequirement,
+          priority: editPriority,
+          source: editSource,
+          notes: editNotes.trim() || undefined
+        })
+      });
+      setLead(updated);
+      setShowEditModal(false);
+      loadData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update lead details.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -259,34 +333,96 @@ export const LeadDetailPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowStatusModal(true)}
-            className="px-3.5 py-2 text-sm font-medium bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition"
+            className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
           >
             Update Status
           </button>
 
-          {lead.status !== LeadStatus.LOST && (
-            <Link
-              to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="px-3.5 py-2 text-sm font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5"
-            >
-              <Layers className="w-4 h-4" />
-              <span>Schedule Site Survey</span>
-            </Link>
-          )}
-
-          {lead.status !== LeadStatus.CONVERTED && (
+          {/* Contextual Primary Action based on Stage */}
+          {lead.status === LeadStatus.NEW && (
             <button
-              onClick={handleConvertLead}
-              disabled={converting}
-              className="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5"
+              onClick={() => handleQuickStatusChange(LeadStatus.CONTACTED)}
+              disabled={updatingStatus}
+              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
-              <UserCheck className="w-4 h-4" />
-              <span>{converting ? 'Converting...' : 'Convert to Customer'}</span>
+              <Phone className="w-3.5 h-3.5" />
+              <span>Mark Contacted & Qualified →</span>
             </button>
           )}
 
+          {lead.status === LeadStatus.CONTACTED && (
+            <Link
+              to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Schedule Site Survey →</span>
+            </Link>
+          )}
+
+          {lead.status === LeadStatus.SURVEY_SCHEDULED && (
+            <Link
+              to={`/solar-design?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span>Solar PV Sizing & CAD →</span>
+            </Link>
+          )}
+
+          {lead.status === LeadStatus.QUOTED && (
+            <button
+              onClick={() => handleQuickStatusChange(LeadStatus.NEGOTIATION)}
+              disabled={updatingStatus}
+              className="px-3.5 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Advance to Negotiation →</span>
+            </button>
+          )}
+
+          {lead.status === LeadStatus.NEGOTIATION && (
+            <button
+              onClick={handleConvertLead}
+              disabled={converting}
+              className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>{converting ? 'Converting...' : 'Convert to Customer ✓'}</span>
+            </button>
+          )}
+
+          {/* Secondary Survey shortcut if not on NEW or CONTACTED */}
+          {lead.status !== LeadStatus.NEW &&
+            lead.status !== LeadStatus.CONTACTED &&
+            lead.status !== LeadStatus.LOST &&
+            lead.status !== LeadStatus.CONVERTED && (
+              <Link
+                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                className="px-3 py-2 text-xs font-semibold bg-muted/70 hover:bg-muted text-foreground rounded-lg transition border border-border flex items-center space-x-1.5"
+              >
+                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Site Survey</span>
+              </Link>
+            )}
+
+          {/* Direct Convert fast-track for admins when not already in negotiation or converted */}
+          {lead.status !== LeadStatus.CONVERTED &&
+            lead.status !== LeadStatus.LOST &&
+            lead.status !== LeadStatus.NEGOTIATION && (
+              <button
+                onClick={handleConvertLead}
+                disabled={converting}
+                title="Fast-track conversion into official customer record"
+                className="px-3 py-2 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-lg transition flex items-center space-x-1 cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Fast-Track Convert</span>
+              </button>
+            )}
+
           {lead.status === LeadStatus.CONVERTED && (
-            <div className="px-3.5 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-1.5">
+            <div className="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>Converted Customer</span>
             </div>
@@ -338,12 +474,26 @@ export const LeadDetailPage: React.FC = () => {
             return (
               <div
                 key={st.key}
-                className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                onClick={() => {
+                  if (st.key === LeadStatus.CONVERTED) {
+                    handleConvertLead();
+                  } else if (st.key !== lead.status && lead.status !== LeadStatus.CONVERTED) {
+                    if (window.confirm(`Transition lead to "${st.label}"?`)) {
+                      handleQuickStatusChange(st.key);
+                    }
+                  }
+                }}
+                title={
+                  st.key === lead.status
+                    ? 'Current active milestone'
+                    : `Click to transition to ${st.label}`
+                }
+                className={`p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
                   isCurrent
                     ? 'bg-solar-50/80 dark:bg-solar-950/40 border-solar-400 dark:border-solar-700 ring-2 ring-solar-500/20 shadow-xs'
                     : isCompleted
-                      ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                      : 'bg-muted/30 border-border opacity-70'
+                      ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800 hover:border-emerald-400'
+                      : 'bg-muted/30 border-border opacity-70 hover:opacity-100 hover:border-solar-300'
                 }`}
               >
                 <div>
@@ -585,10 +735,22 @@ export const LeadDetailPage: React.FC = () => {
         {/* Left Column: Lead Information Card */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-foreground border-b pb-3 flex items-center space-x-2">
-              <Sun className="w-4 h-4 text-solar-500" />
-              <span>Prospect Profile</span>
-            </h2>
+            <div className="flex items-center justify-between border-b pb-3">
+              <h2 className="text-base font-bold text-foreground flex items-center space-x-2">
+                <Sun className="w-4 h-4 text-solar-500" />
+                <span>Prospect Profile</span>
+              </h2>
+              {lead.status !== LeadStatus.CONVERTED && (
+                <button
+                  onClick={openEditModal}
+                  className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md border border-border transition cursor-pointer"
+                  title="Edit prospect contact, location, and solar requirements"
+                >
+                  <Pencil className="w-3 h-3 mr-1" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
+            </div>
 
             <div className="space-y-4 text-sm">
               <div>
@@ -909,6 +1071,220 @@ export const LeadDetailPage: React.FC = () => {
                   className="px-3.5 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700"
                 >
                   {addingActivity ? 'Saving...' : 'Record Activity'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Prospect Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border rounded-2xl w-full max-w-lg p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground">Edit Prospect Details</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Update customer contact information, installation site, and solar requirements.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Prospect Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={e => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Company / Organization
+                  </label>
+                  <input
+                    type="text"
+                    value={editCompanyName}
+                    onChange={e => setEditCompanyName(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">
+                  Street / Area Address
+                </label>
+                <input
+                  type="text"
+                  value={editStreet}
+                  onChange={e => setEditStreet(e.target.value)}
+                  placeholder="Plot/Flat number, landmark..."
+                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">City *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCity}
+                    onChange={e => setEditCity(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">State *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editState}
+                    onChange={e => setEditState(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">PIN Code</label>
+                  <input
+                    type="text"
+                    value={editPinCode}
+                    onChange={e => setEditPinCode(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Capacity (kWp)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    value={editCapacity}
+                    onChange={e => setEditCapacity(e.target.value)}
+                    placeholder="e.g. 5"
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Requirement Type
+                  </label>
+                  <select
+                    value={editRequirement}
+                    onChange={e => setEditRequirement(e.target.value as SolarRequirement)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  >
+                    {Object.values(SolarRequirement).map(r => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Priority</label>
+                  <select
+                    value={editPriority}
+                    onChange={e => setEditPriority(e.target.value as LeadPriority)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  >
+                    {Object.values(LeadPriority).map(p => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Lead Source</label>
+                <select
+                  value={editSource}
+                  onChange={e => setEditSource(e.target.value as LeadSource)}
+                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                >
+                  {Object.values(LeadSource).map(s => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">
+                  Inquiry Remarks & Technical Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Electricity bill average, sanctioned load, shadow obstructions, rooftop access notes..."
+                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 disabled:opacity-50"
+                >
+                  {savingEdit ? 'Saving Changes...' : 'Save Prospect Details'}
                 </button>
               </div>
             </form>
