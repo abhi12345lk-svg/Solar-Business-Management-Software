@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
-  ShieldCheck,
   CheckCircle2,
   XCircle,
   FileSpreadsheet,
@@ -463,135 +462,44 @@ export const QuotationDetailPage: React.FC = () => {
     });
   }
 
+  const customerName =
+    typeof quotation.customerId === 'object'
+      ? (quotation.customerId as any)?.legalName ||
+        (quotation.customerId as any)?.name ||
+        (quotation.customerId as any)?.companyName ||
+        'Direct Customer'
+      : 'Direct Customer';
+
+  const customerPhone =
+    typeof quotation.customerId === 'object'
+      ? (quotation.customerId as any)?.primaryPhone || ''
+      : '';
+
+  const customerEmail =
+    typeof quotation.customerId === 'object'
+      ? (quotation.customerId as any)?.email || ''
+      : '';
+
   return (
-    <div className="space-y-6">
-      {/* Top Breadcrumb & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
+    <div className="space-y-4 max-w-7xl mx-auto pb-10">
+      {/* 1. Top Navigation & Action Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-border/60">
+        <div>
           <Link
             to="/quotations"
-            className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground mb-1"
+            className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Quotations Directory
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-mono">
               {quotation.fullQuotationCode}
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-solar-50 text-solar-700 dark:bg-solar-950/60 dark:text-solar-300 border border-solar-200 dark:border-solar-800">
-              Revision R{quotation.revisionNumber}
-            </span>
-            {quotation.isLatestRevision && (
-              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-600">
-                Latest Active Revision
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* 1. When ACCEPTED: Direct Sales Order Actions */}
-          {quotation.status === QuotationStatus.ACCEPTED &&
-            (existingOrder ? (
-              <Link
-                to={`/orders/${existingOrder._id || existingOrder.id}`}
-                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-              >
-                <ShoppingCart className="w-4 h-4 mr-1.5" />
-                <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowConvertModal(true)}
-                disabled={convertingOrder}
-                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer ring-2 ring-emerald-500/20"
-              >
-                <ShoppingCart className="w-4 h-4 mr-1.5" />
-                <span>Generate Confirmed Sales Order →</span>
-              </button>
-            ))}
-
-          {/* 2. When DRAFT: Mark as Sent (Primary) + Direct Quick Accept */}
-          {(quotation.status === QuotationStatus.DRAFT ||
-            quotation.status === QuotationStatus.APPROVED) && (
-            <>
-              <button
-                type="button"
-                onClick={handleMarkAsSent}
-                disabled={sending}
-                className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg disabled:opacity-50 shadow-sm transition-colors cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5 mr-1.5" />
-                <span>{sending ? 'Issuing...' : 'Mark as Sent to Client'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCustomerAccept}
-                disabled={submittingCustomerAction}
-                className="inline-flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
-                title="If client accepted on the spot, record direct acceptance"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                <span>Accept Proposal ✓</span>
-              </button>
-            </>
-          )}
-
-          {/* 3. When SENT: Customer Acceptance / Decision Controls */}
-          {quotation.status === QuotationStatus.SENT && (
-            <>
-              <button
-                type="button"
-                onClick={handleCustomerAccept}
-                disabled={submittingCustomerAction}
-                className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                <span>Client Accepted ✓</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowRevisionModal(true)}
-                disabled={revising}
-                className="inline-flex items-center justify-center px-3 py-2 bg-solar-600 hover:bg-solar-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-              >
-                <History className="w-3.5 h-3.5 mr-1.5" />
-                <span>Revise (R{quotation.revisionNumber + 1})</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCustomerReject}
-                disabled={submittingCustomerAction}
-                className="inline-flex items-center justify-center px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-              >
-                <XCircle className="w-3.5 h-3.5 mr-1.5" />
-                <span>Decline</span>
-              </button>
-            </>
-          )}
-
-          {/* Download/View PDF Proposal Action */}
-          <button
-            type="button"
-            onClick={() => setShowDocPreview(true)}
-            className="inline-flex items-center justify-center px-3 py-2 bg-secondary text-secondary-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            <span>View Proposal PDF</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4-Stage Commercial Lifecycle Pipeline Bar */}
-      <div className="bg-card border border-border/80 rounded-xl p-3.5 sm:p-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border/60">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Commercial Proposal Pipeline Stage:
+            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-muted text-muted-foreground border border-border">
+              R{quotation.revisionNumber}
             </span>
             <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                 quotation.status === QuotationStatus.ACCEPTED
                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                   : quotation.status === QuotationStatus.SENT
@@ -602,109 +510,162 @@ export const QuotationDetailPage: React.FC = () => {
               }`}
             >
               {quotation.status === QuotationStatus.ACCEPTED
-                ? '3. Customer Accepted (Ready for Order)'
+                ? 'Accepted'
                 : quotation.status === QuotationStatus.SENT
-                  ? '2. Sent to Customer (Awaiting Decision)'
+                  ? 'Sent to Client'
                   : quotation.status === QuotationStatus.REJECTED
-                    ? 'Declined by Customer'
-                    : '1. Draft Proposal (Initial Spec)'}
+                    ? 'Declined'
+                    : 'Draft'}
             </span>
           </div>
-          <span className="text-[11px] text-muted-foreground font-medium">
-            {quotation.status === QuotationStatus.ACCEPTED
-              ? existingOrder
-                ? 'Sales Order active in EPC execution'
-                : 'Next Action: Click "Generate Confirmed Sales Order" to advance'
-              : quotation.status === QuotationStatus.SENT
-                ? 'Next Action: Record customer acceptance or revision'
-                : 'Next Action: Review proposal PDF and mark as sent to client'}
-          </span>
         </div>
 
-        {/* Visual 4-Step Stepper */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2.5 text-xs">
-          <div
-            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
-              quotation.status === QuotationStatus.DRAFT
-                ? 'bg-solar-500/10 border-solar-500/40 text-solar-900 dark:text-solar-200 font-bold'
-                : 'bg-muted/40 border-border text-muted-foreground'
-            }`}
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                quotation.status !== QuotationStatus.DRAFT
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-solar-500 text-white'
-              }`}
-            >
-              {quotation.status !== QuotationStatus.DRAFT ? '✓' : '1'}
-            </div>
-            <span>1. Draft Proposal</span>
-          </div>
+        {/* Quick Header Buttons */}
+        <div className="flex items-center gap-2">
+          {quotation.status === QuotationStatus.ACCEPTED &&
+            (existingOrder ? (
+              <Link
+                to={`/orders/${existingOrder._id || existingOrder.id}`}
+                className="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                <span>View Sales Order ({existingOrder.orderNumber}) →</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(true)}
+                disabled={convertingOrder}
+                className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                <span>Generate Confirmed Sales Order →</span>
+              </button>
+            ))}
 
-          <div
-            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
-              quotation.status === QuotationStatus.SENT
-                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-900 dark:text-indigo-200 font-bold'
-                : [QuotationStatus.ACCEPTED].includes(quotation.status)
-                  ? 'bg-muted/40 border-border text-muted-foreground'
-                  : 'bg-muted/20 border-border/50 text-muted-foreground/60'
-            }`}
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                [QuotationStatus.ACCEPTED].includes(quotation.status)
-                  ? 'bg-emerald-500 text-white'
-                  : quotation.status === QuotationStatus.SENT
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {[QuotationStatus.ACCEPTED].includes(quotation.status) ? '✓' : '2'}
-            </div>
-            <span>2. Sent to Client</span>
-          </div>
+          {(quotation.status === QuotationStatus.DRAFT ||
+            quotation.status === QuotationStatus.APPROVED) && (
+            <>
+              <button
+                type="button"
+                onClick={handleMarkAsSent}
+                disabled={sending}
+                className="inline-flex items-center px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg disabled:opacity-50 shadow-xs transition-colors cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                <span>{sending ? 'Issuing...' : 'Mark as Sent'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCustomerAccept}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                <span>Accept Proposal ✓</span>
+              </button>
+            </>
+          )}
 
-          <div
-            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
-              quotation.status === QuotationStatus.ACCEPTED
-                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-bold'
-                : 'bg-muted/20 border-border/50 text-muted-foreground/60'
-            }`}
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                quotation.status === QuotationStatus.ACCEPTED
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {quotation.status === QuotationStatus.ACCEPTED ? '✓' : '3'}
-            </div>
-            <span>3. Client Accepted</span>
-          </div>
+          {quotation.status === QuotationStatus.SENT && (
+            <>
+              <button
+                type="button"
+                onClick={handleCustomerAccept}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                <span>Client Accepted ✓</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRevisionModal(true)}
+                disabled={revising}
+                className="inline-flex items-center px-3 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <History className="w-3.5 h-3.5 mr-1.5" />
+                <span>Revise (R{quotation.revisionNumber + 1})</span>
+              </button>
+            </>
+          )}
 
-          <div
-            className={`p-2.5 rounded-lg border flex items-center space-x-2 ${
-              existingOrder
-                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-bold'
-                : 'bg-muted/20 border-border/50 text-muted-foreground/60'
-            }`}
+          <button
+            type="button"
+            onClick={() => setShowDocPreview(true)}
+            className="inline-flex items-center px-3 py-2 bg-secondary text-secondary-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
           >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                existingOrder ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {existingOrder ? '✓' : '4'}
-            </div>
-            <span>4. Sales Order & EPC</span>
-          </div>
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            <span>View Proposal PDF</span>
+          </button>
         </div>
       </div>
 
+      {/* 2. Sleek 1-Line Lifecycle Progress Stepper */}
+      <div className="bg-card border border-border/80 rounded-xl px-4 py-2.5 shadow-xs">
+        <div className="flex items-center justify-between gap-1 text-xs">
+          {[
+            {
+              step: 1,
+              label: 'Draft Proposal',
+              done: true,
+              active: quotation.status === QuotationStatus.DRAFT
+            },
+            {
+              step: 2,
+              label: 'Sent to Client',
+              done: [QuotationStatus.SENT, QuotationStatus.ACCEPTED].includes(quotation.status),
+              active: quotation.status === QuotationStatus.SENT
+            },
+            {
+              step: 3,
+              label: 'Client Accepted',
+              done: quotation.status === QuotationStatus.ACCEPTED,
+              active: quotation.status === QuotationStatus.ACCEPTED && !existingOrder
+            },
+            {
+              step: 4,
+              label: 'Sales Order & EPC',
+              done: !!existingOrder,
+              active: !!existingOrder
+            }
+          ].map((s, idx, arr) => (
+            <React.Fragment key={s.step}>
+              <div
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${
+                  s.active
+                    ? 'bg-solar-500/10 text-solar-900 dark:text-solar-200 font-bold'
+                    : s.done
+                      ? 'text-foreground font-medium'
+                      : 'text-muted-foreground/50'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    s.done
+                      ? 'bg-emerald-500 text-white'
+                      : s.active
+                        ? 'bg-solar-500 text-white'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {s.done ? '✓' : s.step}
+                </div>
+                <span className="hidden sm:inline">{s.label}</span>
+              </div>
+              {idx < arr.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-1 ${s.done ? 'bg-emerald-500/60' : 'bg-border'}`}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* Action Banners */}
       {actionMessage && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm flex items-center justify-between gap-2">
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{actionMessage}</span>
@@ -712,7 +673,7 @@ export const QuotationDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActionMessage(null)}
-            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+            className="text-xs font-semibold hover:underline cursor-pointer"
           >
             Dismiss
           </button>
@@ -720,7 +681,7 @@ export const QuotationDetailPage: React.FC = () => {
       )}
 
       {actionError && (
-        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm flex items-center justify-between gap-2">
+        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{actionError}</span>
@@ -728,7 +689,7 @@ export const QuotationDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActionError(null)}
-            className="text-xs font-semibold text-destructive hover:underline cursor-pointer"
+            className="text-xs font-semibold hover:underline cursor-pointer"
           >
             Dismiss
           </button>
@@ -736,28 +697,23 @@ export const QuotationDetailPage: React.FC = () => {
       )}
 
       {/* Main Grid: Details & Commercial Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Customer, BOM, Milestones */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (7 cols): Customer, BOM, Milestones */}
+        <div className="lg:col-span-7 space-y-4">
           {/* Customer & Technical Summary Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <User className="w-4 h-4 text-solar-500" />
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2.5">
+              <User className="w-3.5 h-3.5 text-solar-500" />
               Customer & System Specifications
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
-                <span className="text-muted-foreground block">Customer Name</span>
-                <span className="font-medium text-foreground text-sm">
-                  {typeof quotation.customerId === 'object'
-                    ? (quotation.customerId as any)?.legalName ||
-                      (quotation.customerId as any)?.name ||
-                      (quotation.customerId as any)?.companyName ||
-                      'Direct Customer'
-                    : 'Direct Customer'}
+                <span className="text-[11px] text-muted-foreground block">Customer</span>
+                <span className="font-semibold text-foreground text-xs line-clamp-1">
+                  {customerName}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-mono block">
+                <span className="text-[10px] text-muted-foreground font-mono block">
                   {typeof quotation.customerId === 'object'
                     ? (quotation.customerId as any)?.customerCode || '—'
                     : '—'}
@@ -765,60 +721,45 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-muted-foreground block">Contact</span>
-                <span className="font-medium text-foreground">
-                  {typeof quotation.customerId === 'object'
-                    ? (quotation.customerId as any)?.primaryPhone || '—'
-                    : '—'}
+                <span className="text-[11px] text-muted-foreground block">Contact</span>
+                <span className="font-medium text-foreground block truncate">
+                  {customerPhone || '—'}
                 </span>
-                <span className="text-muted-foreground block">
-                  {typeof quotation.customerId === 'object'
-                    ? (quotation.customerId as any)?.email || '—'
-                    : '—'}
+                <span className="text-[10px] text-muted-foreground block truncate">
+                  {customerEmail || '—'}
                 </span>
               </div>
 
               <div>
-                <span className="text-muted-foreground block">System Topology & Size</span>
-                <span className="font-bold text-foreground text-sm">
+                <span className="text-[11px] text-muted-foreground block">Topology & Capacity</span>
+                <span className="font-bold text-foreground text-xs">
                   {quotation.systemCapacityKwp} kWp
                 </span>
-                <span className="text-solar-600 dark:text-solar-400 font-medium block">
+                <span className="text-[10px] text-solar-600 dark:text-solar-400 font-medium block">
                   {quotation.systemTopology}
                 </span>
               </div>
 
               <div>
-                <span className="text-muted-foreground block">Validity Date</span>
-                <span className="font-medium text-foreground">
+                <span className="text-[11px] text-muted-foreground block">Validity & Status</span>
+                <span className="font-medium text-foreground text-xs block">
                   {new Date(quotation.validUntil).toLocaleDateString()}
                 </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                  {quotation.status}
+                </span>
               </div>
-
-              <div>
-                <span className="text-muted-foreground block">Commercial Status</span>
-                <span className="font-semibold text-foreground">{quotation.status}</span>
-              </div>
-
-              {quotation.solarDesignId && (
-                <div>
-                  <span className="text-muted-foreground block">Linked Solar Design</span>
-                  <span className="font-mono font-medium text-solar-600">
-                    {quotation.solarDesignId.designNumber}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Bill of Materials (Line items) */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-solar-500" />
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+              <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-solar-500" />
                 Bill of Materials & Work Scope
               </h2>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground font-medium">
                 {(quotation.lineItems || []).length} line item(s)
               </span>
             </div>
@@ -837,13 +778,13 @@ export const QuotationDetailPage: React.FC = () => {
                 const gstPercent = ((item.gstRateBasisPoints || 0) / 100).toFixed(0);
 
                 return (
-                  <div key={idx} className="py-3 space-y-1.5">
+                  <div key={idx} className="py-2.5 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary text-secondary-foreground uppercase">
                           {item.itemType}
                         </span>
-                        <h4 className="font-semibold text-xs text-foreground mt-1">
+                        <h4 className="font-semibold text-xs text-foreground mt-0.5">
                           {item.description}
                         </h4>
                       </div>
@@ -858,9 +799,7 @@ export const QuotationDetailPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground bg-secondary/30 px-2 py-1 rounded">
-                      <span>
-                        Qty: {item.quantity} {item.unit}
-                      </span>
+                      <span>Qty: {item.quantity} {item.unit}</span>
                       <span>Rate: ₹{rate}</span>
                       <span>Taxable: ₹{taxable}</span>
                     </div>
@@ -897,23 +836,23 @@ export const QuotationDetailPage: React.FC = () => {
 
                     return (
                       <tr key={idx} className="hover:bg-muted/30">
-                        <td className="py-2.5">
+                        <td className="py-2">
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-secondary text-secondary-foreground font-medium">
                             {item.itemType}
                           </span>
                         </td>
-                        <td className="py-2.5 font-medium text-foreground">{item.description}</td>
-                        <td className="py-2.5 text-center">
+                        <td className="py-2 font-medium text-foreground">{item.description}</td>
+                        <td className="py-2 text-center text-muted-foreground">
                           {item.quantity} {item.unit}
                         </td>
-                        <td className="py-2.5 text-right font-mono text-muted-foreground">
+                        <td className="py-2 text-right font-mono text-muted-foreground">
                           ₹{rate}
                         </td>
-                        <td className="py-2.5 text-right text-muted-foreground">{gstPercent}%</td>
-                        <td className="py-2.5 text-right font-mono text-muted-foreground">
+                        <td className="py-2 text-right text-muted-foreground">{gstPercent}%</td>
+                        <td className="py-2 text-right font-mono text-muted-foreground">
                           ₹{taxable}
                         </td>
-                        <td className="py-2.5 text-right font-mono font-semibold text-foreground">
+                        <td className="py-2 text-right font-mono font-semibold text-foreground">
                           ₹{total}
                         </td>
                       </tr>
@@ -924,24 +863,24 @@ export const QuotationDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Payment Milestones & Terms */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <Calendar className="w-4 h-4 text-solar-500" />
-              Payment Milestones & Commercial Conditions
+          {/* Payment Milestones & Commercial Conditions */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2">
+              <Calendar className="w-3.5 h-3.5 text-solar-500" />
+              Payment Milestones & Terms
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {(quotation.paymentMilestones || []).map((m: any, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-secondary/30 rounded-lg border border-border text-xs"
+                  className="p-2.5 bg-secondary/30 rounded-lg border border-border text-xs"
                 >
                   <div className="font-semibold text-foreground flex items-center justify-between">
                     <span>{m.name || m.milestoneName || `Milestone ${idx + 1}`}</span>
-                    <span className="text-solar-600 font-bold">{m.percentage}%</span>
+                    <span className="text-solar-600 dark:text-solar-400 font-bold">{m.percentage}%</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                     {m.description || m.dueTrigger || '—'}
                   </p>
                 </div>
@@ -949,8 +888,8 @@ export const QuotationDetailPage: React.FC = () => {
             </div>
 
             {(quotation.termsAndConditions || []).length > 0 && (
-              <div className="pt-2 text-xs space-y-1 text-muted-foreground">
-                <div className="font-semibold text-foreground">Commercial Terms:</div>
+              <div className="pt-1.5 text-[11px] space-y-1 text-muted-foreground">
+                <span className="font-semibold text-foreground text-xs block">Commercial Terms:</span>
                 {(quotation.termsAndConditions || []).map((term, i) => (
                   <div key={i}>• {term}</div>
                 ))}
@@ -959,25 +898,201 @@ export const QuotationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Col: Financial Breakdown, Discount Approval & Customer Review */}
-        <div className="space-y-6">
-          {/* Financial Calculation Summary Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground border-b border-border pb-2 flex items-center justify-between">
+        {/* Right Column (5 cols): Next Action + Pricing Summary + Yield */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Smart Next Stage Workflow Action Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/70 pb-2">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-solar-500" />
+                Next Stage Workflow Action
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground">
+                {quotation.status}
+              </span>
+            </h2>
+
+            {/* STAGE: ACCEPTED */}
+            {quotation.status === QuotationStatus.ACCEPTED && (
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-emerald-800 dark:text-emerald-300 space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Customer Formally Accepted Proposal</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/90">
+                    {quotation.customerNotes || 'Proposal accepted and confirmed for order execution.'}
+                  </p>
+                  {quotation.acceptedAt && (
+                    <div className="text-[10px] text-muted-foreground">
+                      Accepted: {new Date(quotation.acceptedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+
+                {existingOrder ? (
+                  <Link
+                    to={`/orders/${existingOrder._id || existingOrder.id}`}
+                    className="w-full inline-flex items-center justify-center py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-1.5" />
+                    <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowConvertModal(true)}
+                    disabled={convertingOrder}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Generate Confirmed Sales Order →</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* STAGE: DRAFT */}
+            {(quotation.status === QuotationStatus.DRAFT || quotation.status === QuotationStatus.APPROVED) && (
+              <div className="space-y-3 text-xs">
+                <p className="text-muted-foreground text-[11px]">
+                  Proposal is drafted. Verify pricing and work scope before sharing with the client.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleMarkAsSent}
+                    disabled={sending}
+                    className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{sending ? 'Sending...' : 'Mark as Sent'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCustomerAccept}
+                    disabled={submittingCustomerAction}
+                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Accept Proposal</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE: SENT */}
+            {quotation.status === QuotationStatus.SENT && (
+              <div className="space-y-3 text-xs">
+                <p className="text-muted-foreground text-[11px]">
+                  Proposal has been issued. Record customer feedback or final acceptance:
+                </p>
+                <input
+                  type="text"
+                  placeholder="Customer remarks / acceptance notes (optional)..."
+                  value={customerDecisionNotes}
+                  onChange={e => setCustomerDecisionNotes(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCustomerAccept}
+                    disabled={submittingCustomerAction}
+                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Client Accepted ✓</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCustomerReject}
+                    disabled={submittingCustomerAction}
+                    className="px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE: REJECTED */}
+            {quotation.status === QuotationStatus.REJECTED && (
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <XCircle className="w-4 h-4" />
+                    Declined by Customer
+                  </div>
+                  <div>Reason: {quotation.rejectionReason || 'Commercial adjustment requested'}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRevisionModal(true)}
+                  disabled={revising}
+                  className="w-full py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <History className="w-3.5 h-3.5" />
+                  <span>Create Revised Quotation (R{quotation.revisionNumber + 1})</span>
+                </button>
+              </div>
+            )}
+
+            {/* Managerial Discount Approval (ONLY when pending) */}
+            {quotation.requiresDiscountApproval && quotation.discountApprovalStatus === 'PENDING' && (
+              <div className="mt-3 pt-3 border-t border-border space-y-2.5">
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-800 dark:text-amber-300">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Manager Approval Required ({quotation.discountPercent.toFixed(1)}% Discount)
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Managerial remarks / margin justification..."
+                  value={approvalRemarks}
+                  onChange={e => setApprovalRemarks(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleApproveDiscount}
+                    disabled={processingApproval}
+                    className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs shadow-xs"
+                  >
+                    Approve Discount
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRejectDiscount}
+                    disabled={processingApproval}
+                    className="flex-1 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded font-medium text-xs shadow-xs"
+                  >
+                    Reject Discount
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Commercial Pricing & Tax Summary Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider border-b border-border/70 pb-2 flex items-center justify-between">
               <span>Commercial Pricing & Tax Summary</span>
               <span className="text-[10px] font-mono text-muted-foreground font-normal">
                 INR (₹)
               </span>
             </h2>
 
-            <div className="space-y-2.5 text-xs">
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between text-muted-foreground">
                 <span>Gross Subtotal</span>
                 <span className="font-mono font-medium text-foreground">₹{grossRs}</span>
               </div>
 
               {quotation.additionalDiscountPaise > 0 && (
-                <div className="flex justify-between text-amber-600">
+                <div className="flex justify-between text-amber-600 dark:text-amber-400">
                   <span>Additional Discount ({quotation.discountPercent.toFixed(1)}%)</span>
                   <span className="font-mono font-medium">- ₹{discountRs}</span>
                 </div>
@@ -989,8 +1104,8 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
 
               {/* Tax components */}
-              <div className="bg-secondary/30 p-2.5 rounded-lg space-y-1.5 border border-border">
-                <div className="text-[11px] font-semibold text-muted-foreground">
+              <div className="bg-secondary/30 p-2.5 rounded-lg space-y-1 border border-border">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase">
                   GST Breakdown:
                 </div>
                 {taxComponentsList.map((c, i) => {
@@ -1010,259 +1125,81 @@ export const QuotationDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border">
+              <div className="flex justify-between items-center text-sm font-bold text-foreground pt-1.5 border-t border-border">
                 <span>Net Payable Total</span>
-                <span className="font-mono text-solar-600 dark:text-solar-400">₹{netRs}</span>
+                <span className="font-mono text-base font-black text-solar-600 dark:text-solar-400">
+                  ₹{netRs}
+                </span>
               </div>
+
+              {/* PM Surya Ghar DBT Subsidy Pill (Cleanly embedded in Pricing) */}
+              {centralSubsidyEstimated > 0 && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg space-y-1 text-xs">
+                  <div className="flex items-center justify-between font-bold text-emerald-800 dark:text-emerald-300">
+                    <span className="flex items-center gap-1 text-[11px]">
+                      <Landmark className="w-3.5 h-3.5 text-emerald-600" />
+                      PM Surya Ghar DBT Subsidy
+                    </span>
+                    <span className="font-mono font-bold">
+                      - ₹{centralSubsidyEstimated.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-emerald-500/20 text-xs font-bold text-foreground">
+                    <span>Effective Net Investment:</span>
+                    <span className="font-mono text-emerald-700 dark:text-emerald-300 font-black">
+                      ₹{effectiveCostRs}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* CA / Tax Policy Notice */}
-            <div className="p-2.5 bg-muted/40 rounded text-[11px] text-muted-foreground border border-border flex items-start gap-2">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span>{quotation.taxProfile.accountingNotice}</span>
+            <div className="p-2 bg-muted/30 rounded text-[10px] text-muted-foreground border border-border flex items-start gap-1.5">
+              <Info className="w-3 h-3 shrink-0 mt-0.5" />
+              <span>{quotation.taxProfile?.accountingNotice || 'Standard commercial quotation terms apply.'}</span>
             </div>
           </div>
 
-          {/* Solar Generation Yield & PM Surya Ghar Subsidy Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center justify-between border-b border-border pb-2">
+          {/* Solar Generation Yield & ROI (Compact 2-grid) */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-2.5">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/70 pb-2">
               <div className="flex items-center gap-1.5">
-                <Sun className="w-4 h-4 text-amber-500" />
-                <span>Solar Yield & Commercial ROI</span>
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>Solar Yield & ROI</span>
               </div>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                {capacityKwp} kWp System
+                {capacityKwp} kWp
               </span>
             </h2>
 
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="p-3 bg-secondary/30 rounded-lg border">
-                <div className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 bg-secondary/30 rounded-lg border border-border">
+                <div className="text-[10px] text-muted-foreground flex items-center gap-1 mb-0.5">
+                  <Zap className="w-3 h-3 text-amber-500" />
                   <span>Est. Monthly Yield</span>
                 </div>
-                <div className="text-base font-black text-foreground">
+                <div className="text-sm font-bold text-foreground">
                   ~{estimatedMonthlyUnits.toLocaleString('en-IN')} kWh
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                  ~{estimatedAnnualUnits.toLocaleString('en-IN')} Units / Year
+                  ~{estimatedAnnualUnits.toLocaleString('en-IN')} u/yr
                 </div>
               </div>
 
-              <div className="p-3 bg-secondary/30 rounded-lg border">
-                <div className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              <div className="p-2.5 bg-secondary/30 rounded-lg border border-border">
+                <div className="text-[10px] text-muted-foreground flex items-center gap-1 mb-0.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-500" />
                   <span>Est. Bill Savings</span>
                 </div>
-                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   ₹{estimatedMonthlySavings.toLocaleString('en-IN')}/mo
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                  ₹{estimatedAnnualSavings.toLocaleString('en-IN')} / Year (@ ₹7.5/u)
+                  ₹{estimatedAnnualSavings.toLocaleString('en-IN')}/yr
                 </div>
               </div>
             </div>
-
-            {centralSubsidyEstimated > 0 && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5 font-bold text-emerald-800 dark:text-emerald-300">
-                    <Landmark className="w-4 h-4 text-emerald-600" />
-                    <span>PM Surya Ghar Direct Subsidy (DBT)</span>
-                  </div>
-                  <span className="font-mono font-black text-emerald-700 dark:text-emerald-300">
-                    - ₹{centralSubsidyEstimated.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400/90">
-                  Direct central subsidy credited to client's bank account upon National Portal
-                  commissioning sync.
-                </p>
-                <div className="flex justify-between pt-1.5 border-t border-emerald-500/30 font-bold text-xs">
-                  <span className="text-foreground">Effective Client Investment:</span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-300">
-                    ₹{effectiveCostRs}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Discount Approval Workflow Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center justify-between border-b border-border pb-2">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-solar-500" />
-                <span>Commercial Discount Control</span>
-              </div>
-              <span className="text-[11px] font-medium text-muted-foreground">
-                Policy: &gt; 5% Approval
-              </span>
-            </h2>
-
-            {quotation.requiresDiscountApproval ? (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-800 dark:text-amber-300">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4" />
-                    Discount: {quotation.discountPercent.toFixed(1)}% (Exceeds 5.0% Limit)
-                  </div>
-                  <p className="text-[11px] mt-1">
-                    Approval Status: <strong>{quotation.discountApprovalStatus}</strong>
-                  </p>
-                  {quotation.discountApprovedBy && (
-                    <p className="text-[11px] mt-0.5">
-                      Decided by: {quotation.discountApprovedBy.firstName}{' '}
-                      {quotation.discountApprovedBy.lastName}
-                    </p>
-                  )}
-                  {quotation.discountRemarks && (
-                    <p className="text-[11px] mt-0.5 italic">
-                      Remarks: {quotation.discountRemarks}
-                    </p>
-                  )}
-                  {quotation.discountRejectionReason && (
-                    <p className="text-[11px] mt-0.5 text-destructive">
-                      Rejection Reason: {quotation.discountRejectionReason}
-                    </p>
-                  )}
-                </div>
-
-                {/* Manager Actions (if pending) */}
-                {quotation.discountApprovalStatus === 'PENDING' && (
-                  <div className="space-y-3 pt-2">
-                    <div>
-                      <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                        Managerial Decision Remarks / Reason
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Rationale for margin concession..."
-                        value={approvalRemarks}
-                        onChange={e => setApprovalRemarks(e.target.value)}
-                        className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleApproveDiscount}
-                        disabled={processingApproval}
-                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs shadow-sm transition-colors"
-                      >
-                        Approve Discount
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRejectDiscount}
-                        disabled={processingApproval}
-                        className="flex-1 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded font-medium text-xs shadow-sm transition-colors"
-                      >
-                        Reject Discount
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] text-muted-foreground">
-                      * Anti-Self-Approval rule enforced on server. Proposal creators cannot
-                      authorize their own discounts.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="p-3 bg-secondary/30 rounded-lg text-xs text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>
-                  Discount is within standard commercial policy (≤ 5%). No escalation required.
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Customer Review & Acceptance Status Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border pb-2">
-              <CheckCircle2 className="w-4 h-4 text-solar-500" />
-              Customer Digital Acceptance
-            </h2>
-
-            {quotation.isAccepted ? (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 space-y-2">
-                <div className="font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  Proposal Formally Accepted
-                </div>
-                <div>Accepted At: {new Date(quotation.acceptedAt!).toLocaleString()}</div>
-                <div>
-                  Digital Sign IP: {quotation.decisionIpAddress || 'Authenticated Portal Session'}
-                </div>
-                {quotation.customerNotes && <div>Notes: {quotation.customerNotes}</div>}
-
-                {/* Direct Conversion to Sales Order from bottom card */}
-                {existingOrder ? (
-                  <Link
-                    to={`/orders/${existingOrder._id}`}
-                    className="inline-flex items-center justify-center w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                    <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowConvertModal(true)}
-                    disabled={convertingOrder}
-                    className="inline-flex items-center justify-center w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer ring-2 ring-emerald-500/20"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                    <span>Proceed to Generate Sales Order →</span>
-                  </button>
-                )}
-              </div>
-            ) : quotation.status === QuotationStatus.REJECTED ? (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <XCircle className="w-4 h-4" />
-                  Declined by Customer
-                </div>
-                <div>Reason: {quotation.rejectionReason}</div>
-              </div>
-            ) : (
-              <div className="space-y-3 text-xs">
-                <p className="text-muted-foreground">
-                  Record customer quotation decision or digital acceptance approval:
-                </p>
-
-                <input
-                  type="text"
-                  placeholder="Acceptance notes or customer remarks..."
-                  value={customerDecisionNotes}
-                  onChange={e => setCustomerDecisionNotes(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
-                />
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCustomerAccept}
-                    disabled={submittingCustomerAction}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Accept Proposal</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCustomerReject}
-                    disabled={submittingCustomerAction}
-                    className="flex-1 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
