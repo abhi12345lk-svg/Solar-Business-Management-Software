@@ -136,7 +136,6 @@ export const QuotationDetailPage: React.FC = () => {
   const [showDocPreview, setShowDocPreview] = useState(false);
 
   // Customer Simulation State
-  const [customerDecisionNotes, setCustomerDecisionNotes] = useState('');
   const [submittingCustomerAction, setSubmittingCustomerAction] = useState(false);
 
   // Sales Order Handover State
@@ -322,8 +321,7 @@ export const QuotationDetailPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           decision: 'ACCEPT',
-          notes:
-            customerDecisionNotes.trim() || 'Proposal formally accepted and signed via workstation.'
+          notes: 'Proposal formally accepted and signed via workstation.'
         })
       });
       setActionMessage('Quotation accepted successfully.');
@@ -346,7 +344,7 @@ export const QuotationDetailPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           decision: 'REJECT',
-          rejectionReason: customerDecisionNotes.trim() || 'Declined by customer.'
+          rejectionReason: 'Declined by customer upon commercial review.'
         })
       });
       setActionMessage('Quotation declined by customer.');
@@ -580,6 +578,15 @@ export const QuotationDetailPage: React.FC = () => {
               </button>
               <button
                 type="button"
+                onClick={handleCustomerReject}
+                disabled={submittingCustomerAction}
+                className="inline-flex items-center px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                <span>Decline</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowRevisionModal(true)}
                 disabled={revising}
                 className="inline-flex items-center px-3 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
@@ -696,6 +703,25 @@ export const QuotationDetailPage: React.FC = () => {
         </div>
       )}
 
+      {quotation.status === QuotationStatus.REJECTED && (
+        <div className="p-3.5 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <XCircle className="w-4 h-4 shrink-0" />
+            <span>
+              <strong>Proposal Declined:</strong> {quotation.rejectionReason || 'Customer requested revision.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRevisionModal(true)}
+            disabled={revising}
+            className="px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white font-bold rounded-lg text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
+          >
+            Create Revision (R{quotation.revisionNumber + 1})
+          </button>
+        </div>
+      )}
+
       {/* Main Grid: Details & Commercial Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column (7 cols): Customer, BOM, Milestones */}
@@ -741,12 +767,12 @@ export const QuotationDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-[11px] text-muted-foreground block">Validity & Status</span>
-                <span className="font-medium text-foreground text-xs block">
+                <span className="text-[11px] text-muted-foreground block">Proposal Validity</span>
+                <span className="font-semibold text-foreground text-xs block">
                   {new Date(quotation.validUntil).toLocaleDateString()}
                 </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                  {quotation.status}
+                <span className="text-[10px] text-muted-foreground block">
+                  30 Days Commercial Validity
                 </span>
               </div>
             </div>
@@ -898,183 +924,44 @@ export const QuotationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (5 cols): Next Action + Pricing Summary + Yield */}
+        {/* Right Column (5 cols): Pricing Summary + Performance Yield */}
         <div className="lg:col-span-5 space-y-4">
-          {/* Smart Next Stage Workflow Action Card */}
-          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
-            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/70 pb-2">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-solar-500" />
-                Next Stage Workflow Action
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground">
-                {quotation.status}
-              </span>
-            </h2>
-
-            {/* STAGE: ACCEPTED */}
-            {quotation.status === QuotationStatus.ACCEPTED && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-emerald-800 dark:text-emerald-300 space-y-1.5">
-                  <div className="font-bold flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Customer Formally Accepted Proposal</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/90">
-                    {quotation.customerNotes || 'Proposal accepted and confirmed for order execution.'}
-                  </p>
-                  {quotation.acceptedAt && (
-                    <div className="text-[10px] text-muted-foreground">
-                      Accepted: {new Date(quotation.acceptedAt).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-
-                {existingOrder ? (
-                  <Link
-                    to={`/orders/${existingOrder._id || existingOrder.id}`}
-                    className="w-full inline-flex items-center justify-center py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors"
-                  >
-                    <ShoppingCart className="w-4 h-4 mr-1.5" />
-                    <span>View Confirmed Sales Order ({existingOrder.orderNumber}) →</span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowConvertModal(true)}
-                    disabled={convertingOrder}
-                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Generate Confirmed Sales Order →</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* STAGE: DRAFT */}
-            {(quotation.status === QuotationStatus.DRAFT || quotation.status === QuotationStatus.APPROVED) && (
-              <div className="space-y-3 text-xs">
-                <p className="text-muted-foreground text-[11px]">
-                  Proposal is drafted. Verify pricing and work scope before sharing with the client.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={handleMarkAsSent}
-                    disabled={sending}
-                    className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{sending ? 'Sending...' : 'Mark as Sent'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCustomerAccept}
-                    disabled={submittingCustomerAction}
-                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Accept Proposal</span>
-                  </button>
+          {/* Managerial Discount Approval (ONLY when pending) */}
+          {quotation.requiresDiscountApproval && quotation.discountApprovalStatus === 'PENDING' && (
+            <div className="bg-card border border-amber-500/30 rounded-xl p-4 shadow-xs space-y-2.5">
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-800 dark:text-amber-300">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Manager Approval Required ({quotation.discountPercent.toFixed(1)}% Discount)
                 </div>
               </div>
-            )}
-
-            {/* STAGE: SENT */}
-            {quotation.status === QuotationStatus.SENT && (
-              <div className="space-y-3 text-xs">
-                <p className="text-muted-foreground text-[11px]">
-                  Proposal has been issued. Record customer feedback or final acceptance:
-                </p>
-                <input
-                  type="text"
-                  placeholder="Customer remarks / acceptance notes (optional)..."
-                  value={customerDecisionNotes}
-                  onChange={e => setCustomerDecisionNotes(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCustomerAccept}
-                    disabled={submittingCustomerAction}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Client Accepted ✓</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCustomerReject}
-                    disabled={submittingCustomerAction}
-                    className="px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 font-semibold text-xs rounded-lg transition-colors cursor-pointer"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STAGE: REJECTED */}
-            {quotation.status === QuotationStatus.REJECTED && (
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <XCircle className="w-4 h-4" />
-                    Declined by Customer
-                  </div>
-                  <div>Reason: {quotation.rejectionReason || 'Commercial adjustment requested'}</div>
-                </div>
+              <input
+                type="text"
+                placeholder="Managerial remarks / margin justification..."
+                value={approvalRemarks}
+                onChange={e => setApprovalRemarks(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
+              />
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowRevisionModal(true)}
-                  disabled={revising}
-                  className="w-full py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  onClick={handleApproveDiscount}
+                  disabled={processingApproval}
+                  className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs shadow-xs cursor-pointer"
                 >
-                  <History className="w-3.5 h-3.5" />
-                  <span>Create Revised Quotation (R{quotation.revisionNumber + 1})</span>
+                  Approve Discount
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectDiscount}
+                  disabled={processingApproval}
+                  className="flex-1 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded font-medium text-xs shadow-xs cursor-pointer"
+                >
+                  Reject Discount
                 </button>
               </div>
-            )}
-
-            {/* Managerial Discount Approval (ONLY when pending) */}
-            {quotation.requiresDiscountApproval && quotation.discountApprovalStatus === 'PENDING' && (
-              <div className="mt-3 pt-3 border-t border-border space-y-2.5">
-                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-800 dark:text-amber-300">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    Manager Approval Required ({quotation.discountPercent.toFixed(1)}% Discount)
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Managerial remarks / margin justification..."
-                  value={approvalRemarks}
-                  onChange={e => setApprovalRemarks(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleApproveDiscount}
-                    disabled={processingApproval}
-                    className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-xs shadow-xs"
-                  >
-                    Approve Discount
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRejectDiscount}
-                    disabled={processingApproval}
-                    className="flex-1 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded font-medium text-xs shadow-xs"
-                  >
-                    Reject Discount
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Commercial Pricing & Tax Summary Card */}
           <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
