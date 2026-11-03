@@ -158,7 +158,33 @@ export class OrderService {
         isInterState: quotation.taxProfile.isInterState,
         accountingNotice: quotation.taxProfile.accountingNotice
       },
-      paymentMilestones: quotation.paymentMilestones,
+      paymentMilestones: (quotation.paymentMilestones && quotation.paymentMilestones.length > 0
+        ? quotation.paymentMilestones
+        : [
+            { milestoneName: 'Booking Advance', percentage: 20, dueTrigger: 'Order confirmation' },
+            {
+              milestoneName: 'Material Dispatch',
+              percentage: 70,
+              dueTrigger: 'Before factory dispatch'
+            },
+            {
+              milestoneName: 'Commissioning & Handover',
+              percentage: 10,
+              dueTrigger: 'DISCOM testing sign-off'
+            }
+          ]
+      ).map((ms: any) => {
+        const title = ms.name || ms.milestoneName || 'Payment Milestone';
+        const desc =
+          ms.description || ms.dueTrigger || `${ms.percentage || 0}% milestone payment`;
+        return {
+          name: title,
+          milestoneName: title,
+          percentage: ms.percentage ?? 0,
+          description: desc,
+          dueTrigger: desc
+        };
+      }),
       termsAndConditions: quotation.termsAndConditions,
       reservationStatus: OrderReservationStatus.NONE,
       notes: input.notes,

@@ -59,8 +59,10 @@ export interface ISalesOrderDocument extends Document {
 
   paymentMilestones: Array<{
     name: string;
+    milestoneName?: string;
     percentage: number;
     description: string;
+    dueTrigger?: string;
   }>;
 
   termsAndConditions: string[];
@@ -252,9 +254,11 @@ const SalesOrderSchema = new Schema<ISalesOrderDocument>(
     },
     paymentMilestones: [
       {
-        name: { type: String, required: true },
-        percentage: { type: Number, required: true },
-        description: { type: String, required: true }
+        name: { type: String, required: true, default: 'Payment Milestone' },
+        milestoneName: { type: String },
+        percentage: { type: Number, required: true, default: 0 },
+        description: { type: String, required: true, default: 'Scheduled milestone payment' },
+        dueTrigger: { type: String }
       }
     ],
     termsAndConditions: {
@@ -304,7 +308,16 @@ const SalesOrderSchema = new Schema<ISalesOrderDocument>(
   },
   {
     timestamps: true,
-    collection: 'sales_orders'
+    collection: 'sales_orders',
+    toJSON: {
+      transform(_doc, ret: Record<string, any>) {
+        const idStr = ret._id?.toString();
+        ret.id = idStr;
+        ret._id = idStr;
+        delete ret.__v;
+        return ret;
+      }
+    }
   }
 );
 
