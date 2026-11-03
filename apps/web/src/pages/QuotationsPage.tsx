@@ -6,7 +6,8 @@ import {
   FileSpreadsheet,
   ArrowRight,
   AlertTriangle,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../lib/api.js';
@@ -692,348 +693,488 @@ export const QuotationsPage: React.FC = () => {
       </div>
 
       {/* Create Quotation Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-solar-500" />
-              Generate Commercial Quotation
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Drafts an initial commercial quotation with standard Indian solar GST rules and
-              payment milestones.
-            </p>
+      {showCreateModal && (() => {
+        const moduleSubtotal = (Number(panelQty) || 0) * (Number(panelRateRs) || 0);
+        const inverterSubtotal = (Number(inverterQty) || 0) * (Number(inverterRateRs) || 0);
+        const grossSubtotal = moduleSubtotal + inverterSubtotal;
+        const moduleGst = Math.round(moduleSubtotal * 0.12);
+        const inverterGst = Math.round(inverterSubtotal * 0.18);
+        const totalTax = moduleGst + inverterGst;
+        const discountVal = Number(additionalDiscountRs) || 0;
+        const netEstimatedTotal = Math.max(0, grossSubtotal + totalTax - discountVal);
+        const discountPercent = grossSubtotal > 0 ? (discountVal / grossSubtotal) * 100 : 0;
+        const requiresApproval = discountPercent > 5;
 
-            {designPreloadNotice && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2 font-medium">
-                  <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{designPreloadNotice}</span>
-                </div>
-                {linkedDesignId && (
-                  <span className="font-mono text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-semibold shrink-0">
-                    Engineering Linked
-                  </span>
-                )}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateQuotation} className="space-y-4">
-              {/* Customer Mode Selection */}
-              <div className="space-y-2.5 p-3 bg-secondary/30 rounded-lg border border-border">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
-                  <label className="block text-xs font-semibold text-foreground">
-                    Customer / Recipient <span className="text-destructive">*</span>
-                  </label>
-                  <div className="inline-flex rounded-md border border-border bg-background p-0.5 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => setCustomerMode('REGISTERED')}
-                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                        customerMode === 'REGISTERED'
-                          ? 'bg-solar-600 text-white shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Registered Customer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCustomerMode('LEAD')}
-                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                        customerMode === 'LEAD'
-                          ? 'bg-solar-600 text-white shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      From CRM Lead
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCustomerMode('NEW')}
-                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                        customerMode === 'NEW'
-                          ? 'bg-solar-600 text-white shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      + New / Walk-in
-                    </button>
+        return (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col max-h-[92vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
+                    <FileSpreadsheet className="w-5 h-5" />
                   </div>
-                </div>
-
-                {customerMode === 'REGISTERED' && (
                   <div>
-                    <select
-                      value={customerId}
-                      onChange={e => handleCustomerChange(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                    >
-                      <option value="">
-                        {loadingContext
-                          ? 'Loading registered customers...'
-                          : '-- Select Registered Customer Account --'}
-                      </option>
-                      {availableCustomers.map(c => (
-                        <option key={c._id || c.id} value={c._id || c.id}>
-                          {c.customerCode || 'CUST'} — {c.legalName || c.name} (
-                          {c.primaryPhone || 'No phone'})
-                        </option>
-                      ))}
-                    </select>
-                    {availableCustomers.length === 0 && !loadingContext && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                        No registered customer accounts found. Use <strong>+ New / Walk-in</strong>{' '}
-                        above to enter customer details directly.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {customerMode === 'LEAD' && (
-                  <div>
-                    <select
-                      value={leadId}
-                      onChange={e => handleLeadChange(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                    >
-                      <option value="">-- Select Active CRM Lead --</option>
-                      {availableLeads.map(l => (
-                        <option key={l.id || l._id} value={l.id || l._id}>
-                          {l.leadCode} — {l.prospectName} ({l.prospectPhone})
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Lead contact information will be automatically synchronized and linked with
-                      this proposal.
+                    <h3 className="text-base font-bold text-foreground">
+                      Generate Commercial Quotation (R0)
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Structured EPC proposal with aligned Bill of Materials (BOM), statutory solar GST, and milestones.
                     </p>
                   </div>
-                )}
-
-                {customerMode === 'NEW' && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div>
-                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
-                        Customer Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Ramesh Patel"
-                        value={newCustName}
-                        onChange={e => setNewCustName(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
-                        Mobile Number *
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="e.g. 9876543210"
-                        value={newCustPhone}
-                        onChange={e => setNewCustPhone(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
-                        City / Site Location
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Jaipur"
-                        value={newCustCity}
-                        onChange={e => setNewCustCity(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
-                        Email (Optional)
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="customer@email.com"
-                        value={newCustEmail}
-                        onChange={e => setNewCustEmail(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-background border border-input rounded"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    System Topology
-                  </label>
-                  <select
-                    value={topology}
-                    onChange={e => setTopology(e.target.value as SolarTopology)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                  >
-                    <option value={SolarTopology.ON_GRID}>On-Grid</option>
-                    <option value={SolarTopology.OFF_GRID}>Off-Grid</option>
-                    <option value={SolarTopology.HYBRID}>Hybrid</option>
-                  </select>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    System Capacity (kWp)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    required
-                    value={capacityKwp}
-                    onChange={e => setCapacityKwp(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                  />
-                </div>
-              </div>
-
-              {/* Module Line Item */}
-              <div className="bg-secondary/30 p-3 rounded-lg space-y-2 border border-border">
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Line Item 1: Solar Modules (12% GST)</span>
-                </div>
-                <div>
-                  <label className="block text-[11px] text-muted-foreground">Description</label>
-                  <input
-                    type="text"
-                    required
-                    value={panelDesc}
-                    onChange={e => setPanelDesc(e.target.value)}
-                    className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1">
-                    <label className="block text-[11px] text-muted-foreground">Qty (Nos)</label>
-                    <input
-                      type="number"
-                      required
-                      value={panelQty}
-                      onChange={e => setPanelQty(e.target.value)}
-                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[11px] text-muted-foreground">Unit Rate (₹)</label>
-                    <input
-                      type="number"
-                      required
-                      value={panelRateRs}
-                      onChange={e => setPanelRateRs(e.target.value)}
-                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Inverter Line Item */}
-              <div className="bg-secondary/30 p-3 rounded-lg space-y-2 border border-border">
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Line Item 2: Solar Inverter (18% GST)</span>
-                </div>
-                <div>
-                  <label className="block text-[11px] text-muted-foreground">Description</label>
-                  <input
-                    type="text"
-                    required
-                    value={inverterDesc}
-                    onChange={e => setInverterDesc(e.target.value)}
-                    className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1">
-                    <label className="block text-[11px] text-muted-foreground">Qty (Nos)</label>
-                    <input
-                      type="number"
-                      required
-                      value={inverterQty}
-                      onChange={e => setInverterQty(e.target.value)}
-                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[11px] text-muted-foreground">Unit Rate (₹)</label>
-                    <input
-                      type="number"
-                      required
-                      value={inverterRateRs}
-                      onChange={e => setInverterRateRs(e.target.value)}
-                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Discounts & Validity */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Additional Commercial Discount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={additionalDiscountRs}
-                    onChange={e => setAdditionalDiscountRs(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                  />
-                  <span className="text-[10px] text-muted-foreground">
-                    Discounts exceeding 5% trigger mandatory managerial approval.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Validity (Days)
-                  </label>
-                  <input
-                    type="number"
-                    min="7"
-                    max="90"
-                    value={validDays}
-                    onChange={e => setValidDays(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-background border border-input rounded-md"
-                  />
-                </div>
-              </div>
-
-              {createError && (
-                <div className="p-2.5 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-lg flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>{createError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-md"
+                  className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-4 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-medium rounded-md shadow"
-                >
-                  {creating ? 'Creating Quotation...' : 'Create & Calculate (R0)'}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
+
+              {/* Modal Body Form */}
+              <form onSubmit={handleCreateQuotation} className="flex flex-col flex-1 overflow-hidden">
+                <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                  {designPreloadNotice && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{designPreloadNotice}</span>
+                      </div>
+                      {linkedDesignId && (
+                        <span className="font-mono text-[10px] bg-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold shrink-0">
+                          Engineering Linked
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Top Grid: Recipient & Plant Specs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Customer Selection Box */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-foreground">
+                          Customer / Recipient <span className="text-destructive">*</span>
+                        </label>
+                        <div className="inline-flex rounded-lg border border-border bg-background p-0.5 text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => setCustomerMode('REGISTERED')}
+                            className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                              customerMode === 'REGISTERED'
+                                ? 'bg-solar-600 text-white shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Registered Customer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCustomerMode('LEAD')}
+                            className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                              customerMode === 'LEAD'
+                                ? 'bg-solar-600 text-white shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            From CRM Lead
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCustomerMode('NEW')}
+                            className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                              customerMode === 'NEW'
+                                ? 'bg-solar-600 text-white shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            + New / Walk-in
+                          </button>
+                        </div>
+                      </div>
+
+                      {customerMode === 'REGISTERED' && (
+                        <div>
+                          <select
+                            value={customerId}
+                            onChange={e => handleCustomerChange(e.target.value)}
+                            className="w-full px-3 py-2 text-xs bg-background border border-input rounded-lg font-medium"
+                          >
+                            <option value="">
+                              {loadingContext
+                                ? 'Loading registered customers...'
+                                : '-- Select Registered Customer Account --'}
+                            </option>
+                            {availableCustomers.map(c => (
+                              <option key={c._id || c.id} value={c._id || c.id}>
+                                {c.customerCode || 'CUST'} — {c.legalName || c.name} (
+                                {c.primaryPhone || 'No phone'})
+                              </option>
+                            ))}
+                          </select>
+                          {availableCustomers.length === 0 && !loadingContext && (
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
+                              No registered customers found. Use <strong>+ New / Walk-in</strong> above.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {customerMode === 'LEAD' && (
+                        <div>
+                          <select
+                            value={leadId}
+                            onChange={e => handleLeadChange(e.target.value)}
+                            className="w-full px-3 py-2 text-xs bg-background border border-input rounded-lg font-medium"
+                          >
+                            <option value="">-- Select Active CRM Lead --</option>
+                            {availableLeads.map(l => (
+                              <option key={l.id || l._id} value={l.id || l._id}>
+                                {l.leadCode} — {l.prospectName} ({l.prospectPhone})
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Lead contact info will be automatically linked to this quotation.
+                          </p>
+                        </div>
+                      )}
+
+                      {customerMode === 'NEW' && (
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                              Customer Full Name *
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Ramesh Patel"
+                              value={newCustName}
+                              onChange={e => setNewCustName(e.target.value)}
+                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                              Mobile Number *
+                            </label>
+                            <input
+                              type="tel"
+                              placeholder="e.g. 9876543210"
+                              value={newCustPhone}
+                              onChange={e => setNewCustPhone(e.target.value)}
+                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                              City / Site Location
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Jaipur"
+                              value={newCustCity}
+                              onChange={e => setNewCustCity(e.target.value)}
+                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                              Email (Optional)
+                            </label>
+                            <input
+                              type="email"
+                              placeholder="customer@email.com"
+                              value={newCustEmail}
+                              onChange={e => setNewCustEmail(e.target.value)}
+                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Plant Specs Box */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border space-y-3">
+                      <div className="text-xs font-bold text-foreground">
+                        Plant Specifications & Commercial Terms
+                      </div>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                            Topology
+                          </label>
+                          <select
+                            value={topology}
+                            onChange={e => setTopology(e.target.value as SolarTopology)}
+                            className="w-full px-2.5 py-2 text-xs bg-background border border-input rounded-lg"
+                          >
+                            <option value={SolarTopology.ON_GRID}>On-Grid</option>
+                            <option value={SolarTopology.OFF_GRID}>Off-Grid</option>
+                            <option value={SolarTopology.HYBRID}>Hybrid</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                            Capacity (kWp) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.5"
+                            required
+                            value={capacityKwp}
+                            onChange={e => setCapacityKwp(e.target.value)}
+                            className="w-full px-2.5 py-2 text-xs bg-background border border-input rounded-lg font-bold text-solar-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                            Validity (Days)
+                          </label>
+                          <input
+                            type="number"
+                            min="7"
+                            max="90"
+                            value={validDays}
+                            onChange={e => setValidDays(e.target.value)}
+                            className="w-full px-2.5 py-2 text-xs bg-background border border-input rounded-lg"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center space-x-1 pt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <span>Standard Indian EPC GST Profile (Modules 12%, Inverters 18%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Middle Section: Bill of Materials (BOM) Table */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold text-foreground uppercase tracking-wide">
+                        Scope of Work & Bill of Materials (BOM)
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        Values auto-calculate in real time
+                      </span>
+                    </div>
+
+                    <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-muted/60 border-b border-border text-muted-foreground font-semibold">
+                            <th className="py-2.5 px-3 w-10 text-center">#</th>
+                            <th className="py-2.5 px-3">Item Description</th>
+                            <th className="py-2.5 px-3 w-36">GST Category</th>
+                            <th className="py-2.5 px-3 w-28 text-center">Qty (Nos)</th>
+                            <th className="py-2.5 px-3 w-36 text-right">Unit Rate (₹)</th>
+                            <th className="py-2.5 px-3 w-36 text-right">Line Total (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {/* Row 1: Solar Modules */}
+                          <tr className="hover:bg-muted/20 transition">
+                            <td className="py-3 px-3 text-center font-mono text-muted-foreground">1</td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="text"
+                                required
+                                value={panelDesc}
+                                onChange={e => setPanelDesc(e.target.value)}
+                                placeholder="Solar Module specification"
+                                className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg font-medium"
+                              />
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                Modules (12% GST)
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="number"
+                                min="1"
+                                required
+                                value={panelQty}
+                                onChange={e => setPanelQty(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs text-center bg-background border border-input rounded-lg font-bold font-mono"
+                              />
+                            </td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                required
+                                value={panelRateRs}
+                                onChange={e => setPanelRateRs(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs text-right bg-background border border-input rounded-lg font-bold font-mono"
+                              />
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                              ₹{moduleSubtotal.toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+
+                          {/* Row 2: Solar Inverter */}
+                          <tr className="hover:bg-muted/20 transition">
+                            <td className="py-3 px-3 text-center font-mono text-muted-foreground">2</td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="text"
+                                required
+                                value={inverterDesc}
+                                onChange={e => setInverterDesc(e.target.value)}
+                                placeholder="Solar Inverter specification"
+                                className="w-full px-2.5 py-1.5 text-xs bg-background border border-input rounded-lg font-medium"
+                              />
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                Inverter (18% GST)
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="number"
+                                min="1"
+                                required
+                                value={inverterQty}
+                                onChange={e => setInverterQty(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs text-center bg-background border border-input rounded-lg font-bold font-mono"
+                              />
+                            </td>
+                            <td className="py-3 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                required
+                                value={inverterRateRs}
+                                onChange={e => setInverterRateRs(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs text-right bg-background border border-input rounded-lg font-bold font-mono"
+                              />
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                              ₹{inverterSubtotal.toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Bottom Section: Discounts & Calculation Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {/* Commercial Terms & Discount */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-foreground">
+                          Additional Commercial Discount (₹)
+                        </label>
+                        {discountPercent > 0 && (
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            requiresApproval
+                              ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                          }`}>
+                            {discountPercent.toFixed(1)}% Discount
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        value={additionalDiscountRs}
+                        onChange={e => setAdditionalDiscountRs(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-3 py-2 text-xs bg-background border border-input rounded-lg font-bold font-mono"
+                      />
+                      {requiresApproval ? (
+                        <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-700 dark:text-amber-300 flex items-center space-x-1.5">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                          <span>Discount exceeds 5% threshold. Managerial approval will be required before final locking.</span>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Standard commercial discount. Up to 5% is auto-approved by sales system.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Financial Summary Card */}
+                    <div className="p-4 bg-gradient-to-br from-card to-muted/40 rounded-xl border border-border space-y-2">
+                      <div className="text-xs font-bold text-foreground flex items-center justify-between pb-1 border-b border-border/60">
+                        <span>Commercial Price Summary</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">INR (₹)</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Subtotal (Excl. Tax):</span>
+                          <span className="font-mono font-medium text-foreground">₹{grossSubtotal.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Modules GST (12%):</span>
+                          <span className="font-mono font-medium text-foreground">₹{moduleGst.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Inverter GST (18%):</span>
+                          <span className="font-mono font-medium text-foreground">₹{inverterGst.toLocaleString('en-IN')}</span>
+                        </div>
+                        {discountVal > 0 && (
+                          <div className="flex justify-between text-emerald-600 font-medium">
+                            <span>Commercial Discount:</span>
+                            <span className="font-mono">- ₹{discountVal.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
+                        <div className="pt-2 border-t border-border flex justify-between items-baseline">
+                          <div>
+                            <div className="font-bold text-foreground text-sm">Net Quotation Total:</div>
+                            <div className="text-[10px] text-muted-foreground">Includes all statutory GST</div>
+                          </div>
+                          <div className="text-lg font-black text-solar-600 font-mono">
+                            ₹{netEstimatedTotal.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {createError && (
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-xl flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>{createError}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="px-6 py-3.5 bg-muted/40 border-t border-border flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    Initial Revision <strong>R0</strong> will be generated.
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creating}
+                      className="px-5 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <span>{creating ? 'Generating Proposal...' : 'Create & Calculate (R0) →'}</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
