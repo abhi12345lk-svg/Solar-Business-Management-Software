@@ -57,7 +57,7 @@ export const OrdersPage: React.FC = () => {
 
   // Order creation from quotation modal
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [acceptedQuotations, setAcceptedQuotations] = useState<any[]>([]);
+  const [allQuotations, setAllQuotations] = useState<any[]>([]);
   const [loadingQuotations, setLoadingQuotations] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -76,7 +76,8 @@ export const OrdersPage: React.FC = () => {
 
       const endpoint = `/orders?${params.toString()}`;
       const data = await apiClient(endpoint);
-      setOrders(data.items || []);
+      const list = Array.isArray(data) ? data : data?.items || data?.data || [];
+      setOrders(list);
     } catch (err: any) {
       setError(err.message || 'Failed to load sales orders.');
     } finally {
@@ -98,13 +99,17 @@ export const OrdersPage: React.FC = () => {
     setCreateError(null);
     setLoadingQuotations(true);
     try {
-      const data = await apiClient('/quotations?status=ACCEPTED&limit=50');
-      setAcceptedQuotations(data.items || []);
-      if (data.items && data.items.length > 0) {
-        setSelectedQuoteId(data.items[0]._id);
+      const res = await apiClient<any>('/quotations?limit=50');
+      const list = Array.isArray(res) ? res : res?.items || res?.data || [];
+      setAllQuotations(list);
+      const accepted = list.filter((q: any) => q.status === 'ACCEPTED');
+      if (accepted.length > 0) {
+        setSelectedQuoteId(accepted[0]._id || accepted[0].id);
+      } else if (list.length > 0) {
+        setSelectedQuoteId(list[0]._id || list[0].id);
       }
     } catch {
-      setCreateError('Failed to fetch accepted quotations.');
+      setCreateError('Failed to fetch quotations.');
     } finally {
       setLoadingQuotations(false);
     }
@@ -113,13 +118,28 @@ export const OrdersPage: React.FC = () => {
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedQuoteId) {
-      setCreateError('Please select an eligible accepted quotation.');
+      setCreateError('Please select a quotation to generate an order.');
       return;
     }
 
     setCreatingOrder(true);
     setCreateError(null);
     try {
+      const selectedQuote = allQuotations.find(
+        q => (q._id || q.id) === selectedQuoteId
+      );
+
+      // If quotation is not yet accepted, accept it first
+      if (selectedQuote && selectedQuote.status !== 'ACCEPTED') {
+        await apiClient(`/quotations/${selectedQuoteId}/customer-decision`, {
+          method: 'POST',
+          body: JSON.stringify({
+            decision: 'ACCEPT',
+            notes: orderNotes.trim() || 'Formally accepted upon sales order creation.'
+          })
+        });
+      }
+
       const newOrder = await apiClient('/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -129,7 +149,7 @@ export const OrdersPage: React.FC = () => {
         })
       });
       setShowCreateModal(false);
-      navigate(`/orders/${newOrder._id}`);
+      navigate(`/orders/${newOrder._id || newOrder.id}`);
     } catch (err: any) {
       setCreateError(err.message || 'Failed to convert quotation to sales order.');
     } finally {
@@ -507,31 +527,43 @@ export const OrdersPage: React.FC = () => {
 
             <form onSubmit={handleCreateOrder} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Eligible Accepted Quotation *
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Select Quotation Proposal *
                 </label>
                 {loadingQuotations ? (
-                  <p className="text-xs text-muted-foreground">Loading accepted quotations...</p>
-                ) : acceptedQuotations.length === 0 ? (
-                  <div className="p-3 bg-muted/40 rounded-lg text-xs text-amber-400 border border-amber-500/20">
-                    No accepted quotations found eligible for conversion. Please approve and accept
-                    a quotation first.
+                  <p className="text-xs text-muted-foreground">Loading quotation proposals...</p>
+                ) : allQuotations.length === 0 ? (
+                  <div className="p-3 bg-amber-500/10 rounded-lg text-xs text-amber-700 dark:text-amber-400 border border-amber-500/20 space-y-2">
+                    <p>No quotation proposals found. Please create a proposal in the Quotations Suite first.</p>
+                    <Link
+                      to="/quotations"
+                      className="inline-block px-3 py-1 bg-solar-600 text-white rounded font-bold text-xs hover:bg-solar-700 shadow-xs"
+                    >
+                      Go to Quotation Suite →
+                    </Link>
                   </div>
                 ) : (
-                  <select
-                    value={selectedQuoteId}
-                    onChange={e => setSelectedQuoteId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    {acceptedQuotations.map(q => (
-                      <option key={q._id} value={q._id}>
-                        {q.fullQuotationCode} — {q.customerId?.legalName || 'Client'} (
-                        {q.systemCapacityKwp} kWp, ₹
-                        {(q.netTotalPaise / 100).toLocaleString('en-IN')})
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      value={selectedQuoteId}
+                      onChange={e => setSelectedQuoteId(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500 font-medium"
+                    >
+                      {allQuotations.map((q: any) => (
+                        <option key={q._id || q.id} value={q._id || q.id}>
+                          {q.fullQuotationCode} — {q.customerId?.legalName || 'Client'} (
+                          {q.systemCapacityKwp} kWp, ₹
+                          {(q.netTotalPaise / 100).toLocaleString('en-IN')}) [{q.status}]
+                        </option>
+                      ))}
+                    </select>
+                    {allQuotations.find(q => (q._id || q.id) === selectedQuoteId)?.status !== 'ACCEPTED' && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                        * Note: This proposal will be formally marked as Accepted upon generating the sales order.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -552,16 +584,16 @@ export const OrdersPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted text-foreground transition-colors"
+                  className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted text-foreground transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={creatingOrder || acceptedQuotations.length === 0}
-                  className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-sm font-medium disabled:opacity-50 transition-colors"
+                  disabled={creatingOrder || allQuotations.length === 0}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
                 >
-                  {creatingOrder ? 'Converting...' : 'Generate Sales Order'}
+                  {creatingOrder ? 'Generating Order...' : 'Confirm & Generate Sales Order'}
                 </button>
               </div>
             </form>
