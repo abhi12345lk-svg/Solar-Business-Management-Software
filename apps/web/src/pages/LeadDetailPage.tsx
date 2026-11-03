@@ -105,6 +105,10 @@ export const LeadDetailPage: React.FC = () => {
   const [stageRemark, setStageRemark] = useState('');
   const [advancingStage, setAdvancingStage] = useState(false);
 
+  // Convert to Customer Modal State
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertCustomerType, setConvertCustomerType] = useState<CustomerType>(CustomerType.INDIVIDUAL);
+
   const loadData = async () => {
     if (!id) return;
     setLoading(true);
@@ -205,11 +209,20 @@ export const LeadDetailPage: React.FC = () => {
     }
   };
 
-  const handleConvertLead = async () => {
+  const handleOpenConvertModal = () => {
+    if (!lead || lead.status === LeadStatus.CONVERTED) return;
+    setConvertCustomerType(
+      lead.solarRequirement === SolarRequirement.COMMERCIAL ||
+        lead.solarRequirement === SolarRequirement.INDUSTRIAL
+        ? CustomerType.COMMERCIAL
+        : CustomerType.INDIVIDUAL
+    );
+    setShowConvertModal(true);
+  };
+
+  const handleExecuteConvert = async () => {
     if (!id || !lead) return;
-    if (!window.confirm(`Convert lead ${lead.leadCode} into an official Customer record?`)) {
-      return;
-    }
+    if (lead.status === LeadStatus.CONVERTED) return;
 
     setConverting(true);
     setConvertError(null);
@@ -220,11 +233,12 @@ export const LeadDetailPage: React.FC = () => {
         {
           method: 'POST',
           body: JSON.stringify({
-            customerType: CustomerType.INDIVIDUAL
+            customerType: convertCustomerType
           })
         }
       );
       setConvertSuccess(`Successfully converted to Customer: ${result.customerCode}`);
+      setShowConvertModal(false);
       loadData();
     } catch (err: any) {
       setConvertError(err?.message || 'Failed to convert lead.');
@@ -445,7 +459,7 @@ export const LeadDetailPage: React.FC = () => {
 
           {lead.status === LeadStatus.NEGOTIATION && (
             <button
-              onClick={handleConvertLead}
+              onClick={handleOpenConvertModal}
               disabled={converting}
               className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
             >
@@ -474,7 +488,7 @@ export const LeadDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {convertSuccess && (
+      {convertSuccess && lead.status !== LeadStatus.CONVERTED && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center space-x-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span className="text-sm font-medium">{convertSuccess}</span>
@@ -519,18 +533,27 @@ export const LeadDetailPage: React.FC = () => {
               <div
                 key={st.key}
                 onClick={() => {
+                  if (lead.status === LeadStatus.CONVERTED) {
+                    return; // Already won and converted
+                  }
                   if (st.key === LeadStatus.CONVERTED) {
-                    handleConvertLead();
-                  } else if (st.key !== lead.status && lead.status !== LeadStatus.CONVERTED) {
+                    handleOpenConvertModal();
+                  } else if (st.key !== lead.status) {
                     setStageModal({ key: st.key, label: st.label, desc: st.desc });
                   }
                 }}
                 title={
                   st.key === lead.status
                     ? 'Current active milestone'
-                    : `Click to advance milestone to ${st.label}`
+                    : lead.status === LeadStatus.CONVERTED
+                      ? `${st.label} (Lead won & converted)`
+                      : isCompleted
+                        ? `${st.label} (Completed)`
+                        : `Click to advance milestone to ${st.label}`
                 }
-                className={`p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
+                className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                  lead.status === LeadStatus.CONVERTED ? 'cursor-default' : 'cursor-pointer'
+                } select-none ${
                   isCurrent
                     ? 'bg-solar-50/80 dark:bg-solar-950/40 border-solar-400 dark:border-solar-700 ring-2 ring-solar-500/20 shadow-xs'
                     : isCompleted
@@ -594,6 +617,9 @@ export const LeadDetailPage: React.FC = () => {
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground">
+                {convertSuccess ? (
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 mr-1.5">{convertSuccess}.</span>
+                ) : null}
                 This prospect is officially onboarded. Proceed with technical engineering, quotation, order booking, and project installation.
               </p>
             </div>
@@ -1324,6 +1350,104 @@ export const LeadDetailPage: React.FC = () => {
                 className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50"
               >
                 {advancingStage ? 'Updating...' : 'Advance Milestone ➔'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Lead to Customer Conversion Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-card border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    Convert Lead to Official Customer
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Onboard prospect into the active Customer Directory.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-muted/40 border rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Prospect:</span>
+                <span className="font-bold text-foreground">{lead.prospectName}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Phone:</span>
+                <span className="font-mono text-foreground">{lead.prospectPhone}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Location:</span>
+                <span className="text-foreground">{lead.location?.city || 'N/A'}, {lead.location?.state || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Requirement / Capacity:</span>
+                <span className="font-semibold text-solar-600">
+                  {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : 'Custom'} ({lead.solarRequirement})
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-foreground">
+                Customer Account Type
+              </label>
+              <select
+                value={convertCustomerType}
+                onChange={e => setConvertCustomerType(e.target.value as CustomerType)}
+                className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value={CustomerType.INDIVIDUAL}>Residential / Individual Homeowner</option>
+                <option value={CustomerType.COMMERCIAL}>Commercial Entity / Business Enterprise</option>
+                <option value={CustomerType.INDUSTRIAL}>Industrial Plant / Manufacturing Facility</option>
+                <option value={CustomerType.INSTITUTIONAL}>Institutional / Non-Profit / School / Hospital</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                Generates a unique Customer ID (e.g. CUST-2026-xxxxx) and unlocks CAD sizing, quotations, and project execution.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(false)}
+                className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteConvert}
+                disabled={converting}
+                className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+              >
+                {converting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Converting...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Confirm & Onboard Customer ✓</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
