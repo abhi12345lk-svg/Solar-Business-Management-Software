@@ -23,6 +23,7 @@ import {
 import { SalesOrder, ISalesOrderDocument } from '../models/SalesOrder.js';
 import { Quotation } from '../models/Quotation.js';
 import { Customer } from '../models/Customer.js';
+import { Product } from '../models/Product.js';
 import { StockMovement } from '../models/StockMovement.js';
 import { StockService } from './stockService.js';
 import { SequenceService } from './sequenceService.js';
@@ -117,19 +118,39 @@ export class OrderService {
     const seqResult = await SequenceService.generateNumber(SequenceEntityType.ORDER);
 
     // 6. Snapshot agreed commercial line items and financials from the quotation revision
-    const orderLineItems = quotation.lineItems.map(item => ({
-      itemType: item.itemType,
-      productId: item.productId,
-      description: item.description,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitRatePaise: item.unitRatePaise,
-      discountPaise: item.discountPaise,
-      taxableAmountPaise: item.taxableAmountPaise,
-      gstRateBasisPoints: item.gstRateBasisPoints,
-      taxPaise: item.totalTaxAmountPaise,
-      itemTotalPaise: item.totalAmountPaise
-    }));
+    const orderLineItems = await Promise.all(
+      quotation.lineItems.map(async item => {
+        let pId = item.productId;
+        if (!pId) {
+          if (item.itemType === 'SOLAR_MODULE') {
+            const p = await Product.findOne({
+              $or: [{ productType: 'PANEL' }, { name: /panel|module/i }],
+              isActive: true
+            });
+            if (p) pId = p._id as any;
+          } else if (item.itemType === 'INVERTER') {
+            const p = await Product.findOne({
+              $or: [{ productType: 'INVERTER' }, { name: /inverter/i }],
+              isActive: true
+            });
+            if (p) pId = p._id as any;
+          }
+        }
+        return {
+          itemType: item.itemType,
+          productId: pId,
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitRatePaise: item.unitRatePaise,
+          discountPaise: item.discountPaise,
+          taxableAmountPaise: item.taxableAmountPaise,
+          gstRateBasisPoints: item.gstRateBasisPoints,
+          taxPaise: item.totalTaxAmountPaise,
+          itemTotalPaise: item.totalAmountPaise
+        };
+      })
+    );
 
     const order = new SalesOrder({
       orderNumber: seqResult.formattedNumber,
@@ -378,6 +399,48 @@ export class OrderService {
       { orderNumber: order.orderNumber, reason: input.cancellationReason },
       'Sales Order cancelled and reservations released.'
     );
+
+    return order;
+  }
+
+  /**
+   * 5. Reopen an inadvertently cancelled Sales Order.
+   */
+  public static async reopenOrder(
+    orderId: string,
+    user: { userId: string; role: UserRole },
+    context: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ): Promise<ISalesOrderDocument> {
+    const order = await SalesOrder.findById(orderId);
+    if (!order) {
+      throw AppError.notFound('Sales Order not found.');
+    }
+
+    if (order.status !== OrderStatus.CANCELLED) {
+      return order;
+    }
+
+    order.status = OrderStatus.CONFIRMED;
+    order.cancellationReason = undefined;
+    order.cancelledAt = undefined;
+    order.cancelledBy = undefined;
+    order.updatedBy = new Types.ObjectId(user.userId);
+
+    await order.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.ORDER_CREATED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      correlationId: context.correlationId || 'order-reopen',
+      details: {
+        orderNumber: order.orderNumber,
+        actionNote: 'Sales order reopened from cancelled status.'
+      }
+    });
 
     return order;
   }

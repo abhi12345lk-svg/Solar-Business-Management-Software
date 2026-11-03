@@ -131,6 +131,34 @@ orderRouter.post(
 );
 
 /**
+ * POST /api/v1/orders/:id/reopen
+ * Reopen a cancelled order.
+ */
+orderRouter.post(
+  '/:id/reopen',
+  requirePermission('order:cancel'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      const order = await OrderService.reopenOrder(
+        req.params.id as string,
+        user,
+        context
+      );
+      return sendSuccess(req, res, order);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * POST /api/v1/orders/:id/reserve-stock
  * Reserve inventory stock for the order line items.
  */

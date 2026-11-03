@@ -180,17 +180,37 @@ export const OrderDetailPage: React.FC = () => {
     }
   };
 
+  const [reopening, setReopening] = useState(false);
+
   const openReserveModal = async () => {
     setShowReserveModal(true);
     setReserveError(null);
     try {
-      const data = await apiClient('/warehouses?isActive=true');
-      setWarehouses(data.items || []);
-      if (data.items && data.items.length > 0) {
-        setSelectedWarehouseId(data.items[0]._id);
+      const res = await apiClient<any>('/warehouses?isActive=true');
+      const list = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      setWarehouses(list);
+      if (list && list.length > 0) {
+        setSelectedWarehouseId(list[0]._id);
+      } else {
+        setReserveError('No active warehouses found. Please configure a warehouse first.');
       }
     } catch {
       setReserveError('Failed to load active warehouses.');
+    }
+  };
+
+  const handleReopenOrder = async () => {
+    if (!order) return;
+    setReopening(true);
+    setActionSuccess(null);
+    try {
+      await apiClient(`/orders/${order._id}/reopen`, { method: 'POST' });
+      setActionSuccess('Sales Order reopened successfully and returned to Confirmed status.');
+      fetchOrderDetail();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reopen order.');
+    } finally {
+      setReopening(false);
     }
   };
 
@@ -268,26 +288,54 @@ export const OrderDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Back button & Breadcrumb */}
-      <div className="flex items-center justify-between">
-        <Link
-          to="/orders"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Orders
-        </Link>
+    <div className="space-y-4 max-w-7xl mx-auto pb-10">
+      {/* 1. Back button & Top Action Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-border/60">
+        <div>
+          <Link
+            to="/orders"
+            className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Orders Directory
+          </Link>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-mono">
+              {order.orderNumber}
+            </h1>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                order.status === 'CONFIRMED'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                  : order.status === 'COMPLETED'
+                    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30'
+                    : 'bg-destructive/10 text-destructive border border-destructive/30'
+              }`}
+            >
+              {order.status}
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                order.reservationStatus === 'FULLY_RESERVED'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                  : order.reservationStatus === 'PARTIALLY_RESERVED'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                    : 'bg-muted text-muted-foreground border border-border'
+              }`}
+            >
+              Stock: {order.reservationStatus}
+            </span>
+          </div>
+        </div>
 
         {/* Action Controls */}
-        <div className="flex items-center space-x-3">
-          {/* EPC Project Handover Action */}
+        <div className="flex items-center gap-2">
           {order.status !== 'CANCELLED' &&
             (linkedProject ? (
               <Link
-                to={`/projects/${linkedProject._id}`}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs"
+                to={`/projects/${linkedProject._id || linkedProject.id}`}
+                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs"
               >
-                <FolderKanban className="w-4 h-4 mr-1.5" />
+                <FolderKanban className="w-3.5 h-3.5 mr-1.5" />
                 <span>View EPC Project ({linkedProject.projectCode})</span>
               </Link>
             ) : (
@@ -297,20 +345,31 @@ export const OrderDetailPage: React.FC = () => {
                   setShowCreateProjectModal(true);
                   setProjectError(null);
                 }}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
               >
-                <FolderKanban className="w-4 h-4 mr-1.5" />
-                <span>Initialize EPC Project Execution</span>
+                <FolderKanban className="w-3.5 h-3.5 mr-1.5" />
+                <span>Initialize EPC Project</span>
               </button>
             ))}
 
           {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
             <button
               onClick={openReserveModal}
-              className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors shadow-sm"
+              className="inline-flex items-center px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
             >
-              <PackageCheck className="w-4 h-4 mr-1.5" />
-              Reserve Stock
+              <PackageCheck className="w-3.5 h-3.5 mr-1.5" />
+              <span>Reserve Stock</span>
+            </button>
+          )}
+
+          {order.status === 'CANCELLED' && (
+            <button
+              onClick={handleReopenOrder}
+              disabled={reopening}
+              className="inline-flex items-center px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+              <span>{reopening ? 'Reopening...' : 'Reopen Order ↺'}</span>
             </button>
           )}
 
@@ -320,38 +379,172 @@ export const OrderDetailPage: React.FC = () => {
                 setShowCancelModal(true);
                 setCancelError(null);
               }}
-              className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-medium transition-colors"
+              className="inline-flex items-center px-3 py-2 rounded-lg bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border text-xs font-medium transition-colors cursor-pointer"
             >
-              <Ban className="w-4 h-4 mr-1.5" />
-              Cancel Order
+              <Ban className="w-3.5 h-3.5 mr-1" />
+              <span>Cancel</span>
             </button>
           )}
         </div>
       </div>
 
+      {/* 2. Sleek 1-Line Lifecycle Progress Stepper */}
+      <div className="bg-card border border-border/80 rounded-xl px-4 py-2.5 shadow-xs">
+        <div className="flex items-center justify-between gap-1 text-xs">
+          {[
+            {
+              step: 1,
+              label: 'Order Confirmed',
+              done: true,
+              active: order.status === 'CONFIRMED' && order.reservationStatus === 'NONE'
+            },
+            {
+              step: 2,
+              label: 'Stock Allocation',
+              done: order.reservationStatus === 'FULLY_RESERVED' || order.reservationStatus === 'PARTIALLY_RESERVED',
+              active: order.status === 'CONFIRMED' && order.reservationStatus !== 'FULLY_RESERVED'
+            },
+            {
+              step: 3,
+              label: 'EPC Execution',
+              done: !!linkedProject,
+              active: !!linkedProject && order.status !== 'COMPLETED'
+            },
+            {
+              step: 4,
+              label: 'Commissioned',
+              done: order.status === 'COMPLETED',
+              active: order.status === 'COMPLETED'
+            }
+          ].map((s, idx, arr) => (
+            <React.Fragment key={s.step}>
+              <div
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${
+                  s.active
+                    ? 'bg-solar-500/10 text-solar-900 dark:text-solar-200 font-bold'
+                    : s.done
+                      ? 'text-foreground font-medium'
+                      : 'text-muted-foreground/50'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    s.done
+                      ? 'bg-emerald-500 text-white'
+                      : s.active
+                        ? 'bg-solar-500 text-white'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {s.done ? '✓' : s.step}
+                </div>
+                <span className="hidden sm:inline">{s.label}</span>
+              </div>
+              {idx < arr.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-1 ${s.done ? 'bg-emerald-500/60' : 'bg-border'}`}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Next Stage Action Guidance Card */}
+      <div className="bg-card border border-border/80 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="space-y-0.5">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+            Next Stage Workflow Action
+          </span>
+          {order.status === 'CANCELLED' ? (
+            <p className="text-xs text-rose-500 font-medium">
+              This sales order was marked as cancelled. Reopen it to resume material allocation and EPC operations.
+            </p>
+          ) : linkedProject ? (
+            <p className="text-xs text-foreground font-semibold flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>EPC Execution is active under Project <strong>{linkedProject.projectCode}</strong> ({linkedProject.currentStage || 'Stage 1'}).</span>
+            </p>
+          ) : order.reservationStatus === 'FULLY_RESERVED' ? (
+            <p className="text-xs text-foreground font-medium">
+              Physical materials are reserved in fulfillment warehouse. Ready to launch 10-Stage EPC Project Execution.
+            </p>
+          ) : (
+            <p className="text-xs text-foreground font-medium">
+              Reserve physical hardware (solar modules, inverters) from fulfillment depot before dispatching materials.
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {order.status === 'CANCELLED' ? (
+            <button
+              type="button"
+              onClick={handleReopenOrder}
+              disabled={reopening}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            >
+              {reopening ? 'Reopening...' : 'Reopen Sales Order ↺'}
+            </button>
+          ) : linkedProject ? (
+            <Link
+              to={`/projects/${linkedProject._id || linkedProject.id}`}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <FolderKanban className="w-4 h-4" />
+              <span>Open EPC Project ({linkedProject.projectCode}) →</span>
+            </Link>
+          ) : (
+            <>
+              {order.reservationStatus !== 'FULLY_RESERVED' && (
+                <button
+                  type="button"
+                  onClick={openReserveModal}
+                  className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <PackageCheck className="w-4 h-4" />
+                  <span>Reserve Stock Allocation</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateProjectModal(true);
+                  setProjectError(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <FolderKanban className="w-4 h-4" />
+                <span>Launch 10-Stage EPC Execution →</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {actionSuccess && (
-        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-center">
-          <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
+        <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center">
+          <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />
           <span>{actionSuccess}</span>
         </div>
       )}
 
       {/* Main Order Header Card */}
-      <div className="p-6 rounded-2xl border bg-card backdrop-blur-sm space-y-4">
+      <div className="p-5 sm:p-6 rounded-xl border bg-card shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center space-x-3">
-              <span className="text-2xl font-extrabold tracking-tight text-foreground">
+              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground font-mono">
                 {order.orderNumber}
               </span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                 {order.status}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
                 {order.reservationStatus}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center space-x-4">
+            <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="flex items-center">
                 <Calendar className="w-3.5 h-3.5 mr-1" />
                 Booked:{' '}
@@ -362,66 +555,76 @@ export const OrderDetailPage: React.FC = () => {
                 })}
               </span>
               <span>•</span>
-              <span>Capacity: {order.systemCapacityKwp} kWp</span>
+              <span className="font-semibold text-foreground">Capacity: {order.systemCapacityKwp} kWp</span>
               <span>•</span>
-              <span>Topology: {order.systemTopology}</span>
+              <span className="text-solar-600 font-medium">Topology: {order.systemTopology}</span>
             </p>
           </div>
 
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground uppercase font-medium">Net Agreed Total</p>
-            <p className="text-3xl font-extrabold text-foreground tracking-tight">
+          <div className="text-left sm:text-right">
+            <p className="text-[11px] text-muted-foreground uppercase font-semibold">Net Agreed Contract Total</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-solar-600 dark:text-solar-400 tracking-tight font-mono">
               ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
             </p>
           </div>
         </div>
 
         {/* Customer & Quotation Context */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t text-xs">
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase">Customer Profile</p>
-            <p className="text-sm font-semibold text-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Customer Profile</p>
+            <p className="text-xs font-semibold text-foreground mt-0.5">
               {order.customerId.legalName}
             </p>
             {order.customerId.primaryPhone && (
-              <p className="text-xs text-muted-foreground">{order.customerId.primaryPhone}</p>
+              <p className="text-muted-foreground">{order.customerId.primaryPhone}</p>
             )}
             {order.customerId.email && (
-              <p className="text-xs text-muted-foreground">{order.customerId.email}</p>
+              <p className="text-muted-foreground">{order.customerId.email}</p>
             )}
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
               Originating Quotation
             </p>
             {order.quotationRevisionId ? (
-              <p className="text-sm font-semibold text-solar-500 mt-0.5">
+              <p className="text-xs font-bold text-solar-600 dark:text-solar-400 font-mono mt-0.5">
                 {order.quotationRevisionId.fullQuotationCode}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground mt-0.5">Direct Order</p>
+              <p className="text-muted-foreground mt-0.5">Direct Order</p>
             )}
-            <p className="text-xs text-muted-foreground">Agreed commercial snapshot applied</p>
+            <p className="text-muted-foreground text-[10px]">Agreed commercial snapshot applied</p>
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase">
+            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
               Solar Engineering Design
             </p>
             {order.solarDesignId ? (
-              <p className="text-sm font-semibold text-foreground mt-0.5">
+              <p className="text-xs font-semibold text-foreground mt-0.5">
                 {order.solarDesignId.designNumber}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground mt-0.5">Standard Technical Spec</p>
+              <p className="text-muted-foreground mt-0.5">Standard Technical Spec</p>
             )}
           </div>
         </div>
 
         {order.cancellationReason && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-            <strong>Cancelled:</strong> {order.cancellationReason}
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 flex items-center justify-between gap-2">
+            <div>
+              <strong>Order Cancelled:</strong> {order.cancellationReason}
+            </div>
+            <button
+              type="button"
+              onClick={handleReopenOrder}
+              disabled={reopening}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shrink-0 transition-colors cursor-pointer"
+            >
+              {reopening ? 'Reopening...' : 'Reopen Order ↺'}
+            </button>
           </div>
         )}
       </div>
@@ -627,22 +830,42 @@ export const OrderDetailPage: React.FC = () => {
             )}
 
             <form onSubmit={handleReserveStock} className="space-y-4">
+              <div className="bg-secondary/30 p-2.5 rounded-lg border text-xs space-y-1.5">
+                <div className="font-bold text-muted-foreground text-[10px] uppercase tracking-wider">
+                  Hardware Scope to Allocate:
+                </div>
+                {order.lineItems.map((li, idx) => (
+                  <div key={idx} className="flex justify-between text-xs">
+                    <span className="text-foreground">{li.description}</span>
+                    <span className="font-mono font-bold text-solar-600 dark:text-solar-400">
+                      {li.quantity} {li.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Fulfillment Warehouse *
                 </label>
-                <select
-                  value={selectedWarehouseId}
-                  onChange={e => setSelectedWarehouseId(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {warehouses.map(wh => (
-                    <option key={wh._id} value={wh._id}>
-                      {wh.name} ({wh.code}) — {wh.type}
-                    </option>
-                  ))}
-                </select>
+                {warehouses.length > 0 ? (
+                  <select
+                    value={selectedWarehouseId}
+                    onChange={e => setSelectedWarehouseId(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {warehouses.map(wh => (
+                      <option key={wh._id} value={wh._id}>
+                        {wh.name} ({wh.code}) {wh.address?.city ? `— ${wh.address.city}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-3 bg-secondary/40 rounded-lg text-xs text-muted-foreground border">
+                    Loading warehouses or none available...
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 pt-2">

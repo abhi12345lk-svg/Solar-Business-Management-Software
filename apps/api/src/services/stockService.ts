@@ -67,13 +67,43 @@ export class StockService {
     if (input.items && input.items.length > 0) {
       itemsToReserve = input.items;
     } else {
-      // Default: reserve all items with a valid productId
-      itemsToReserve = order.lineItems
-        .filter(item => item.productId)
-        .map(item => ({
-          productId: item.productId!.toString(),
-          quantity: item.quantity
-        }));
+      // Default: reserve all items with a valid productId (or auto-match standard products)
+      let modified = false;
+      for (const line of order.lineItems) {
+        let pId = line.productId;
+        if (!pId) {
+          if (line.itemType === 'SOLAR_MODULE') {
+            const p = await Product.findOne({
+              $or: [{ productType: 'PANEL' }, { name: /panel|module/i }],
+              isActive: true
+            });
+            if (p) {
+              pId = p._id as any;
+              line.productId = p._id as any;
+              modified = true;
+            }
+          } else if (line.itemType === 'INVERTER') {
+            const p = await Product.findOne({
+              $or: [{ productType: 'INVERTER' }, { name: /inverter/i }],
+              isActive: true
+            });
+            if (p) {
+              pId = p._id as any;
+              line.productId = p._id as any;
+              modified = true;
+            }
+          }
+        }
+        if (pId) {
+          itemsToReserve.push({
+            productId: pId.toString(),
+            quantity: line.quantity
+          });
+        }
+      }
+      if (modified) {
+        await order.save();
+      }
     }
 
     if (itemsToReserve.length === 0) {
