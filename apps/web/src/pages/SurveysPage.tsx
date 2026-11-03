@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
-  Filter,
   Camera,
   AlertCircle,
   Layers,
@@ -134,14 +133,15 @@ export const SurveysPage: React.FC = () => {
   const [lightboxPhoto, setLightboxPhoto] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
   const fetchSurveys = async () => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') params.set('status', statusFilter);
       if (search.trim()) params.set('search', search.trim());
-      params.set('limit', '50');
+      params.set('limit', '100');
 
       const data = await apiClient<any>(`/surveys?${params.toString()}`);
       const list = Array.isArray(data) ? data : data?.items || data?.surveys || [];
@@ -150,6 +150,31 @@ export const SurveysPage: React.FC = () => {
       setError(err?.message || 'Failed to load surveys.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchSurveys();
+  };
+
+  const handleUpdateStatus = async (surveyId: string, newStatus: SurveyStatus) => {
+    setUpdatingStatus(true);
+    try {
+      await apiClient(`/surveys/${surveyId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+      setSurveys(prev =>
+        prev.map(s => (s.id === surveyId ? { ...s, status: newStatus } : s))
+      );
+      if (activeSurvey && activeSurvey.id === surveyId) {
+        setActiveSurvey(prev => (prev ? { ...prev, status: newStatus } : null));
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update survey status.');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -168,7 +193,7 @@ export const SurveysPage: React.FC = () => {
 
   useEffect(() => {
     fetchSurveys();
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     if (showCreateModal && availableLeads.length === 0) {
@@ -356,6 +381,25 @@ export const SurveysPage: React.FC = () => {
     }
   };
 
+  const totalCount = surveys.length;
+  const draftCount = surveys.filter(s =>
+    [SurveyStatus.DRAFT, SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS].includes(s.status)
+  ).length;
+  const completedCount = surveys.filter(s => s.status === SurveyStatus.COMPLETED).length;
+
+  const filteredSurveys = surveys.filter(s => {
+    if (statusFilter === 'DRAFT') {
+      return [SurveyStatus.DRAFT, SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS].includes(s.status);
+    }
+    if (statusFilter === SurveyStatus.COMPLETED) {
+      return s.status === SurveyStatus.COMPLETED;
+    }
+    if (statusFilter !== 'ALL') {
+      return s.status === statusFilter;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -371,31 +415,68 @@ export const SurveysPage: React.FC = () => {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-solar-600 text-white font-medium hover:bg-solar-700 transition shadow-sm"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-solar-600 text-white font-medium hover:bg-solar-700 transition shadow-sm cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           <span>New Site Survey</span>
         </button>
       </div>
 
-      {/* Filter / Search Bar */}
-      <div className="bg-card border rounded-xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="flex-1 w-full relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search survey number, city, or state..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && fetchSurveys()}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-          />
+      {/* Sleek Filter & Search Strip */}
+      <div className="p-2.5 bg-card border rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shadow-xs">
+        {/* Quick Filter Tabs */}
+        <div className="inline-flex rounded-lg bg-muted/60 p-0.5 border border-border text-xs flex-wrap">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === 'ALL'
+                ? 'bg-background text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            All Surveys ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('DRAFT')}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === 'DRAFT'
+                ? 'bg-background text-amber-600 dark:text-amber-400 shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Pending / Draft ({draftCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(SurveyStatus.COMPLETED)}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === SurveyStatus.COMPLETED
+                ? 'bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Completed ({completedCount})
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Live Search & Status Select */}
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 sm:max-w-md">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search survey number, lead, city..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+            />
+          </div>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+            className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
           >
             <option value="ALL">All Statuses</option>
             {Object.values(SurveyStatus).map(s => (
@@ -404,14 +485,7 @@ export const SurveysPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <button
-            onClick={fetchSurveys}
-            className="px-3 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition flex items-center space-x-1"
-          >
-            <Filter className="w-4 h-4 mr-1" />
-            <span>Filter</span>
-          </button>
-        </div>
+        </form>
       </div>
 
       {/* Survey List Table */}
@@ -426,80 +500,110 @@ export const SurveysPage: React.FC = () => {
             <AlertCircle className="w-8 h-8 mx-auto" />
             <p>{error}</p>
           </div>
-        ) : surveys.length === 0 ? (
+        ) : filteredSurveys.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2">
             <Layers className="w-10 h-10 mx-auto text-solar-500 opacity-50" />
-            <p className="font-semibold text-foreground">No site surveys recorded.</p>
+            <p className="font-semibold text-foreground">No site surveys found in this view.</p>
             <p className="text-xs">
-              Schedule a survey from a qualified lead to inspect rooftop area.
+              Try resetting the filter tab or schedule a new survey.
             </p>
+            <button
+              onClick={() => {
+                setStatusFilter('ALL');
+                setSearch('');
+              }}
+              className="mt-2 px-3 py-1.5 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
+            >
+              Reset Filter
+            </button>
           </div>
         ) : (
           <>
             {/* Mobile Cards (< md) */}
             <div className="block md:hidden divide-y">
-              {surveys.map(srv => (
-                <div key={srv.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="font-mono text-xs font-bold text-solar-600 block">
-                        {srv.surveyNumber}
+              {filteredSurveys.map(srv => {
+                const leadIdStr =
+                  typeof srv.leadId === 'object' && srv.leadId
+                    ? (srv.leadId as any)._id || (srv.leadId as any).id
+                    : srv.leadId;
+                return (
+                  <div key={srv.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSurvey(srv)}
+                          className="font-mono text-xs font-bold text-solar-600 hover:underline block text-left cursor-pointer"
+                        >
+                          {srv.surveyNumber}
+                        </button>
+                        <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
+                          {leadIdStr ? (
+                            <Link to={`/leads/${leadIdStr}`} className="hover:text-solar-600 hover:underline">
+                              {srv.prospectName || srv.leadCode || 'Site Survey'}
+                            </Link>
+                          ) : (
+                            srv.prospectName || srv.leadCode || 'Site Survey'
+                          )}
+                        </h3>
+                        {srv.siteAddress?.city && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            📍 {srv.siteAddress.city}, {srv.siteAddress.state}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
+                          srv.status
+                        )}`}
+                      >
+                        {srv.status}
                       </span>
-                      <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
-                        {srv.prospectName || srv.leadCode || 'Site Survey'}
-                      </h3>
-                      {srv.siteAddress?.city && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          📍 {srv.siteAddress.city}, {srv.siteAddress.state}
-                        </p>
-                      )}
                     </div>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
-                        srv.status
-                      )}`}
-                    >
-                      {srv.status}
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
-                    <div>
-                      <span className="text-[11px] text-muted-foreground block">
-                        Roof & Usable Area
-                      </span>
-                      <span className="font-semibold text-foreground">
-                        {srv.roofType} • {srv.usableRoofAreaSqFt} sq.ft
-                      </span>
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                      <div>
+                        <span className="text-[11px] text-muted-foreground block">
+                          Roof & Usable Area
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {srv.roofType} • {srv.usableRoofAreaSqFt} sq.ft
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-muted-foreground block">
+                          Proposed Capacity
+                        </span>
+                        <span className="font-bold text-solar-600">
+                          {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '5 kWp'}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[11px] text-muted-foreground block">
-                        Proposed Capacity
-                      </span>
-                      <span className="font-bold text-solar-600">
-                        {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
-                    <button
-                      onClick={() => setActiveSurvey(srv)}
-                      className="inline-flex items-center font-bold text-xs text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
-                    >
-                      <Camera className="w-3.5 h-3.5 mr-1" />
-                      <span>Photos ({srv.photos?.length || 0})</span>
-                    </button>
-                    <Link
-                      to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
-                      className="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-md border border-emerald-500/30 transition"
-                    >
-                      <Sun className="w-3.5 h-3.5 mr-1" />
-                      <span>PV Sizing</span>
-                    </Link>
+                    <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
+                      <button
+                        onClick={() => setActiveSurvey(srv)}
+                        className="inline-flex items-center font-bold text-xs text-foreground bg-secondary hover:bg-secondary/80 px-3 py-1.5 rounded-md border border-border transition cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1 text-solar-500" />
+                        <span>Audit Details</span>
+                        {Boolean(srv.photos && srv.photos.length > 0) && (
+                          <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-solar-500/15 text-solar-700 dark:text-solar-300 font-bold">
+                            {srv.photos.length}
+                          </span>
+                        )}
+                      </button>
+                      <Link
+                        to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                        className="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-md border border-emerald-500/30 transition cursor-pointer"
+                      >
+                        <Sun className="w-3.5 h-3.5 mr-1" />
+                        <span>PV Sizing →</span>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Desktop Table (>= md) */}
@@ -519,71 +623,97 @@ export const SurveysPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {surveys.map(srv => (
-                    <tr key={srv.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-solar-600">
-                        {srv.surveyNumber}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground">
-                        {srv.leadCode || '—'}
-                        {srv.prospectName && (
-                          <span className="block text-xs text-muted-foreground">
-                            {srv.prospectName}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {srv.siteAddress.city}, {srv.siteAddress.state}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground">{srv.roofType}</td>
-                      <td className="py-3 px-4 font-medium text-foreground">
-                        {srv.usableRoofAreaSqFt} sq.ft
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {srv.sanctionedLoadKw} kW ({srv.connectionPhase})
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-foreground">
-                        {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '—'}
-                        {Boolean(
-                          srv.proposedCapacityKw &&
-                          srv.sanctionedLoadKw &&
-                          srv.proposedCapacityKw > srv.sanctionedLoadKw
-                        ) && (
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold block mt-1 border border-amber-500/20">
-                            ⚠️ Load Enh. Req.
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
-                            srv.status
-                          )}`}
-                        >
-                          {srv.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="inline-flex items-center space-x-1.5">
+                  {filteredSurveys.map(srv => {
+                    const leadIdStr =
+                      typeof srv.leadId === 'object' && srv.leadId
+                        ? (srv.leadId as any)._id || (srv.leadId as any).id
+                        : srv.leadId;
+                    return (
+                      <tr key={srv.id} className="hover:bg-muted/40 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold">
                           <button
+                            type="button"
                             onClick={() => setActiveSurvey(srv)}
-                            className="inline-flex items-center text-xs font-semibold text-solar-600 hover:text-solar-700 bg-solar-50 hover:bg-solar-100 px-2.5 py-1.5 rounded-md border border-solar-200 transition"
+                            className="text-solar-600 hover:text-solar-700 hover:underline cursor-pointer text-left"
                           >
-                            <Camera className="w-3.5 h-3.5 mr-1" />
-                            <span>Details ({srv.photos?.length || 0})</span>
+                            {srv.surveyNumber}
                           </button>
-                          <Link
-                            to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
-                            className="inline-flex items-center text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded-md border border-emerald-500/30 transition"
-                            title="Generate PV Sizing"
+                        </td>
+                        <td className="py-3 px-4 font-medium text-foreground">
+                          {leadIdStr ? (
+                            <Link
+                              to={`/leads/${leadIdStr}`}
+                              className="text-foreground hover:text-solar-600 hover:underline font-semibold"
+                            >
+                              {srv.leadCode || 'Lead Record'}
+                            </Link>
+                          ) : (
+                            srv.leadCode || '—'
+                          )}
+                          {srv.prospectName && (
+                            <span className="block text-xs text-muted-foreground">
+                              {srv.prospectName}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">
+                          {srv.siteAddress.city}, {srv.siteAddress.state}
+                        </td>
+                        <td className="py-3 px-4 font-medium text-foreground">{srv.roofType}</td>
+                        <td className="py-3 px-4 font-medium text-foreground">
+                          {srv.usableRoofAreaSqFt} sq.ft
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">
+                          {srv.sanctionedLoadKw} kW ({srv.connectionPhase})
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          {srv.proposedCapacityKw ? `${srv.proposedCapacityKw} kWp` : '5 kWp'}
+                          {Boolean(
+                            srv.proposedCapacityKw &&
+                            srv.sanctionedLoadKw &&
+                            srv.proposedCapacityKw > srv.sanctionedLoadKw
+                          ) && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold block mt-1 border border-amber-500/20">
+                              ⚠️ Load Enh. Req.
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
+                              srv.status
+                            )}`}
                           >
-                            <Sun className="w-3.5 h-3.5 mr-1" />
-                            <span>PV Sizing</span>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {srv.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="inline-flex items-center space-x-1.5">
+                            <button
+                              onClick={() => setActiveSurvey(srv)}
+                              className="inline-flex items-center text-xs font-semibold text-foreground hover:text-solar-600 bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 rounded-md border border-border transition cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5 mr-1 text-solar-500" />
+                              <span>Audit Details</span>
+                              {Boolean(srv.photos && srv.photos.length > 0) && (
+                                <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-solar-500/15 text-solar-700 dark:text-solar-300 font-bold">
+                                  {srv.photos.length}
+                                </span>
+                              )}
+                            </button>
+                            <Link
+                              to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                              className="inline-flex items-center text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded-md border border-emerald-500/30 transition cursor-pointer"
+                              title="Proceed to Solar PV CAD & Sizing"
+                            >
+                              <Sun className="w-3.5 h-3.5 mr-1" />
+                              <span>PV Sizing →</span>
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -937,27 +1067,137 @@ export const SurveysPage: React.FC = () => {
       {/* Details & Photos Attachment Modal */}
       {activeSurvey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-card border rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+          <div className="bg-card border rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0">
               <div className="min-w-0 pr-3">
-                <h2 className="text-base sm:text-lg font-bold text-foreground font-mono truncate">
-                  {activeSurvey.surveyNumber}
-                </h2>
-                <p className="text-xs text-muted-foreground truncate">
-                  Status: <strong className="text-foreground">{activeSurvey.status}</strong> •
-                  Usable Area: {activeSurvey.usableRoofAreaSqFt} sq.ft
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-base sm:text-lg font-bold text-foreground font-mono truncate">
+                    {activeSurvey.surveyNumber}
+                  </h2>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border shrink-0 ${getStatusBadge(
+                      activeSurvey.status
+                    )}`}
+                  >
+                    {activeSurvey.status}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  {activeSurvey.prospectName ? (
+                    <strong className="text-foreground">{activeSurvey.prospectName}</strong>
+                  ) : (
+                    activeSurvey.leadCode || 'Site Feasibility Audit'
+                  )}{' '}
+                  • {activeSurvey.siteAddress?.city || ''}, {activeSurvey.siteAddress?.state || ''}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveSurvey(null)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold shrink-0"
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold shrink-0 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Feasibility & Technical Audit Specifications */}
+              <div className="bg-muted/30 border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center">
+                    <Sun className="w-3.5 h-3.5 mr-1.5 text-solar-500" />
+                    <span>Technical Feasibility & Site Audit Findings</span>
+                  </span>
+                  <span className="text-xs font-mono font-bold text-foreground">
+                    {activeSurvey.leadCode || ''}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Roof Structure</span>
+                    <span className="font-bold text-foreground">{activeSurvey.roofType}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Usable Roof Area</span>
+                    <span className="font-bold text-foreground">{activeSurvey.usableRoofAreaSqFt} sq.ft</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Sanctioned Load & Phase</span>
+                    <span className="font-bold text-foreground">
+                      {activeSurvey.sanctionedLoadKw} kW ({activeSurvey.connectionPhase})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Proposed Solar System</span>
+                    <span className="font-bold text-solar-600 text-sm">
+                      {activeSurvey.proposedCapacityKw ? `${activeSurvey.proposedCapacityKw} kWp` : '5 kWp'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1 border-t border-border/40">
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Installation Site Address</span>
+                    <span className="font-medium text-foreground">
+                      {activeSurvey.siteAddress?.addressLine1 ? `${activeSurvey.siteAddress.addressLine1}, ` : ''}
+                      {activeSurvey.siteAddress?.city}, {activeSurvey.siteAddress?.state}
+                      {activeSurvey.siteAddress?.postalCode ? ` - ${activeSurvey.siteAddress.postalCode}` : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-muted-foreground block">Orientation & Azimuth</span>
+                    <span className="font-medium text-foreground">
+                      {activeSurvey.orientationAzimuth || 'South Facing (180° optimal solar window)'}
+                    </span>
+                  </div>
+                </div>
+
+                {activeSurvey.observations && (
+                  <div className="text-xs pt-1 border-t border-border/40">
+                    <span className="text-[11px] text-muted-foreground block">Surveyor Field Observations</span>
+                    <p className="text-foreground italic mt-0.5">"{activeSurvey.observations}"</p>
+                  </div>
+                )}
+
+                {Boolean(
+                  activeSurvey.proposedCapacityKw &&
+                  activeSurvey.sanctionedLoadKw &&
+                  activeSurvey.proposedCapacityKw > activeSurvey.sanctionedLoadKw
+                ) && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs flex items-center space-x-2">
+                    <span className="text-sm">⚠️</span>
+                    <span>
+                      <strong>DISCOM Notice:</strong> Proposed capacity ({activeSurvey.proposedCapacityKw} kWp) exceeds sanctioned load ({activeSurvey.sanctionedLoadKw} kW). Utility Load Enhancement filing required.
+                    </span>
+                  </div>
+                )}
+
+                {/* Status Signoff Bar */}
+                <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                  {activeSurvey.status === SurveyStatus.COMPLETED ? (
+                    <div className="flex items-center space-x-2 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                      <span>Site Feasibility Verified & Completed</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-muted-foreground">
+                        Status: <strong className="text-amber-600">{activeSurvey.status}</strong> (Pending verification)
+                      </span>
+                      <button
+                        type="button"
+                        disabled={updatingStatus}
+                        onClick={() => handleUpdateStatus(activeSurvey.id, SurveyStatus.COMPLETED)}
+                        className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        {updatingStatus ? 'Updating...' : 'Mark Survey Completed ✓'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Evidence Photos Subdocuments */}
               <div className="space-y-3">
                 <h3 className="text-sm font-bold text-foreground flex items-center justify-between">
@@ -1196,6 +1436,23 @@ export const SurveysPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+
+            <div className="p-3 sm:p-4 border-t bg-card shrink-0 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setActiveSurvey(null)}
+                className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary rounded-lg transition cursor-pointer"
+              >
+                Close
+              </button>
+              <Link
+                to={`/solar-designs?surveyId=${(activeSurvey as any)._id || activeSurvey.id}&capacity=${activeSurvey.proposedCapacityKw || 5}&leadId=${(activeSurvey as any).leadId?._id || activeSurvey.leadId || ''}&customerId=${(activeSurvey as any).customerId?._id || (activeSurvey as any).customerId || ''}`}
+                className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-lg shadow-sm transition inline-flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>Proceed to PV Sizing (CAD) →</span>
+              </Link>
             </div>
           </div>
         </div>
