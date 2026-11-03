@@ -847,16 +847,23 @@ export const LeadDetailPage: React.FC = () => {
                   Interaction & Activity History
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Full chronological audit of phone calls, visits, and follow-up milestones.
+                  Chronological log of phone calls, site surveys, and follow-up milestones.
                 </p>
               </div>
-              <button
-                onClick={() => setShowActivityModal(true)}
-                className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 transition"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                <span>Log Activity</span>
-              </button>
+              {lead.status !== LeadStatus.CONVERTED ? (
+                <button
+                  onClick={() => setShowActivityModal(true)}
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  <span>Log Activity</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Deal Won & Closed</span>
+                </span>
+              )}
             </div>
 
             {activities.length === 0 ? (
@@ -866,38 +873,61 @@ export const LeadDetailPage: React.FC = () => {
                 <p className="text-xs">Log phone calls or site visits to track this lead.</p>
               </div>
             ) : (
-              <div className="relative border-l border-solar-200 ml-4 space-y-6 py-2">
-                {activities.map(act => (
-                  <div key={act.id} className="relative pl-6">
-                    {/* Timeline Node Icon */}
-                    <div className="absolute -left-2.5 top-1 w-5 h-5 rounded-full bg-solar-50 border-2 border-solar-500 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-solar-600" />
-                    </div>
+              <div className="relative border-l border-solar-200 ml-4 space-y-4 py-2">
+                {activities.map(act => {
+                  const isSystemLog =
+                    act.summary.startsWith('Status changed') ||
+                    act.summary.startsWith('Lead converted') ||
+                    act.summary.startsWith('Lead captured');
 
-                    <div className="bg-muted/30 border rounded-xl p-4 space-y-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
-                        <span className="font-semibold text-solar-700 uppercase tracking-wide">
-                          {act.activityType}
-                        </span>
-                        <span>{new Date(act.activityDate).toLocaleString()}</span>
-                      </div>
-                      <p className="text-sm font-medium text-foreground">{act.summary}</p>
-                      {act.remarks && (
-                        <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
-                          {act.remarks}
-                        </p>
-                      )}
-                      {act.nextFollowUpDate && (
-                        <div className="pt-1 text-xs text-solar-700 font-medium flex items-center space-x-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>
-                            Next Follow-up: {new Date(act.nextFollowUpDate).toLocaleDateString()}
+                  if (isSystemLog) {
+                    return (
+                      <div key={act.id} className="relative pl-6">
+                        <div className="absolute -left-2 top-2 w-3.5 h-3.5 rounded-full bg-secondary border border-border flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                        </div>
+                        <div className="py-1 px-3 bg-muted/20 border border-border/60 rounded-lg flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
+                          <span className="font-medium text-foreground">{act.summary}</span>
+                          <span className="text-[10px]">
+                            {new Date(act.activityDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.activityDate).toLocaleDateString()}
                           </span>
                         </div>
-                      )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={act.id} className="relative pl-6">
+                      {/* Timeline Node Icon */}
+                      <div className="absolute -left-2.5 top-1.5 w-5 h-5 rounded-full bg-solar-50 border-2 border-solar-500 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-solar-600" />
+                      </div>
+
+                      <div className="bg-muted/30 border rounded-xl p-3.5 space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
+                          <span className="font-semibold text-solar-700 uppercase tracking-wide">
+                            {act.activityType}
+                          </span>
+                          <span>{new Date(act.activityDate).toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm font-medium text-foreground">{act.summary}</p>
+                        {act.remarks && (
+                          <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
+                            {act.remarks}
+                          </p>
+                        )}
+                        {act.nextFollowUpDate && (
+                          <div className="pt-1 text-xs text-solar-700 font-medium flex items-center space-x-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>
+                              Next Follow-up: {new Date(act.nextFollowUpDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -970,56 +1000,45 @@ export const LeadDetailPage: React.FC = () => {
       {showActivityModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-card border rounded-2xl w-full max-w-md p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-foreground">Log Interaction or Follow-up</h3>
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground">Record Lead Follow-up</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Save consultation notes and schedule next customer interaction.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowActivityModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
             <form onSubmit={handleAddActivity} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Activity Type
-                </label>
-                <select
-                  value={activityType}
-                  onChange={e => setActivityType(e.target.value as ActivityType)}
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                >
-                  {Object.values(ActivityType).map(t => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Summary / Discussion Point *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={activitySummary}
-                  onChange={e => setActivitySummary(e.target.value)}
-                  placeholder="e.g. Discussed 5kW bifacial modules and BESCOM net metering"
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Detailed Remarks
-                </label>
-                <textarea
-                  rows={3}
-                  value={activityRemarks}
-                  onChange={e => setActivityRemarks(e.target.value)}
-                  placeholder="Customer agreed to schedule physical site survey on weekend..."
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Next Follow-up Date
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Activity Type
+                  </label>
+                  <select
+                    value={activityType}
+                    onChange={e => setActivityType(e.target.value as ActivityType)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  >
+                    <option value={ActivityType.CALL}>Phone Call</option>
+                    <option value={ActivityType.SITE_VISIT}>Physical Site Visit / Roof Audit</option>
+                    <option value={ActivityType.MEETING}>Meeting / Office Consultation</option>
+                    <option value={ActivityType.WHATSAPP}>WhatsApp / Chat Message</option>
+                    <option value={ActivityType.EMAIL}>Email Sent</option>
+                    <option value={ActivityType.NOTE}>Internal Note</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Next Follow-up Date (Optional)
                   </label>
                   <input
                     type="date"
@@ -1028,40 +1047,36 @@ export const LeadDetailPage: React.FC = () => {
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Sentiment
-                  </label>
-                  <select
-                    value={activitySentiment}
-                    onChange={e => setActivitySentiment(e.target.value as ActivitySentiment)}
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  >
-                    <option value="">None</option>
-                    {Object.values(ActivitySentiment).map(s => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Discussion Points & Notes *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={activitySummary}
+                  onChange={e => setActivitySummary(e.target.value)}
+                  placeholder="e.g. Discussed 5kW bifacial modules, client requested subsidy quote, roof clear of shadow..."
+                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
               </div>
 
               <div className="flex items-center justify-end space-x-2 pt-2 border-t">
                 <button
                   type="button"
                   onClick={() => setShowActivityModal(false)}
-                  className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg"
+                  className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={addingActivity}
-                  className="px-3.5 py-1.5 text-xs font-semibold bg-solar-600 text-white rounded-lg hover:bg-solar-700"
+                  className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
                 >
-                  {addingActivity ? 'Saving...' : 'Record Activity'}
+                  {addingActivity ? 'Saving...' : 'Record Activity ✓'}
                 </button>
               </div>
             </form>
