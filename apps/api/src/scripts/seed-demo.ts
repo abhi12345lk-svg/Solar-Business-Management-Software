@@ -273,11 +273,12 @@ export async function seedDemoData(): Promise<void> {
       console.log('✓ Hardware inventory catalog seeded.');
     }
 
-    // 5. Customer Ramesh Sharma
-    let customer = await Customer.findOne({ primaryPhone: '+919829012345' });
+    // 5. Customer
+    let customer = (await Customer.findOne({ primaryPhone: '+919829012345' })) || (await Customer.findOne());
     if (!customer) {
+      const codeRes = await SequenceService.getNextSequence({ entityType: SequenceEntityType.CUSTOMER });
       customer = await Customer.create({
-        customerCode: 'CUST-2026-00001',
+        customerCode: codeRes.formattedNumber,
         name: 'Ramesh Sharma',
         type: 'INDIVIDUAL',
         primaryPhone: '+919829012345',
