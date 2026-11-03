@@ -3,17 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
-  Filter,
   Phone,
   AlertCircle,
   Sun,
   ShieldAlert,
-  Loader2,
-  Users,
-  Sparkles,
-  Clock,
-  CheckCircle2,
-  XCircle
+  Loader2
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { LeadDto, LeadStatus, LeadSource, LeadPriority, SolarRequirement } from '@ins-solar/shared';
@@ -59,9 +53,6 @@ export const LeadsPage: React.FC = () => {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== 'ALL' && statusFilter !== 'PIPELINE') {
-        params.set('status', statusFilter);
-      }
       if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
       if (search.trim()) params.set('search', search.trim());
       params.set('limit', '100');
@@ -77,7 +68,12 @@ export const LeadsPage: React.FC = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [statusFilter, priorityFilter]);
+  }, [priorityFilter]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchLeads();
+  };
 
   // Handle phone change and advisory duplicate check
   const handlePhoneChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,6 +191,9 @@ export const LeadsPage: React.FC = () => {
   };
 
   const filteredLeads = leads.filter(lead => {
+    if (statusFilter === LeadStatus.NEW) {
+      return lead.status === LeadStatus.NEW;
+    }
     if (statusFilter === 'PIPELINE') {
       return [
         LeadStatus.CONTACTED,
@@ -202,6 +201,12 @@ export const LeadsPage: React.FC = () => {
         LeadStatus.QUOTED,
         LeadStatus.NEGOTIATION
       ].includes(lead.status);
+    }
+    if (statusFilter === LeadStatus.CONVERTED) {
+      return lead.status === LeadStatus.CONVERTED;
+    }
+    if (statusFilter === LeadStatus.LOST) {
+      return lead.status === LeadStatus.LOST;
     }
     return true;
   });
@@ -218,7 +223,6 @@ export const LeadsPage: React.FC = () => {
   ).length;
   const convertedCount = leads.filter(l => l.status === LeadStatus.CONVERTED).length;
   const lostCount = leads.filter(l => l.status === LeadStatus.LOST).length;
-  const winRate = totalCount > 0 ? Math.round((convertedCount / totalCount) * 100) : 0;
 
   const getActionConfig = (lead: LeadDto) => {
     switch (lead.status) {
@@ -306,129 +310,85 @@ export const LeadsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Commercial Sales Pipeline KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <button
-          onClick={() => setStatusFilter('ALL')}
-          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-            statusFilter === 'ALL'
-              ? 'bg-solar-50/80 dark:bg-solar-950/30 border-solar-300 dark:border-solar-800 ring-2 ring-solar-500/20 shadow-xs'
-              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Inquiries</span>
-            <Users className="w-4 h-4 text-solar-500" />
-          </div>
-          <div className="text-2xl font-bold text-foreground">{totalCount}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">All prospective leads</div>
-        </button>
-
-        <button
-          onClick={() => setStatusFilter(LeadStatus.NEW)}
-          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-            statusFilter === LeadStatus.NEW
-              ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 ring-2 ring-blue-500/20 shadow-xs'
-              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider">New Inquiries</span>
-            <Sparkles className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{newCount}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Awaiting initial call</div>
-        </button>
-
-        <button
-          onClick={() => setStatusFilter('PIPELINE')}
-          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-            statusFilter === 'PIPELINE'
-              ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 ring-2 ring-amber-500/20 shadow-xs'
-              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Pipeline</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{inPipelineCount}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Survey / Quoted / Negot.</div>
-        </button>
-
-        <button
-          onClick={() => setStatusFilter(LeadStatus.CONVERTED)}
-          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-            statusFilter === LeadStatus.CONVERTED
-              ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider">Converted</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {convertedCount}
-            </span>
-            {totalCount > 0 && (
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                {winRate}% Won
-              </span>
-            )}
-          </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Became active customers</div>
-        </button>
-
-        <button
-          onClick={() => setStatusFilter(LeadStatus.LOST)}
-          className={`p-4 rounded-xl border text-left col-span-2 md:col-span-1 transition-all cursor-pointer ${
-            statusFilter === LeadStatus.LOST
-              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 ring-2 ring-rose-500/20 shadow-xs'
-              : 'bg-card hover:bg-muted/40 border-border shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider">Lost / Dropped</span>
-            <XCircle className="w-4 h-4 text-rose-500" />
-          </div>
-          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{lostCount}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Pricing / roof / delay</div>
-        </button>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="bg-card border rounded-xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="flex-1 w-full relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search prospect name, phone, email, lead code..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && fetchLeads()}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+      {/* Sleek Filter & Search Strip */}
+      <div className="p-2.5 bg-card border rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shadow-xs">
+        {/* Quick Filter Tabs */}
+        <div className="inline-flex rounded-lg bg-muted/60 p-0.5 border border-border text-xs flex-wrap">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === 'ALL'
+                ? 'bg-background text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <option value="ALL">All Statuses</option>
-            {Object.values(LeadStatus).map(s => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            All Inquiries ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(LeadStatus.NEW)}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === LeadStatus.NEW
+                ? 'bg-background text-blue-600 dark:text-blue-400 shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            New ({newCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('PIPELINE')}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === 'PIPELINE'
+                ? 'bg-background text-amber-600 dark:text-amber-400 shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Active Pipeline ({inPipelineCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(LeadStatus.CONVERTED)}
+            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+              statusFilter === LeadStatus.CONVERTED
+                ? 'bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Converted ({convertedCount})
+          </button>
+          {lostCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter(LeadStatus.LOST)}
+              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                statusFilter === LeadStatus.LOST
+                  ? 'bg-background text-rose-600 dark:text-rose-400 shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Dropped ({lostCount})
+            </button>
+          )}
+        </div>
 
+        {/* Live Search & Priority Filter */}
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 sm:max-w-md">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search prospect name, phone, code..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+            />
+          </div>
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
-            className="px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+            className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
           >
             <option value="ALL">All Priorities</option>
             {Object.values(LeadPriority).map(p => (
@@ -437,15 +397,7 @@ export const LeadsPage: React.FC = () => {
               </option>
             ))}
           </select>
-
-          <button
-            onClick={fetchLeads}
-            className="px-3 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition flex items-center space-x-1"
-          >
-            <Filter className="w-4 h-4 mr-1" />
-            <span>Filter</span>
-          </button>
-        </div>
+        </form>
       </div>
 
       {/* Leads Table View */}

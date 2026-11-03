@@ -17,8 +17,6 @@ import {
   Sparkles,
   XCircle,
   FileText,
-  ShoppingBag,
-  FolderGit2,
   ArrowRight,
   RefreshCw,
   Pencil
@@ -590,75 +588,24 @@ export const LeadDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Converted Customer Quick-Action Strip */}
+      {/* Converted Customer Notification Banner */}
       {lead.status === LeadStatus.CONVERTED && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">
-                ✓
-              </div>
-              <h3 className="text-sm font-bold text-foreground">
-                Inquiry Won & Converted to Official Customer
-              </h3>
-            </div>
-            <Link
-              to="/customers"
-              className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center"
-            >
-              <span>View in Customer Directory →</span>
-            </Link>
+        <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shadow-2xs">
+          <div className="flex items-center space-x-2">
+            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+              ✓
+            </span>
+            <span className="font-semibold text-emerald-800 dark:text-emerald-300">
+              Inquiry Won & Converted to Official Customer Record
+            </span>
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <Link
-              to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <Sun className="w-4 h-4 text-solar-500" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
-              </div>
-              <h4 className="text-xs font-bold text-foreground">1. Solar PV CAD</h4>
-              <p className="text-[10px] text-muted-foreground mt-0.5">3D Roof & simulation</p>
-            </Link>
-
-            <Link
-              to="/quotations"
-              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <FileText className="w-4 h-4 text-solar-500" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
-              </div>
-              <h4 className="text-xs font-bold text-foreground">2. Quotation Suite</h4>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Draft proposal & BOM</p>
-            </Link>
-
-            <Link
-              to="/orders"
-              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <ShoppingBag className="w-4 h-4 text-solar-500" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
-              </div>
-              <h4 className="text-xs font-bold text-foreground">3. Confirmed Order</h4>
-              <p className="text-[10px] text-muted-foreground mt-0.5">EPC contract & billing</p>
-            </Link>
-
-            <Link
-              to="/projects"
-              className="p-3 bg-card hover:bg-card/80 border border-emerald-500/20 rounded-xl transition shadow-xs group"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <FolderGit2 className="w-4 h-4 text-solar-500" />
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-solar-600 transition" />
-              </div>
-              <h4 className="text-xs font-bold text-foreground">4. 10-Stage EPC Pipeline</h4>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Execution & Net Metering</p>
-            </Link>
-          </div>
+          <Link
+            to="/customers"
+            className="inline-flex items-center space-x-1 font-bold text-emerald-700 dark:text-emerald-400 hover:underline shrink-0"
+          >
+            <span>View in Customer Directory</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       )}
 
