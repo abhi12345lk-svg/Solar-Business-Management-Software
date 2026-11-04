@@ -65,19 +65,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // 3. Fetch Quotations
-  const { data: quotations = [] } = useQuery<any[]>({
-    queryKey: ['adminQuotations'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/quotations?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
   // 4. Fetch Sales Orders
   const { data: orders = [] } = useQuery<any[]>({
     queryKey: ['adminOrders'],
@@ -179,10 +166,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
     () => customers.filter(c => isWithinDateRange(c.createdAt, dateRange)),
     [customers, dateRange]
   );
-  const filteredQuotations = useMemo(
-    () => quotations.filter(q => isWithinDateRange(q.createdAt, dateRange)),
-    [quotations, dateRange]
-  );
   const filteredOrders = useMemo(
     () => orders.filter(o => isWithinDateRange(o.orderDate || o.createdAt, dateRange)),
     [orders, dateRange]
@@ -208,9 +191,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   const totalCustomersCount = filteredCustomers.length;
   const totalLeadsCount = filteredLeads.length;
   const newLeadsCount = filteredLeads.filter(l => l.status === 'NEW').length;
-  const totalQuotationsCount = filteredQuotations.length;
-  const acceptedQuotationsCount = filteredQuotations.filter(q => q.status === 'ACCEPTED').length;
-  const confirmedOrdersCount = filteredOrders.filter(o => o.status === 'CONFIRMED').length;
 
   const activeProjects = filteredProjects.filter(
     p => p.status === 'ACTIVE' || p.status === 'IN_PROGRESS' || !p.status
@@ -454,9 +434,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
             badge={lowStockCount > 0 ? 'Reorder' : 'Healthy'}
           />
 
-          {/* 7. Customer Receivables */}
+          {/* 7. Recovery Pending */}
           <DashboardKpiCard
-            title="Customer Receivables"
+            title="Recovery Pending"
             value={formatPaiseToInr(totalReceivablesPaise, { compact: true })}
             subtitle="Net contract dues outstanding"
             icon={CreditCard}
@@ -467,168 +447,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
       </div>
 
       {/* =========================================================================
-          PART 2: COMMERCIAL CONVERSION & 10-STAGE EXECUTION OVERVIEW
+          PART 2: 10-STAGE EPC PROJECT EXECUTION PIPELINE
          ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left (2 cols): 10-Stage Linear EPC Project Tracker */}
-        <div className="lg:col-span-2 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <FolderKanban className="w-4 h-4 text-solar-600" />
-                Standard 10-Stage EPC Project Execution Pipeline
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Linear milestone gating and quality oversight from engineering survey to COD
-                handover.
-              </p>
-            </div>
-            <Link
-              to="/projects"
-              className="text-xs font-semibold text-solar-600 hover:text-solar-700 inline-flex items-center self-start sm:self-auto shrink-0"
-            >
-              <span>View All Projects</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </Link>
+      <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+          <div>
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FolderKanban className="w-4 h-4 text-solar-600" />
+              Standard 10-Stage EPC Project Execution Pipeline
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Linear milestone gating and quality oversight from engineering survey to COD
+              handover.
+            </p>
           </div>
-
-          {/* 10 Stages Stepper Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-            {standardStages.map(stg => {
-              const count = stageCounts[stg.stageKey] || 0;
-              const hasProjects = count > 0;
-
-              return (
-                <Link
-                  key={stg.num}
-                  to={`/projects?stage=${stg.stageKey}`}
-                  className={`p-3 rounded-xl border transition-all text-left group hover:shadow-xs ${
-                    hasProjects
-                      ? 'bg-solar-500/10 border-solar-500/30 text-solar-900 dark:text-solar-200 ring-1 ring-solar-500/20'
-                      : 'bg-secondary/30 border-border text-muted-foreground hover:bg-secondary/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold tracking-wider opacity-75">
-                      STAGE {stg.num}
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        hasProjects
-                          ? 'bg-solar-500/25 text-solar-800 dark:text-solar-300'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {count} {count === 1 ? 'Site' : 'Sites'}
-                    </span>
-                  </div>
-                  <div className="text-xs font-bold leading-snug mt-2 line-clamp-2 text-foreground group-hover:text-solar-600">
-                    {stg.name}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Quick Stage Insights */}
-          <div className="p-3 rounded-xl bg-secondary/30 border flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>
-                Linear QA Photo evidence & DISCOM test reports required before stage transitions.
-              </span>
-            </div>
-            <Link
-              to="/projects"
-              className="font-bold text-solar-600 hover:text-solar-700 self-start sm:self-auto shrink-0"
-            >
-              Inspect Quality Checklists &rarr;
-            </Link>
-          </div>
+          <Link
+            to="/projects"
+            className="text-xs font-semibold text-solar-600 hover:text-solar-700 inline-flex items-center self-start sm:self-auto shrink-0"
+          >
+            <span>View All Projects</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Link>
         </div>
 
-        {/* Right (1 col): Commercial Conversion & Pipeline Value */}
-        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="border-b pb-3">
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                Commercial Conversion Funnel
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Inbound prospect conversion efficiency.
-              </p>
-            </div>
+        {/* 10 Stages Stepper Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-10 gap-2.5 pt-1">
+          {standardStages.map(stg => {
+            const count = stageCounts[stg.stageKey] || 0;
+            const hasProjects = count > 0;
 
-            {/* Funnel Ratios */}
-            <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-muted-foreground">Total Inbound Inquiries</span>
-                  <span className="font-bold">{totalLeadsCount} Leads</span>
+            return (
+              <Link
+                key={stg.num}
+                to={`/projects?stage=${stg.stageKey}`}
+                className={`p-3 rounded-xl border transition-all text-left group hover:shadow-xs ${
+                  hasProjects
+                    ? 'bg-solar-500/10 border-solar-500/30 text-solar-900 dark:text-solar-200 ring-1 ring-solar-500/20'
+                    : 'bg-secondary/30 border-border text-muted-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold tracking-wider opacity-75">
+                    STAGE {stg.num}
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      hasProjects
+                        ? 'bg-solar-500/25 text-solar-800 dark:text-solar-300'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {count} {count === 1 ? 'Site' : 'Sites'}
+                  </span>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div className="bg-blue-500 h-2 rounded-full w-full" />
+                <div className="text-xs font-bold leading-snug mt-2 line-clamp-2 text-foreground group-hover:text-solar-600">
+                  {stg.name}
                 </div>
-              </div>
+              </Link>
+            );
+          })}
+        </div>
 
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-muted-foreground">Quotation Proposals Issued</span>
-                  <span className="font-bold">{totalQuotationsCount} Quotes</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-purple-500 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${totalLeadsCount > 0 ? Math.min(100, Math.round((totalQuotationsCount / totalLeadsCount) * 100)) : 0}%`
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-muted-foreground">Proposals Accepted</span>
-                  <span className="font-bold">{acceptedQuotationsCount} Accepted</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${totalQuotationsCount > 0 ? Math.min(100, Math.round((acceptedQuotationsCount / totalQuotationsCount) * 100)) : 0}%`
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-muted-foreground">Confirmed Commercial Orders</span>
-                  <span className="font-bold text-emerald-600">{confirmedOrdersCount} Orders</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-2 rounded-full transition-all"
-                    style={{
-                      width: `${totalLeadsCount > 0 ? Math.min(100, Math.round((confirmedOrdersCount / totalLeadsCount) * 100)) : 0}%`
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+        {/* Quick Stage Insights */}
+        <div className="p-3 rounded-xl bg-secondary/30 border flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+          <div className="flex items-center space-x-2 text-muted-foreground">
+            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>
+              Linear QA Photo evidence & DISCOM test reports required before stage transitions.
+            </span>
           </div>
-
-          {/* Booked Order Value Highlight */}
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-              Total Order Booking Value
-            </div>
-            <div className="text-2xl font-black mt-1">{formatPaiseToInr(totalOrderValuePaise)}</div>
-            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-              Across {confirmedOrdersCount} confirmed contract milestones
-            </div>
-          </div>
+          <Link
+            to="/projects"
+            className="font-bold text-solar-600 hover:text-solar-700 self-start sm:self-auto shrink-0"
+          >
+            Inspect Quality Checklists &rarr;
+          </Link>
         </div>
       </div>
 
