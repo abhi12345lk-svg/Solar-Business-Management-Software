@@ -9,7 +9,6 @@ import { MfaChallengePage } from './pages/MfaChallengePage.js';
 import { MfaSetupPage } from './pages/MfaSetupPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
-import { LeadDetailPage } from './pages/LeadDetailPage.js';
 import { CustomersPage } from './pages/CustomersPage.js';
 import { FollowUpsPage } from './pages/FollowUpsPage.js';
 import { SurveysPage } from './pages/SurveysPage.js';
@@ -78,7 +77,7 @@ export const App: React.FC = () => {
             path="leads/:id"
             element={
               <ProtectedRoute>
-                <LeadDetailPage />
+                <Navigate to="/leads" replace />
               </ProtectedRoute>
             }
           />

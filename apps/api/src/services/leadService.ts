@@ -32,6 +32,7 @@ import {
   UserRole,
   Department,
   CustomerStatus,
+  CustomerType,
   AddressType,
   ApiPagination
 } from '@ins-solar/shared';
@@ -530,16 +531,23 @@ export class LeadService {
       throw AppError.notFound(`Lead '${id}' not found.`);
     }
 
-    if (lead.status === LeadStatus.CONVERTED) {
+    if (lead.status === LeadStatus.CONVERTED && input.status !== LeadStatus.CONVERTED) {
       throw AppError.businessRule(
         'Converted leads cannot be transitioned out of CONVERTED status.'
       );
     }
 
     if (input.status === LeadStatus.CONVERTED) {
-      throw AppError.businessRule(
-        'Direct status transition to CONVERTED is not allowed. Use the explicit POST /leads/:id/convert endpoint.'
+      if (lead.status === LeadStatus.CONVERTED) {
+        return LeadService.toLeadDto(lead);
+      }
+      const conversion = await LeadService.convertLead(
+        id,
+        { customerType: CustomerType.INDIVIDUAL },
+        user,
+        meta
       );
+      return conversion.lead;
     }
 
     const oldStatus = lead.status;
