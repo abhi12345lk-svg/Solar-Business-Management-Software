@@ -512,12 +512,6 @@ export const LeadsPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-
-                    {lead.notes && (
-                      <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-lg">
-                        {lead.notes}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -535,8 +529,7 @@ export const LeadsPage: React.FC = () => {
                     <th className="py-3 px-4">Reference</th>
                     <th className="py-3 px-4">Capacity</th>
                     <th className="py-3 px-4">Requirement</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Remarks / Notes</th>
+                    <th className="py-3 px-4 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -591,9 +584,9 @@ export const LeadsPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-xs font-semibold text-muted-foreground">
                           {lead.solarRequirement || 'Residential'}
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 text-right">
                           {/* Direct Interactive Status Selector */}
-                          <div className="relative inline-block">
+                          <div className="relative inline-block text-left">
                             <select
                               disabled={isUpdating}
                               value={lead.status}
@@ -623,9 +616,6 @@ export const LeadsPage: React.FC = () => {
                               <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                             )}
                           </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-muted-foreground max-w-xs truncate">
-                          {lead.notes || '—'}
                         </td>
                       </tr>
                     );
