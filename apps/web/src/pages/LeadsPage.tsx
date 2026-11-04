@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
   Phone,
-  Mail,
-  MapPin,
-  Zap,
   AlertCircle,
   Sun,
   ShieldAlert,
@@ -15,17 +11,13 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
-  UserCheck,
-  Building2,
-  FileText,
-  ExternalLink,
-  Edit3
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { LeadDto, LeadStatus, LeadSource, LeadPriority, SolarRequirement } from '@ins-solar/shared';
 
 export const LeadsPage: React.FC = () => {
-  const navigate = useNavigate();
   const [leads, setLeads] = useState<LeadDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +34,7 @@ export const LeadsPage: React.FC = () => {
     type: 'success' | 'error';
   } | null>(null);
 
-  // Single-Page Quick View / Edit Modal State
+  // Single-Page Quick View / Edit Modal State (Opened only by clicking prospect name)
   const [selectedLead, setSelectedLead] = useState<LeadDto | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -99,7 +91,7 @@ export const LeadsPage: React.FC = () => {
     fetchLeads();
   };
 
-  // Quick Inline Status Update (Single-page operation)
+  // Direct Inline Status Update (Smooth transition across all statuses)
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     setUpdatingId(leadId);
     setStatusNotification(null);
@@ -109,10 +101,9 @@ export const LeadsPage: React.FC = () => {
         body: JSON.stringify({ status: newStatus })
       });
 
-      // Update lead in state
+      // Update lead in local state
       setLeads(prev => prev.map(l => (l.id === leadId ? updated : l)));
 
-      // If quick-view modal is open for this lead, update it too
       if (selectedLead && selectedLead.id === leadId) {
         setSelectedLead(updated);
       }
@@ -125,15 +116,13 @@ export const LeadsPage: React.FC = () => {
       };
 
       setStatusNotification({
-        message: `Status updated to ${statusLabels[newStatus] || newStatus}${
-          newStatus === LeadStatus.CONVERTED ? ' & linked to Customer profile' : ''
-        }`,
+        message: `Status updated to ${statusLabels[newStatus] || newStatus}`,
         type: 'success'
       });
 
       setTimeout(() => {
         setStatusNotification(null);
-      }, 4000);
+      }, 3500);
     } catch (err: any) {
       setStatusNotification({
         message: err?.message || 'Failed to update lead status.',
@@ -144,13 +133,13 @@ export const LeadsPage: React.FC = () => {
     }
   };
 
-  // Open Quick View Modal
+  // Open Details Modal via Prospect Name
   const openLeadDetails = (lead: LeadDto) => {
     setSelectedLead(lead);
     setEditingNotes(lead.notes || '');
   };
 
-  // Save updated notes from single-page modal
+  // Save updated notes
   const handleSaveNotes = async () => {
     if (!selectedLead) return;
     setSavingNotes(true);
@@ -242,13 +231,12 @@ export const LeadsPage: React.FC = () => {
 
       setShowModal(false);
       resetForm();
-      // Prepend or refresh
       setLeads(prev => [newLead, ...prev.filter(l => l.id !== newLead.id)]);
       setStatusNotification({
         message: `Lead for ${newLead.prospectName} recorded successfully!`,
         type: 'success'
       });
-      setTimeout(() => setStatusNotification(null), 4000);
+      setTimeout(() => setStatusNotification(null), 3500);
     } catch (err: any) {
       const msg = err?.message || 'Failed to create lead.';
       if (msg.includes('E11000') || msg.includes('duplicate key')) {
@@ -276,21 +264,21 @@ export const LeadsPage: React.FC = () => {
     setCreateError(null);
   };
 
-  // Badge styling for the 4 core statuses
+  // Badge styling for statuses
   const getStatusBadge = (status: LeadStatus) => {
     switch (status) {
       case LeadStatus.NEW:
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
+        return 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
       case LeadStatus.FOLLOW_UP:
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+        return 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
       case LeadStatus.PAYMENT_PENDING:
-        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
+        return 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
       case LeadStatus.CONVERTED:
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
       case LeadStatus.LOST:
-        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+        return 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+        return 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
     }
   };
 
@@ -362,20 +350,20 @@ export const LeadsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Top Banner & Action */}
+      {/* Top Banner & Add Lead Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
             <span>Inquiries & Leads</span>
             <span className="text-xs ml-2.5 px-2.5 py-0.5 rounded-full font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
-              Single-Page CRM
+              Rarebox CRM
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Capture new inquiries, change statuses, manage notes, and convert leads in one place.
+            Capture prospective clients, change statuses, and track inquiries in one simple view.
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div>
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-solar-600 text-white font-medium hover:bg-solar-700 transition shadow-sm hover:shadow cursor-pointer"
@@ -453,7 +441,7 @@ export const LeadsPage: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search prospect name, phone, city..."
+              placeholder="Search name, phone, city..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
@@ -474,7 +462,7 @@ export const LeadsPage: React.FC = () => {
         </form>
       </div>
 
-      {/* Leads Table View */}
+      {/* Leads Table View (No Extra Action Button Column) */}
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
@@ -522,7 +510,7 @@ export const LeadsPage: React.FC = () => {
               {filteredLeads.map((lead, index) => {
                 const isUpdating = updatingId === lead.id;
                 return (
-                  <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-3">
+                  <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span className="font-mono text-xs font-bold text-muted-foreground block">
@@ -540,13 +528,13 @@ export const LeadsPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Mobile Status Selector */}
+                      {/* Direct Mobile Status Dropdown */}
                       <div className="relative shrink-0">
                         <select
                           disabled={isUpdating}
                           value={lead.status}
                           onChange={e => handleStatusChange(lead.id, e.target.value as LeadStatus)}
-                          className={`text-xs font-bold py-1 px-2.5 rounded-lg border cursor-pointer appearance-none ${getStatusBadge(
+                          className={`text-xs font-bold py-1 px-2.5 pr-6 rounded-lg border cursor-pointer appearance-none ${getStatusBadge(
                             lead.status
                           )}`}
                         >
@@ -554,7 +542,16 @@ export const LeadsPage: React.FC = () => {
                           <option value={LeadStatus.FOLLOW_UP}>Follow Up</option>
                           <option value={LeadStatus.PAYMENT_PENDING}>Payment Pending</option>
                           <option value={LeadStatus.CONVERTED}>Converted</option>
+                          {![
+                            LeadStatus.NEW,
+                            LeadStatus.FOLLOW_UP,
+                            LeadStatus.PAYMENT_PENDING,
+                            LeadStatus.CONVERTED
+                          ].includes(lead.status) && (
+                            <option value={lead.status}>{lead.status}</option>
+                          )}
                         </select>
+                        <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
                     </div>
 
@@ -574,27 +571,17 @@ export const LeadsPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
-                      <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">
-                        {lead.assignedEmployeeName
-                          ? `Staff: ${lead.assignedEmployeeName}`
-                          : 'Unassigned'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openLeadDetails(lead)}
-                        className="inline-flex items-center font-bold px-2.5 py-1 rounded-md border text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
-                      >
-                        <FileText className="w-3.5 h-3.5 mr-1 text-solar-600" />
-                        <span>View Details</span>
-                      </button>
-                    </div>
+                    {lead.notes && (
+                      <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-lg truncate">
+                        💬 {lead.notes}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Desktop Table (>= md) */}
+            {/* Desktop Table (>= md) - Clean, Professional, No Action Button Column */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
@@ -604,9 +591,9 @@ export const LeadsPage: React.FC = () => {
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Location</th>
                     <th className="py-3 px-4">Capacity</th>
+                    <th className="py-3 px-4">Requirement</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Assigned To</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4">Remarks / Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -622,6 +609,7 @@ export const LeadsPage: React.FC = () => {
                             type="button"
                             onClick={() => openLeadDetails(lead)}
                             className="font-bold hover:text-solar-600 hover:underline text-left block cursor-pointer"
+                            title="Click to view & edit details"
                           >
                             {lead.prospectName}
                           </button>
@@ -653,8 +641,11 @@ export const LeadsPage: React.FC = () => {
                         <td className="py-3.5 px-4 font-medium text-foreground">
                           {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
                         </td>
+                        <td className="py-3.5 px-4 text-xs font-semibold text-muted-foreground">
+                          {lead.solarRequirement || 'Residential'}
+                        </td>
                         <td className="py-3.5 px-4">
-                          {/* Interactive Single-Page Status Dropdown */}
+                          {/* Direct Interactive Status Selector */}
                           <div className="relative inline-block">
                             <select
                               disabled={isUpdating}
@@ -662,7 +653,7 @@ export const LeadsPage: React.FC = () => {
                               onChange={e =>
                                 handleStatusChange(lead.id, e.target.value as LeadStatus)
                               }
-                              className={`text-xs font-bold py-1.5 px-3 rounded-lg border shadow-2xs transition cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-solar-500 ${getStatusBadge(
+                              className={`text-xs font-bold py-1.5 px-3 pr-7 rounded-lg border shadow-2xs transition cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-solar-500 ${getStatusBadge(
                                 lead.status
                               )} ${isUpdating ? 'opacity-50 cursor-wait' : ''}`}
                             >
@@ -670,26 +661,39 @@ export const LeadsPage: React.FC = () => {
                               <option value={LeadStatus.FOLLOW_UP}>Follow Up</option>
                               <option value={LeadStatus.PAYMENT_PENDING}>Payment Pending</option>
                               <option value={LeadStatus.CONVERTED}>Converted</option>
+                              {![
+                                LeadStatus.NEW,
+                                LeadStatus.FOLLOW_UP,
+                                LeadStatus.PAYMENT_PENDING,
+                                LeadStatus.CONVERTED
+                              ].includes(lead.status) && (
+                                <option value={lead.status}>{lead.status}</option>
+                              )}
                             </select>
-                            {isUpdating && (
+                            {isUpdating ? (
                               <Loader2 className="w-3 h-3 animate-spin text-solar-600 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            ) : (
+                              <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-muted-foreground">
-                          {lead.assignedEmployeeName || (
-                            <span className="italic text-xs">Unassigned</span>
+                        <td className="py-3.5 px-4 text-muted-foreground max-w-xs truncate">
+                          {lead.notes ? (
+                            <span
+                              onClick={() => openLeadDetails(lead)}
+                              className="cursor-pointer hover:text-foreground hover:underline block truncate"
+                              title={lead.notes}
+                            >
+                              {lead.notes}
+                            </span>
+                          ) : (
+                            <span
+                              onClick={() => openLeadDetails(lead)}
+                              className="italic text-xs text-muted-foreground/60 cursor-pointer hover:text-solar-600"
+                            >
+                              + Add note
+                            </span>
                           )}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => openLeadDetails(lead)}
-                            className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-secondary text-foreground transition cursor-pointer shadow-2xs"
-                          >
-                            <FileText className="w-3.5 h-3.5 mr-1.5 text-solar-600" />
-                            <span>View Details</span>
-                          </button>
                         </td>
                       </tr>
                     );
@@ -701,10 +705,10 @@ export const LeadsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Quick View / Single-Page Lead Details Modal */}
+      {/* Prospect Details & Notes Modal (Clicking on Prospect Name) */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs">
-          <div className="bg-card border rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in-50">
+          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in-50">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0 bg-muted/20">
               <div className="flex items-center space-x-3">
@@ -723,7 +727,7 @@ export const LeadsPage: React.FC = () => {
                     </span>
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Inquiry Code: {selectedLead.leadCode} • Captured via {selectedLead.source}
+                    Inquiry Code: {selectedLead.leadCode}
                   </p>
                 </div>
               </div>
@@ -737,11 +741,11 @@ export const LeadsPage: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
-              {/* Quick Status Bar */}
-              <div className="bg-muted/30 border rounded-xl p-3.5">
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+              {/* Status Switcher in Modal */}
+              <div className="bg-muted/30 border rounded-xl p-3">
                 <label className="block text-xs font-bold text-foreground mb-2">
-                  Update Lead Status:
+                  Status:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
@@ -778,7 +782,7 @@ export const LeadsPage: React.FC = () => {
                         type="button"
                         disabled={updatingId === selectedLead.id}
                         onClick={() => handleStatusChange(selectedLead.id, item.status)}
-                        className={`flex items-center justify-center space-x-1.5 py-2 px-2.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                        className={`flex items-center justify-center space-x-1.5 py-2 px-2 rounded-lg text-xs font-bold border transition cursor-pointer ${
                           isActive
                             ? `${item.activeColor} border-transparent shadow-xs`
                             : 'bg-background hover:bg-muted text-muted-foreground border-border'
@@ -792,127 +796,62 @@ export const LeadsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Prospect Details Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-card border rounded-xl p-3.5 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
-                    Contact & Communication
-                  </span>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground text-xs">Phone:</span>
-                    <a
-                      href={`tel:${selectedLead.prospectPhone}`}
-                      className="font-bold text-foreground hover:text-solar-600 flex items-center"
-                    >
-                      <Phone className="w-3.5 h-3.5 mr-1 text-solar-600" />
+              {/* Prospect Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-card border rounded-xl p-3 space-y-1.5">
+                  <span className="font-bold text-muted-foreground uppercase text-[10px]">Contact</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Phone:</span>
+                    <a href={`tel:${selectedLead.prospectPhone}`} className="font-bold text-foreground hover:text-solar-600">
                       {selectedLead.prospectPhone}
                     </a>
                   </div>
                   {selectedLead.prospectEmail && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground text-xs">Email:</span>
-                      <a
-                        href={`mailto:${selectedLead.prospectEmail}`}
-                        className="font-medium text-foreground hover:text-solar-600 flex items-center"
-                      >
-                        <Mail className="w-3.5 h-3.5 mr-1 text-solar-600" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Email:</span>
+                      <a href={`mailto:${selectedLead.prospectEmail}`} className="font-medium text-foreground hover:text-solar-600">
                         {selectedLead.prospectEmail}
                       </a>
                     </div>
                   )}
                   {selectedLead.companyName && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground text-xs">Company:</span>
-                      <span className="font-semibold text-foreground flex items-center">
-                        <Building2 className="w-3.5 h-3.5 mr-1 text-solar-600" />
-                        {selectedLead.companyName}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Company:</span>
+                      <span className="font-semibold text-foreground">{selectedLead.companyName}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="bg-card border rounded-xl p-3.5 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
-                    Solar Plant Requirements
-                  </span>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground text-xs">System Type:</span>
-                    <span className="font-bold text-foreground">
-                      {selectedLead.solarRequirement}
+                <div className="bg-card border rounded-xl p-3 space-y-1.5">
+                  <span className="font-bold text-muted-foreground uppercase text-[10px]">System Info</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="font-bold text-foreground">{selectedLead.solarRequirement}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Capacity:</span>
+                    <span className="font-bold text-solar-600">
+                      {selectedLead.estimatedCapacityKw ? `${selectedLead.estimatedCapacityKw} kWp` : '—'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground text-xs">Capacity:</span>
-                    <span className="font-bold text-solar-600 flex items-center">
-                      <Zap className="w-3.5 h-3.5 mr-1 text-solar-600" />
-                      {selectedLead.estimatedCapacityKw
-                        ? `${selectedLead.estimatedCapacityKw} kWp`
-                        : 'Not specified'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground text-xs">Priority:</span>
-                    <span className="font-semibold text-foreground">{selectedLead.priority}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="font-medium text-foreground">{selectedLead.location?.city}, {selectedLead.location?.state}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Site Location */}
-              <div className="bg-card border rounded-xl p-3.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
-                  Installation Site Location
-                </span>
-                <p className="text-sm font-medium text-foreground flex items-center">
-                  <MapPin className="w-4 h-4 mr-1.5 text-solar-600 shrink-0" />
-                  <span>
-                    {[
-                      selectedLead.location?.street,
-                      selectedLead.location?.city,
-                      selectedLead.location?.state,
-                      selectedLead.location?.pinCode
-                    ]
-                      .filter(Boolean)
-                      .join(', ') || 'Raipur, Chhattisgarh'}
-                  </span>
-                </p>
-              </div>
-
-              {/* Converted to Customer Notice */}
-              {selectedLead.status === LeadStatus.CONVERTED && (
-                <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
-                    <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                        Official Customer Record Created
-                      </p>
-                      <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                        This inquiry has been converted and is active in the Customer Directory.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/customers')}
-                    className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition cursor-pointer shrink-0"
-                  >
-                    <span>View Customer</span>
-                    <ExternalLink className="w-3.5 h-3.5 ml-1" />
-                  </button>
-                </div>
-              )}
-
-              {/* Remarks & Notes Section */}
+              {/* Remarks & Notes */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground flex items-center">
                     <Edit3 className="w-3.5 h-3.5 mr-1 text-solar-600" />
-                    <span>Inquiry Notes & Next Follow-Up Remarks</span>
+                    <span>Inquiry Notes & Discussion Remarks</span>
                   </label>
                   {savingNotes && (
                     <span className="text-xs text-solar-600 animate-pulse flex items-center">
                       <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                      Saving notes...
+                      Saving...
                     </span>
                   )}
                 </div>
@@ -920,7 +859,7 @@ export const LeadsPage: React.FC = () => {
                   rows={3}
                   value={editingNotes}
                   onChange={e => setEditingNotes(e.target.value)}
-                  placeholder="Record customer discussion, subsidy requirements, roof type, or next step..."
+                  placeholder="Discussion details, roof status, quotation follow-up..."
                   className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                 />
                 <div className="flex justify-end">
@@ -937,7 +876,7 @@ export const LeadsPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 sm:p-4 border-t bg-muted/20 shrink-0 flex items-center justify-end space-x-2">
+            <div className="p-3 sm:p-4 border-t bg-muted/20 shrink-0 flex items-center justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedLead(null)}

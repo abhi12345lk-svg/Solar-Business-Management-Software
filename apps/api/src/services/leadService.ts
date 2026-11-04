@@ -531,12 +531,6 @@ export class LeadService {
       throw AppError.notFound(`Lead '${id}' not found.`);
     }
 
-    if (lead.status === LeadStatus.CONVERTED && input.status !== LeadStatus.CONVERTED) {
-      throw AppError.businessRule(
-        'Converted leads cannot be transitioned out of CONVERTED status.'
-      );
-    }
-
     if (input.status === LeadStatus.CONVERTED) {
       if (lead.status === LeadStatus.CONVERTED) {
         return LeadService.toLeadDto(lead);
@@ -770,13 +764,20 @@ export class LeadService {
       throw AppError.notFound(`Lead '${id}' not found.`);
     }
 
-    // Idempotency defense: check if already converted
-    if (lead.status === LeadStatus.CONVERTED && lead.convertedCustomerId) {
+    // Idempotency defense: check if already converted / existing customer linked
+    if (lead.convertedCustomerId) {
       const existingCust = await Customer.findById(lead.convertedCustomerId);
       if (existingCust) {
+        if (lead.status !== LeadStatus.CONVERTED) {
+          lead.status = LeadStatus.CONVERTED;
+          lead.updatedBy = Types.ObjectId.isValid(user.userId)
+            ? new Types.ObjectId(user.userId)
+            : undefined;
+          await lead.save();
+        }
         logger.info(
           { leadCode: lead.leadCode, customerCode: existingCust.customerCode },
-          'Lead is already converted; returning idempotent conversion result.'
+          'Lead is linked to existing customer; returning idempotent conversion result.'
         );
         const populated = await Lead.findById(lead._id).populate(
           'assignedToEmployeeId',
