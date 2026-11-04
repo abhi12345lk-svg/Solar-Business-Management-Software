@@ -10,7 +10,6 @@ import { Link } from 'react-router-dom';
 import {
   Users,
   FolderKanban,
-  FileSpreadsheet,
   ShoppingCart,
   Boxes,
   CreditCard,
@@ -372,9 +371,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          PART 1: 12 EXECUTIVE KPI METRIC CARDS
+          PART 1: 7 CORE EXECUTIVE KPI METRICS
          ========================================================================= */}
-      <div className="space-y-2.5">
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-solar-500" />
@@ -385,71 +384,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3.5">
+        {/* Primary Row: Customer Base & EPC Project Delivery (4 Cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* 1. Total Customers */}
           <DashboardKpiCard
             title="Total Customers"
             value={totalCustomersCount}
             subtitle="Verified client accounts"
             icon={Users}
-            to="/leads"
+            to="/customers"
             color="blue"
           />
 
           {/* 2. Total Leads */}
           <DashboardKpiCard
-            title="Total Leads"
+            title="Total Inquiries & Leads"
             value={totalLeadsCount}
-            subtitle="Commercial inquiries"
-            icon={Users}
+            subtitle="Commercial pipeline"
+            icon={TrendingUp}
             to="/leads"
             color="sky"
           />
 
-          {/* 3. New Leads */}
+          {/* 3. Active EPC Projects */}
           <DashboardKpiCard
-            title="New Leads"
-            value={newLeadsCount}
-            subtitle="Awaiting first call"
-            icon={Users}
-            to="/leads"
-            color="amber"
-            badge={newLeadsCount > 0 ? 'Urgent' : undefined}
-          />
-
-          {/* 4. Total Quotations */}
-          <DashboardKpiCard
-            title="Total Quotations"
-            value={totalQuotationsCount}
-            subtitle="Proposals generated"
-            icon={FileSpreadsheet}
-            to="/quotations"
-            color="purple"
-          />
-
-          {/* 5. Accepted Quotations */}
-          <DashboardKpiCard
-            title="Accepted Quotes"
-            value={acceptedQuotationsCount}
-            subtitle="Client approved"
-            icon={FileSpreadsheet}
-            to="/quotations"
-            color="emerald"
-          />
-
-          {/* 6. Confirmed Orders */}
-          <DashboardKpiCard
-            title="Confirmed Orders"
-            value={confirmedOrdersCount}
-            subtitle="Contract signed"
-            icon={ShoppingCart}
-            to="/orders"
-            color="indigo"
-          />
-
-          {/* 7. Active Projects */}
-          <DashboardKpiCard
-            title="Active Projects"
+            title="Active EPC Projects"
             value={activeProjects.length}
             subtitle="Under 10-stage execution"
             icon={FolderKanban}
@@ -457,52 +416,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
             color="orange"
           />
 
-          {/* 8. Completed Projects */}
+          {/* 4. Completed Projects */}
           <DashboardKpiCard
-            title="Completed Projects"
+            title="Commissioned Projects"
             value={completedProjects.length}
-            subtitle="Commissioned & COD"
-            icon={FolderKanban}
+            subtitle="Commissioned & COD handover"
+            icon={PackageCheck}
             to="/projects"
             color="emerald"
           />
+        </div>
 
-          {/* 9. Pending Installations */}
+        {/* Secondary Row: Field Operations, Inventory Health & Financial Dues (3 Cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+          {/* 5. Pending Installations */}
           <DashboardKpiCard
-            title="Pending Installs"
+            title="Pending Installations"
             value={pendingInstallations}
-            subtitle="Field structural / electrical"
+            subtitle="Field structural & electrical stages"
             icon={Layers}
             to="/projects"
             color="amber"
           />
 
-          {/* 10. Inventory Alerts */}
+          {/* 6. Inventory Low Stock Alerts */}
           <DashboardKpiCard
             title="Low Stock Alerts"
             value={lowStockCount}
-            subtitle="Below depot reorder level"
+            subtitle={
+              lowStockCount > 0
+                ? `${lowStockCount} items below depot reorder level`
+                : 'All depot stock levels healthy'
+            }
             icon={Boxes}
             to="/inventory"
             color={lowStockCount > 0 ? 'rose' : 'emerald'}
             badge={lowStockCount > 0 ? 'Reorder' : 'Healthy'}
           />
 
-          {/* 11. Pending Purchase Orders */}
-          <DashboardKpiCard
-            title="Pending POs"
-            value={pendingPurchaseOrdersCount}
-            subtitle="Awaiting management sign-off"
-            icon={Building2}
-            to="/purchase-orders"
-            color="cyan"
-          />
-
-          {/* 12. Customer Receivables */}
+          {/* 7. Customer Receivables */}
           <DashboardKpiCard
             title="Customer Receivables"
             value={formatPaiseToInr(totalReceivablesPaise, { compact: true })}
-            subtitle="Net contract dues"
+            subtitle="Net contract dues outstanding"
             icon={CreditCard}
             to="/payments"
             color="rose"

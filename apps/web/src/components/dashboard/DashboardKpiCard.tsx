@@ -116,37 +116,39 @@ export const DashboardKpiCard: React.FC<DashboardKpiCardProps> = ({
 
   const content = (
     <div
-      className={`bg-card border border-border/80 rounded-xl p-4 sm:p-5 transition-all shadow-xs group ${
+      className={`bg-card border border-border/80 rounded-xl p-4 sm:p-5 transition-all shadow-xs group h-full flex flex-col justify-between ${
         to ? `${scheme.hoverBorder} hover:shadow-md cursor-pointer` : ''
       }`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2.5">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
-          {title}
-        </span>
-        <div
-          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${scheme.bgIcon}`}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight truncate">
-          {value}
-        </div>
-        {badge && (
-          <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${scheme.badgeBg} ${scheme.badgeText}`}
-          >
-            {badge}
+      <div>
+        <div className="flex items-start justify-between gap-2 mb-2.5">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-snug">
+            {title}
           </span>
-        )}
+          <div
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${scheme.bgIcon}`}
+          >
+            <Icon className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+            {value}
+          </div>
+          {badge && (
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${scheme.badgeBg} ${scheme.badgeText}`}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
       </div>
 
       {(subtitle || trend) && (
-        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground gap-2 pt-1 border-t border-border/40">
-          {subtitle && <span className="truncate">{subtitle}</span>}
+        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground gap-2 pt-2 border-t border-border/40">
+          {subtitle && <span className="line-clamp-1">{subtitle}</span>}
           {trend && (
             <span
               className={`inline-flex items-center text-[11px] font-semibold shrink-0 ${
@@ -168,7 +170,7 @@ export const DashboardKpiCard: React.FC<DashboardKpiCardProps> = ({
 
   if (to) {
     return (
-      <Link to={to} className="block min-w-0">
+      <Link to={to} className="block min-w-0 h-full">
         {content}
       </Link>
     );
