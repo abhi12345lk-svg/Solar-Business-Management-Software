@@ -17,21 +17,20 @@ import {
   AlertTriangle,
   ArrowRight,
   TrendingUp,
-  Clock,
   Zap,
   PackageCheck,
   ArrowUpRight,
   Activity,
   Layers,
-  Sparkles
+  Sparkles,
+  MapPin
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
 import { DashboardKpiCard } from './DashboardKpiCard.js';
 import {
   DateFilterRange,
   isWithinDateRange,
-  formatPaiseToInr,
-  formatRelativeTime
+  formatPaiseToInr
 } from './dashboardUtils.js';
 
 interface AdminDashboardProps {
@@ -131,19 +130,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   });
   const payments: any[] = paymentsData?.items || (Array.isArray(paymentsData) ? paymentsData : []);
 
-  // 9. Fetch Expenses
-  const { data: expenses = [] } = useQuery<any[]>({
-    queryKey: ['adminExpenses'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/expenses?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
   // 10. Fetch Subsidies
   const { data: subsidies = [] } = useQuery<any[]>({
     queryKey: ['adminSubsidies'],
@@ -177,10 +163,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   const filteredPayments = useMemo(
     () => payments.filter(p => isWithinDateRange(p.paymentDate || p.createdAt, dateRange)),
     [payments, dateRange]
-  );
-  const filteredExpenses = useMemo(
-    () => expenses.filter(e => isWithinDateRange(e.expenseDate || e.createdAt, dateRange)),
-    [expenses, dateRange]
   );
   const filteredPurchaseOrders = useMemo(
     () => purchaseOrders.filter(po => isWithinDateRange(po.orderDate || po.createdAt, dateRange)),
@@ -231,14 +213,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   const realizedPaymentsPaise = filteredPayments
     .filter(p => p.status === 'VERIFIED')
     .reduce((sum, p) => sum + (p.amountPaise || 0), 0);
-  const pendingPaymentsPaise = filteredPayments
-    .filter(p => p.status === 'RECORDED')
-    .reduce((sum, p) => sum + (p.amountPaise || 0), 0);
-  const totalExpensesPaise = filteredExpenses.reduce((sum, e) => sum + (e.amountPaise || 0), 0);
 
   // Total Customer Receivables
   const totalReceivablesPaise = Math.max(0, totalOrderValuePaise - realizedPaymentsPaise);
-  const netMarginPaise = realizedPaymentsPaise - totalExpensesPaise;
+
+  // Fast Customer Lookup Map
+  const customerMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    customers.forEach(c => {
+      const id = (c._id || c.id)?.toString?.();
+      if (id) map[id] = c;
+    });
+    return map;
+  }, [customers]);
+
+  const getCustomerName = (customerId: any) => {
+    if (!customerId) return 'Valued Client';
+    if (typeof customerId === 'object' && customerId.name) return customerId.name;
+    const cid = (customerId?._id || customerId?.id || customerId)?.toString?.();
+    const cust = customerMap[cid];
+    return cust?.name || cust?.companyName || 'Valued Client';
+  };
+
+  const unreservedOrdersCount = filteredOrders.filter(
+    o => o.status === 'CONFIRMED' && (!o.reservationStatus || o.reservationStatus === 'NONE')
+  ).length;
 
   // 10-Stage Project Execution Breakdown
   const standardStages = [
@@ -276,77 +275,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
     return counts;
   }, [projects, dateRange]);
 
-  // Combined Live Operational Feed
-  const liveFeed = useMemo(() => {
-    const items: Array<{
-      id: string;
-      title: string;
-      ref: string;
-      category: string;
-      date: string;
-      icon: any;
-      color: string;
-      to: string;
-    }> = [];
-
-    // Latest Orders
-    filteredOrders.slice(0, 3).forEach(o => {
-      items.push({
-        id: `order-${o._id || o.id}`,
-        title: `Sales Order Confirmed: ${o.customer?.name || o.customerName || 'Client Order'}`,
-        ref: o.orderNumber || 'SO-ORD',
-        category: 'Commercial Order',
-        date: formatRelativeTime(o.orderDate || o.createdAt),
-        icon: ShoppingCart,
-        color: 'text-blue-500 bg-blue-500/10',
-        to: `/orders/${o._id || o.id}`
-      });
-    });
-
-    // Latest Projects
-    filteredProjects.slice(0, 3).forEach(p => {
-      items.push({
-        id: `proj-${p._id || p.id}`,
-        title: `Project Stage Active: ${p.title || p.projectName || 'Solar Installation'}`,
-        ref: p.projectCode || 'PRJ-EXEC',
-        category: 'Field Operations',
-        date: formatRelativeTime(p.updatedAt || p.createdAt),
-        icon: FolderKanban,
-        color: 'text-amber-500 bg-amber-500/10',
-        to: `/projects/${p._id || p.id}`
-      });
-    });
-
-    // Latest Realized Payments
-    filteredPayments.slice(0, 3).forEach(pay => {
-      items.push({
-        id: `pay-${pay._id || pay.id}`,
-        title: `Payment Realized: ${formatPaiseToInr(pay.amountPaise)} (${pay.paymentMethod || 'Bank'})`,
-        ref: pay.receiptNumber || 'REC-PAY',
-        category: 'Finance & Treasury',
-        date: formatRelativeTime(pay.paymentDate || pay.createdAt),
-        icon: CreditCard,
-        color: 'text-emerald-500 bg-emerald-500/10',
-        to: '/payments'
-      });
-    });
-
-    // Latest Leads
-    filteredLeads.slice(0, 3).forEach(l => {
-      items.push({
-        id: `lead-${l._id || l.id}`,
-        title: `Inbound Prospect Qualified: ${l.prospectName}`,
-        ref: l.leadCode || 'LD-CRM',
-        category: 'Lead Pipeline',
-        date: formatRelativeTime(l.createdAt),
-        icon: Users,
-        color: 'text-purple-500 bg-purple-500/10',
-        to: `/leads/${l._id || l.id}`
-      });
-    });
-
-    return items.slice(0, 6);
-  }, [filteredOrders, filteredProjects, filteredPayments, filteredLeads]);
+  const getStageMeta = (stageKey?: string) => {
+    const found = standardStages.find(s => s.stageKey === stageKey);
+    if (found) {
+      const num = parseInt(found.num, 10);
+      return {
+        num: found.num,
+        name: found.name,
+        progressPercent: Math.round((num / 10) * 100)
+      };
+    }
+    return {
+      num: '01',
+      name: 'Design & Engineering',
+      progressPercent: 10
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -526,143 +470,260 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
       </div>
 
       {/* =========================================================================
-          PART 3: FINANCIAL HEALTH & SUPPLY CHAIN PULSE
+          PART 3: ACTIVE SOLAR EPC SITES & FIELD EXECUTION
          ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Financial Health Snapshot (2 cols) */}
-        <div className="lg:col-span-2 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-600" />
-                Company Financial Health & Cash Flow Ledger
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Verified collections, outstanding client receivables, operational overhead, and net
-                margin.
-              </p>
-            </div>
-            <Link
-              to="/payments"
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center self-start sm:self-auto shrink-0"
-            >
-              <span>Accounts Ledger</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </Link>
+      <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+          <div>
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FolderKanban className="w-4 h-4 text-solar-600" />
+              Active Solar EPC Site Execution & Milestone Progress
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Live physical stage tracking, capacity kWp, customer site status, and linear milestone completion.
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-            <div className="p-4 rounded-xl border bg-secondary/30">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Realized Bank Collections
-              </span>
-              <div className="text-xl font-black text-emerald-600 mt-1">
-                {formatPaiseToInr(realizedPaymentsPaise)}
-              </div>
-              <span className="text-[11px] text-muted-foreground">Status: VERIFIED</span>
-            </div>
-
-            <div className="p-4 rounded-xl border bg-secondary/30">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Pending Verification
-              </span>
-              <div className="text-xl font-black text-amber-600 mt-1">
-                {formatPaiseToInr(pendingPaymentsPaise)}
-              </div>
-              <span className="text-[11px] text-muted-foreground">Status: RECORDED</span>
-            </div>
-
-            <div className="p-4 rounded-xl border bg-secondary/30">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Total Project Expenses
-              </span>
-              <div className="text-xl font-black text-rose-600 mt-1">
-                {formatPaiseToInr(totalExpensesPaise)}
-              </div>
-              <span className="text-[11px] text-muted-foreground">Approved vouchers</span>
-            </div>
-
-            <div className="p-4 rounded-xl border bg-secondary/30">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Gross Operational Margin
-              </span>
-              <div
-                className={`text-xl font-black mt-1 ${
-                  netMarginPaise >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                }`}
-              >
-                {formatPaiseToInr(netMarginPaise)}
-              </div>
-              <span className="text-[11px] text-muted-foreground">Collections minus Expenses</span>
-            </div>
-          </div>
-
-          {/* Subsidy Disbursement Insight */}
-          {subsidies.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-secondary/40 border flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-solar-500" />
-                <span className="text-foreground font-semibold">
-                  PM Surya Ghar DBT Subsidy Claims:
-                </span>
-                <span className="text-muted-foreground">
-                  {subsidies.length} cases registered with state DISCOM liaison.
-                </span>
-              </div>
-              <Link to="/subsidies" className="font-bold text-solar-600 hover:text-solar-700">
-                View Subsidy Portal &rarr;
-              </Link>
-            </div>
-          )}
+          <Link
+            to="/projects"
+            className="text-xs font-semibold text-solar-600 hover:text-solar-700 inline-flex items-center self-start sm:self-auto shrink-0"
+          >
+            <span>View All {projects.length} Projects</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Link>
         </div>
 
-        {/* Actionable Bottleneck Alerts (1 col) */}
+        {activeProjects.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground border rounded-xl bg-secondary/10">
+            No active project installations currently running in this period.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeProjects.slice(0, 4).map(p => {
+              const custName = getCustomerName(p.customerId);
+              const stage = getStageMeta(p.currentStage || p.stage);
+              const isPlanning = p.status === 'PLANNING';
+
+              return (
+                <div
+                  key={p._id || p.id}
+                  className="p-4 sm:p-5 rounded-xl border bg-card hover:border-solar-500/40 hover:shadow-xs transition-all space-y-3.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-solar-600 bg-solar-500/10 px-2 py-0.5 rounded border border-solar-500/20">
+                          {p.projectCode || 'PRJ-EXEC'}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            isPlanning
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                              : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                          }`}
+                        >
+                          {p.status || 'IN_PROGRESS'}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-sm text-foreground mt-1.5 leading-snug">
+                        {p.name || 'Solar PV System Installation'}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-black text-foreground shrink-0 bg-secondary px-2.5 py-1 rounded-lg border">
+                      {p.systemCapacityKwp || 0} kWp {p.systemTopology ? `• ${p.systemTopology}` : ''}
+                    </span>
+                  </div>
+
+                  {/* Customer & Location */}
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Users className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      <span className="font-semibold text-foreground truncate">{custName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span className="truncate">
+                        {p.siteAddress?.city || 'Raipur'}, {p.siteAddress?.state || 'Chhattisgarh'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stage Progress Bar */}
+                  <div className="space-y-1.5 pt-1 border-t border-border/50">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-1">
+                        <span className="font-mono text-[10px] text-solar-600 font-bold">
+                          STAGE {stage.num}:
+                        </span>{' '}
+                        {stage.name}
+                      </span>
+                      <span className="text-muted-foreground font-mono text-[11px] font-bold">
+                        {stage.progressPercent}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-solar-500 h-2 rounded-full transition-all"
+                        style={{ width: `${stage.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded">
+                      {p.priority || 'HIGH'} Priority
+                    </span>
+                    <Link
+                      to={`/projects/${p._id || p.id}`}
+                      className="text-xs font-bold text-solar-600 hover:text-solar-700 inline-flex items-center"
+                    >
+                      <span>Open Project Workspace</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* =========================================================================
+          PART 4: COMMERCIAL CONTRACTS & OPERATIONAL DISPATCH DESK
+         ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Confirmed Sales Orders & Hardware Readiness */}
+        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-blue-600" />
+                  Confirmed Commercial Orders & Backlog
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Agreed EPC contract value, customer profiles, and warehouse stock allocation status.
+                </p>
+              </div>
+              <Link
+                to="/orders"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center shrink-0"
+              >
+                <span>View All Orders</span>
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </Link>
+            </div>
+
+            {/* Total Order Booking Summary Pill */}
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Total Confirmed Order Book
+                </div>
+                <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
+                  {formatPaiseToInr(totalOrderValuePaise)}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-foreground">
+                  {filteredOrders.length} Signed Contracts
+                </span>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {unreservedOrdersCount > 0 ? `${unreservedOrdersCount} pending allocation` : 'Hardware fully secured'}
+                </div>
+              </div>
+            </div>
+
+            {/* List of Real Orders */}
+            <div className="space-y-2.5">
+              {filteredOrders.slice(0, 3).map(o => {
+                const custName = getCustomerName(o.customerId);
+                const isFullyReserved = o.reservationStatus === 'FULLY_RESERVED';
+
+                return (
+                  <Link
+                    key={o._id || o.id}
+                    to={`/orders/${o._id || o.id}`}
+                    className="p-3.5 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-all block group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-foreground group-hover:text-solar-600">
+                          {o.orderNumber || o.orderCode || 'ORD-EPC'}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-medium">
+                          &bull; {custName}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {formatPaiseToInr(o.netTotalPaise || o.totalAmountPaise || 0)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 text-xs">
+                      <span className="text-muted-foreground">
+                        {o.systemCapacityKwp || 10} kWp {o.systemTopology || 'SOLAR'}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isFullyReserved
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                        }`}
+                      >
+                        {isFullyReserved ? 'Hardware Reserved' : 'Allocation Needed'}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Operational Directives & Inbound Inquiries */}
         <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="border-b pb-3">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              Operational Bottleneck Alerts
+              Executive Action Center & Directives
             </h2>
             <p className="text-xs text-muted-foreground">
-              Multi-department critical items requiring executive intervention.
+              Critical operations, supply chain health, and inbound commercial inquiries.
             </p>
           </div>
 
           <div className="space-y-2.5 text-xs">
-            {lowStockCount > 0 ? (
+            {/* 1. Unassigned Inbound Leads */}
+            {newLeadsCount > 0 && (
               <Link
-                to="/inventory"
-                className="flex items-start justify-between p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-900 dark:text-rose-200 hover:bg-rose-500/15 transition-colors"
+                to="/leads"
+                className="flex items-start justify-between p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-200 hover:bg-blue-500/15 transition-colors"
               >
                 <div className="flex items-start space-x-2.5">
-                  <Boxes className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  <Users className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold">Low Hardware Stock Detected</div>
+                    <div className="font-bold">Unassigned Inbound Leads ({newLeadsCount})</div>
                     <div className="text-[11px] opacity-80 mt-0.5">
-                      {lowStockCount} SKU items are at or below warehouse reorder threshold.
+                      {newLeadsCount} new commercial inquiries await sales rep and site survey allocation.
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-rose-500 shrink-0 ml-1" />
+                <ArrowUpRight className="w-4 h-4 text-blue-500 shrink-0 ml-1" />
               </Link>
-            ) : (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200 flex items-center space-x-2">
-                <PackageCheck className="w-4 h-4 text-emerald-500" />
-                <span className="font-semibold">Warehouse Hardware Balances Healthy</span>
-              </div>
             )}
 
-            {pendingPurchaseOrdersCount > 0 && (
+            {/* 2. Stock Allocation Directive */}
+            {unreservedOrdersCount > 0 && (
               <Link
-                to="/purchase-orders"
-                className="flex items-start justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 hover:bg-amber-500/15 transition-colors"
+                to="/orders"
+                className="flex items-start justify-between p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 hover:bg-amber-500/15 transition-colors"
               >
                 <div className="flex items-start space-x-2.5">
-                  <Building2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <Boxes className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold">Purchase Orders Pending Sign-Off</div>
+                    <div className="font-bold">Hardware Allocation Pending</div>
                     <div className="text-[11px] opacity-80 mt-0.5">
-                      {pendingPurchaseOrdersCount} POs awaiting commercial and technical approval.
+                      {unreservedOrdersCount} confirmed sales order requires depot stock reservation before dispatch.
                     </div>
                   </div>
                 </div>
@@ -670,84 +731,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
               </Link>
             )}
 
-            {newLeadsCount > 0 && (
+            {/* 3. PM Surya Ghar DBT Subsidy */}
+            {subsidies.length > 0 && (
               <Link
-                to="/leads"
-                className="flex items-start justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-200 hover:bg-blue-500/15 transition-colors"
+                to="/subsidies"
+                className="flex items-start justify-between p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-900 dark:text-purple-200 hover:bg-purple-500/15 transition-colors"
               >
                 <div className="flex items-start space-x-2.5">
-                  <Users className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                  <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold">Unassigned Inbound Leads</div>
+                    <div className="font-bold">PM Surya Ghar Subsidy Registration</div>
                     <div className="text-[11px] opacity-80 mt-0.5">
-                      {newLeadsCount} new prospect inquiries require sales rep allocation.
+                      {subsidies.length} application registered under CSPDCL / CREDA state nodal agency.
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-blue-500 shrink-0 ml-1" />
+                <ArrowUpRight className="w-4 h-4 text-purple-500 shrink-0 ml-1" />
               </Link>
             )}
-          </div>
-        </div>
-      </div>
 
-      {/* =========================================================================
-          PART 4: LIVE OPERATIONAL ACTIVITY FEED
-         ========================================================================= */}
-      <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Activity className="w-4 h-4 text-solar-600" />
-              Live Commercial & Field Operations Feed
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Real-time events recorded across pipeline, stage advances, payments, and procurements.
-            </p>
-          </div>
-          <span className="text-xs font-semibold text-solar-600 bg-solar-500/10 px-2.5 py-0.5 rounded-full border border-solar-500/20">
-            Real ERP Data
-          </span>
-        </div>
-
-        {liveFeed.length === 0 ? (
-          <div className="text-center py-8 text-xs text-muted-foreground">
-            No recent operational transactions recorded in this date range.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {liveFeed.map(item => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  to={item.to}
-                  className="flex items-start space-x-3 p-3.5 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors group"
-                >
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-foreground group-hover:text-solar-600 transition-colors truncate">
-                      {item.title}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground flex items-center space-x-2 mt-1">
-                      <span className="font-mono font-semibold text-solar-600">{item.ref}</span>
-                      <span>&bull;</span>
-                      <span>{item.category}</span>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{item.date}</span>
+            {/* 4. Purchase Order Approval Directive */}
+            {pendingPurchaseOrdersCount > 0 && (
+              <Link
+                to="/purchase-orders"
+                className="flex items-start justify-between p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-900 dark:text-cyan-200 hover:bg-cyan-500/15 transition-colors"
+              >
+                <div className="flex items-start space-x-2.5">
+                  <Building2 className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold">Purchase Orders Awaiting Sign-Off</div>
+                    <div className="text-[11px] opacity-80 mt-0.5">
+                      {pendingPurchaseOrdersCount} procurement POs require management sign-off.
                     </div>
                   </div>
-                </Link>
-              );
-            })}
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-cyan-500 shrink-0 ml-1" />
+              </Link>
+            )}
+
+            {/* 4. Warehouse Depot Health */}
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <PackageCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="font-semibold text-xs">Central Depot Raipur (WH-RAIPUR-01)</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                Stock Balances Healthy
+              </span>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

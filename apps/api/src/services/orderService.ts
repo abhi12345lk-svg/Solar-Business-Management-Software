@@ -307,7 +307,7 @@ export class OrderService {
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
-        .populate('customerId', 'legalName customerCode')
+        .populate('customerId', 'name companyName customerCode primaryPhone')
         .populate('createdBy', 'firstName lastName')
         .lean(),
       SalesOrder.countDocuments(query)
