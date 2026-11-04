@@ -234,23 +234,23 @@ export const AppLayout: React.FC = () => {
     <div className="flex flex-col h-full select-none">
       {/* Brand Header */}
       <div
-        className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-border/70 shrink-0 bg-card`}
+        className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} border-b border-border/70 shrink-0 bg-card`}
       >
-        <Link to="/" className="flex items-center space-x-2.5 group overflow-hidden">
+        <Link to="/" className="flex items-center space-x-2.5 group min-w-0">
           <div className="w-9 h-9 rounded-xl bg-solar-500/15 border border-solar-500/30 flex items-center justify-center text-solar-600 group-hover:bg-solar-500/25 transition-all shadow-xs shrink-0">
             <Sun className="w-5 h-5 text-solar-500" />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
               <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold text-base tracking-tight text-foreground truncate">
+                <span className="font-black text-[15px] tracking-tight text-foreground whitespace-nowrap">
                   RAREBOX <span className="text-solar-600">SOLAR</span>
                 </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20 shrink-0">
                   ERP
                 </span>
               </div>
-              <span className="text-[10px] text-muted-foreground font-medium truncate">
+              <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
                 RAREBOX LLP • Raipur
               </span>
             </div>
@@ -437,7 +437,7 @@ export const AppLayout: React.FC = () => {
       {/* 1. Desktop Left Sidebar */}
       <aside
         className={`hidden lg:flex ${
-          sidebarCollapsed ? 'w-20' : 'w-64'
+          sidebarCollapsed ? 'w-20' : 'w-72'
         } flex-col fixed inset-y-0 left-0 z-40 bg-card border-r border-border shadow-xs transition-all duration-300`}
       >
         {renderNavContent(sidebarCollapsed)}
@@ -470,7 +470,7 @@ export const AppLayout: React.FC = () => {
       {/* 3. Main Workspace Area */}
       <div
         className={`flex-1 ${
-          sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+          sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
         } flex flex-col min-h-screen min-w-0 transition-all duration-300`}
       >
         {/* Top Navbar Header */}
