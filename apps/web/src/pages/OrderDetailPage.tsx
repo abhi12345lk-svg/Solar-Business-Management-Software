@@ -155,14 +155,20 @@ export const OrderDetailPage: React.FC = () => {
         .toISOString()
         .split('T')[0];
 
+      const custId = (order.customerId as any)?._id || (order.customerId as any)?.id || order.customerId;
+      const custName = (order.customerId as any)?.legalName || 'Client';
+      const orderId = (order as any)?._id || (order as any)?.id || id;
+      const quotId = (order.quotationRevisionId as any)?._id || (order.quotationRevisionId as any)?.id || order.quotationRevisionId || undefined;
+      const designId = (order.solarDesignId as any)?._id || (order.solarDesignId as any)?.id || order.solarDesignId || undefined;
+
       const newProj = await apiClient<any>('/projects', {
         method: 'POST',
         body: JSON.stringify({
-          name: `${order.customerId.legalName} — ${order.systemCapacityKwp} kWp Rooftop Solar`,
-          customerId: order.customerId._id,
-          orderId: order._id,
-          quotationId: order.quotationRevisionId?._id,
-          solarDesignId: order.solarDesignId?._id,
+          name: `${custName} — ${order.systemCapacityKwp} kWp Rooftop Solar`,
+          customerId: custId,
+          orderId: orderId,
+          quotationId: quotId,
+          solarDesignId: designId,
           systemCapacityKwp: order.systemCapacityKwp,
           systemTopology: order.systemTopology || 'ON_GRID',
           plannedStartDate: today,
@@ -172,8 +178,8 @@ export const OrderDetailPage: React.FC = () => {
         })
       });
       setShowCreateProjectModal(false);
-      setActionSuccess(`EPC Project successfully initialized: ${newProj.projectCode}`);
-      navigate(`/projects/${newProj._id}`);
+      setActionSuccess(`EPC Project successfully initialized: ${newProj.projectCode || ''}`);
+      navigate(`/projects/${newProj._id || newProj.id}`);
     } catch (err: any) {
       setProjectError(err.message || 'Failed to initialize EPC project.');
     } finally {
@@ -205,7 +211,8 @@ export const OrderDetailPage: React.FC = () => {
     setReopening(true);
     setActionSuccess(null);
     try {
-      await apiClient(`/orders/${order._id}/reopen`, { method: 'POST' });
+      const orderId = (order as any)?._id || (order as any)?.id || id;
+      await apiClient(`/orders/${orderId}/reopen`, { method: 'POST' });
       setActionSuccess('Sales Order reopened successfully and returned to Confirmed status.');
       fetchOrderDetail();
     } catch (err: any) {
@@ -217,14 +224,23 @@ export const OrderDetailPage: React.FC = () => {
 
   const handleReserveStock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!order || !selectedWarehouseId) return;
+    const orderId = (order as any)?._id || (order as any)?.id || id;
+    const warehouseId = selectedWarehouseId || warehouses[0]?._id;
+    if (!orderId) {
+      setReserveError('Sales order ID is missing.');
+      return;
+    }
+    if (!warehouseId) {
+      setReserveError('Please select a valid fulfillment warehouse.');
+      return;
+    }
     setReserving(true);
     setReserveError(null);
     try {
-      await apiClient(`/orders/${order._id}/reserve-stock`, {
+      await apiClient(`/orders/${orderId}/reserve-stock`, {
         method: 'POST',
         body: JSON.stringify({
-          warehouseId: selectedWarehouseId
+          warehouseId
         })
       });
       setShowReserveModal(false);
@@ -936,9 +952,16 @@ export const OrderDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={reserving || warehouses.length === 0}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
-                  {reserving ? 'Reserving...' : 'Confirm Reservation'}
+                  {reserving ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Reserving Materials...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Reservation</span>
+                  )}
                 </button>
               </div>
             </form>
