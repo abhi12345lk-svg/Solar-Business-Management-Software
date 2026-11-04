@@ -186,7 +186,7 @@ export interface CustomerDto {
  * Company / Organization Settings Schema
  */
 export const CompanySettingsSchema = z.object({
-  companyName: z.string().trim().min(2).max(100).default('INS Solar'),
+  companyName: z.string().trim().min(2).max(100).default('Rarebox Solar (associated with RAREBOX LLP)'),
   legalEntityName: z.string().trim().max(120).optional(),
   gstin: GstinSchema.optional(),
   pan: PanSchema.optional(),

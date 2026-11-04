@@ -244,14 +244,14 @@ export const AppLayout: React.FC = () => {
             <div className="flex flex-col min-w-0">
               <div className="flex items-center space-x-1.5">
                 <span className="font-extrabold text-base tracking-tight text-foreground truncate">
-                  INS <span className="text-solar-600">SOLAR</span>
+                  RAREBOX <span className="text-solar-600">SOLAR</span>
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
                   ERP
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground font-medium truncate">
-                Solar Enterprise Suite
+                RAREBOX LLP • Raipur
               </span>
             </div>
           )}

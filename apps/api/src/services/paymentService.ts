@@ -835,18 +835,18 @@ export class PaymentService {
     // Company Settings
     const settings = await CompanySettings.findOne({ key: 'COMPANY_SETTINGS' }).lean();
     const company = {
-      companyName: settings?.companyName || 'INS Solar Business Systems',
-      legalEntityName: settings?.legalEntityName || 'INS Solar Private Limited',
-      gstin: settings?.gstin || '27AAAAA0000A1Z5',
-      pan: settings?.pan || 'AAAAA0000A',
-      contactPhone: settings?.contactPhone || '+91 99999 00000',
-      contactEmail: settings?.contactEmail || 'accounts@inssolar.com',
-      website: settings?.website || 'https://inssolar.com',
+      companyName: settings?.companyName || 'Rarebox Solar (associated with RAREBOX LLP)',
+      legalEntityName: settings?.legalEntityName || 'RAREBOX LLP',
+      gstin: settings?.gstin || '22AAAFR1234A1Z5',
+      pan: settings?.pan || 'AAAFR1234A',
+      contactPhone: settings?.contactPhone || '+91 771 4055555',
+      contactEmail: settings?.contactEmail || 'contact@rareboxsolar.com',
+      website: settings?.website || 'https://rareboxsolar.com',
       address: settings?.registeredAddress || {
-        addressLine1: 'Solar Innovation Tower, Sector 62',
-        city: 'Noida',
-        state: 'Uttar Pradesh',
-        postalCode: '201309',
+        addressLine1: 'Rarebox Tower, Great Eastern Road',
+        city: 'Raipur',
+        state: 'Chhattisgarh',
+        postalCode: '492001',
         country: 'India'
       }
     };

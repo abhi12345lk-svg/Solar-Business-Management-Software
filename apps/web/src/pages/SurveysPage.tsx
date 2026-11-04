@@ -110,7 +110,7 @@ export const SurveysPage: React.FC = () => {
   const [leadId, setLeadId] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
-  const [state, setState] = useState('Rajasthan');
+  const [state, setState] = useState('Chhattisgarh');
   const [postalCode, setPostalCode] = useState('');
   const [roofType, setRoofType] = useState<RoofType>(RoofType.RCC_FLAT);
   const [usableRoofAreaSqFt, setUsableRoofAreaSqFt] = useState('1000');
@@ -355,7 +355,7 @@ export const SurveysPage: React.FC = () => {
     setLeadId('');
     setAddressLine1('');
     setCity('');
-    setState('Rajasthan');
+    setState('Chhattisgarh');
     setPostalCode('');
     setObservations('');
     setCreateError(null);
@@ -857,7 +857,7 @@ export const SurveysPage: React.FC = () => {
                       required
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      placeholder="Jaipur"
+                      placeholder="Raipur"
                       className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                     />
                   </div>

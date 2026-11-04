@@ -54,7 +54,7 @@ export const MfaChallengePage: React.FC = () => {
             <div className="flex items-center justify-center space-x-2 mb-1">
               <Sun className="w-4 h-4 text-amber-500" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                INS SOLAR ERP
+                RAREBOX SOLAR ERP
               </span>
             </div>
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">

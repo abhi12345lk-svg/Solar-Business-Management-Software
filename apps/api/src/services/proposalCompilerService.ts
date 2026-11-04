@@ -29,14 +29,14 @@ export class ProposalCompilerService {
       quotation.solarDesignId ? SolarDesign.findById(quotation.solarDesignId) : null
     ]);
 
-    const companyName = settings?.companyName || 'INS Solar Private Limited';
+    const companyName = settings?.companyName || 'Rarebox Solar (associated with RAREBOX LLP)';
     const companyAddress = settings?.registeredAddress
       ? `${settings.registeredAddress.addressLine1}, ${settings.registeredAddress.city}, ${settings.registeredAddress.state} - ${settings.registeredAddress.postalCode}`
-      : 'Gujarat, India';
-    const companyGstin = settings?.gstin || '24AAACI1234A1Z5';
-    const companyPan = settings?.pan || 'AAACI1234A';
-    const companyContact = settings?.contactPhone || '+91 98765 43210';
-    const companyEmail = settings?.contactEmail || 'commercial@inssolar.com';
+      : 'Rarebox Tower, Great Eastern Road, Raipur, Chhattisgarh - 492001, India';
+    const companyGstin = settings?.gstin || '22AAAFR1234A1Z5';
+    const companyPan = settings?.pan || 'AAAFR1234A';
+    const companyContact = settings?.contactPhone || '+91 771 4055555';
+    const companyEmail = settings?.contactEmail || 'contact@rareboxsolar.com';
 
     const customerName =
       (customer as any)?.name || (customer as any)?.legalName || 'Valued Customer';

@@ -2036,7 +2036,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
               I hereby accept quotation{' '}
               {targetQuote.quotationNumber || targetQuote.fullQuotationCode} (Revision{' '}
-              {targetQuote.revisionNumber}) and authorize INS Solar to proceed with system
+              {targetQuote.revisionNumber}) and authorize Rarebox Solar to proceed with system
               procurement and site execution under the specified commercial terms.
             </div>
 

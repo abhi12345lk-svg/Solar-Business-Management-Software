@@ -90,7 +90,7 @@ export const LeadDetailPage: React.FC = () => {
   const [editCompanyName, setEditCompanyName] = useState('');
   const [editStreet, setEditStreet] = useState('');
   const [editCity, setEditCity] = useState('');
-  const [editState, setEditState] = useState('Rajasthan');
+  const [editState, setEditState] = useState('Chhattisgarh');
   const [editPinCode, setEditPinCode] = useState('');
   const [editCapacity, setEditCapacity] = useState('');
   const [editRequirement, setEditRequirement] = useState<SolarRequirement>(SolarRequirement.RESIDENTIAL);
@@ -253,7 +253,7 @@ export const LeadDetailPage: React.FC = () => {
     setEditCompanyName(lead.companyName || '');
     setEditStreet(lead.location?.street || '');
     setEditCity(lead.location?.city || '');
-    setEditState(lead.location?.state || 'Rajasthan');
+    setEditState(lead.location?.state || 'Chhattisgarh');
     setEditPinCode(lead.location?.pinCode || '');
     setEditCapacity(lead.estimatedCapacityKw ? String(lead.estimatedCapacityKw) : '');
     setEditRequirement(lead.solarRequirement || SolarRequirement.RESIDENTIAL);

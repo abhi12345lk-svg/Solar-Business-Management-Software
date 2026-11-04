@@ -772,7 +772,7 @@ export const AmcPage: React.FC = () => {
 
             <form onSubmit={handleApproveAmc} className="space-y-4 text-sm">
               <p className="text-xs text-muted-foreground">
-                Confirming activation will commit INS Solar to the agreed service-level maintenance
+                Confirming activation will commit Rarebox Solar to the agreed service-level maintenance
                 schedule and activate the {selectedAmc.includedVisits}-visit quota.
               </p>
 

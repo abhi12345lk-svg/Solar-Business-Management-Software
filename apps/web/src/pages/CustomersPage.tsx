@@ -44,7 +44,7 @@ export const CustomersPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [customerType, setCustomerType] = useState<CustomerType>(CustomerType.INDIVIDUAL);
   const [city, setCity] = useState('');
-  const [state, setState] = useState('Rajasthan');
+  const [state, setState] = useState('Chhattisgarh');
   const [postalCode, setPostalCode] = useState('');
   const [street, setStreet] = useState('');
   const [gstin, setGstin] = useState('');
@@ -95,17 +95,17 @@ export const CustomersPage: React.FC = () => {
         billingAddress: {
           type: 'BILLING',
           addressLine1: street.trim() || name.trim(),
-          city: city.trim() || 'Jaipur',
-          state: state.trim() || 'Rajasthan',
-          postalCode: postalCode.trim() || '302001',
+          city: city.trim() || 'Raipur',
+          state: state.trim() || 'Chhattisgarh',
+          postalCode: postalCode.trim() || '492001',
           country: 'India'
         },
         installationAddress: {
           type: 'SITE_INSTALLATION',
           addressLine1: street.trim() || name.trim(),
-          city: city.trim() || 'Jaipur',
-          state: state.trim() || 'Rajasthan',
-          postalCode: postalCode.trim() || '302001',
+          city: city.trim() || 'Raipur',
+          state: state.trim() || 'Chhattisgarh',
+          postalCode: postalCode.trim() || '492001',
           country: 'India'
         },
         notes: notes.trim() || undefined
@@ -303,9 +303,9 @@ export const CustomersPage: React.FC = () => {
                     customer.type === CustomerType.INDUSTRIAL;
 
                   const cityStr =
-                    customer.installationAddress?.city || customer.billingAddress?.city || 'Jaipur';
+                    customer.installationAddress?.city || customer.billingAddress?.city || 'Raipur';
                   const stateStr =
-                    customer.installationAddress?.state || customer.billingAddress?.state || 'Rajasthan';
+                    customer.installationAddress?.state || customer.billingAddress?.state || 'Chhattisgarh';
                   const pinStr =
                     customer.installationAddress?.postalCode || customer.billingAddress?.postalCode || '';
 
@@ -578,9 +578,9 @@ export const CustomersPage: React.FC = () => {
                     <p>{selectedCustomer.installationAddress.addressLine2}</p>
                   )}
                   <p>
-                    {selectedCustomer.installationAddress?.city || 'Jaipur'},{' '}
-                    {selectedCustomer.installationAddress?.state || 'Rajasthan'}{' '}
-                    {selectedCustomer.installationAddress?.postalCode || '302001'}
+                    {selectedCustomer.installationAddress?.city || 'Raipur'},{' '}
+                    {selectedCustomer.installationAddress?.state || 'Chhattisgarh'}{' '}
+                    {selectedCustomer.installationAddress?.postalCode || '492001'}
                   </p>
                   <p>{selectedCustomer.installationAddress?.country || 'India'}</p>
                 </div>
@@ -761,7 +761,7 @@ export const CustomersPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="City (e.g. Jaipur)"
+                    placeholder="City (e.g. Raipur)"
                     value={city}
                     onChange={e => setCity(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"

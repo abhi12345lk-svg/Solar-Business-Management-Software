@@ -124,7 +124,7 @@ export const InventoryPage: React.FC = () => {
   const [savingProduct, setSavingProduct] = useState(false);
   const [newProductName, setNewProductName] = useState('');
   const [newProductSku, setNewProductSku] = useState('');
-  const [newProductBrand, setNewProductBrand] = useState('INS Solar Tech');
+  const [newProductBrand, setNewProductBrand] = useState('Rarebox Solar Tech');
   const [newProductCategory, setNewProductCategory] = useState('');
   const [newProductUom, setNewProductUom] = useState('PCS');
   const [newProductSellPrice, setNewProductSellPrice] = useState('15000');
@@ -260,7 +260,7 @@ export const InventoryPage: React.FC = () => {
         body: JSON.stringify({
           name: newProductName.trim(),
           sku: newProductSku.trim(),
-          brand: newProductBrand.trim() || 'INS Solar',
+          brand: newProductBrand.trim() || 'Rarebox Solar',
           categoryId: newProductCategory,
           uom: newProductUom,
           sellingPricePaise: Math.round(Number(newProductSellPrice) * 100),
@@ -1130,7 +1130,7 @@ export const InventoryPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. INS Solar"
+                    placeholder="e.g. Rarebox Solar"
                     value={newProductBrand}
                     onChange={e => setNewProductBrand(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"

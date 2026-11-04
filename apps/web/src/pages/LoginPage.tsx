@@ -146,14 +146,14 @@ export const LoginPage: React.FC = () => {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-black tracking-tight text-white">
-                  INS <span className="text-amber-500">SOLAR</span>
+                  RAREBOX <span className="text-amber-500">SOLAR</span>
                 </span>
                 <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                  Enterprise ERP
+                  RAREBOX LLP
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-medium">
-                Complete Solar EPC Lifecycle Platform
+                Raipur, Chhattisgarh • Solar Energy & Business Enterprise
               </p>
             </div>
           </div>
@@ -248,7 +248,7 @@ export const LoginPage: React.FC = () => {
               <Sun className="w-5 h-5" />
             </div>
             <span className="font-bold text-slate-900 dark:text-white">
-              INS <span className="text-amber-500">SOLAR</span>
+              RAREBOX <span className="text-amber-500">SOLAR</span>
             </span>
           </div>
 
@@ -481,7 +481,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Bottom Footer */}
         <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
-          <span>INS Solar Business Management System © 2026</span>
+          <span>Rarebox Solar (associated with RAREBOX LLP) © 2026 • Raipur, Chhattisgarh</span>
           <div className="flex items-center space-x-3 text-slate-500">
             <span>Enterprise ERP</span>
             <span>•</span>

@@ -33,7 +33,7 @@ export const LeadsPage: React.FC = () => {
   const [prospectPhone, setProspectPhone] = useState('');
   const [prospectEmail, setProspectEmail] = useState('');
   const [city, setCity] = useState('');
-  const [state, setState] = useState('Rajasthan');
+  const [state, setState] = useState('Chhattisgarh');
   const [pinCode, setPinCode] = useState('');
   const [street, setStreet] = useState('');
   const [source, setSource] = useState<LeadSource>(LeadSource.WEBSITE);
@@ -161,7 +161,7 @@ export const LeadsPage: React.FC = () => {
     setProspectPhone('');
     setProspectEmail('');
     setCity('');
-    setState('Rajasthan');
+    setState('Chhattisgarh');
     setPinCode('');
     setStreet('');
     setNotes('');
@@ -698,7 +698,7 @@ export const LeadsPage: React.FC = () => {
                       required
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      placeholder="e.g. Jaipur"
+                      placeholder="e.g. Raipur"
                       className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                     />
                   </div>
