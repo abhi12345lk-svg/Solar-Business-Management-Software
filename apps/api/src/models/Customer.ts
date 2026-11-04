@@ -33,7 +33,7 @@ export interface ICustomerDocument extends Document {
   primaryPhone: string;
   email?: string;
   type: CustomerType | 'INDIVIDUAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'INSTITUTIONAL';
-  status: CustomerStatus | 'ACTIVE' | 'INACTIVE' | 'BLACKLISTED';
+  status: CustomerStatus | string;
   isActive: boolean;
   gstin?: string;
   pan?: string;

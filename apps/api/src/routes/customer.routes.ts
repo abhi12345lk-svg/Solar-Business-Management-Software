@@ -183,3 +183,39 @@ customerRouter.post('/', async (req: Request, res: Response, next: NextFunction)
     return next(err);
   }
 });
+
+/**
+ * PATCH /api/v1/customers/:id/status
+ * Direct status transition for customer lifecycle stages.
+ */
+customerRouter.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id || '').trim();
+    const { status } = req.body;
+    if (!status) {
+      throw AppError.validationFailed('Status is required.');
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      throw AppError.validationFailed('Invalid customer ID format.');
+    }
+
+    const customer = await Customer.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!customer) {
+      throw AppError.notFound(`Customer '${id}' not found.`);
+    }
+
+    return sendSuccess(req, res, {
+      ...customer.toObject(),
+      id: customer._id.toString(),
+      legalName: customer.companyName || customer.name
+    });
+  } catch (err) {
+    return next(err);
+  }
+});

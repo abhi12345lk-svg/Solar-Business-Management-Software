@@ -13,7 +13,8 @@ import {
   FolderKanban,
   AlertCircle,
   Loader2,
-  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
   ShoppingCart
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
@@ -36,6 +37,10 @@ export const CustomersPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Status Lifecycle Update State
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [statusNotification, setStatusNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -76,6 +81,74 @@ export const CustomersPage: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchCustomers();
+  };
+
+  const getStatusBadgeConfig = (status?: string) => {
+    switch (status) {
+      case 'QUOTATION_SHARED':
+        return {
+          label: 'Quotation Shared (Ask to Client)',
+          className: 'bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400 font-semibold',
+          dot: 'bg-amber-500'
+        };
+      case 'ORDER_CONFIRMED':
+        return {
+          label: 'Order Confirmed',
+          className: 'bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400 font-semibold',
+          dot: 'bg-blue-500'
+        };
+      case 'SITE_WORK_IN_PROGRESS':
+        return {
+          label: 'Site Work in Progress',
+          className: 'bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400 font-semibold',
+          dot: 'bg-purple-500'
+        };
+      case 'ACTIVE':
+      default:
+        return {
+          label: 'Completed / Active',
+          className: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 font-semibold',
+          dot: 'bg-emerald-500'
+        };
+      case 'INACTIVE':
+        return {
+          label: 'Inactive / On Hold',
+          className: 'bg-slate-500/15 text-slate-700 border-slate-500/30 dark:text-slate-400 font-semibold',
+          dot: 'bg-slate-400'
+        };
+    }
+  };
+
+  const handleStatusChange = async (customerId: string, newStatus: string) => {
+    setUpdatingId(customerId);
+    setStatusNotification(null);
+    try {
+      await apiClient<CustomerDto>(`/customers/${customerId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      setCustomers(prev =>
+        prev.map(c => (c.id === customerId ? { ...c, status: newStatus as any } : c))
+      );
+      if (selectedCustomer && selectedCustomer.id === customerId) {
+        setSelectedCustomer(prev => (prev ? { ...prev, status: newStatus as any } : null));
+      }
+
+      const cfg = getStatusBadgeConfig(newStatus);
+      setStatusNotification({
+        message: `Client status updated to "${cfg.label}" successfully!`,
+        type: 'success'
+      });
+      setTimeout(() => setStatusNotification(null), 4000);
+    } catch (err: any) {
+      setStatusNotification({
+        message: err?.message || 'Failed to update client status.',
+        type: 'error'
+      });
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
@@ -237,11 +310,41 @@ export const CustomersPage: React.FC = () => {
             className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
           >
             <option value="ALL">All Statuses</option>
-            <option value={CustomerStatus.ACTIVE}>Active</option>
+            <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
+            <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
+            <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
+            <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
             <option value={CustomerStatus.INACTIVE}>Inactive</option>
           </select>
         </form>
       </div>
+
+      {/* Live Status Notification Banner */}
+      {statusNotification && (
+        <div
+          className={`p-3 border rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-200 ${
+            statusNotification.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+              : 'bg-destructive/10 border-destructive/20 text-destructive'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {statusNotification.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            )}
+            <span className="font-semibold">{statusNotification.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusNotification(null)}
+            className="text-muted-foreground hover:text-foreground text-xs ml-4 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Error Banner */}
       {error && (
@@ -291,8 +394,7 @@ export const CustomersPage: React.FC = () => {
                   <th className="py-3 px-4">Customer Name & Type</th>
                   <th className="py-3 px-4">Contact Details</th>
                   <th className="py-3 px-4">Installation Site</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4 text-center">Status / Client Stage</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -398,24 +500,29 @@ export const CustomersPage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                          <span>{customer.status || 'ACTIVE'}</span>
-                        </span>
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCustomer(customer)}
-                          className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white transition shadow-xs cursor-pointer"
-                        >
-                          <span>View Profile</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                      {/* Status / Client Stage with Interactive Dropdown */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <div className="relative inline-block text-left">
+                          <select
+                            value={customer.status || CustomerStatus.ACTIVE}
+                            disabled={updatingId === customer.id}
+                            onChange={e => handleStatusChange(customer.id, e.target.value)}
+                            className={`appearance-none cursor-pointer pl-3 pr-7 py-1 rounded-full text-xs font-semibold border transition shadow-xs focus:outline-none focus:ring-2 focus:ring-solar-500 disabled:opacity-50 ${getStatusBadgeConfig(customer.status).className}`}
+                          >
+                            <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
+                            <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
+                            <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
+                            <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
+                            <option value={CustomerStatus.INACTIVE}>Inactive</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                            {updatingId === customer.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                            )}
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -443,6 +550,9 @@ export const CustomersPage: React.FC = () => {
                     </h3>
                     <span className="font-mono text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground">
                       {selectedCustomer.customerCode}
+                    </span>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full border ${getStatusBadgeConfig(selectedCustomer.status).className}`}>
+                      {getStatusBadgeConfig(selectedCustomer.status).label}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
