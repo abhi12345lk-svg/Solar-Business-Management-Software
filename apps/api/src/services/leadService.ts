@@ -459,12 +459,6 @@ export class LeadService {
       throw AppError.notFound(`Lead '${id}' not found.`);
     }
 
-    if (lead.status === LeadStatus.CONVERTED) {
-      throw AppError.businessRule(
-        'Converted leads cannot have core inquiry details modified directly.'
-      );
-    }
-
     // Apply allowed updates only
     if (input.prospectName !== undefined) lead.prospectName = input.prospectName;
     if (input.prospectPhone !== undefined) lead.prospectPhone = input.prospectPhone;

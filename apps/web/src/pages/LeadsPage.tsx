@@ -7,11 +7,7 @@ import {
   Sun,
   ShieldAlert,
   Loader2,
-  X,
   CheckCircle2,
-  Clock,
-  CreditCard,
-  Edit3,
   ChevronDown
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
@@ -34,12 +30,7 @@ export const LeadsPage: React.FC = () => {
     type: 'success' | 'error';
   } | null>(null);
 
-  // Single-Page Quick View / Edit Modal State (Opened only by clicking prospect name)
-  const [selectedLead, setSelectedLead] = useState<LeadDto | null>(null);
-  const [editingNotes, setEditingNotes] = useState('');
-  const [savingNotes, setSavingNotes] = useState(false);
-
-  // New Lead Modal State
+  // New Lead Modal State (The only modal on this page)
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -91,7 +82,7 @@ export const LeadsPage: React.FC = () => {
     fetchLeads();
   };
 
-  // Direct Inline Status Update (Smooth transition across all statuses)
+  // Direct Inline Status Update
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     setUpdatingId(leadId);
     setStatusNotification(null);
@@ -103,10 +94,6 @@ export const LeadsPage: React.FC = () => {
 
       // Update lead in local state
       setLeads(prev => prev.map(l => (l.id === leadId ? updated : l)));
-
-      if (selectedLead && selectedLead.id === leadId) {
-        setSelectedLead(updated);
-      }
 
       const statusLabels: Record<string, string> = {
         [LeadStatus.NEW]: 'New',
@@ -130,38 +117,6 @@ export const LeadsPage: React.FC = () => {
       });
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  // Open Details Modal via Prospect Name
-  const openLeadDetails = (lead: LeadDto) => {
-    setSelectedLead(lead);
-    setEditingNotes(lead.notes || '');
-  };
-
-  // Save updated notes
-  const handleSaveNotes = async () => {
-    if (!selectedLead) return;
-    setSavingNotes(true);
-    try {
-      const updated = await apiClient<LeadDto>(`/leads/${selectedLead.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ notes: editingNotes.trim() })
-      });
-      setSelectedLead(updated);
-      setLeads(prev => prev.map(l => (l.id === updated.id ? updated : l)));
-      setStatusNotification({
-        message: 'Lead remarks & notes saved successfully.',
-        type: 'success'
-      });
-      setTimeout(() => setStatusNotification(null), 3000);
-    } catch (err: any) {
-      setStatusNotification({
-        message: err?.message || 'Failed to save notes.',
-        type: 'error'
-      });
-    } finally {
-      setSavingNotes(false);
     }
   };
 
@@ -233,7 +188,7 @@ export const LeadsPage: React.FC = () => {
       resetForm();
       setLeads(prev => [newLead, ...prev.filter(l => l.id !== newLead.id)]);
       setStatusNotification({
-        message: `Lead for ${newLead.prospectName} recorded successfully!`,
+        message: `Lead for ${newLead.prospectName} added successfully!`,
         type: 'success'
       });
       setTimeout(() => setStatusNotification(null), 3500);
@@ -279,23 +234,6 @@ export const LeadsPage: React.FC = () => {
         return 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
-    }
-  };
-
-  const getStatusLabel = (status: LeadStatus) => {
-    switch (status) {
-      case LeadStatus.NEW:
-        return 'New';
-      case LeadStatus.FOLLOW_UP:
-        return 'Follow Up';
-      case LeadStatus.PAYMENT_PENDING:
-        return 'Payment Pending';
-      case LeadStatus.CONVERTED:
-        return 'Converted';
-      case LeadStatus.LOST:
-        return 'Lost';
-      default:
-        return status;
     }
   };
 
@@ -360,7 +298,7 @@ export const LeadsPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Capture prospective clients, change statuses, and track inquiries in one simple view.
+            Record prospective solar clients and manage lead statuses in one simple view.
           </p>
         </div>
         <div>
@@ -462,7 +400,7 @@ export const LeadsPage: React.FC = () => {
         </form>
       </div>
 
-      {/* Leads Table View (No Extra Action Button Column) */}
+      {/* Leads Table View (Clean, Direct, No Action Buttons) */}
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
@@ -516,13 +454,9 @@ export const LeadsPage: React.FC = () => {
                         <span className="font-mono text-xs font-bold text-muted-foreground block">
                           S.No. {index + 1}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => openLeadDetails(lead)}
-                          className="font-bold text-sm text-foreground hover:text-solar-600 text-left truncate mt-0.5 block cursor-pointer"
-                        >
+                        <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
                           {lead.prospectName}
-                        </button>
+                        </h3>
                         {lead.companyName && (
                           <p className="text-xs text-muted-foreground truncate">{lead.companyName}</p>
                         )}
@@ -572,8 +506,8 @@ export const LeadsPage: React.FC = () => {
                     </div>
 
                     {lead.notes && (
-                      <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-lg truncate">
-                        💬 {lead.notes}
+                      <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-lg">
+                        {lead.notes}
                       </div>
                     )}
                   </div>
@@ -581,7 +515,7 @@ export const LeadsPage: React.FC = () => {
               })}
             </div>
 
-            {/* Desktop Table (>= md) - Clean, Professional, No Action Button Column */}
+            {/* Desktop Table (>= md) - Clean, Direct, No Action Buttons */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
@@ -605,14 +539,9 @@ export const LeadsPage: React.FC = () => {
                           {index + 1}
                         </td>
                         <td className="py-3.5 px-4 font-medium text-foreground">
-                          <button
-                            type="button"
-                            onClick={() => openLeadDetails(lead)}
-                            className="font-bold hover:text-solar-600 hover:underline text-left block cursor-pointer"
-                            title="Click to view & edit details"
-                          >
+                          <span className="font-bold block">
                             {lead.prospectName}
-                          </button>
+                          </span>
                           {lead.companyName && (
                             <span className="block text-xs text-muted-foreground">
                               {lead.companyName}
@@ -678,22 +607,7 @@ export const LeadsPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-muted-foreground max-w-xs truncate">
-                          {lead.notes ? (
-                            <span
-                              onClick={() => openLeadDetails(lead)}
-                              className="cursor-pointer hover:text-foreground hover:underline block truncate"
-                              title={lead.notes}
-                            >
-                              {lead.notes}
-                            </span>
-                          ) : (
-                            <span
-                              onClick={() => openLeadDetails(lead)}
-                              className="italic text-xs text-muted-foreground/60 cursor-pointer hover:text-solar-600"
-                            >
-                              + Add note
-                            </span>
-                          )}
+                          {lead.notes || '—'}
                         </td>
                       </tr>
                     );
@@ -705,191 +619,7 @@ export const LeadsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Prospect Details & Notes Modal (Clicking on Prospect Name) */}
-      {selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs">
-          <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in-50">
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0 bg-muted/20">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold text-lg">
-                  {selectedLead.prospectName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                    <span>{selectedLead.prospectName}</span>
-                    <span
-                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadge(
-                        selectedLead.status
-                      )}`}
-                    >
-                      {getStatusLabel(selectedLead.status)}
-                    </span>
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    Inquiry Code: {selectedLead.leadCode}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedLead(null)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary text-sm font-semibold cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
-              {/* Status Switcher in Modal */}
-              <div className="bg-muted/30 border rounded-xl p-3">
-                <label className="block text-xs font-bold text-foreground mb-2">
-                  Status:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    {
-                      status: LeadStatus.NEW,
-                      label: 'New',
-                      icon: Sun,
-                      activeColor: 'bg-blue-600 text-white'
-                    },
-                    {
-                      status: LeadStatus.FOLLOW_UP,
-                      label: 'Follow Up',
-                      icon: Clock,
-                      activeColor: 'bg-amber-600 text-white'
-                    },
-                    {
-                      status: LeadStatus.PAYMENT_PENDING,
-                      label: 'Payment Pending',
-                      icon: CreditCard,
-                      activeColor: 'bg-purple-600 text-white'
-                    },
-                    {
-                      status: LeadStatus.CONVERTED,
-                      label: 'Converted',
-                      icon: CheckCircle2,
-                      activeColor: 'bg-emerald-600 text-white'
-                    }
-                  ].map(item => {
-                    const isActive = selectedLead.status === item.status;
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.status}
-                        type="button"
-                        disabled={updatingId === selectedLead.id}
-                        onClick={() => handleStatusChange(selectedLead.id, item.status)}
-                        className={`flex items-center justify-center space-x-1.5 py-2 px-2 rounded-lg text-xs font-bold border transition cursor-pointer ${
-                          isActive
-                            ? `${item.activeColor} border-transparent shadow-xs`
-                            : 'bg-background hover:bg-muted text-muted-foreground border-border'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Prospect Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="bg-card border rounded-xl p-3 space-y-1.5">
-                  <span className="font-bold text-muted-foreground uppercase text-[10px]">Contact</span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Phone:</span>
-                    <a href={`tel:${selectedLead.prospectPhone}`} className="font-bold text-foreground hover:text-solar-600">
-                      {selectedLead.prospectPhone}
-                    </a>
-                  </div>
-                  {selectedLead.prospectEmail && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Email:</span>
-                      <a href={`mailto:${selectedLead.prospectEmail}`} className="font-medium text-foreground hover:text-solar-600">
-                        {selectedLead.prospectEmail}
-                      </a>
-                    </div>
-                  )}
-                  {selectedLead.companyName && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Company:</span>
-                      <span className="font-semibold text-foreground">{selectedLead.companyName}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-card border rounded-xl p-3 space-y-1.5">
-                  <span className="font-bold text-muted-foreground uppercase text-[10px]">System Info</span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-bold text-foreground">{selectedLead.solarRequirement}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Capacity:</span>
-                    <span className="font-bold text-solar-600">
-                      {selectedLead.estimatedCapacityKw ? `${selectedLead.estimatedCapacityKw} kWp` : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Location:</span>
-                    <span className="font-medium text-foreground">{selectedLead.location?.city}, {selectedLead.location?.state}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Remarks & Notes */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-foreground flex items-center">
-                    <Edit3 className="w-3.5 h-3.5 mr-1 text-solar-600" />
-                    <span>Inquiry Notes & Discussion Remarks</span>
-                  </label>
-                  {savingNotes && (
-                    <span className="text-xs text-solar-600 animate-pulse flex items-center">
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                      Saving...
-                    </span>
-                  )}
-                </div>
-                <textarea
-                  rows={3}
-                  value={editingNotes}
-                  onChange={e => setEditingNotes(e.target.value)}
-                  placeholder="Discussion details, roof status, quotation follow-up..."
-                  className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    disabled={savingNotes}
-                    onClick={handleSaveNotes}
-                    className="px-4 py-1.5 text-xs font-bold bg-secondary hover:bg-secondary/80 text-foreground border rounded-lg transition cursor-pointer disabled:opacity-50"
-                  >
-                    {savingNotes ? 'Saving...' : 'Save Notes'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-3 sm:p-4 border-t bg-muted/20 shrink-0 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedLead(null)}
-                className="px-5 py-2 text-xs font-bold bg-solar-600 text-white hover:bg-solar-700 rounded-lg transition cursor-pointer shadow-xs"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* New Lead Creation Modal */}
+      {/* New Lead Creation Modal (The only modal: opened only by clicking "+ Add Lead") */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-card border rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
