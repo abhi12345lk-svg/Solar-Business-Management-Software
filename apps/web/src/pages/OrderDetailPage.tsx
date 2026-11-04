@@ -17,7 +17,8 @@ import {
   Layers,
   Warehouse as WarehouseIcon,
   Ban,
-  FolderKanban
+  FolderKanban,
+  User
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -450,363 +451,419 @@ export const OrderDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Next Stage Action Guidance Card */}
-      <div className="bg-card border border-border/80 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="space-y-0.5">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-            Next Stage Workflow Action
-          </span>
-          {order.status === 'CANCELLED' ? (
-            <p className="text-xs text-rose-500 font-medium">
-              This sales order was marked as cancelled. Reopen it to resume material allocation and EPC operations.
-            </p>
-          ) : linkedProject ? (
-            <p className="text-xs text-foreground font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>EPC Execution is active under Project <strong>{linkedProject.projectCode}</strong> ({linkedProject.currentStage || 'Stage 1'}).</span>
-            </p>
-          ) : order.reservationStatus === 'FULLY_RESERVED' ? (
-            <p className="text-xs text-foreground font-medium">
-              Physical materials are reserved in fulfillment warehouse. Ready to launch 10-Stage EPC Project Execution.
-            </p>
-          ) : (
-            <p className="text-xs text-foreground font-medium">
-              Reserve physical hardware (solar modules, inverters) from fulfillment depot before dispatching materials.
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {order.status === 'CANCELLED' ? (
-            <button
-              type="button"
-              onClick={handleReopenOrder}
-              disabled={reopening}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-            >
-              {reopening ? 'Reopening...' : 'Reopen Sales Order ↺'}
-            </button>
-          ) : linkedProject ? (
-            <Link
-              to={`/projects/${linkedProject._id || linkedProject.id}`}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-            >
-              <FolderKanban className="w-4 h-4" />
-              <span>Open EPC Project ({linkedProject.projectCode}) →</span>
-            </Link>
-          ) : (
-            <>
-              {order.reservationStatus !== 'FULLY_RESERVED' && (
-                <button
-                  type="button"
-                  onClick={openReserveModal}
-                  className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <PackageCheck className="w-4 h-4" />
-                  <span>Reserve Stock Allocation</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateProjectModal(true);
-                  setProjectError(null);
-                }}
-                className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <FolderKanban className="w-4 h-4" />
-                <span>Launch 10-Stage EPC Execution →</span>
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
       {actionSuccess && (
-        <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center">
-          <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />
-          <span>{actionSuccess}</span>
+        <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between">
+          <div className="flex items-center">
+            <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button
+            onClick={() => setActionSuccess(null)}
+            className="text-xs hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Main Order Header Card */}
-      <div className="p-5 sm:p-6 rounded-xl border bg-card shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-3">
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground font-mono">
-                {order.orderNumber}
-              </span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                {order.status}
-              </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
-                {order.reservationStatus}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="flex items-center">
-                <Calendar className="w-3.5 h-3.5 mr-1" />
-                Booked:{' '}
-                {new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                })}
-              </span>
-              <span>•</span>
-              <span className="font-semibold text-foreground">Capacity: {order.systemCapacityKwp} kWp</span>
-              <span>•</span>
-              <span className="text-solar-600 font-medium">Topology: {order.systemTopology}</span>
-            </p>
-          </div>
-
-          <div className="text-left sm:text-right">
-            <p className="text-[11px] text-muted-foreground uppercase font-semibold">Net Agreed Contract Total</p>
-            <p className="text-2xl sm:text-3xl font-extrabold text-solar-600 dark:text-solar-400 tracking-tight font-mono">
-              ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
-            </p>
-          </div>
-        </div>
-
-        {/* Customer & Quotation Context */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t text-xs">
-          <div>
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Customer Profile</p>
-            <p className="text-xs font-semibold text-foreground mt-0.5">
-              {order.customerId.legalName}
-            </p>
-            {order.customerId.primaryPhone && (
-              <p className="text-muted-foreground">{order.customerId.primaryPhone}</p>
-            )}
-            {order.customerId.email && (
-              <p className="text-muted-foreground">{order.customerId.email}</p>
-            )}
-          </div>
-
-          <div>
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-              Originating Quotation
-            </p>
-            {order.quotationRevisionId ? (
-              <p className="text-xs font-bold text-solar-600 dark:text-solar-400 font-mono mt-0.5">
-                {order.quotationRevisionId.fullQuotationCode}
-              </p>
-            ) : (
-              <p className="text-muted-foreground mt-0.5">Direct Order</p>
-            )}
-            <p className="text-muted-foreground text-[10px]">Agreed commercial snapshot applied</p>
-          </div>
-
-          <div>
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">
-              Solar Engineering Design
-            </p>
-            {order.solarDesignId ? (
-              <p className="text-xs font-semibold text-foreground mt-0.5">
-                {order.solarDesignId.designNumber}
-              </p>
-            ) : (
-              <p className="text-muted-foreground mt-0.5">Standard Technical Spec</p>
-            )}
-          </div>
-        </div>
-
-        {order.cancellationReason && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 flex items-center justify-between gap-2">
-            <div>
+      {order.cancellationReason && (
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-500 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Ban className="w-4 h-4 shrink-0" />
+            <span>
               <strong>Order Cancelled:</strong> {order.cancellationReason}
-            </div>
-            <button
-              type="button"
-              onClick={handleReopenOrder}
-              disabled={reopening}
-              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shrink-0 transition-colors cursor-pointer"
-            >
-              {reopening ? 'Reopening...' : 'Reopen Order ↺'}
-            </button>
+            </span>
           </div>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={handleReopenOrder}
+            disabled={reopening}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shrink-0 transition-colors cursor-pointer shadow-xs"
+          >
+            {reopening ? 'Reopening...' : 'Reopen Order ↺'}
+          </button>
+        </div>
+      )}
 
-      {/* Agreed Commercial Scope Table */}
-      <div className="border rounded-2xl bg-card overflow-hidden">
-        <div className="px-6 py-4 border-b flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-solar-500" />
-            <h2 className="text-base font-semibold text-foreground">
-              Agreed Bill of Materials & Line Items
+      {/* 3. Balanced 2-Column Workstation Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (7 cols): Customer & Technical Specs, BOM Table, Payment Milestones */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* Customer & Technical Specifications Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2.5">
+              <User className="w-3.5 h-3.5 text-solar-500" />
+              Customer & System Specifications
             </h2>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {order.lineItems.length} items snapshotted
-          </span>
-        </div>
 
-        {/* Mobile View: BOM Line Item Cards */}
-        <div className="block md:hidden divide-y divide-border">
-          {order.lineItems.map((item, idx) => (
-            <div key={idx} className="p-4 space-y-2.5 hover:bg-muted/30 transition-colors">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-semibold text-foreground text-sm">{item.description}</div>
-                  {item.productId?.sku && (
-                    <span className="text-[11px] font-mono text-muted-foreground block">
-                      SKU: {item.productId.sku}
-                    </span>
-                  )}
-                </div>
-                <span className="shrink-0 px-2 py-0.5 rounded text-xs font-bold bg-secondary text-secondary-foreground font-mono">
-                  {item.quantity} {item.unit}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <span className="text-[11px] text-muted-foreground block">Customer</span>
+                <span className="font-semibold text-foreground text-xs line-clamp-1">
+                  {order.customerId.legalName}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono block">
+                  {order.customerId.customerCode || '—'}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
-                <div>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-                    Unit Rate
-                  </span>
-                  <span className="font-medium text-foreground">
-                    ₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-                    Taxable Value
-                  </span>
-                  <span className="font-medium text-foreground">
-                    ₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}
-                  </span>
-                </div>
+              <div>
+                <span className="text-[11px] text-muted-foreground block">Contact</span>
+                <span className="font-medium text-foreground text-xs block">
+                  {order.customerId.primaryPhone || '—'}
+                </span>
+                <span className="text-[10px] text-muted-foreground block truncate">
+                  {order.customerId.email || '—'}
+                </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50 bg-muted/20 -mx-4 -mb-4 p-3 rounded-b-lg">
-                <span className="text-[11px] text-muted-foreground">
-                  GST ({(item.gstRateBasisPoints / 100).toFixed(1)}%): ₹
-                  {(item.taxPaise / 100).toLocaleString('en-IN')}
+              <div>
+                <span className="text-[11px] text-muted-foreground block">System Topology & Size</span>
+                <span className="font-bold text-foreground text-xs">
+                  {order.systemCapacityKwp} kWp
                 </span>
-                <span className="font-bold text-foreground text-sm">
-                  ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
+                <span className="text-[10px] font-bold text-solar-600 dark:text-solar-400 block">
+                  {order.systemTopology}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[11px] text-muted-foreground block">Originating Quotation</span>
+                {order.quotationRevisionId ? (
+                  <Link
+                    to={`/quotations/${order.quotationRevisionId._id || (order.quotationRevisionId as any).id}`}
+                    className="font-mono text-xs font-bold text-solar-600 hover:underline block truncate"
+                  >
+                    {order.quotationRevisionId.fullQuotationCode}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground text-xs block">Direct Sales Order</span>
+                )}
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span>
+                    Booked:{' '}
+                    {new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </span>
                 </span>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Desktop View: Full Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/50 border-b text-xs uppercase font-medium text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3">Qty</th>
-                <th className="px-6 py-3">Unit Rate</th>
-                <th className="px-6 py-3">Taxable Value</th>
-                <th className="px-6 py-3">GST Rate</th>
-                <th className="px-6 py-3">GST Amount</th>
-                <th className="px-6 py-3 text-right">Total (INR)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {order.lineItems.map((item, idx) => (
-                <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">
-                    {item.description}
-                    {item.productId?.sku && (
-                      <span className="block text-xs text-muted-foreground">
-                        SKU: {item.productId.sku}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {item.quantity} {item.unit}
-                  </td>
-                  <td className="px-6 py-4">
-                    ₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-6 py-4">
-                    ₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-6 py-4">{(item.gstRateBasisPoints / 100).toFixed(1)}%</td>
-                  <td className="px-6 py-4">₹{(item.taxPaise / 100).toLocaleString('en-IN')}</td>
-                  <td className="px-6 py-4 text-right font-semibold text-foreground">
-                    ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Financial Summary & Payment Milestones */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Payment Milestones */}
-        <div className="p-6 rounded-2xl border bg-card space-y-4">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-solar-500" />
-            <h3 className="text-base font-semibold text-foreground">Agreed Payment Milestones</h3>
           </div>
 
-          <div className="space-y-3">
-            {order.paymentMilestones.map((m, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-xl bg-muted/30 border flex items-center justify-between"
-              >
+          {/* Agreed Bill of Materials & Scope */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+              <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-solar-500" />
+                Agreed Bill of Materials & Work Scope
+              </h2>
+              <span className="text-[11px] text-muted-foreground font-medium">
+                {order.lineItems.length} line item(s)
+              </span>
+            </div>
+
+            {/* Mobile View: BOM Line Item Cards */}
+            <div className="block md:hidden divide-y divide-border">
+              {order.lineItems.map((item, idx) => (
+                <div key={idx} className="py-2.5 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-foreground text-xs">{item.description}</div>
+                      {item.productId?.sku && (
+                        <span className="text-[10px] font-mono text-muted-foreground block">
+                          SKU: {item.productId.sku}
+                        </span>
+                      )}
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded text-[11px] font-bold bg-secondary text-secondary-foreground font-mono">
+                      {item.quantity} {item.unit}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Unit Rate</span>
+                      <span className="font-medium text-foreground">
+                        ₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Taxable Value</span>
+                      <span className="font-medium text-foreground">
+                        ₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                    <span className="text-[10px] text-muted-foreground">
+                      GST ({(item.gstRateBasisPoints / 100).toFixed(0)}%): ₹{(item.taxPaise / 100).toLocaleString('en-IN')}
+                    </span>
+                    <span className="font-bold text-foreground text-xs">
+                      ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/60 text-muted-foreground text-left font-medium">
+                    <th className="pb-2 font-medium">Description</th>
+                    <th className="pb-2 text-center font-medium">Qty</th>
+                    <th className="pb-2 text-right font-medium">Unit Rate</th>
+                    <th className="pb-2 text-center font-medium">GST %</th>
+                    <th className="pb-2 text-right font-medium">Taxable (₹)</th>
+                    <th className="pb-2 text-right font-medium">Total (₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {order.lineItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-muted/20">
+                      <td className="py-2.5 text-foreground font-medium pr-2">
+                        <span>{item.description}</span>
+                        {item.productId?.sku && (
+                          <span className="block text-[10px] text-muted-foreground font-mono">
+                            SKU: {item.productId.sku}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 text-center font-mono">
+                        {item.quantity} {item.unit}
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-muted-foreground">
+                        ₹{(item.unitRatePaise / 100).toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-2.5 text-center font-mono text-muted-foreground">
+                        {(item.gstRateBasisPoints / 100).toFixed(0)}%
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-muted-foreground">
+                        ₹{(item.taxableAmountPaise / 100).toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-2.5 text-right font-mono font-semibold text-foreground">
+                        ₹{(item.itemTotalPaise / 100).toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Agreed Payment Milestones Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2">
+              <Clock className="w-3.5 h-3.5 text-solar-500" />
+              Payment Milestones & Commercial Conditions
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {(order.paymentMilestones || []).map((m, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 bg-secondary/30 rounded-lg border border-border text-xs"
+                >
+                  <div className="font-semibold text-foreground flex items-center justify-between">
+                    <span>{m.name || `Milestone ${idx + 1}`}</span>
+                    <span className="text-solar-600 dark:text-solar-400 font-bold">{m.percentage}%</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                    {m.description || '—'}
+                  </div>
+                  <div className="text-[11px] font-mono font-bold text-foreground mt-1.5 pt-1 border-t border-border/50">
+                    ₹{(((order.netTotalPaise * m.percentage) / 100 / 100) | 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {(order.termsAndConditions || []).length > 0 && (
+              <div className="pt-1.5 text-[11px] space-y-1 text-muted-foreground">
+                <span className="font-semibold text-foreground text-xs block">Commercial Terms:</span>
+                {(order.termsAndConditions || []).map((term, i) => (
+                  <div key={i}>• {term}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column (5 cols): Commercial Financial Summary + Operations Fulfillment Status */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Commercial Financial Summary Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+              <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Commercial Pricing & Tax Summary
+              </h2>
+              <span className="text-[11px] text-muted-foreground">INR (₹)</span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">Gross Subtotal</span>
+                <span className="font-mono text-foreground font-medium">
+                  ₹{(order.grossSubtotalPaise / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              {order.totalDiscountPaise > 0 && (
+                <div className="flex justify-between py-1 text-emerald-600 dark:text-emerald-400">
+                  <span>Additional Discount</span>
+                  <span className="font-mono font-medium">
+                    - ₹{(order.totalDiscountPaise / 100).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">Taxable Value</span>
+                <span className="font-mono text-foreground font-medium">
+                  ₹{(order.taxableAmountPaise / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border space-y-1.5 text-[11px]">
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">GST Taxes ({order.taxProfile?.profileCode || 'GST-EPC'})</span>
+                  <span className="font-mono text-foreground">
+                    ₹{(order.totalTaxPaise / 100).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                {order.taxProfile?.profileName && (
+                  <div className="text-[10px] text-muted-foreground italic">
+                    {order.taxProfile.profileName}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2.5 border-t border-border flex items-baseline justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">{m.name}</p>
-                  <p className="text-xs text-muted-foreground">{m.description}</p>
+                  <span className="text-xs font-bold text-foreground block">Net Agreed Total</span>
+                  <span className="text-[10px] text-muted-foreground">All applicable taxes included</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-bold text-foreground">{m.percentage}%</span>
-                  <p className="text-xs text-muted-foreground">
-                    ₹
-                    {(((order.netTotalPaise * m.percentage) / 100 / 100) | 0).toLocaleString(
-                      'en-IN'
-                    )}
-                  </p>
+                  <span className="text-2xl font-black text-solar-600 dark:text-solar-400 font-mono tracking-tight">
+                    ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Commercial Totals */}
-        <div className="p-6 rounded-2xl border bg-card space-y-3">
-          <h3 className="text-base font-semibold text-foreground">Financial Summary</h3>
-          <div className="flex justify-between text-sm py-1.5 border-b">
-            <span className="text-muted-foreground">Gross Subtotal</span>
-            <span className="font-medium text-foreground">
-              ₹{(order.grossSubtotalPaise / 100).toLocaleString('en-IN')}
-            </span>
+          {/* Operations & Fulfillment Status Card */}
+          <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2.5">
+              <FolderKanban className="w-3.5 h-3.5 text-solar-500" />
+              Fulfillment & Operations Handover
+            </h2>
+
+            {/* 1. Stock Allocation Item */}
+            <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <WarehouseIcon className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-bold text-foreground">Inventory Stock Allocation</span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    order.reservationStatus === 'FULLY_RESERVED'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                      : order.reservationStatus === 'PARTIALLY_RESERVED'
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                        : 'bg-muted text-muted-foreground border border-border'
+                  }`}
+                >
+                  {order.reservationStatus}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                {order.reservationStatus === 'FULLY_RESERVED'
+                  ? 'All solar modules and inverters are allocated and reserved in warehouse inventory.'
+                  : order.reservationStatus === 'PARTIALLY_RESERVED'
+                    ? 'Some physical materials are allocated. Additional hardware reservation required.'
+                    : 'Physical materials are not reserved yet. Reserve stock before dispatching hardware.'}
+              </p>
+
+              {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
+                <button
+                  type="button"
+                  onClick={openReserveModal}
+                  className="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <PackageCheck className="w-3.5 h-3.5" />
+                  <span>Reserve Stock Now</span>
+                </button>
+              )}
+            </div>
+
+            {/* 2. 10-Stage EPC Project Item */}
+            <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4 text-solar-500" />
+                  <span className="text-xs font-bold text-foreground">10-Stage EPC Project</span>
+                </div>
+                {linkedProject ? (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                    {linkedProject.currentStage || 'ACTIVE'}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-muted text-muted-foreground border border-border">
+                    NOT INITIATED
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                {linkedProject
+                  ? `Active EPC Execution under project ${linkedProject.projectCode}. Linear DISCOM liaisons, installation checklist & commissioning enabled.`
+                  : 'Start linear engineering, DISCOM liaison, Net Metering approval, and site execution pipeline.'}
+              </p>
+
+              {order.status !== 'CANCELLED' && (
+                linkedProject ? (
+                  <Link
+                    to={`/projects/${linkedProject._id || linkedProject.id}`}
+                    className="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <FolderKanban className="w-3.5 h-3.5" />
+                    <span>Open EPC Project ({linkedProject.projectCode}) →</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateProjectModal(true);
+                      setProjectError(null);
+                    }}
+                    className="w-full py-1.5 px-3 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <FolderKanban className="w-3.5 h-3.5" />
+                    <span>Launch 10-Stage EPC Project →</span>
+                  </button>
+                )
+              )}
+            </div>
           </div>
-          <div className="flex justify-between text-sm py-1.5 border-b">
-            <span className="text-muted-foreground">Total Discount</span>
-            <span className="font-medium text-emerald-400">
-              - ₹{(order.totalDiscountPaise / 100).toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm py-1.5 border-b">
-            <span className="text-muted-foreground">Taxable Value</span>
-            <span className="font-medium text-foreground">
-              ₹{(order.taxableAmountPaise / 100).toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm py-1.5 border-b">
-            <span className="text-muted-foreground">
-              GST Taxes ({order.taxProfile.profileCode})
-            </span>
-            <span className="font-medium text-foreground">
-              ₹{(order.totalTaxPaise / 100).toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className="flex justify-between text-lg py-2 font-bold">
-            <span className="text-foreground">Net Order Total</span>
-            <span className="text-solar-500">
-              ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
-            </span>
-          </div>
+
+          {/* Notes & Directives Card */}
+          {order.notes && (
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs text-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Order Notes & Directives
+              </span>
+              <p className="text-foreground text-xs leading-relaxed">{order.notes}</p>
+            </div>
+          )}
         </div>
       </div>
 
