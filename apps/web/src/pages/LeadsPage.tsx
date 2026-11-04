@@ -295,13 +295,13 @@ export const LeadsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
-            <span>Inquiries & Leads</span>
+            <span>Lead Management</span>
             <span className="text-xs ml-2.5 px-2.5 py-0.5 rounded-full font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
               Rarebox CRM
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Record prospective solar clients and manage lead statuses in one simple view.
+            Capture prospective solar clients, track references, and manage lead statuses in one simple view.
           </p>
         </div>
         <div>
@@ -328,7 +328,7 @@ export const LeadsPage: React.FC = () => {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            All Inquiries ({totalCount})
+            All Leads ({totalCount})
           </button>
           <button
             type="button"
@@ -431,8 +431,8 @@ export const LeadsPage: React.FC = () => {
         ) : filteredLeads.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-3">
             <Sun className="w-12 h-12 mx-auto text-solar-400 opacity-50" />
-            <p className="text-base font-medium text-foreground">No inquiries in this view</p>
-            <p className="text-sm">Try resetting filters or record a new prospect inquiry.</p>
+            <p className="text-base font-medium text-foreground">No leads in this view</p>
+            <p className="text-sm">Try resetting filters or record a new prospective lead.</p>
             <button
               onClick={() => {
                 setStatusFilter('ALL');

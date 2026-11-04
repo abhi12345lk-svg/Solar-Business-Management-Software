@@ -322,7 +322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
 
           {/* 2. Total Leads */}
           <DashboardKpiCard
-            title="Total Inquiries & Leads"
+            title="Lead Management"
             value={totalLeadsCount}
             subtitle="Commercial pipeline"
             icon={TrendingUp}
