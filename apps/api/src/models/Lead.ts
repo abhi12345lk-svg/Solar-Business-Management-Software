@@ -28,6 +28,7 @@ export interface ILeadDocument extends Document {
   status: LeadStatus;
   lostReason?: string;
   priority: LeadPriority;
+  reference?: string;
   notes?: string;
   nextFollowUpDate?: Date;
   isActive: boolean;
@@ -122,6 +123,10 @@ const LeadSchema = new Schema<ILeadDocument>(
       type: String,
       enum: Object.values(LeadPriority),
       default: LeadPriority.MEDIUM
+    },
+    reference: {
+      type: String,
+      trim: true
     },
     notes: {
       type: String,

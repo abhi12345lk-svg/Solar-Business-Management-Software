@@ -83,6 +83,7 @@ export class LeadService {
       status: doc.status,
       lostReason: doc.lostReason,
       priority: doc.priority,
+      reference: doc.reference,
       notes: doc.notes,
       nextFollowUpDate: doc.nextFollowUpDate
         ? new Date(doc.nextFollowUpDate).toISOString()
@@ -213,6 +214,7 @@ export class LeadService {
           assignedToEmployeeId: assignedId,
           status: LeadStatus.NEW,
           priority: input.priority || LeadPriority.MEDIUM,
+          reference: input.reference?.trim() || undefined,
           notes: input.notes,
           nextFollowUpDate: input.nextFollowUpDate ? new Date(input.nextFollowUpDate) : undefined,
           isActive: true,
@@ -377,7 +379,8 @@ export class LeadService {
         { prospectPhone: { $regex: escaped, $options: 'i' } },
         { prospectEmail: { $regex: escaped, $options: 'i' } },
         { leadCode: { $regex: escaped, $options: 'i' } },
-        { companyName: { $regex: escaped, $options: 'i' } }
+        { companyName: { $regex: escaped, $options: 'i' } },
+        { reference: { $regex: escaped, $options: 'i' } }
       ];
     }
 
@@ -472,6 +475,7 @@ export class LeadService {
         input.estimatedCapacityKw === null ? undefined : input.estimatedCapacityKw;
     }
     if (input.priority !== undefined) lead.priority = input.priority;
+    if (input.reference !== undefined) lead.reference = input.reference?.trim() || undefined;
     if (input.notes !== undefined) lead.notes = input.notes;
     if (input.nextFollowUpDate !== undefined) {
       lead.nextFollowUpDate = input.nextFollowUpDate ? new Date(input.nextFollowUpDate) : undefined;

@@ -44,6 +44,7 @@ export const LeadsPage: React.FC = () => {
   const [pinCode, setPinCode] = useState('');
   const [street, setStreet] = useState('');
   const [source, setSource] = useState<LeadSource>(LeadSource.WEBSITE);
+  const [reference, setReference] = useState('');
   const [solarRequirement, setSolarRequirement] = useState<SolarRequirement>(
     SolarRequirement.RESIDENTIAL
   );
@@ -173,6 +174,7 @@ export const LeadsPage: React.FC = () => {
           street: street.trim() || undefined
         },
         source,
+        reference: reference.trim() || undefined,
         solarRequirement,
         estimatedCapacityKw: estimatedCapacityKw ? parseFloat(estimatedCapacityKw) : undefined,
         priority,
@@ -214,6 +216,7 @@ export const LeadsPage: React.FC = () => {
     setState('Chhattisgarh');
     setPinCode('');
     setStreet('');
+    setReference('');
     setNotes('');
     setDupWarning(null);
     setCreateError(null);
@@ -503,6 +506,11 @@ export const LeadsPage: React.FC = () => {
                           ⚡ {lead.estimatedCapacityKw} kWp
                         </span>
                       )}
+                      {lead.reference && (
+                        <span className="font-medium text-foreground">
+                          👤 Ref: {lead.reference}
+                        </span>
+                      )}
                     </div>
 
                     {lead.notes && (
@@ -524,6 +532,7 @@ export const LeadsPage: React.FC = () => {
                     <th className="py-3 px-4">Prospect Name</th>
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Location</th>
+                    <th className="py-3 px-4">Reference</th>
                     <th className="py-3 px-4">Capacity</th>
                     <th className="py-3 px-4">Requirement</th>
                     <th className="py-3 px-4">Status</th>
@@ -566,6 +575,15 @@ export const LeadsPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-muted-foreground">
                           {lead.location.city}, {lead.location.state}
+                        </td>
+                        <td className="py-3.5 px-4 text-xs">
+                          {lead.reference ? (
+                            <span className="font-medium text-foreground bg-muted/60 px-2.5 py-1 rounded-md border inline-block">
+                              {lead.reference}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60 italic text-xs">Direct</span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 font-medium text-foreground">
                           {lead.estimatedCapacityKw ? `${lead.estimatedCapacityKw} kWp` : '—'}
@@ -756,24 +774,7 @@ export const LeadsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Requirement Type
-                    </label>
-                    <select
-                      value={solarRequirement}
-                      onChange={e => setSolarRequirement(e.target.value as SolarRequirement)}
-                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                    >
-                      {Object.values(SolarRequirement).map(r => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Lead Source
@@ -786,6 +787,38 @@ export const LeadsPage: React.FC = () => {
                       {Object.values(LeadSource).map(s => (
                         <option key={s} value={s}>
                           {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Reference / Referred By
+                    </label>
+                    <input
+                      type="text"
+                      value={reference}
+                      onChange={e => setReference(e.target.value)}
+                      placeholder="e.g. Ramesh Sharma, Channel Partner, Direct..."
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Requirement Type
+                    </label>
+                    <select
+                      value={solarRequirement}
+                      onChange={e => setSolarRequirement(e.target.value as SolarRequirement)}
+                      className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      {Object.values(SolarRequirement).map(r => (
+                        <option key={r} value={r}>
+                          {r}
                         </option>
                       ))}
                     </select>

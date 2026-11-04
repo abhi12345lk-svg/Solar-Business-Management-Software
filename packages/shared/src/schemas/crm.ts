@@ -83,6 +83,7 @@ export const CreateLeadInputSchema = z.object({
     .optional(),
   assignedToEmployeeId: z.string().trim().optional(),
   priority: z.nativeEnum(LeadPriority).default(LeadPriority.MEDIUM),
+  reference: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(2000).optional(),
   nextFollowUpDate: z.string().datetime().or(z.date()).optional()
 });
@@ -99,6 +100,7 @@ export const UpdateLeadInputSchema = z.object({
   solarRequirement: z.nativeEnum(SolarRequirement).optional(),
   estimatedCapacityKw: z.number().positive().max(50000).optional().nullable(),
   priority: z.nativeEnum(LeadPriority).optional(),
+  reference: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(2000).optional(),
   nextFollowUpDate: z.string().datetime().or(z.date()).optional().nullable(),
   isActive: z.boolean().optional()
@@ -170,6 +172,7 @@ export interface LeadDto {
   status: LeadStatus;
   lostReason?: string;
   priority: LeadPriority;
+  reference?: string;
   notes?: string;
   nextFollowUpDate?: string;
   isActive: boolean;
