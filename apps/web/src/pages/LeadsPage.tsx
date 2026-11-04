@@ -462,14 +462,14 @@ export const LeadsPage: React.FC = () => {
           <>
             {/* Mobile Cards (< md) */}
             <div className="block md:hidden divide-y">
-              {filteredLeads.map(lead => {
+              {filteredLeads.map((lead, index) => {
                 const action = getActionConfig(lead);
                 return (
                   <div key={lead.id} className="p-4 hover:bg-muted/30 transition-colors space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="font-mono text-xs font-bold text-solar-600 block">
-                          {lead.leadCode}
+                        <span className="font-mono text-xs font-bold text-muted-foreground block">
+                          S.No. {index + 1}
                         </span>
                         <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
                           {lead.prospectName}
@@ -526,7 +526,7 @@ export const LeadsPage: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead className="bg-secondary/40 border-b text-muted-foreground font-semibold">
                   <tr>
-                    <th className="py-3 px-4">Lead Code</th>
+                    <th className="py-3 px-4 w-16 text-center">S.No.</th>
                     <th className="py-3 px-4">Prospect Name</th>
                     <th className="py-3 px-4">Contact</th>
                     <th className="py-3 px-4">Location</th>
@@ -537,17 +537,12 @@ export const LeadsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredLeads.map(lead => {
+                  {filteredLeads.map((lead, index) => {
                     const action = getActionConfig(lead);
                     return (
                       <tr key={lead.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-medium">
-                          <Link
-                            to={`/leads/${lead.id}`}
-                            className="text-solar-600 hover:text-solar-700 hover:underline"
-                          >
-                            {lead.leadCode}
-                          </Link>
+                        <td className="py-3.5 px-4 font-mono font-semibold text-center text-muted-foreground w-16">
+                          {index + 1}
                         </td>
                         <td className="py-3.5 px-4 font-medium text-foreground">
                           <Link
