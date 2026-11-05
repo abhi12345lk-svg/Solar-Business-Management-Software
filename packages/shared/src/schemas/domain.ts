@@ -178,6 +178,7 @@ export interface CustomerDto {
   contactPerson?: ContactPersonDto;
   notes?: string;
   tags?: string[];
+  documentCount?: number;
   createdAt: string;
   updatedAt: string;
 }

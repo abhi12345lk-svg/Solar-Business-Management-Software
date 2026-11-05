@@ -28,7 +28,8 @@ import {
   TrendingUp,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronRight
+  ChevronRight,
+  FolderLock
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -56,6 +57,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
       { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
@@ -107,6 +109,7 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell }
     ]
   },
@@ -190,7 +193,8 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/employees')) return { section: 'HR', title: 'Employees' };
   if (pathname.startsWith('/teams')) return { section: 'HR', title: 'Field Crews' };
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
-  if (pathname.startsWith('/documents')) return { section: 'Workspace', title: 'Document Vault' };
+  if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
+    return { section: 'CRM', title: 'Document Vault' };
   if (pathname.startsWith('/customer-portal'))
     return { section: 'Customer', title: 'Client Portal' };
   if (pathname.startsWith('/mfa')) return { section: 'Security', title: 'MFA Security' };

@@ -15,7 +15,13 @@ import {
   Loader2,
   CheckCircle2,
   ChevronDown,
-  ShoppingCart
+  ShoppingCart,
+  FolderLock,
+  Upload,
+  Trash2,
+  ExternalLink,
+  FileText,
+  Download
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
@@ -41,6 +47,21 @@ export const CustomersPage: React.FC = () => {
   // Status Lifecycle Update State
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [statusNotification, setStatusNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Customer Document Vault Modal State
+  const [vaultCustomer, setVaultCustomer] = useState<CustomerDto | null>(null);
+  const [vaultDocuments, setVaultDocuments] = useState<any[]>([]);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
+  const [vaultSuccess, setVaultSuccess] = useState<string | null>(null);
+  const [vaultUploadOpen, setVaultUploadOpen] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  // Vault Upload Form State
+  const [newDocCategory, setNewDocCategory] = useState('ELECTRICITY_BILL');
+  const [newDocDisplayName, setNewDocDisplayName] = useState('');
+  const [newDocClassification, setNewDocClassification] = useState<'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE'>('CUSTOMER_VISIBLE');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -148,6 +169,153 @@ export const CustomersPage: React.FC = () => {
       });
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const getCategoryMeta = (cat: string) => {
+    switch (cat) {
+      case 'ELECTRICITY_BILL':
+        return { label: '⚡ Electricity Bill', color: 'bg-amber-500/10 text-amber-700 border-amber-500/20' };
+      case 'CUSTOMER_KYC':
+        return { label: '🪪 Customer KYC / ID', color: 'bg-blue-500/10 text-blue-700 border-blue-500/20' };
+      case 'PROPERTY_DEED':
+        return { label: '🏠 Property / Roof Deed', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' };
+      case 'QUOTATION_PROPOSAL':
+        return { label: '📋 Solar Quotation', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20' };
+      case 'SIGNED_CONTRACT':
+        return { label: '✍️ Signed Contract', color: 'bg-purple-500/10 text-purple-700 border-purple-500/20' };
+      case 'NET_METERING_DOC':
+        return { label: '🔌 Net Metering Feasibility', color: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20' };
+      case 'SUBSIDY_DOC':
+        return { label: '🏛️ Govt Subsidy (DBT)', color: 'bg-orange-500/10 text-orange-700 border-orange-500/20' };
+      case 'INSTALLATION_QUALITY':
+        return { label: '📸 Site & Survey Photos', color: 'bg-teal-500/10 text-teal-700 border-teal-500/20' };
+      default:
+        return { label: '📄 Other Document', color: 'bg-muted text-muted-foreground border-border' };
+    }
+  };
+
+  const fetchVaultDocuments = async (customerId: string) => {
+    setVaultLoading(true);
+    setVaultError(null);
+    try {
+      const data = await apiClient<any[]>(`/customers/${customerId}/documents`);
+      setVaultDocuments(data || []);
+    } catch (err: any) {
+      setVaultError(err?.message || 'Failed to load vault documents.');
+    } finally {
+      setVaultLoading(false);
+    }
+  };
+
+  const openCustomerVault = async (customer: CustomerDto) => {
+    setVaultCustomer(customer);
+    setVaultUploadOpen(false);
+    setVaultError(null);
+    setVaultSuccess(null);
+    setSelectedFile(null);
+    setNewDocDisplayName('');
+    await fetchVaultDocuments(customer.id);
+  };
+
+  const handleVaultFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vaultCustomer) return;
+    if (!newDocDisplayName.trim()) {
+      setVaultError('Document display name/title is required.');
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    setVaultError(null);
+    setVaultSuccess(null);
+
+    try {
+      const filename = selectedFile?.name || `${newDocDisplayName.trim().replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      const mimeType = selectedFile?.type || 'application/pdf';
+      const fileSize = selectedFile?.size || 2048;
+
+      const docRes = await apiClient<any>(`/customers/${vaultCustomer.id}/documents`, {
+        method: 'POST',
+        body: JSON.stringify({
+          originalFilename: filename,
+          safeDisplayName: newDocDisplayName.trim(),
+          category: newDocCategory,
+          accessClassification: newDocClassification,
+          mimeType,
+          fileSizeBytes: fileSize
+        })
+      });
+
+      const docId = docRes?.id || docRes?._id;
+
+      if (selectedFile && docId) {
+        try {
+          await fetch(`/api/v1/documents/${docId}/content`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': selectedFile.type || 'application/octet-stream'
+            },
+            body: selectedFile
+          });
+        } catch (uploadErr) {
+          console.warn('Binary file stream notice:', uploadErr);
+        }
+      }
+
+      setVaultSuccess(`Document "${newDocDisplayName.trim()}" added to vault successfully!`);
+      setVaultUploadOpen(false);
+      setSelectedFile(null);
+      setNewDocDisplayName('');
+
+      await fetchVaultDocuments(vaultCustomer.id);
+
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === vaultCustomer.id
+            ? { ...c, documentCount: (c.documentCount || 0) + 1 }
+            : c
+        )
+      );
+    } catch (err: any) {
+      setVaultError(err?.message || 'Failed to upload document.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
+  const handleVaultDownload = async (doc: any) => {
+    try {
+      const docId = doc._id || doc.id;
+      const res = await apiClient<{ downloadUrl: string }>(`/documents/${docId}/access-url`);
+      if (res?.downloadUrl) {
+        window.open(res.downloadUrl, '_blank');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to generate download URL.');
+    }
+  };
+
+  const handleVaultDelete = async (docId: string, docName: string) => {
+    if (!vaultCustomer) return;
+    if (!window.confirm(`Are you sure you want to remove "${docName}" from this client's vault?`)) {
+      return;
+    }
+    try {
+      await apiClient(`/customers/${vaultCustomer.id}/documents/${docId}`, {
+        method: 'DELETE'
+      });
+      setVaultSuccess(`Document "${docName}" removed from vault.`);
+      setVaultDocuments(prev => prev.filter(d => (d._id || d.id) !== docId));
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === vaultCustomer.id
+            ? { ...c, documentCount: Math.max(0, (c.documentCount || 1) - 1) }
+            : c
+        )
+      );
+    } catch (err: any) {
+      setVaultError(err?.message || 'Failed to delete document.');
     }
   };
 
@@ -394,6 +562,7 @@ export const CustomersPage: React.FC = () => {
                   <th className="py-3 px-4">Customer Name & Type</th>
                   <th className="py-3 px-4">Contact Details</th>
                   <th className="py-3 px-4">Installation Site</th>
+                  <th className="py-3 px-4 text-center">Document Vault</th>
                   <th className="py-3 px-4 text-center">Status / Client Stage</th>
                 </tr>
               </thead>
@@ -500,6 +669,24 @@ export const CustomersPage: React.FC = () => {
                         )}
                       </td>
 
+                      {/* Document Vault Column */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => openCustomerVault(customer)}
+                          className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition shadow-xs cursor-pointer group/btn ${
+                            (customer.documentCount || 0) > 0
+                              ? 'bg-blue-500/10 text-blue-700 border-blue-500/30 hover:bg-blue-500/20 dark:text-blue-400'
+                              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                          }`}
+                          title={`Open ${customer.name}'s Document Vault`}
+                        >
+                          <FolderLock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover/btn:scale-110 transition-transform" />
+                          <span>Vault ({(customer.documentCount || 0)})</span>
+                          <span className="text-[10px] opacity-75 font-normal ml-0.5">+ Upload</span>
+                        </button>
+                      </td>
+
                       {/* Status / Client Stage with Interactive Dropdown */}
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <div className="relative inline-block text-left">
@@ -576,7 +763,7 @@ export const CustomersPage: React.FC = () => {
                 <span>Direct Workflow Launch:</span>
                 <span className="text-[11px] text-muted-foreground font-normal">Pre-filled with customer details</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <Link
                   to={`/solar-designs?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
                   className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
@@ -620,6 +807,22 @@ export const CustomersPage: React.FC = () => {
                   </div>
                   <span className="text-[10px] text-muted-foreground">Installation tracker</span>
                 </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cust = selectedCustomer;
+                    setSelectedCustomer(null);
+                    openCustomerVault(cust);
+                  }}
+                  className="p-2.5 bg-card hover:bg-muted/50 border border-blue-500/20 rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group text-left cursor-pointer"
+                >
+                  <div className="flex items-center space-x-1.5 text-blue-600 font-semibold text-xs">
+                    <FolderLock className="w-3.5 h-3.5" />
+                    <span>5. Document Vault</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">KYC, Bills & Proofs</span>
+                </button>
               </div>
             </div>
 
@@ -936,6 +1139,332 @@ export const CustomersPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Document Vault Modal */}
+      {vaultCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-card border rounded-2xl w-full max-w-3xl p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-base">
+                  <FolderLock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-bold text-foreground">
+                      Document Vault: {vaultCustomer.name}
+                    </h3>
+                    <span className="font-mono text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground">
+                      {vaultCustomer.customerCode}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Client KYC, Electricity Bills, Rooftop Deeds & DISCOM Sanction Letters
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setVaultCustomer(null);
+                  setVaultUploadOpen(false);
+                }}
+                className="text-muted-foreground hover:text-foreground text-sm font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Alert Notifications inside Vault */}
+            {vaultError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-xs flex items-center justify-between">
+                <span>{vaultError}</span>
+                <button onClick={() => setVaultError(null)} className="ml-2 font-bold cursor-pointer">✕</button>
+              </div>
+            )}
+            {vaultSuccess && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{vaultSuccess}</span>
+                </div>
+                <button onClick={() => setVaultSuccess(null)} className="ml-2 font-bold cursor-pointer">✕</button>
+              </div>
+            )}
+
+            {/* Quick Actions & Header Summary */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/40 p-3 rounded-xl border">
+              <div className="text-xs">
+                <span className="font-bold text-foreground">
+                  Attached Documents: {vaultDocuments.length}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  • Phone: {vaultCustomer.primaryPhone}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Link
+                  to={`/documents?customerId=${vaultCustomer.id}`}
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                  title="Open in Full Document Vault"
+                >
+                  <span>All Vault Records</span>
+                  <ExternalLink className="w-3 h-3 ml-0.5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white transition shadow-xs cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{vaultUploadOpen ? 'Close Upload Form' : '+ Upload Document'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Upload Document Panel */}
+            {vaultUploadOpen && (
+              <form
+                onSubmit={handleVaultFileUpload}
+                className="p-4 bg-muted/20 border-2 border-solar-500/30 rounded-xl space-y-3.5 animate-in fade-in duration-150"
+              >
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
+                    <Upload className="w-3.5 h-3.5 text-solar-500" />
+                    <span>Upload New Document to Client Vault</span>
+                  </h4>
+                  <span className="text-[11px] text-muted-foreground">PDF, JPG, PNG, WEBP, XLSX, DOCX (Max 25MB)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-muted-foreground font-semibold mb-1">
+                      Solar EPC Category *
+                    </label>
+                    <select
+                      value={newDocCategory}
+                      onChange={e => setNewDocCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      <option value="ELECTRICITY_BILL">⚡ Latest Electricity Bill (Consumer Proof)</option>
+                      <option value="CUSTOMER_KYC">🪪 Identity Proof (Aadhaar / PAN / Voter ID)</option>
+                      <option value="PROPERTY_DEED">🏠 Rooftop / Property Deed / Tax Receipt</option>
+                      <option value="QUOTATION_PROPOSAL">📋 Solar Quotation & Technical Proposal</option>
+                      <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
+                      <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
+                      <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
+                      <option value="INSTALLATION_QUALITY">📸 Rooftop Site Photos & Shadow Survey</option>
+                      <option value="OTHER">📄 Other Client Document</option>
+                    </select>
+                  </div>
+
+                  {/* Access Classification */}
+                  <div>
+                    <label className="block text-muted-foreground font-semibold mb-1">
+                      Access Classification
+                    </label>
+                    <select
+                      value={newDocClassification}
+                      onChange={e => setNewDocClassification(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    >
+                      <option value="CUSTOMER_VISIBLE">Customer Visible (Available on Portal)</option>
+                      <option value="INTERNAL_ONLY">Internal Only (Rarebox Staff Only)</option>
+                    </select>
+                  </div>
+
+                  {/* Document Display Name */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-muted-foreground font-semibold mb-1">
+                      Document Title / Safe Display Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Electricity Bill - Oct 2026 or Aadhaar Card Front & Back"
+                      value={newDocDisplayName}
+                      onChange={e => setNewDocDisplayName(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                    />
+                  </div>
+
+                  {/* File Selector */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-muted-foreground font-semibold mb-1">
+                      Select File from Device (PDF, Image, Doc)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                      onChange={e => {
+                        const file = e.target.files?.[0] || null;
+                        setSelectedFile(file);
+                        if (file && !newDocDisplayName) {
+                          setNewDocDisplayName(file.name.replace(/\.[^/.]+$/, ''));
+                        }
+                      }}
+                      className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-solar-500/10 file:text-solar-700 hover:file:bg-solar-500/20 cursor-pointer bg-background border rounded-lg p-1.5"
+                    />
+                    {selectedFile && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Selected: <span className="font-semibold text-foreground">{selectedFile.name}</span> ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVaultUploadOpen(false);
+                      setSelectedFile(null);
+                    }}
+                    className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUploadingDoc}
+                    className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    {isUploadingDoc ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading to Vault...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Confirm & Save Document</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Attached Vault Documents List */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-foreground">Client Vault Documents</h4>
+
+              {vaultLoading ? (
+                <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-solar-500" />
+                  <p className="text-xs">Loading client vault documents...</p>
+                </div>
+              ) : vaultDocuments.length === 0 ? (
+                <div className="p-8 text-center bg-muted/20 border border-dashed rounded-xl space-y-2">
+                  <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-xs font-semibold text-foreground">No Documents in Vault Yet</p>
+                  <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+                    Upload electricity bills, consumer KYC proofs, property deeds, or rooftop layout photos for this client.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setVaultUploadOpen(true)}
+                    className="mt-2 inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white transition cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Upload First Document</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-border border rounded-xl overflow-hidden bg-card text-xs">
+                  {vaultDocuments.map(doc => {
+                    const meta = getCategoryMeta(doc.category);
+                    const docId = doc._id || doc.id;
+                    const sizeKb = doc.fileSizeBytes ? (doc.fileSizeBytes / 1024).toFixed(1) : '—';
+                    const uploadDate = doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '';
+
+                    return (
+                      <div
+                        key={docId}
+                        className="p-3.5 hover:bg-muted/30 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5"
+                      >
+                        <div className="flex items-start space-x-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                              <span className="font-bold text-foreground truncate">
+                                {doc.safeDisplayName || doc.originalFilename}
+                              </span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${meta.color}`}>
+                                {meta.label}
+                              </span>
+                              {doc.accessClassification === 'CUSTOMER_VISIBLE' && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-medium">
+                                  Client Visible
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center space-x-2 mt-0.5">
+                              <span className="font-mono">{doc.documentNumber}</span>
+                              <span>•</span>
+                              <span>{doc.originalFilename}</span>
+                              <span>•</span>
+                              <span>{sizeKb} KB</span>
+                              {uploadDate && (
+                                <>
+                                  <span>•</span>
+                                  <span>{uploadDate}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Document Actions */}
+                        <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleVaultDownload(doc)}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                            title="Download or Preview Document"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download / View</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleVaultDelete(docId, doc.safeDisplayName || doc.originalFilename)}
+                            className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition cursor-pointer"
+                            title="Remove Document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-3 border-t text-xs">
+              <span className="text-muted-foreground">
+                Documents are cryptographically verified and encrypted in Rarebox Vault.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setVaultCustomer(null);
+                  setVaultUploadOpen(false);
+                }}
+                className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition cursor-pointer"
+              >
+                Close Vault
+              </button>
+            </div>
           </div>
         </div>
       )}

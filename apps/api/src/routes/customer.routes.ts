@@ -2,8 +2,16 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { Customer } from '../models/Customer.js';
 import { Lead } from '../models/Lead.js';
+import { DocumentModel } from '../models/DocumentModel.js';
+import { DocumentService } from '../services/documentService.js';
 import { SequenceService } from '../services/sequenceService.js';
-import { SequenceEntityType, CustomerStatus, CustomerType } from '@ins-solar/shared';
+import {
+  SequenceEntityType,
+  CustomerStatus,
+  CustomerType,
+  DocumentCategory,
+  DocumentAccessClassification
+} from '@ins-solar/shared';
 import { requireAuth, requireEmployee } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
@@ -46,11 +54,19 @@ customerRouter.get('/', async (req: Request, res: Response, next: NextFunction) 
       Customer.countDocuments(query)
     ]);
 
-    // Format items with consistent id and legalName fallback
+    const customerIds = items.map(c => c._id);
+    const docCounts = await DocumentModel.aggregate([
+      { $match: { customerId: { $in: customerIds }, isArchived: false } },
+      { $group: { _id: '$customerId', count: { $sum: 1 } } }
+    ]);
+    const docCountMap = new Map(docCounts.map(d => [d._id.toString(), d.count]));
+
+    // Format items with consistent id, legalName fallback, and live documentCount
     const formattedItems = items.map(c => ({
       ...c,
       id: c._id.toString(),
-      legalName: c.companyName || c.name
+      legalName: c.companyName || c.name,
+      documentCount: docCountMap.get(c._id.toString()) || 0
     }));
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -215,6 +231,119 @@ customerRouter.patch('/:id/status', async (req: Request, res: Response, next: Ne
       id: customer._id.toString(),
       legalName: customer.companyName || customer.name
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /api/v1/customers/:id/documents
+ * Fetch all active documents attached to a specific customer's vault.
+ */
+customerRouter.get('/:id/documents', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customerId = String(req.params.id || '').trim();
+    if (!Types.ObjectId.isValid(customerId)) {
+      throw AppError.validationFailed('Invalid customer ID format.');
+    }
+
+    const docs = await DocumentModel.find({ customerId, isArchived: false })
+      .populate('uploadedBy', 'firstName lastName email customerCode fullName')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return sendSuccess(req, res, docs);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * POST /api/v1/customers/:id/documents
+ * Directly upload or register a document into a customer's document vault.
+ */
+customerRouter.post('/:id/documents', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customerId = String(req.params.id || '').trim();
+    if (!Types.ObjectId.isValid(customerId)) {
+      throw AppError.validationFailed('Invalid customer ID format.');
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      throw AppError.notFound(`Customer '${customerId}' not found.`);
+    }
+
+    const {
+      originalFilename,
+      safeDisplayName,
+      category,
+      accessClassification,
+      mimeType,
+      fileSizeBytes
+    } = req.body;
+
+    if (!originalFilename || !safeDisplayName) {
+      throw AppError.validationFailed('Filename and display name are required.');
+    }
+
+    const user = req.session.user!;
+    const actorContext = {
+      actorId: user.userId,
+      actorType: 'EMPLOYEE' as const,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      correlationId: (req as any).correlationId
+    };
+
+    const doc = await DocumentService.registerDocument(
+      {
+        originalFilename: String(originalFilename).trim(),
+        safeDisplayName: String(safeDisplayName).trim(),
+        category: category || DocumentCategory.CUSTOMER_KYC,
+        accessClassification: accessClassification || DocumentAccessClassification.INTERNAL_ONLY,
+        mimeType: mimeType || 'application/pdf',
+        fileSizeBytes: Number(fileSizeBytes) || 1024,
+        customerId
+      },
+      actorContext
+    );
+
+    return sendSuccess(req, res, doc, 201);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * DELETE /api/v1/customers/:id/documents/:docId
+ * Archive / delete a document from a customer's document vault.
+ */
+customerRouter.delete('/:id/documents/:docId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const docId = String(req.params.docId || '').trim();
+    if (!Types.ObjectId.isValid(docId)) {
+      throw AppError.validationFailed('Invalid document ID format.');
+    }
+
+    const user = req.session.user!;
+    const actorContext = {
+      actorId: user.userId,
+      actorType: 'EMPLOYEE' as const,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      correlationId: (req as any).correlationId
+    };
+
+    const archived = await DocumentService.archiveDocument(
+      docId,
+      'Removed from customer document vault',
+      actorContext
+    );
+
+    return sendSuccess(req, res, archived);
   } catch (err) {
     return next(err);
   }

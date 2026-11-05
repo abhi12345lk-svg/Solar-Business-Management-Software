@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   FileText,
   Search,
@@ -62,6 +63,9 @@ export const DocumentsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchParams] = useSearchParams();
+  const customerIdParam = searchParams.get('customerId') || '';
+
   // Filters
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -91,7 +95,7 @@ export const DocumentsPage: React.FC = () => {
   >('INTERNAL_ONLY');
   const [uploadMime, setUploadMime] = useState('application/pdf');
   const [uploadSize, setUploadSize] = useState('1048576'); // 1 MB default
-  const [uploadCustomerId, setUploadCustomerId] = useState('');
+  const [uploadCustomerId, setUploadCustomerId] = useState(customerIdParam);
   const [uploadProjectId, setUploadProjectId] = useState('');
 
   // Form State: Version Modal
@@ -112,6 +116,7 @@ export const DocumentsPage: React.FC = () => {
       if (reviewFilter) queryParams.set('reviewStatus', reviewFilter);
       if (classificationFilter) queryParams.set('accessClassification', classificationFilter);
       if (isArchivedFilter) queryParams.set('isArchived', 'true');
+      if (customerIdParam) queryParams.set('customerId', customerIdParam);
 
       const res = await apiClient<any>(`/documents?${queryParams.toString()}`);
       setDocuments(Array.isArray(res) ? res : res?.items || res?.documents || []);
@@ -124,7 +129,7 @@ export const DocumentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [search, categoryFilter, reviewFilter, classificationFilter, isArchivedFilter]);
+  }, [search, categoryFilter, reviewFilter, classificationFilter, isArchivedFilter, customerIdParam]);
 
   const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();

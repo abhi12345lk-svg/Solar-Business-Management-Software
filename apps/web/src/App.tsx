@@ -352,6 +352,10 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="document-vault"
+            element={<Navigate to="/documents" replace />}
+          />
           <Route path="health" element={<HealthStatusPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

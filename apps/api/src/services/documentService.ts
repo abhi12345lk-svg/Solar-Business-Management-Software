@@ -17,6 +17,7 @@ import {
 } from '@ins-solar/shared';
 import { DocumentModel, IDocumentRecord } from '../models/DocumentModel.js';
 import { CustomerIdentity } from '../models/CustomerIdentity.js';
+import { Customer } from '../models/Customer.js';
 import { Project } from '../models/Project.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
@@ -69,7 +70,9 @@ export class DocumentService {
       if (!Types.ObjectId.isValid(input.customerId)) {
         throw AppError.validation(`Invalid customerId '${input.customerId}'.`);
       }
-      const customerExists = await CustomerIdentity.findById(input.customerId);
+      const customerExists =
+        (await Customer.findById(input.customerId)) ||
+        (await CustomerIdentity.findById(input.customerId));
       if (!customerExists) {
         throw AppError.notFound(`Customer with ID '${input.customerId}' not found.`);
       }
