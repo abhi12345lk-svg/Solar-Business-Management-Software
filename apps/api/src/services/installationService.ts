@@ -17,17 +17,29 @@ import {
   UpdateInstallationInput,
   ReviewInstallationInput,
   AssignInstallationInput,
-  InstallationFilterInput
+  InstallationFilterInput,
+  ProjectStage,
+  ProjectStatus,
+  MilestoneStatus,
+  DocumentCategory,
+  DocumentAccessClassification,
+  DocumentReviewStatus,
+  DocumentStorageStatus,
+  SerialNumberStatus,
+  WarrantyStatus
 } from '@ins-solar/shared';
 import { InstallationModel, IInstallationDocument, ISitePhoto, ITechnicalManual } from '../models/Installation.js';
 import { Customer } from '../models/Customer.js';
 import { Project } from '../models/Project.js';
 import { User } from '../models/User.js';
+import { DocumentModel } from '../models/DocumentModel.js';
+import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { getStorageAdapter } from './storage/index.js';
 import { AppError } from '../errors/AppError.js';
 import { Notification } from '../models/Notification.js';
+import { config } from '../config/env.js';
 
 export interface InstallationActorContext {
   actorId: string;
@@ -61,6 +73,12 @@ export class InstallationService {
         throw AppError.validation(`Invalid project ID: ${input.projectId}`);
       }
       project = await Project.findById(input.projectId);
+    } else {
+      // Auto-associate active EPC project for this customer
+      project = await Project.findOne({
+        customerId: customer._id,
+        status: { $ne: ProjectStatus.CANCELLED }
+      }).sort({ createdAt: -1 });
     }
 
     let installerName: string | undefined;
@@ -141,6 +159,40 @@ export class InstallationService {
     });
 
     await installation.save();
+
+    // 1. Synchronize Customer lifecycle status
+    try {
+      if (customer.status !== 'Completed / Active') {
+        customer.status = 'Site Work in Progress';
+        await customer.save();
+      }
+    } catch (custErr) {
+      console.warn('Customer status sync warning:', custErr);
+    }
+
+    // 2. Synchronize linked EPC Project status & stage
+    if (project) {
+      try {
+        project.status = ProjectStatus.IN_PROGRESS;
+        const earlyStages: ProjectStage[] = [
+          ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+          ProjectStage.STAGE_2_NET_METERING_APPLY,
+          ProjectStage.STAGE_3_MATERIAL_DISPATCH
+        ];
+        if (earlyStages.includes(project.currentStage)) {
+          project.currentStage = ProjectStage.STAGE_4_CIVIL_STRUCTURE;
+          project.stageHistory.push({
+            stage: ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+            changedAt: new Date(),
+            changedBy: new Types.ObjectId(actorContext.actorId),
+            notes: `Field Installation ${installation.installationNumber} initialized`
+          });
+        }
+        await project.save();
+      } catch (projErr) {
+        console.warn('Project stage sync warning:', projErr);
+      }
+    }
 
     await AuditService.recordEvent({
       actorId: actorContext.actorId,
@@ -306,6 +358,18 @@ export class InstallationService {
         isVerified: true,
         googleMapsUrl: gUrl
       };
+
+      // Synchronize verified rooftop GPS coordinates to Customer profile
+      try {
+        await Customer.findByIdAndUpdate(inst.customerId, {
+          'installationAddress.geoCoordinates': {
+            latitude: input.location.latitude,
+            longitude: input.location.longitude
+          }
+        });
+      } catch (custGpsErr) {
+        console.warn('Customer GPS coordinate sync warning:', custGpsErr);
+      }
     }
 
     // Manuals
@@ -314,6 +378,50 @@ export class InstallationService {
         ...m,
         uploadedAt: m.uploadedAt ? new Date(m.uploadedAt) : new Date()
       })) as any;
+    }
+
+    // Advance linked EPC Project stage based on current installation progress
+    if (inst.projectId) {
+      try {
+        const proj = await Project.findById(inst.projectId);
+        if (proj && proj.status !== ProjectStatus.CANCELLED) {
+          let targetStage = proj.currentStage;
+          if (
+            (inst.currentStep >= 5 || (input.currentStep && input.currentStep >= 5)) &&
+            [
+              ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+              ProjectStage.STAGE_2_NET_METERING_APPLY,
+              ProjectStage.STAGE_3_MATERIAL_DISPATCH,
+              ProjectStage.STAGE_4_CIVIL_STRUCTURE
+            ].includes(proj.currentStage)
+          ) {
+            targetStage = ProjectStage.STAGE_5_MODULE_DC_CABLING;
+          }
+          if (
+            (inst.currentStep >= 7 || (input.currentStep && input.currentStep >= 7)) &&
+            [
+              ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+              ProjectStage.STAGE_5_MODULE_DC_CABLING,
+              ProjectStage.STAGE_6_INVERTER_ACDB
+            ].includes(proj.currentStage)
+          ) {
+            targetStage = ProjectStage.STAGE_7_EARTHING_LIGHTNING;
+          }
+          if (targetStage !== proj.currentStage) {
+            proj.currentStage = targetStage;
+            proj.status = ProjectStatus.IN_PROGRESS;
+            proj.stageHistory.push({
+              stage: targetStage,
+              changedAt: new Date(),
+              changedBy: new Types.ObjectId(actorContext.actorId),
+              notes: `Progressed during installation ${inst.installationNumber} (Step ${inst.currentStep})`
+            });
+            await proj.save();
+          }
+        }
+      } catch (projErr) {
+        console.warn('Project stage progress sync warning:', projErr);
+      }
     }
 
     // If status is transitioning from ASSIGNED to IN_PROGRESS
@@ -389,6 +497,26 @@ export class InstallationService {
     });
 
     await inst.save();
+
+    // Advance linked EPC project to Stage 8 (Testing & Pre-Commissioning)
+    if (inst.projectId) {
+      try {
+        const proj = await Project.findById(inst.projectId);
+        if (proj && proj.status !== ProjectStatus.CANCELLED) {
+          proj.currentStage = ProjectStage.STAGE_8_TESTING_PRE_COMMISSION;
+          proj.status = ProjectStatus.IN_PROGRESS;
+          proj.stageHistory.push({
+            stage: ProjectStage.STAGE_8_TESTING_PRE_COMMISSION,
+            changedAt: new Date(),
+            changedBy: new Types.ObjectId(actorContext.actorId),
+            notes: `Field installation submitted (${inst.installationNumber}) - Pre-commissioning testing ready`
+          });
+          await proj.save();
+        }
+      } catch (projErr) {
+        console.warn('Project stage submit sync warning:', projErr);
+      }
+    }
 
     // Notify Superadmins / Admins
     try {
@@ -470,16 +598,109 @@ export class InstallationService {
         notes: input.adminRemarks || 'Installation report approved by QA / Admin'
       });
 
-      // Synchronize Project stage if linked
+      // 1. Synchronize Customer status to Completed / Active
+      try {
+        await Customer.findByIdAndUpdate(inst.customerId, {
+          status: 'Completed / Active'
+        });
+      } catch (custErr) {
+        console.warn('Customer status completion warning:', custErr);
+      }
+
+      // 2. Synchronize linked EPC Project to Stage 10 Handover and mark Completed
       if (inst.projectId) {
         try {
           const proj = await Project.findById(inst.projectId);
           if (proj) {
-            proj.status = 'IN_PROGRESS' as any;
+            proj.status = ProjectStatus.COMPLETED;
+            proj.currentStage = ProjectStage.STAGE_10_COMMISSION_HANDOVER;
+            proj.actualCompletionDate = new Date();
+            proj.stageHistory.push({
+              stage: ProjectStage.STAGE_10_COMMISSION_HANDOVER,
+              changedAt: new Date(),
+              changedBy: new Types.ObjectId(actorContext.actorId),
+              notes: `Installation report approved (${inst.installationNumber}). Plant successfully commissioned.`
+            });
+            // Complete all installation and commissioning milestones
+            if (proj.milestones && proj.milestones.length > 0) {
+              for (const m of proj.milestones) {
+                const mNameLower = (m.name || '').toLowerCase();
+                if (
+                  mNameLower.includes('install') ||
+                  mNameLower.includes('commission') ||
+                  mNameLower.includes('cabling') ||
+                  mNameLower.includes('structure') ||
+                  mNameLower.includes('wiring') ||
+                  mNameLower.includes('civil')
+                ) {
+                  m.status = MilestoneStatus.COMPLETED;
+                  m.actualCompletionDate = new Date();
+                  m.completedBy = new Types.ObjectId(actorContext.actorId);
+                  m.completedAt = new Date();
+                }
+              }
+            }
             await proj.save();
           }
-        } catch {
-          // ignore
+        } catch (projErr) {
+          console.warn('Project completion sync warning:', projErr);
+        }
+      }
+
+      // 3. Synchronize all installed hardware serial numbers in asset database
+      const serialNumbersToSync = new Set<string>();
+      if (inst.inverter?.serialNumber) serialNumbersToSync.add(inst.inverter.serialNumber.trim().toUpperCase());
+      if (inst.netMeter?.serialNumber) serialNumbersToSync.add(inst.netMeter.serialNumber.trim().toUpperCase());
+      if (inst.solarStructure?.serialNumber) serialNumbersToSync.add(inst.solarStructure.serialNumber.trim().toUpperCase());
+      if (inst.lightningProtection?.serialNumber) serialNumbersToSync.add(inst.lightningProtection.serialNumber.trim().toUpperCase());
+      if (inst.panelDetails?.panelSerialNumbers) {
+        for (const sn of inst.panelDetails.panelSerialNumbers) {
+          if (sn && sn.trim()) serialNumbersToSync.add(sn.trim().toUpperCase());
+        }
+      }
+      if (inst.inventoryItems) {
+        for (const it of inst.inventoryItems) {
+          if (it.serialNumber && it.serialNumber.trim()) serialNumbersToSync.add(it.serialNumber.trim().toUpperCase());
+        }
+      }
+
+      for (const sn of serialNumbersToSync) {
+        try {
+          await ProductSerialNumber.findOneAndUpdate(
+            { serialNumber: sn },
+            {
+              $set: {
+                status: SerialNumberStatus.INSTALLED,
+                customerId: inst.customerId,
+                projectId: inst.projectId || undefined,
+                commissioningDate: new Date(),
+                warrantyStartDate: new Date(),
+                warrantyStatus: WarrantyStatus.ACTIVE,
+                notes: `Installed via report ${inst.installationNumber}`
+              }
+            }
+          );
+        } catch (snErr) {
+          console.warn(`Serial number sync notice for ${sn}:`, snErr);
+        }
+      }
+
+      // 4. Dispatch in-app notification to assigned installer crew
+      if (inst.assignedInstallerId) {
+        try {
+          await Notification.create({
+            notificationNumber: `NTF-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            recipientId: inst.assignedInstallerId,
+            recipientType: 'EMPLOYEE',
+            category: 'DOCUMENT',
+            channel: 'IN_APP',
+            title: `Installation Approved: ${inst.installationNumber}`,
+            body: `Solar installation for ${inst.customerName} has been approved by admin and marked commissioned!`,
+            deliveryStatus: 'DELIVERED',
+            actionUrl: `/installations/${inst._id}`
+          });
+        } catch (notifErr) {
+          console.warn('Installer approval notification warning:', notifErr);
         }
       }
 
@@ -843,7 +1064,7 @@ export class InstallationService {
       }
     });
 
-    const fileUrl = `/api/v1/installations/${inst._id}/photos/${encodeURIComponent(storageKey)}`;
+    const fileUrl = `/api/v1/installations/${inst._id}/photos-raw?key=${encodeURIComponent(storageKey)}`;
 
     // Remove any existing photo with the exact same category if user is replacing
     inst.photos = inst.photos.filter(p => p.category !== meta.category);
@@ -873,6 +1094,42 @@ export class InstallationService {
     });
 
     await inst.save();
+
+    // Synchronize photo into Private Document Vault
+    try {
+      const docSeq = await SequenceService.generateNumber(SequenceEntityType.DOCUMENT, 'DOC');
+      await DocumentModel.create({
+        documentNumber: docSeq.formattedNumber,
+        originalFilename: meta.originalFilename,
+        safeDisplayName: `${meta.title || meta.category.replace(/_/g, ' ')} - ${inst.customerName}`,
+        category: DocumentCategory.SITE_PHOTOS,
+        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
+        reviewStatus: DocumentReviewStatus.ACCEPTED,
+        storageKey,
+        storageStatus:
+          config.STORAGE_PROVIDER === 's3'
+            ? DocumentStorageStatus.STORED_S3
+            : DocumentStorageStatus.SIMULATED_STORAGE_ONLY,
+        mimeType: meta.mimeType || 'image/jpeg',
+        fileSizeBytes: fileBuffer.length,
+        version: 1,
+        isLatestVersion: true,
+        customerId: inst.customerId,
+        projectId: inst.projectId || undefined,
+        relatedEntityType: 'Installation',
+        relatedEntityId: inst._id,
+        uploadedBy: new Types.ObjectId(actorContext.actorId),
+        uploadedByType: 'EMPLOYEE',
+        isArchived: false,
+        metadata: {
+          installationNumber: inst.installationNumber,
+          category: meta.category,
+          gpsLocation: meta.gpsLocation
+        }
+      });
+    } catch (vaultErr) {
+      console.warn('Document Vault photo sync notice:', vaultErr);
+    }
 
     return newPhoto;
   }
@@ -913,7 +1170,7 @@ export class InstallationService {
       }
     });
 
-    const fileUrl = `/api/v1/installations/${inst._id}/manuals/${encodeURIComponent(storageKey)}`;
+    const fileUrl = `/api/v1/installations/${inst._id}/manuals-raw?key=${encodeURIComponent(storageKey)}`;
 
     const newManual: ITechnicalManual = {
       category: meta.category,
@@ -929,6 +1186,41 @@ export class InstallationService {
 
     inst.manuals.push(newManual);
     await inst.save();
+
+    // Synchronize manual into Private Document Vault
+    try {
+      const docSeq = await SequenceService.generateNumber(SequenceEntityType.DOCUMENT, 'DOC');
+      await DocumentModel.create({
+        documentNumber: docSeq.formattedNumber,
+        originalFilename: meta.originalFilename,
+        safeDisplayName: `${meta.title} - ${inst.customerName}`,
+        category: DocumentCategory.COMMISSIONING_REPORT,
+        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
+        reviewStatus: DocumentReviewStatus.ACCEPTED,
+        storageKey,
+        storageStatus:
+          config.STORAGE_PROVIDER === 's3'
+            ? DocumentStorageStatus.STORED_S3
+            : DocumentStorageStatus.SIMULATED_STORAGE_ONLY,
+        mimeType: meta.mimeType || 'application/pdf',
+        fileSizeBytes: fileBuffer.length,
+        version: 1,
+        isLatestVersion: true,
+        customerId: inst.customerId,
+        projectId: inst.projectId || undefined,
+        relatedEntityType: 'Installation',
+        relatedEntityId: inst._id,
+        uploadedBy: new Types.ObjectId(actorContext.actorId),
+        uploadedByType: 'EMPLOYEE',
+        isArchived: false,
+        metadata: {
+          installationNumber: inst.installationNumber,
+          category: meta.category
+        }
+      });
+    } catch (vaultErr) {
+      console.warn('Document Vault manual sync notice:', vaultErr);
+    }
 
     return newManual;
   }

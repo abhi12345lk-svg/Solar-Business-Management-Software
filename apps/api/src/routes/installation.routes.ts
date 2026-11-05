@@ -22,49 +22,57 @@ import { getStorageAdapter } from '../services/storage/index.js';
 export const installationRouter = Router();
 
 // 1. Download/view raw photo or manual stream (Can be loaded in <img> or <iframe>)
-installationRouter.get(
-  '/:id/photos/:storageKey',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const storageKey = decodeURIComponent(req.params.storageKey as string);
-      const storageAdapter = getStorageAdapter();
-      const exists = await storageAdapter.objectExists(storageKey);
-      if (!exists) {
-        return next(AppError.notFound('Photograph not found in storage.'));
-      }
-      const obj = await storageAdapter.downloadObject(storageKey);
-      res.setHeader('Content-Type', obj.contentType || 'image/jpeg');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return obj.stream.pipe(res);
-    } catch (err) {
-      return next(err);
+const servePhotoStream = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rawKey = (req.query.key as string) || (req.params as any)[0] || (req.params as any).storageKey;
+    if (!rawKey) {
+      return next(AppError.validation('Storage key is required.'));
     }
+    const storageKey = decodeURIComponent(rawKey);
+    const storageAdapter = getStorageAdapter();
+    const exists = await storageAdapter.objectExists(storageKey);
+    if (!exists) {
+      return next(AppError.notFound('Photograph not found in storage.'));
+    }
+    const obj = await storageAdapter.downloadObject(storageKey);
+    res.setHeader('Content-Type', obj.contentType || 'image/jpeg');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return obj.stream.pipe(res);
+  } catch (err) {
+    return next(err);
   }
-);
+};
 
-installationRouter.get(
-  '/:id/manuals/:storageKey',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const storageKey = decodeURIComponent(req.params.storageKey as string);
-      const storageAdapter = getStorageAdapter();
-      const exists = await storageAdapter.objectExists(storageKey);
-      if (!exists) {
-        return next(AppError.notFound('Technical manual not found in storage.'));
-      }
-      const obj = await storageAdapter.downloadObject(storageKey);
-      res.setHeader('Content-Type', obj.contentType || 'application/pdf');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return obj.stream.pipe(res);
-    } catch (err) {
-      return next(err);
+const serveManualStream = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rawKey = (req.query.key as string) || (req.params as any)[0] || (req.params as any).storageKey;
+    if (!rawKey) {
+      return next(AppError.validation('Storage key is required.'));
     }
+    const storageKey = decodeURIComponent(rawKey);
+    const storageAdapter = getStorageAdapter();
+    const exists = await storageAdapter.objectExists(storageKey);
+    if (!exists) {
+      return next(AppError.notFound('Technical manual not found in storage.'));
+    }
+    const obj = await storageAdapter.downloadObject(storageKey);
+    res.setHeader('Content-Type', obj.contentType || 'application/pdf');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return obj.stream.pipe(res);
+  } catch (err) {
+    return next(err);
   }
-);
+};
+
+installationRouter.get('/:id/photos-raw', servePhotoStream);
+installationRouter.get('/:id/photos/:storageKey', servePhotoStream);
+
+installationRouter.get('/:id/manuals-raw', serveManualStream);
+installationRouter.get('/:id/manuals/:storageKey', serveManualStream);
 
 // All subsequent operations require authenticated employee session
 installationRouter.use(requireAuth);
