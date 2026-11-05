@@ -368,19 +368,22 @@ export const DocumentsPage: React.FC = () => {
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
         >
           <option value="">All Categories</option>
-          <option value="CUSTOMER_KYC">Customer KYC</option>
-          <option value="ELECTRICITY_BILL">Electricity Bill</option>
+          <option value="ELECTRICITY_BILL">⚡ Electricity Bill</option>
+          <option value="AADHAAR_CARD">🪪 Aadhaar Card (KYC)</option>
+          <option value="PAN_CARD">💳 PAN Card</option>
+          <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / Tax Receipt</option>
+          <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque</option>
+          <option value="SITE_PHOTOS">📸 Site & Rooftop Photos</option>
+          <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag</option>
+          <option value="CUSTOMER_KYC">Customer KYC / ID</option>
           <option value="PROPERTY_DEED">Property Deed / Tax Receipt</option>
-          <option value="COMMERCIAL_PROPOSAL">Commercial Proposal</option>
+          <option value="QUOTATION_PROPOSAL">Solar Quotation / Proposal</option>
           <option value="SIGNED_CONTRACT">Signed Contract</option>
-          <option value="DISCOM_APPLICATION">DISCOM Application</option>
-          <option value="DISCOM_NOC">DISCOM Net Metering NOC</option>
-          <option value="SUBSIDY_CLAIM">Subsidy Claim Dossier</option>
-          <option value="ENGINEERING_DRAWING">Engineering SLD / CAD</option>
-          <option value="INSTALLATION_EVIDENCE">Installation Evidence</option>
-          <option value="COMMISSIONING_REPORT">Commissioning / Megger</option>
+          <option value="NET_METERING_DOC">Net Metering Application</option>
+          <option value="SUBSIDY_DOC">PM Surya Ghar Subsidy</option>
+          <option value="INSTALLATION_QUALITY">Installation Quality / Photos</option>
           <option value="WARRANTY_CERTIFICATE">Warranty Certificate</option>
-          <option value="SERVICE_REPORT">Service Visit Report</option>
+          <option value="OTHER">Other Documents</option>
         </select>
 
         <select
@@ -807,19 +810,22 @@ export const DocumentsPage: React.FC = () => {
                     onChange={e => setUploadCategory(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
-                    <option value="CUSTOMER_KYC">Customer KYC</option>
-                    <option value="ELECTRICITY_BILL">Electricity Bill</option>
+                    <option value="ELECTRICITY_BILL">⚡ Electricity Bill</option>
+                    <option value="AADHAAR_CARD">🪪 Aadhaar Card (KYC)</option>
+                    <option value="PAN_CARD">💳 PAN Card</option>
+                    <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / Tax Receipt</option>
+                    <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque</option>
+                    <option value="SITE_PHOTOS">📸 Site & Rooftop Photos</option>
+                    <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag</option>
+                    <option value="CUSTOMER_KYC">Customer KYC / ID</option>
                     <option value="PROPERTY_DEED">Property Deed / Tax Receipt</option>
-                    <option value="COMMERCIAL_PROPOSAL">Commercial Proposal</option>
+                    <option value="QUOTATION_PROPOSAL">Solar Quotation / Proposal</option>
                     <option value="SIGNED_CONTRACT">Signed Contract</option>
-                    <option value="DISCOM_APPLICATION">DISCOM Application</option>
-                    <option value="DISCOM_NOC">DISCOM Net Metering NOC</option>
-                    <option value="SUBSIDY_CLAIM">Subsidy Claim Dossier</option>
-                    <option value="ENGINEERING_DRAWING">Engineering SLD / CAD</option>
-                    <option value="INSTALLATION_EVIDENCE">Installation Evidence</option>
-                    <option value="COMMISSIONING_REPORT">Commissioning / Megger</option>
+                    <option value="NET_METERING_DOC">Net Metering Application</option>
+                    <option value="SUBSIDY_DOC">PM Surya Ghar Subsidy</option>
+                    <option value="INSTALLATION_QUALITY">Installation Quality / Photos</option>
                     <option value="WARRANTY_CERTIFICATE">Warranty Certificate</option>
-                    <option value="SERVICE_REPORT">Service Visit Report</option>
+                    <option value="OTHER">Other Documents</option>
                   </select>
                 </div>
 

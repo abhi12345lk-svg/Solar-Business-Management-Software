@@ -9,6 +9,7 @@ import {
   SequenceEntityType,
   CustomerStatus,
   CustomerType,
+  AddressType,
   DocumentCategory,
   DocumentAccessClassification
 } from '@ins-solar/shared';
@@ -344,6 +345,101 @@ customerRouter.delete('/:id/documents/:docId', async (req: Request, res: Respons
     );
 
     return sendSuccess(req, res, archived);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * POST /api/v1/customers/:id/geotag
+ * Save live GPS site location coordinates to customer installation profile & create a verified vault record.
+ */
+customerRouter.post('/:id/geotag', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customerId = String(req.params.id || '').trim();
+    if (!Types.ObjectId.isValid(customerId)) {
+      throw AppError.validationFailed('Invalid customer ID format.');
+    }
+
+    const { latitude, longitude, accuracy, locationNotes } = req.body;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      throw AppError.validationFailed('Valid numeric latitude and longitude coordinates are required.');
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      throw AppError.notFound(`Customer '${customerId}' not found.`);
+    }
+
+    // 1. Update customer installation address geoCoordinates
+    if (!customer.installationAddress) {
+      customer.installationAddress = {
+        type: AddressType.SITE_INSTALLATION,
+        addressLine1: customer.name,
+        city: 'Raipur',
+        state: 'Chhattisgarh',
+        postalCode: '492001',
+        country: 'India',
+        geoCoordinates: { latitude, longitude }
+      };
+    } else {
+      customer.installationAddress.geoCoordinates = { latitude, longitude };
+    }
+    customer.markModified('installationAddress');
+    await customer.save();
+
+    // 2. Generate or register verified GPS geotag record in customer's document vault
+    const user = req.session.user!;
+    const actorContext = {
+      actorId: user.userId,
+      actorType: 'EMPLOYEE' as const,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      correlationId: (req as any).correlationId
+    };
+
+    const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const timestampStr = new Date().toISOString();
+    const verifiedBy = (user as any).fullName || user.email || 'Rarebox Solar Field Team';
+    const payloadText = `=== SOLAR EPC SITE GEOTAG VERIFICATION ===\nCustomer: ${customer.name} (${customer.customerCode})\nCoordinates: Latitude ${latitude}, Longitude ${longitude}\nAccuracy: ${accuracy ? `±${accuracy}m` : 'High Precision GPS'}\nGoogle Maps: ${googleMapsUrl}\nVerified At: ${timestampStr}\nVerified By: ${verifiedBy}\nNotes: ${locationNotes || 'Rooftop Site Location Verified via GPS Device'}\n`;
+
+    const doc = await DocumentService.registerDocument(
+      {
+        originalFilename: `gps_geotag_${customer.customerCode.toLowerCase()}.txt`,
+        safeDisplayName: `Site GPS Geotag: ${latitude.toFixed(5)}°, ${longitude.toFixed(5)}°`,
+        category: DocumentCategory.SITE_GEOTAG_LOCATION,
+        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
+        mimeType: 'text/plain',
+        fileSizeBytes: Buffer.byteLength(payloadText, 'utf-8'),
+        customerId,
+        metadata: {
+          latitude,
+          longitude,
+          accuracy,
+          googleMapsUrl,
+          verifiedAt: timestampStr,
+          locationNotes
+        }
+      },
+      actorContext,
+      Buffer.from(payloadText, 'utf-8')
+    );
+
+    return sendSuccess(
+      req,
+      res,
+      {
+        customer: {
+          ...customer.toObject(),
+          id: customer._id.toString()
+        },
+        document: doc,
+        geoCoordinates: { latitude, longitude, accuracy },
+        googleMapsUrl
+      },
+      201
+    );
   } catch (err) {
     return next(err);
   }

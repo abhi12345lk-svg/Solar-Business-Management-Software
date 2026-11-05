@@ -21,7 +21,14 @@ import {
   Trash2,
   ExternalLink,
   FileText,
-  Download
+  Download,
+  CreditCard,
+  Camera,
+  Landmark,
+  Zap,
+  Navigation,
+  Compass,
+  Check
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
@@ -62,6 +69,19 @@ export const CustomersPage: React.FC = () => {
   const [newDocDisplayName, setNewDocDisplayName] = useState('');
   const [newDocClassification, setNewDocClassification] = useState<'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE'>('CUSTOMER_VISIBLE');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Direct 1-Click Slot Upload State
+  const [uploadingSlotKey, setUploadingSlotKey] = useState<string | null>(null);
+
+  // GPS Geotag Location State
+  const [fetchingLocation, setFetchingLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [currentCoords, setCurrentCoords] = useState<{
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -176,20 +196,30 @@ export const CustomersPage: React.FC = () => {
     switch (cat) {
       case 'ELECTRICITY_BILL':
         return { label: '⚡ Electricity Bill', color: 'bg-amber-500/10 text-amber-700 border-amber-500/20' };
+      case 'AADHAAR_CARD':
       case 'CUSTOMER_KYC':
-        return { label: '🪪 Customer KYC / ID', color: 'bg-blue-500/10 text-blue-700 border-blue-500/20' };
+        return { label: '🪪 Aadhaar Card (KYC)', color: 'bg-blue-500/10 text-blue-700 border-blue-500/20' };
+      case 'PAN_CARD':
+        return { label: '💳 PAN Card', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20' };
+      case 'PROPERTY_TAX_RECEIPT':
+      case 'TAX_RECEIPT':
       case 'PROPERTY_DEED':
-        return { label: '🏠 Property / Roof Deed', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' };
-      case 'QUOTATION_PROPOSAL':
-        return { label: '📋 Solar Quotation', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20' };
-      case 'SIGNED_CONTRACT':
-        return { label: '✍️ Signed Contract', color: 'bg-purple-500/10 text-purple-700 border-purple-500/20' };
-      case 'NET_METERING_DOC':
-        return { label: '🔌 Net Metering Feasibility', color: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20' };
-      case 'SUBSIDY_DOC':
-        return { label: '🏛️ Govt Subsidy (DBT)', color: 'bg-orange-500/10 text-orange-700 border-orange-500/20' };
+        return { label: '🏛️ Property / Tax Receipt', color: 'bg-purple-500/10 text-purple-700 border-purple-500/20' };
+      case 'BANK_PASSBOOK':
+        return { label: '🏦 Bank Passbook / Cheque', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' };
+      case 'SITE_PHOTOS':
       case 'INSTALLATION_QUALITY':
-        return { label: '📸 Site & Survey Photos', color: 'bg-teal-500/10 text-teal-700 border-teal-500/20' };
+        return { label: '📸 Site & Rooftop Photos', color: 'bg-teal-500/10 text-teal-700 border-teal-500/20' };
+      case 'SITE_GEOTAG_LOCATION':
+        return { label: '📍 GPS Site Geotag', color: 'bg-rose-500/10 text-rose-700 border-rose-500/20' };
+      case 'QUOTATION_PROPOSAL':
+        return { label: '📋 Solar Quotation', color: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20' };
+      case 'SIGNED_CONTRACT':
+        return { label: '✍️ Signed Contract', color: 'bg-slate-500/10 text-slate-700 border-slate-500/20' };
+      case 'NET_METERING_DOC':
+        return { label: '🔌 Net Metering Feasibility', color: 'bg-sky-500/10 text-sky-700 border-sky-500/20' };
+      case 'SUBSIDY_DOC':
+        return { label: '🏛️ PM Surya Ghar Subsidy', color: 'bg-orange-500/10 text-orange-700 border-orange-500/20' };
       default:
         return { label: '📄 Other Document', color: 'bg-muted text-muted-foreground border-border' };
     }
@@ -215,7 +245,148 @@ export const CustomersPage: React.FC = () => {
     setVaultSuccess(null);
     setSelectedFile(null);
     setNewDocDisplayName('');
+    setLocationError(null);
+    setCurrentCoords(customer.installationAddress?.geoCoordinates || null);
     await fetchVaultDocuments(customer.id);
+  };
+
+  const handleDirectSlotUpload = async (slotKey: string, slotTitle: string, file: File) => {
+    if (!vaultCustomer) return;
+    setUploadingSlotKey(slotKey);
+    setVaultError(null);
+    setVaultSuccess(null);
+
+    try {
+      const displayName = `${slotTitle} - ${vaultCustomer.name}`;
+      const docRes = await apiClient<any>(`/customers/${vaultCustomer.id}/documents`, {
+        method: 'POST',
+        body: JSON.stringify({
+          originalFilename: file.name,
+          safeDisplayName: displayName,
+          category: slotKey,
+          accessClassification: 'CUSTOMER_VISIBLE',
+          mimeType: file.type || 'application/pdf',
+          fileSizeBytes: file.size
+        })
+      });
+
+      const docId = docRes?.id || docRes?._id;
+      if (docId) {
+        try {
+          await fetch(`/api/v1/documents/${docId}/content`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream'
+            },
+            body: file
+          });
+        } catch (err) {
+          console.warn('Direct upload binary notice:', err);
+        }
+      }
+
+      setVaultSuccess(`"${slotTitle}" successfully uploaded to client vault!`);
+      await fetchVaultDocuments(vaultCustomer.id);
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === vaultCustomer.id
+            ? { ...c, documentCount: (c.documentCount || 0) + 1 }
+            : c
+        )
+      );
+    } catch (err: any) {
+      setVaultError(err?.message || `Failed to upload ${slotTitle}.`);
+    } finally {
+      setUploadingSlotKey(null);
+    }
+  };
+
+  const handleFetchCurrentLocation = () => {
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      return;
+    }
+    setFetchingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setFetchingLocation(false);
+        setCurrentCoords({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy)
+        });
+        setVaultSuccess(`GPS Coordinates fetched: ${pos.coords.latitude.toFixed(5)}°, ${pos.coords.longitude.toFixed(5)}° (±${Math.round(pos.coords.accuracy)}m)`);
+      },
+      err => {
+        setFetchingLocation(false);
+        let msg = 'Failed to fetch GPS coordinates.';
+        if (err.code === 1) msg = 'Location permission denied by browser. Please allow location access.';
+        else if (err.code === 2) msg = 'GPS location unavailable on current network.';
+        else if (err.code === 3) msg = 'GPS request timed out. Please try again.';
+        setLocationError(msg);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const handleSaveGeotag = async () => {
+    if (!vaultCustomer || !currentCoords) return;
+    setSavingLocation(true);
+    setLocationError(null);
+    try {
+      await apiClient<any>(`/customers/${vaultCustomer.id}/geotag`, {
+        method: 'POST',
+        body: JSON.stringify({
+          latitude: currentCoords.latitude,
+          longitude: currentCoords.longitude,
+          accuracy: currentCoords.accuracy,
+          locationNotes: `Live GPS site survey coordinates for ${vaultCustomer.name}`
+        })
+      });
+
+      setVaultSuccess(`Site coordinates (${currentCoords.latitude.toFixed(5)}°, ${currentCoords.longitude.toFixed(5)}°) saved to customer installation address & document vault!`);
+
+      setVaultCustomer(prev =>
+        prev
+          ? {
+              ...prev,
+              installationAddress: {
+                ...prev.installationAddress,
+                geoCoordinates: {
+                  latitude: currentCoords.latitude,
+                  longitude: currentCoords.longitude
+                }
+              } as any,
+              documentCount: (prev.documentCount || 0) + 1
+            }
+          : null
+      );
+
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === vaultCustomer.id
+            ? {
+                ...c,
+                installationAddress: {
+                  ...c.installationAddress,
+                  geoCoordinates: {
+                    latitude: currentCoords.latitude,
+                    longitude: currentCoords.longitude
+                  }
+                } as any,
+                documentCount: (c.documentCount || 0) + 1
+              }
+            : c
+        )
+      );
+
+      await fetchVaultDocuments(vaultCustomer.id);
+    } catch (err: any) {
+      setLocationError(err?.message || 'Failed to save geotag location.');
+    } finally {
+      setSavingLocation(false);
+    }
   };
 
   const handleVaultFileUpload = async (e: React.FormEvent) => {
@@ -1205,6 +1376,11 @@ export const CustomersPage: React.FC = () => {
                 <span className="text-muted-foreground ml-2">
                   • Phone: {vaultCustomer.primaryPhone}
                 </span>
+                {vaultCustomer.installationAddress?.city && (
+                  <span className="text-muted-foreground ml-2">
+                    • Site: {vaultCustomer.installationAddress.city}, {vaultCustomer.installationAddress.state}
+                  </span>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <Link
@@ -1212,21 +1388,280 @@ export const CustomersPage: React.FC = () => {
                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
                   title="Open in Full Document Vault"
                 >
-                  <span>All Vault Records</span>
+                  <span>Central Vault</span>
                   <ExternalLink className="w-3 h-3 ml-0.5" />
                 </Link>
                 <button
                   type="button"
                   onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white transition shadow-xs cursor-pointer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border transition shadow-xs cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{vaultUploadOpen ? 'Close Upload Form' : '+ Upload Document'}</span>
+                  <span>{vaultUploadOpen ? 'Close Custom Form' : '+ Custom Document'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Upload Document Panel */}
+            {/* SECTION 1: DIRECT 1-CLICK SOLAR EPC DOCUMENT SLOTS */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
+                  <FolderLock className="w-3.5 h-3.5 text-solar-500" />
+                  <span>Direct Solar EPC Document Slots (1-Click Upload & Status)</span>
+                </h4>
+                <span className="text-[11px] text-muted-foreground">Direct KYC, Tax, Bill & Subsidy Proofs</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {[
+                  {
+                    key: 'ELECTRICITY_BILL',
+                    title: 'Electricity Bill',
+                    subtitle: 'Consumer No. & Sanctioned Load',
+                    icon: Zap
+                  },
+                  {
+                    key: 'AADHAAR_CARD',
+                    title: 'Aadhaar Card',
+                    subtitle: 'Applicant KYC Identity Proof',
+                    icon: UserCheck
+                  },
+                  {
+                    key: 'PAN_CARD',
+                    title: 'PAN Card',
+                    subtitle: 'Tax & Financial Identity Proof',
+                    icon: CreditCard
+                  },
+                  {
+                    key: 'PROPERTY_TAX_RECEIPT',
+                    title: 'Property / House Tax',
+                    subtitle: 'Roof Ownership / Municipal Bill',
+                    icon: Landmark
+                  },
+                  {
+                    key: 'BANK_PASSBOOK',
+                    title: 'Bank Passbook / Cheque',
+                    subtitle: 'PM Surya Ghar DBT Subsidy Account',
+                    icon: Building2
+                  },
+                  {
+                    key: 'SITE_PHOTOS',
+                    title: 'Site & Rooftop Photos',
+                    subtitle: 'Rooftop Layout & Meter Box',
+                    icon: Camera
+                  }
+                ].map(slot => {
+                  const Icon = slot.icon;
+                  const existingDoc = vaultDocuments.find(d =>
+                    d.category === slot.key ||
+                    (slot.key === 'AADHAAR_CARD' && d.category === 'CUSTOMER_KYC') ||
+                    (slot.key === 'PROPERTY_TAX_RECEIPT' && (d.category === 'PROPERTY_DEED' || d.category === 'TAX_RECEIPT')) ||
+                    (slot.key === 'SITE_PHOTOS' && d.category === 'INSTALLATION_QUALITY')
+                  );
+                  const isUploading = uploadingSlotKey === slot.key;
+
+                  return (
+                    <div
+                      key={slot.key}
+                      className={`p-3 rounded-xl border transition shadow-xs flex flex-col justify-between ${
+                        existingDoc
+                          ? 'bg-emerald-500/5 border-emerald-500/30'
+                          : 'bg-card border-border hover:border-solar-500/40 hover:bg-muted/20'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              existingDoc ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-solar-500/10 text-solar-600'
+                            }`}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="font-bold text-xs text-foreground">{slot.title}</span>
+                          </div>
+                          {existingDoc && (
+                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>Uploaded</span>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1.5 line-clamp-1">{slot.subtitle}</p>
+                        {existingDoc && (
+                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
+                            {existingDoc.originalFilename}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2.5 mt-2 border-t border-border/60 flex items-center justify-between gap-1">
+                        {existingDoc ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleVaultDownload(existingDoc)}
+                              className="text-[11px] font-semibold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>View / Download</span>
+                            </button>
+                            <label className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer underline font-medium">
+                              Replace
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleDirectSlotUpload(slot.key, slot.title, file);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                          </>
+                        ) : (
+                          <label className={`w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-semibold cursor-pointer transition flex items-center justify-center space-x-1.5 ${
+                            isUploading
+                              ? 'bg-muted text-muted-foreground'
+                              : 'bg-solar-600 hover:bg-solar-700 text-white shadow-xs'
+                          }`}>
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3 h-3" />
+                                <span>+ Direct Upload</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              disabled={isUploading}
+                              accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) handleDirectSlotUpload(slot.key, slot.title, file);
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SECTION 2: LIVE GPS SITE GEOTAGGING */}
+            <div className="p-3.5 bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-solar-500/10 border border-rose-500/20 rounded-xl space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0">
+                    <Navigation className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-xs font-bold text-foreground">
+                        Site GPS Geotag Location (Rooftop Verification)
+                      </h4>
+                      {currentCoords && (
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                          <Check className="w-2.5 h-2.5" />
+                          <span>GPS Ready</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Required by DISCOM & PM Surya Ghar inspector for rooftop solar feasibility.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleFetchCurrentLocation}
+                    disabled={fetchingLocation}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {fetchingLocation ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Detecting Satellites...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Compass className="w-3.5 h-3.5" />
+                        <span>📍 Fetch Current Location</span>
+                      </>
+                    )}
+                  </button>
+
+                  {currentCoords && (
+                    <button
+                      type="button"
+                      onClick={handleSaveGeotag}
+                      disabled={savingLocation}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
+                    >
+                      {savingLocation ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Save GPS to Vault</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {locationError && (
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg font-medium">
+                  {locationError}
+                </div>
+              )}
+
+              {/* Coordinates Pill / Details */}
+              {currentCoords && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-background/80 p-2.5 rounded-lg border text-xs">
+                  <div className="flex items-center space-x-3 font-mono">
+                    <span className="font-semibold text-foreground">
+                      Lat: <span className="text-solar-600">{currentCoords.latitude.toFixed(6)}°</span>
+                    </span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="font-semibold text-foreground">
+                      Long: <span className="text-solar-600">{currentCoords.longitude.toFixed(6)}°</span>
+                    </span>
+                    {currentCoords.accuracy && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground">Accuracy: ±{currentCoords.accuracy}m</span>
+                      </>
+                    )}
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps?q=${currentCoords.latitude},${currentCoords.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1 text-solar-600 hover:text-solar-700 font-semibold"
+                  >
+                    <span>View on Google Maps Satellite</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Custom Upload Document Panel */}
             {vaultUploadOpen && (
               <form
                 onSubmit={handleVaultFileUpload}
@@ -1235,7 +1670,7 @@ export const CustomersPage: React.FC = () => {
                 <div className="flex items-center justify-between border-b pb-2">
                   <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
                     <Upload className="w-3.5 h-3.5 text-solar-500" />
-                    <span>Upload New Document to Client Vault</span>
+                    <span>Upload Custom Document to Client Vault</span>
                   </h4>
                   <span className="text-[11px] text-muted-foreground">PDF, JPG, PNG, WEBP, XLSX, DOCX (Max 25MB)</span>
                 </div>
@@ -1251,14 +1686,17 @@ export const CustomersPage: React.FC = () => {
                       onChange={e => setNewDocCategory(e.target.value)}
                       className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                     >
-                      <option value="ELECTRICITY_BILL">⚡ Latest Electricity Bill (Consumer Proof)</option>
-                      <option value="CUSTOMER_KYC">🪪 Identity Proof (Aadhaar / PAN / Voter ID)</option>
-                      <option value="PROPERTY_DEED">🏠 Rooftop / Property Deed / Tax Receipt</option>
+                      <option value="ELECTRICITY_BILL">⚡ Electricity Bill (Consumer Proof)</option>
+                      <option value="AADHAAR_CARD">🪪 Aadhaar Card (Applicant KYC)</option>
+                      <option value="PAN_CARD">💳 PAN Card (Financial / Tax ID)</option>
+                      <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / House Tax Receipt (Roof Ownership)</option>
+                      <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque (PM Surya Ghar DBT Subsidy)</option>
+                      <option value="SITE_PHOTOS">📸 Site & Rooftop Photos (Roof & Meter Box)</option>
+                      <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag Verification</option>
                       <option value="QUOTATION_PROPOSAL">📋 Solar Quotation & Technical Proposal</option>
                       <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
                       <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
                       <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
-                      <option value="INSTALLATION_QUALITY">📸 Rooftop Site Photos & Shadow Survey</option>
                       <option value="OTHER">📄 Other Client Document</option>
                     </select>
                   </div>
