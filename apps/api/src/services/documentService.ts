@@ -456,6 +456,7 @@ export class DocumentService {
     mimeType: string;
     fileSizeBytes: number;
     downloadUrl: string;
+    viewUrl?: string;
     expiresInSeconds: number;
     expiresAt: Date;
   }> {
@@ -523,6 +524,8 @@ export class DocumentService {
       }
     });
 
+    const viewUrl = `${downloadUrl}&inline=true`;
+
     return {
       documentId: doc._id.toString(),
       documentNumber: doc.documentNumber,
@@ -531,6 +534,7 @@ export class DocumentService {
       mimeType: doc.mimeType,
       fileSizeBytes: doc.fileSizeBytes,
       downloadUrl,
+      viewUrl,
       expiresInSeconds: safeTtl,
       expiresAt: new Date(expiresAtMs)
     };

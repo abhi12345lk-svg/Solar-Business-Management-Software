@@ -66,11 +66,14 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
 
     const storageObj = await storageAdapter.downloadObject(doc.storageKey);
 
-    // Set download headers
-    res.setHeader('Content-Type', doc.mimeType);
+    // Set download headers (support inline viewing vs attachment download)
+    const isInline = req.query.inline === 'true' || req.query.view === 'true';
+    const dispositionType = isInline ? 'inline' : 'attachment';
+
+    res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(doc.originalFilename)}"`
+      `${dispositionType}; filename="${encodeURIComponent(doc.originalFilename)}"`
     );
     res.setHeader('X-Document-Vault-Number', doc.documentNumber);
     res.setHeader('X-Document-Storage-Status', doc.storageStatus);

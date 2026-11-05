@@ -28,7 +28,9 @@ import {
   Zap,
   Navigation,
   Compass,
-  Check
+  Check,
+  Eye,
+  X
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
@@ -455,12 +457,55 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
+  // Document In-App Preview Modal State
+  const [previewModal, setPreviewModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    documentNumber?: string;
+    category?: string;
+    mimeType?: string;
+    originalFilename?: string;
+    viewUrl: string;
+    downloadUrl: string;
+  } | null>(null);
+
+  const handleViewDocument = async (doc: any) => {
+    try {
+      const docId = doc._id || doc.id;
+      const res = await apiClient<{ downloadUrl: string; viewUrl?: string; mimeType?: string }>(
+        `/documents/${docId}/access-url`
+      );
+      if (res?.downloadUrl) {
+        const viewUrl = res.viewUrl || `${res.downloadUrl}&inline=true`;
+        setPreviewModal({
+          isOpen: true,
+          title: doc.safeDisplayName || doc.title || doc.originalFilename || 'Document Preview',
+          documentNumber: doc.documentNumber,
+          category: doc.category,
+          mimeType: doc.mimeType || res.mimeType || 'application/pdf',
+          originalFilename: doc.originalFilename || 'document',
+          viewUrl,
+          downloadUrl: res.downloadUrl
+        });
+      } else {
+        alert('Could not generate view link for this document.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to open document preview.');
+    }
+  };
+
   const handleVaultDownload = async (doc: any) => {
     try {
       const docId = doc._id || doc.id;
       const res = await apiClient<{ downloadUrl: string }>(`/documents/${docId}/access-url`);
       if (res?.downloadUrl) {
-        window.open(res.downloadUrl, '_blank');
+        const a = document.createElement('a');
+        a.href = res.downloadUrl;
+        a.download = doc.originalFilename || 'document';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     } catch (err: any) {
       alert(err?.message || 'Failed to generate download URL.');
@@ -1497,14 +1542,26 @@ export const CustomersPage: React.FC = () => {
                       <div className="pt-2.5 mt-2 border-t border-border/60 flex items-center justify-between gap-1">
                         {existingDoc ? (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => handleVaultDownload(existingDoc)}
-                              className="text-[11px] font-semibold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer"
-                            >
-                              <Download className="w-3 h-3" />
-                              <span>View / Download</span>
-                            </button>
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleViewDocument(existingDoc)}
+                                className="text-[11px] font-bold text-solar-700 hover:text-solar-800 bg-solar-500/10 hover:bg-solar-500/20 px-2 py-0.5 rounded flex items-center space-x-1 cursor-pointer transition"
+                                title="View / Inspect Document"
+                              >
+                                <Eye className="w-3 h-3 text-solar-600" />
+                                <span>View</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleVaultDownload(existingDoc)}
+                                className="text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center space-x-0.5 cursor-pointer"
+                                title="Download Original File"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download</span>
+                              </button>
+                            </div>
                             <label className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer underline font-medium">
                               Replace
                               <input
@@ -1864,12 +1921,21 @@ export const CustomersPage: React.FC = () => {
                         <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
                           <button
                             type="button"
+                            onClick={() => handleViewDocument(doc)}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 transition cursor-pointer"
+                            title="View / Inspect Document"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-solar-600" />
+                            <span>View</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleVaultDownload(doc)}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
-                            title="Download or Preview Document"
+                            className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                            title="Download Original File"
                           >
                             <Download className="w-3.5 h-3.5" />
-                            <span>Download / View</span>
+                            <span>Download</span>
                           </button>
                           <button
                             type="button"
@@ -1902,6 +1968,108 @@ export const CustomersPage: React.FC = () => {
               >
                 Close Vault
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* In-App Document Viewer / Preview Modal                                    */}
+      {/* ========================================================================= */}
+      {previewModal && previewModal.isOpen && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-border">
+            {/* Header */}
+            <div className="p-3.5 sm:p-4 border-b flex items-center justify-between shrink-0 bg-muted/30">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="p-2 bg-solar-500/10 text-solar-600 rounded-xl shrink-0">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
+                      {previewModal.title}
+                    </h3>
+                    {previewModal.documentNumber && (
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                        {previewModal.documentNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate font-mono">
+                    {previewModal.originalFilename}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <a
+                  href={previewModal.viewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition"
+                  title="Open Fullscreen in New Window"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">New Tab</span>
+                </a>
+                <a
+                  href={previewModal.downloadUrl}
+                  download={previewModal.originalFilename}
+                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-2xs transition"
+                  title="Download Document"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Download</span>
+                </a>
+                <button
+                  onClick={() => setPreviewModal(null)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview Body */}
+            <div className="flex-1 overflow-auto bg-slate-950/5 dark:bg-black flex items-center justify-center min-h-[350px] max-h-[75vh]">
+              {previewModal.mimeType?.startsWith('image/') ||
+              ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
+                previewModal.originalFilename?.toLowerCase().endsWith(ext)
+              ) ? (
+                <div className="p-4 flex items-center justify-center w-full h-full">
+                  <img
+                    src={previewModal.viewUrl}
+                    alt={previewModal.title}
+                    className="max-w-full max-h-[70vh] rounded-lg shadow-md object-contain"
+                  />
+                </div>
+              ) : previewModal.mimeType === 'application/pdf' ||
+                previewModal.originalFilename?.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewModal.viewUrl}
+                  title={previewModal.title}
+                  className="w-full h-[70vh] border-0"
+                />
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <FileText className="w-12 h-12 mx-auto text-solar-600" />
+                  <p className="font-semibold text-foreground text-sm">
+                    Direct in-browser preview not supported for this file type.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Please download the file to inspect its contents.
+                  </p>
+                  <a
+                    href={previewModal.downloadUrl}
+                    download={previewModal.originalFilename}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download File</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

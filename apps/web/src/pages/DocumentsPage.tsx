@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   FolderLock,
   RefreshCw,
-  Upload
+  Upload,
+  ExternalLink
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -406,11 +407,51 @@ export const DocumentsPage: React.FC = () => {
     }
   };
 
+  // State: Preview Modal
+  const [previewDoc, setPreviewDoc] = useState<{
+    isOpen: boolean;
+    title: string;
+    documentNumber: string;
+    originalFilename: string;
+    mimeType: string;
+    viewUrl: string;
+    downloadUrl: string;
+  } | null>(null);
+
+  const handleViewDocument = async (doc: DocumentItem) => {
+    try {
+      const res = await apiClient<{ downloadUrl: string; viewUrl?: string; mimeType?: string }>(
+        `/documents/${doc._id}/access-url`
+      );
+      if (res?.downloadUrl) {
+        const viewUrl = res.viewUrl || `${res.downloadUrl}&inline=true`;
+        setPreviewDoc({
+          isOpen: true,
+          title: doc.safeDisplayName || doc.documentNumber,
+          documentNumber: doc.documentNumber,
+          originalFilename: doc.originalFilename,
+          mimeType: doc.mimeType || res.mimeType || 'application/pdf',
+          viewUrl,
+          downloadUrl: res.downloadUrl
+        });
+      } else {
+        alert('Could not generate view link for this document.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to open document preview.');
+    }
+  };
+
   const handleDownloadSigned = async (doc: DocumentItem) => {
     try {
       const res = await apiClient<{ downloadUrl: string }>(`/documents/${doc._id}/access-url`);
       if (res?.downloadUrl) {
-        window.open(res.downloadUrl, '_blank');
+        const a = document.createElement('a');
+        a.href = res.downloadUrl;
+        a.download = doc.originalFilename || 'document';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
         alert('Could not generate download link. Please verify file storage status.');
       }
@@ -845,14 +886,23 @@ export const DocumentsPage: React.FC = () => {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* In-App View / Preview Action */}
+                          <button
+                            onClick={() => handleViewDocument(doc)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-solar-700 bg-solar-50 hover:bg-solar-100 border border-solar-200 rounded-lg transition cursor-pointer"
+                            title="View / Inspect Document"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-solar-600" />
+                            <span>View</span>
+                          </button>
+
                           {/* Direct Download Action */}
                           <button
                             onClick={() => handleDownloadSigned(doc)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-solar-700 bg-solar-50 hover:bg-solar-100 border border-solar-200 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition cursor-pointer"
                             title="Download verified binary via signed cryptographic token"
                           >
                             <Download className="w-3.5 h-3.5" />
-                            <span>Download</span>
                           </button>
 
                           {/* Review Action */}
@@ -1355,6 +1405,107 @@ export const DocumentsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {/* Modal: Document Preview / In-App Viewer                                   */}
+      {/* ========================================================================= */}
+      {previewDoc && previewDoc.isOpen && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-200">
+            {/* Header */}
+            <div className="p-3.5 sm:p-4 border-b border-gray-200 flex items-center justify-between shrink-0 bg-gray-50/80">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="p-2 bg-solar-50 text-solar-600 rounded-xl shrink-0">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
+                      {previewDoc.title}
+                    </h3>
+                    {previewDoc.documentNumber && (
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 shrink-0">
+                        {previewDoc.documentNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 truncate font-mono">
+                    {previewDoc.originalFilename}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <a
+                  href={previewDoc.viewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 transition"
+                  title="Open Fullscreen in New Window"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">New Tab</span>
+                </a>
+                <a
+                  href={previewDoc.downloadUrl}
+                  download={previewDoc.originalFilename}
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-2xs transition"
+                  title="Download Document"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Download</span>
+                </a>
+                <button
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview Body */}
+            <div className="flex-1 overflow-auto bg-slate-900/5 flex items-center justify-center min-h-[350px] max-h-[75vh]">
+              {previewDoc.mimeType?.startsWith('image/') ||
+              ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
+                previewDoc.originalFilename?.toLowerCase().endsWith(ext)
+              ) ? (
+                <div className="p-4 flex items-center justify-center w-full h-full">
+                  <img
+                    src={previewDoc.viewUrl}
+                    alt={previewDoc.title}
+                    className="max-w-full max-h-[70vh] rounded-lg shadow-md object-contain"
+                  />
+                </div>
+              ) : previewDoc.mimeType === 'application/pdf' ||
+                previewDoc.originalFilename?.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewDoc.viewUrl}
+                  title={previewDoc.title}
+                  className="w-full h-[70vh] border-0"
+                />
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <FileText className="w-12 h-12 mx-auto text-solar-600" />
+                  <p className="font-semibold text-gray-800 text-sm">
+                    Direct in-browser preview not supported for this file type.
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Please download the file to inspect its contents.
+                  </p>
+                  <a
+                    href={previewDoc.downloadUrl}
+                    download={previewDoc.originalFilename}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download File</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
