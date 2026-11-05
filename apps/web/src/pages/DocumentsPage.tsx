@@ -450,6 +450,7 @@ export const DocumentsPage: React.FC = () => {
         const objectUrl = URL.createObjectURL(blob);
         setPreviewBlobUrl(objectUrl);
         setPreviewImgLoading(false);
+        setPreviewImgError(false);
       })
       .catch(err => {
         if (!isMounted) return;
@@ -482,13 +483,26 @@ export const DocumentsPage: React.FC = () => {
         body: file
       });
 
+      // Re-fetch fresh signed access URL
+      const urlInfo = await apiClient<{ downloadUrl: string; viewUrl?: string }>(
+        `/documents/${previewDoc.docId}/access-url`
+      );
+      const freshViewUrl = urlInfo.viewUrl || `${urlInfo.downloadUrl}&inline=true`;
+
+      // Instantaneous local blob preview
+      const directBlobUrl = URL.createObjectURL(file);
+      setPreviewBlobUrl(directBlobUrl);
+      setPreviewImgLoading(false);
+      setPreviewImgError(false);
+
       setPreviewDoc(prev =>
         prev
           ? {
               ...prev,
               originalFilename: file.name,
               mimeType: file.type || prev.mimeType,
-              viewUrl: `${prev.viewUrl}&_t=${Date.now()}`
+              viewUrl: freshViewUrl,
+              downloadUrl: urlInfo.downloadUrl
             }
           : null
       );

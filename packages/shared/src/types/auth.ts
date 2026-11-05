@@ -170,7 +170,16 @@ export const ALL_PERMISSIONS = [
   'document:upload',
   'document:review',
   'document:archive',
-  'document:delete'
+  'document:delete',
+
+  // Installer Panel & Installation Management (Module 27)
+  'installation:create',
+  'installation:read',
+  'installation:update',
+  'installation:submit',
+  'installation:approve',
+  'installation:assign',
+  'installation:delete'
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
@@ -372,7 +381,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:read',
     'task:update',
     'document:read',
-    'document:upload'
+    'document:upload',
+    'installation:create',
+    'installation:read',
+    'installation:update',
+    'installation:submit'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -505,6 +518,9 @@ export function getDefaultPanelForRole(role: UserRole, department?: Department):
   if (role === UserRole.SUPERADMIN || role === UserRole.ADMIN) {
     return PanelType.ADMIN;
   }
+  if (role === UserRole.INSTALLATION_CREW) {
+    return PanelType.INSTALLER;
+  }
   if (role === UserRole.ACCOUNTS_OFFICER || department === Department.ACCOUNTS) {
     return PanelType.ACCOUNTS;
   }
@@ -528,7 +544,14 @@ export function isRoleAllowedInPanel(
   department?: Department
 ): boolean {
   if (role === UserRole.SUPERADMIN || role === UserRole.ADMIN) {
-    return true; // Admins have company-wide access to all three panels
+    return true; // Admins have company-wide access to all panels
+  }
+  if (targetPanel === PanelType.INSTALLER) {
+    return (
+      role === UserRole.INSTALLATION_CREW ||
+      role === UserRole.TECHNICIAN ||
+      department === Department.OPERATIONS
+    );
   }
   if (targetPanel === PanelType.SALES) {
     return (

@@ -63,7 +63,8 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   [SequenceEntityType.NOTIFICATION]: 'NTF',
   [SequenceEntityType.EMPLOYEE]: 'EMP',
   [SequenceEntityType.TEAM]: 'TEM',
-  [SequenceEntityType.DOCUMENT]: 'DOC'
+  [SequenceEntityType.DOCUMENT]: 'DOC',
+  [SequenceEntityType.INSTALLATION]: 'INST'
 };
 
 const DEFAULT_PADDING = 5;
@@ -467,6 +468,12 @@ export class SequenceService {
           coll: 'documents',
           field: 'documentNumber',
           prefix: 'DOC'
+        },
+        {
+          type: SequenceEntityType.INSTALLATION,
+          coll: 'installations',
+          field: 'installationNumber',
+          prefix: 'INST'
         },
         {
           type: SequenceEntityType.EMPLOYEE,

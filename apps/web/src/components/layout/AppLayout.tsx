@@ -29,7 +29,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
-  FolderLock
+  FolderLock,
+  HardHat,
+  ClipboardList
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -50,7 +52,10 @@ interface NavSection {
 const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Executive',
-    items: [{ to: '/', label: 'Admin Dashboard', icon: LayoutDashboard }]
+    items: [
+      { to: '/', label: 'Admin Dashboard', icon: LayoutDashboard },
+      { to: '/quotations', label: 'Create Quotation', icon: FileSpreadsheet }
+    ]
   },
   {
     title: 'CRM & Sales Pipeline',
@@ -58,7 +63,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock },
-      { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
       { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
   },
@@ -73,6 +77,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'EPC Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
+      { to: '/installations', label: 'Installer Field Panel', icon: HardHat },
       { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -118,7 +123,7 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/surveys', label: 'Site Surveys', icon: Layers },
       { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
-      { to: '/quotations', label: 'Quotation Suite', icon: FileSpreadsheet },
+      { to: '/quotations', label: 'Create Quotation', icon: FileSpreadsheet },
       { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
   },
@@ -161,6 +166,25 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   }
 ];
 
+const INSTALLER_PANEL_SECTIONS: NavSection[] = [
+  {
+    title: 'Field Installation Hub',
+    items: [
+      { to: '/installations', label: 'Assigned Installations', icon: HardHat },
+      { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList },
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents', label: 'Document Vault', icon: FolderLock }
+    ]
+  },
+  {
+    title: 'Site Surveys & Pipeline',
+    items: [
+      { to: '/surveys', label: 'Site Surveys', icon: Layers },
+      { to: '/projects', label: 'Project Pipeline', icon: FolderKanban }
+    ]
+  }
+];
+
 function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname === '/') return { section: 'Executive', title: 'Dashboard' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
@@ -169,7 +193,7 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/surveys')) return { section: 'Engineering', title: 'Site Surveys' };
   if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'PV Sizing' };
   if (pathname.startsWith('/quotations'))
-    return { section: 'Commercial', title: 'Quotation Suite' };
+    return { section: 'Commercial', title: 'Create Quotation' };
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };
   if (pathname.startsWith('/projects')) return { section: 'Operations', title: 'Project Pipeline' };
   if (pathname.startsWith('/net-metering')) return { section: 'Compliance', title: 'Net Metering' };
@@ -193,6 +217,8 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/employees')) return { section: 'HR', title: 'Employees' };
   if (pathname.startsWith('/teams')) return { section: 'HR', title: 'Field Crews' };
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
+  if (pathname.startsWith('/installations'))
+    return { section: 'Field Operations', title: 'Installation Management' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
     return { section: 'CRM', title: 'Document Vault' };
   if (pathname.startsWith('/customer-portal'))
@@ -216,11 +242,13 @@ export const AppLayout: React.FC = () => {
     : PanelType.ADMIN;
 
   const currentSections =
-    activePanel === PanelType.SALES
-      ? SALES_PANEL_SECTIONS
-      : activePanel === PanelType.ACCOUNTS
-        ? ACCOUNTS_PANEL_SECTIONS
-        : ADMIN_PANEL_SECTIONS;
+    activePanel === PanelType.INSTALLER
+      ? INSTALLER_PANEL_SECTIONS
+      : activePanel === PanelType.SALES
+        ? SALES_PANEL_SECTIONS
+        : activePanel === PanelType.ACCOUNTS
+          ? ACCOUNTS_PANEL_SECTIONS
+          : ADMIN_PANEL_SECTIONS;
 
   // Close mobile drawer on route change
   useEffect(() => {

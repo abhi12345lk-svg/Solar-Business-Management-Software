@@ -40,6 +40,7 @@ import { employeeRouter } from './employee.routes.js';
 import { teamRouter } from './team.routes.js';
 import { documentRouter } from './document.routes.js';
 import { customerDocumentRouter } from './customerDocument.routes.js';
+import { installationRouter } from './installation.routes.js';
 import { config } from '../config/env.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import {
@@ -93,6 +94,7 @@ apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/employees', employeeRouter);
 apiRouter.use('/teams', teamRouter);
 apiRouter.use('/documents', documentRouter);
+apiRouter.use('/installations', installationRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
 apiRouter.use('/customer-portal/service', customerServiceRouter);
 apiRouter.use('/customer-portal/payments', customerPaymentRouter);

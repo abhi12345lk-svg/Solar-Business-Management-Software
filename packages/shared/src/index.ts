@@ -29,5 +29,6 @@ export * from './schemas/notification.js';
 export * from './schemas/employee.js';
 export * from './schemas/task.js';
 export * from './schemas/document.js';
+export * from './schemas/installation.js';
 export * from './schemas/auth.js';
 export * from './constants/index.js';

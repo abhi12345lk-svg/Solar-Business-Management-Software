@@ -14,7 +14,8 @@ import {
   Sparkles,
   ShieldCheck,
   TrendingUp,
-  Landmark
+  Landmark,
+  HardHat
 } from 'lucide-react';
 import { PanelType } from '@ins-solar/shared';
 import { DateFilterRange, DATE_FILTER_OPTIONS } from './dashboardUtils.js';
@@ -63,6 +64,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       title: 'Financial & Billing Workspace',
       desc: 'Customer receivables, collection receipts, 3-way vendor match, project costing, and operational expenses.',
       icon: Landmark
+    },
+    [PanelType.INSTALLER]: {
+      badge: 'Field Installation Hub',
+      badgeColor: 'bg-solar-500/20 text-solar-200 border-solar-400/30',
+      gradient: 'from-amber-950 via-slate-900 to-orange-950 border-solar-500/30',
+      title: 'Field Installation & Commissioning Workstation',
+      desc: 'Mobile-first field execution hub for recording solar component serials, barcode scans, GPS geotagging, and site photographs.',
+      icon: HardHat
     }
   }[currentView];
 

@@ -37,6 +37,9 @@ import { EmployeesPage } from './pages/EmployeesPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
 import { TasksPage } from './pages/TasksPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
+import { InstallationsPage } from './pages/InstallationsPage.js';
+import { InstallationDetailPage } from './pages/InstallationDetailPage.js';
+import { InstallationWorkflowPage } from './pages/InstallationWorkflowPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -168,6 +171,40 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="installations"
+            element={
+              <ProtectedRoute>
+                <InstallationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="installations/new"
+            element={
+              <ProtectedRoute>
+                <InstallationWorkflowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="installations/:id"
+            element={
+              <ProtectedRoute>
+                <InstallationDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="installations/:id/edit"
+            element={
+              <ProtectedRoute>
+                <InstallationWorkflowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="installer" element={<Navigate to="/installations" replace />} />
+          <Route path="installation" element={<Navigate to="/installations" replace />} />
           <Route
             path="net-metering"
             element={
