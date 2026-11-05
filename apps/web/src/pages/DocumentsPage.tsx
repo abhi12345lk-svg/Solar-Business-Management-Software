@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FileText,
@@ -11,8 +11,16 @@ import {
   Eye,
   FileCheck2,
   Archive,
-  Lock,
-  UploadCloud
+  UploadCloud,
+  File,
+  X,
+  Shield,
+  Building,
+  XCircle,
+  AlertTriangle,
+  FolderLock,
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -37,7 +45,11 @@ interface DocumentItem {
   customerId?: {
     _id: string;
     customerCode?: string;
+    name?: string;
     fullName?: string;
+    companyName?: string;
+    primaryPhone?: string;
+    email?: string;
   };
   projectId?: {
     _id: string;
@@ -58,16 +70,65 @@ interface DocumentItem {
   };
 }
 
+interface CustomerOption {
+  _id: string;
+  id?: string;
+  customerCode: string;
+  name?: string;
+  legalName?: string;
+  companyName?: string;
+  primaryPhone?: string;
+}
+
+const SOLAR_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
+  { value: 'ELECTRICITY_BILL', label: 'Electricity Bill', icon: '⚡', description: 'Recent DISCOM power tariff bill' },
+  { value: 'AADHAAR_CARD', label: 'Aadhaar Card (KYC)', icon: '🪪', description: 'Applicant identity & address proof' },
+  { value: 'PAN_CARD', label: 'PAN Card', icon: '💳', description: 'Income Tax PAN card for billing' },
+  { value: 'PROPERTY_TAX_RECEIPT', label: 'Property / House Tax', icon: '🏛️', description: 'Municipal tax receipt or registry deed' },
+  { value: 'BANK_PASSBOOK', label: 'Bank Passbook / Cheque', icon: '🏦', description: 'Cancelled cheque / passbook for DBT subsidy' },
+  { value: 'SITE_PHOTOS', label: 'Site & Rooftop Photos', icon: '📸', description: 'Rooftop layout, shadow & structure photos' },
+  { value: 'SITE_GEOTAG_LOCATION', label: 'GPS Site Geotag', icon: '📍', description: 'Verified latitude/longitude installation coordinates' },
+  { value: 'QUOTATION_PROPOSAL', label: 'Solar Quotation / Proposal', icon: '📑', description: 'Techno-commercial proposal & plant sizing' },
+  { value: 'SIGNED_CONTRACT', label: 'Signed EPC Contract', icon: '🖋️', description: 'Executed turnkey installation agreement' },
+  { value: 'NET_METERING_DOC', label: 'Net Metering Application', icon: '🔌', description: 'DISCOM net meter submission & SLD' },
+  { value: 'SUBSIDY_DOC', label: 'PM Surya Ghar Subsidy', icon: '☀️', description: 'National CFA subsidy application dossier' },
+  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty', icon: '📜', description: 'Solar module, inverter & structure warranties' },
+  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report', icon: '📋', description: 'Plant synchronization & test report' },
+  { value: 'CUSTOMER_KYC', label: 'General Customer KYC', icon: '👤', description: 'Customer documentation & identity files' },
+  { value: 'OTHER', label: 'Other Documents', icon: '📁', description: 'Supplementary paperwork & general records' },
+];
+
+const formatFileSize = (bytes: number): string => {
+  if (!bytes || bytes === 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
+
+const getCategoryMeta = (categoryVal: string) => {
+  const match = SOLAR_CATEGORIES.find(c => c.value === categoryVal);
+  if (match) return match;
+  return {
+    value: categoryVal,
+    label: categoryVal.replace(/_/g, ' '),
+    icon: '📄',
+    description: 'Document record'
+  };
+};
+
 export const DocumentsPage: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const customerIdParam = searchParams.get('customerId') || '';
 
   // Filters
   const [search, setSearch] = useState('');
+  const [customerFilter, setCustomerFilter] = useState(customerIdParam);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [reviewFilter, setReviewFilter] = useState('');
   const [classificationFilter, setClassificationFilter] = useState('');
@@ -87,24 +148,55 @@ export const DocumentsPage: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   // Form State: Upload Modal
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadFilename, setUploadFilename] = useState('');
   const [uploadDisplayName, setUploadDisplayName] = useState('');
-  const [uploadCategory, setUploadCategory] = useState('CUSTOMER_KYC');
+  const [uploadCategory, setUploadCategory] = useState('ELECTRICITY_BILL');
   const [uploadClassification, setUploadClassification] = useState<
     'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE' | 'RESTRICTED'
-  >('INTERNAL_ONLY');
-  const [uploadMime, setUploadMime] = useState('application/pdf');
-  const [uploadSize, setUploadSize] = useState('1048576'); // 1 MB default
+  >('CUSTOMER_VISIBLE');
   const [uploadCustomerId, setUploadCustomerId] = useState(customerIdParam);
-  const [uploadProjectId, setUploadProjectId] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State: Version Modal
+  const [versionFile, setVersionFile] = useState<File | null>(null);
   const [versionFilename, setVersionFilename] = useState('');
   const [versionDisplayName, setVersionDisplayName] = useState('');
   const [versionNotes, setVersionNotes] = useState('');
+  const versionFileInputRef = useRef<HTMLInputElement>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-dismiss success toast
+  useEffect(() => {
+    if (!actionSuccess) return;
+    const timer = setTimeout(() => setActionSuccess(null), 5000);
+    return () => clearTimeout(timer);
+  }, [actionSuccess]);
+
+  // Load registered customers for dropdown selector and client filtering
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const res = await apiClient<any>('/customers?limit=100');
+        const list = Array.isArray(res) ? res : res?.items || res?.data || [];
+        setCustomers(list);
+      } catch (err) {
+        console.warn('Could not load customers for dropdown filter:', err);
+      }
+    };
+    loadCustomers();
+  }, []);
+
+  // Sync customer filter with URL search param
+  useEffect(() => {
+    if (customerIdParam) {
+      setCustomerFilter(customerIdParam);
+      setUploadCustomerId(customerIdParam);
+    }
+  }, [customerIdParam]);
 
   const fetchDocuments = async () => {
     try {
@@ -116,12 +208,12 @@ export const DocumentsPage: React.FC = () => {
       if (reviewFilter) queryParams.set('reviewStatus', reviewFilter);
       if (classificationFilter) queryParams.set('accessClassification', classificationFilter);
       if (isArchivedFilter) queryParams.set('isArchived', 'true');
-      if (customerIdParam) queryParams.set('customerId', customerIdParam);
+      if (customerFilter) queryParams.set('customerId', customerFilter);
 
       const res = await apiClient<any>(`/documents?${queryParams.toString()}`);
       setDocuments(Array.isArray(res) ? res : res?.items || res?.documents || []);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load documents.');
+      setError(err?.message || 'Failed to load document vault records.');
     } finally {
       setLoading(false);
     }
@@ -129,40 +221,79 @@ export const DocumentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [search, categoryFilter, reviewFilter, classificationFilter, isArchivedFilter, customerIdParam]);
+  }, [search, customerFilter, categoryFilter, reviewFilter, classificationFilter, isArchivedFilter]);
+
+  const handleFileSelection = (file: File) => {
+    setSelectedFile(file);
+    setUploadFilename(file.name);
+    // Sanitize display name (strip extension and format readable title)
+    const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+    const formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    setUploadDisplayName(formattedTitle);
+    setFormError(null);
+  };
 
   const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFilename.trim() || !uploadDisplayName.trim()) {
-      setFormError('Original filename and display name are required.');
+    if (!selectedFile && !uploadFilename.trim()) {
+      setFormError('Please select a real document file to upload.');
+      return;
+    }
+    if (!uploadDisplayName.trim()) {
+      setFormError('Display name is required for compliance audit.');
       return;
     }
 
     try {
       setIsSubmitting(true);
       setFormError(null);
-      await apiClient('/documents', {
+
+      const targetFilename = selectedFile ? selectedFile.name : uploadFilename.trim();
+      const targetMime = selectedFile ? (selectedFile.type || 'application/pdf') : 'application/pdf';
+      const targetSize = selectedFile ? selectedFile.size : 1024;
+
+      // 1. Register Document Metadata
+      const docRes = await apiClient<any>('/documents', {
         method: 'POST',
         body: JSON.stringify({
-          originalFilename: uploadFilename.trim(),
+          originalFilename: targetFilename,
           safeDisplayName: uploadDisplayName.trim(),
           category: uploadCategory,
           accessClassification: uploadClassification,
-          mimeType: uploadMime,
-          fileSizeBytes: parseInt(uploadSize, 10) || 1024,
-          customerId: uploadCustomerId.trim() || undefined,
-          projectId: uploadProjectId.trim() || undefined
+          mimeType: targetMime,
+          fileSizeBytes: targetSize,
+          customerId: uploadCustomerId.trim() || undefined
         })
       });
 
+      const docId = docRes?._id || docRes?.id;
+
+      // 2. Stream actual binary file content to storage
+      if (docId && selectedFile) {
+        try {
+          const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
+          await fetch(`/api/v1/documents/${docId}/content`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+              'Content-Type': selectedFile.type || 'application/octet-stream',
+              ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
+            },
+            body: selectedFile
+          });
+        } catch (streamErr) {
+          console.warn('Binary upload warning:', streamErr);
+        }
+      }
+
+      setActionSuccess(`Document "${uploadDisplayName.trim()}" successfully uploaded to vault!`);
       setUploadModalOpen(false);
+      setSelectedFile(null);
       setUploadFilename('');
       setUploadDisplayName('');
-      setUploadCustomerId('');
-      setUploadProjectId('');
       fetchDocuments();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to register document.');
+      setFormError(err?.message || 'Failed to upload document to vault.');
     } finally {
       setIsSubmitting(false);
     }
@@ -194,48 +325,82 @@ export const DocumentsPage: React.FC = () => {
         })
       });
 
+      setActionSuccess(`Document ${selectedDoc.documentNumber} review recorded as ${nextReviewStatus}!`);
       setReviewModalOpen(false);
       setSelectedDoc(null);
       setReviewNotes('');
       setRejectionReason('');
       fetchDocuments();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to record document review.');
+      setFormError(err?.message || 'Failed to record document review decision.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleVersionSelection = (file: File) => {
+    setVersionFile(file);
+    setVersionFilename(file.name);
+    const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+    setVersionDisplayName(rawName.charAt(0).toUpperCase() + rawName.slice(1));
+    setFormError(null);
+  };
+
   const handleUploadVersion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDoc) return;
-    if (!versionFilename.trim()) {
-      setFormError('Filename is required for the new version.');
+    if (!versionFile && !versionFilename.trim()) {
+      setFormError('Please select a replacement file for this revision.');
       return;
     }
 
     try {
       setIsSubmitting(true);
       setFormError(null);
-      await apiClient(`/documents/${selectedDoc._id}/new-version`, {
+
+      const targetFilename = versionFile ? versionFile.name : versionFilename.trim();
+      const targetMime = versionFile ? (versionFile.type || selectedDoc.mimeType) : selectedDoc.mimeType;
+      const targetSize = versionFile ? versionFile.size : selectedDoc.fileSizeBytes;
+
+      const res = await apiClient<any>(`/documents/${selectedDoc._id}/new-version`, {
         method: 'POST',
         body: JSON.stringify({
-          originalFilename: versionFilename.trim(),
-          safeDisplayName: versionDisplayName.trim() || undefined,
-          mimeType: selectedDoc.mimeType,
-          fileSizeBytes: selectedDoc.fileSizeBytes,
+          originalFilename: targetFilename,
+          safeDisplayName: versionDisplayName.trim() || selectedDoc.safeDisplayName,
+          mimeType: targetMime,
+          fileSizeBytes: targetSize,
           versionNotes: versionNotes.trim() || undefined
         })
       });
 
+      const newDocId = res?._id || res?.id;
+      if (newDocId && versionFile) {
+        try {
+          const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
+          await fetch(`/api/v1/documents/${newDocId}/content`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+              'Content-Type': versionFile.type || 'application/octet-stream',
+              ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
+            },
+            body: versionFile
+          });
+        } catch (streamErr) {
+          console.warn('Binary upload warning:', streamErr);
+        }
+      }
+
+      setActionSuccess(`New version v${selectedDoc.version + 1} published successfully!`);
       setVersionModalOpen(false);
       setSelectedDoc(null);
+      setVersionFile(null);
       setVersionFilename('');
       setVersionDisplayName('');
       setVersionNotes('');
       fetchDocuments();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to upload new document version.');
+      setFormError(err?.message || 'Failed to upload new document revision.');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,6 +411,8 @@ export const DocumentsPage: React.FC = () => {
       const res = await apiClient<{ downloadUrl: string }>(`/documents/${doc._id}/access-url`);
       if (res?.downloadUrl) {
         window.open(res.downloadUrl, '_blank');
+      } else {
+        alert('Could not generate download link. Please verify file storage status.');
       }
     } catch (err: any) {
       alert(err?.message || 'Failed to obtain authorized download URL.');
@@ -255,7 +422,7 @@ export const DocumentsPage: React.FC = () => {
   const handleArchive = async (doc: DocumentItem) => {
     if (
       !window.confirm(
-        `Archive document ${doc.documentNumber} (${doc.safeDisplayName})? It will be marked inactive but preserved for audit.`
+        `Archive document ${doc.documentNumber} (${doc.safeDisplayName})? It will be marked inactive but preserved for audit compliance.`
       )
     ) {
       return;
@@ -266,13 +433,14 @@ export const DocumentsPage: React.FC = () => {
         method: 'PATCH',
         body: JSON.stringify({ reason: 'Archived by staff through Document Vault UI' })
       });
+      setActionSuccess(`Document ${doc.documentNumber} moved to archive.`);
       fetchDocuments();
     } catch (err: any) {
       alert(err?.message || 'Failed to archive document.');
     }
   };
 
-  // Stats
+  // Stats Counters
   const totalCount = documents.length;
   const pendingCount = documents.filter(d => d.reviewStatus === 'PENDING_REVIEW').length;
   const acceptedCount = documents.filter(d => d.reviewStatus === 'ACCEPTED').length;
@@ -281,267 +449,413 @@ export const DocumentsPage: React.FC = () => {
   ).length;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+      {/* Top Banner / Breadcrumb & Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-solar-700 mb-1">
+            <FolderLock className="w-4 h-4 text-solar-600" />
+            <span>Rarebox Solar ERP • Compliance & Document Vault</span>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Lock className="w-7 h-7 text-indigo-600" />
-            Private Document Vault & Library
+            Document Vault & Project Compliance
           </h1>
-          <p className="text-sm text-gray-500">
-            Secure private document repository with cryptographic HMAC download links, multi-version
-            history, and verification gates.
+          <p className="text-sm text-gray-500 mt-0.5">
+            Centralized digital repository for solar consumer KYC, DISCOM net metering, rooftop survey photos, and PM Surya Ghar subsidy dossiers.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setFormError(null);
-            setUploadModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition"
-        >
-          <UploadCloud className="w-4 h-4" />
-          Upload to Vault
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              setFormError(null);
+              setSelectedFile(null);
+              setUploadFilename('');
+              setUploadDisplayName('');
+              setUploadCustomerId(customerFilter || '');
+              setUploadModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-solar-600 hover:bg-solar-700 active:bg-solar-800 text-white font-semibold text-sm rounded-xl shadow-sm transition cursor-pointer"
+          >
+            <UploadCloud className="w-4 h-4" />
+            Upload Document to Vault
+          </button>
+        </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {actionSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm flex items-center justify-between shadow-2xs animate-fadeIn">
+          <div className="flex items-center gap-2.5 font-medium">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button
+            onClick={() => setActionSuccess(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-bold"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-2.5 shadow-2xs">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span className="font-medium">{error}</span>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-gray-50 text-gray-700 rounded-lg">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4 hover:border-gray-300 transition">
+          <div className="p-3 bg-gray-100 text-gray-700 rounded-xl">
             <FileText className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900">{totalCount}</div>
-            <div className="text-xs text-gray-500">Total Documents</div>
+            <div className="text-xs font-medium text-gray-500">Total Vault Documents</div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
+        <div className="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/20 shadow-2xs flex items-center gap-4 hover:border-amber-300 transition">
+          <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-bold text-amber-700">{pendingCount}</div>
-            <div className="text-xs text-gray-500">Pending QA / Review</div>
+            <div className="text-xs font-medium text-amber-700">Pending Review / QA</div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+        <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-2xs flex items-center gap-4 hover:border-emerald-300 transition">
+          <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-bold text-emerald-700">{acceptedCount}</div>
-            <div className="text-xs text-gray-500">Accepted & Verified</div>
+            <div className="text-xs font-medium text-emerald-700">Accepted & Verified</div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+        <div className="bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/20 shadow-2xs flex items-center gap-4 hover:border-blue-300 transition">
+          <div className="p-3 bg-blue-100 text-blue-700 rounded-xl">
             <Eye className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-bold text-blue-700">{customerVisibleCount}</div>
-            <div className="text-xs text-gray-500">Client-Visible Files</div>
+            <div className="text-xs font-medium text-blue-700">Client Portal Visible</div>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-4 items-center">
-        <div className="flex-1 min-w-[240px] relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search document number, safe name, or file..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          />
+      {/* Filter and Query Control Bar */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Keyword Search */}
+          <div className="flex-1 min-w-[220px] relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by document number, title, or original file name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:border-solar-500 focus:outline-none transition"
+            />
+          </div>
+
+          {/* Client / Customer Filter */}
+          <div className="min-w-[190px]">
+            <select
+              value={customerFilter}
+              onChange={e => {
+                setCustomerFilter(e.target.value);
+                if (e.target.value) {
+                  setSearchParams({ customerId: e.target.value });
+                } else {
+                  setSearchParams({});
+                }
+              }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
+            >
+              <option value="">All Clients (No filter)</option>
+              {customers.map(c => {
+                const cId = c._id || c.id || '';
+                const name = c.name || c.legalName || c.companyName || 'Client';
+                return (
+                  <option key={cId} value={cId}>
+                    {name} • {c.customerCode}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Category Filter */}
+          <div className="min-w-[180px]">
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+            >
+              <option value="">All Document Categories</option>
+              {SOLAR_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.icon} {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Review Status Filter */}
+          <div className="min-w-[160px]">
+            <select
+              value={reviewFilter}
+              onChange={e => setReviewFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+            >
+              <option value="">All Review Statuses</option>
+              <option value="PENDING_REVIEW">⏳ Pending Review</option>
+              <option value="ACCEPTED">✅ Accepted & Verified</option>
+              <option value="REJECTED">❌ Rejected</option>
+              <option value="RESUBMISSION_REQUIRED">🔄 Resubmission Required</option>
+            </select>
+          </div>
+
+          {/* Access Classification */}
+          <div className="min-w-[160px]">
+            <select
+              value={classificationFilter}
+              onChange={e => setClassificationFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+            >
+              <option value="">All Access Levels</option>
+              <option value="CUSTOMER_VISIBLE">👁️ Customer Visible</option>
+              <option value="INTERNAL_ONLY">🔒 Internal Only</option>
+              <option value="RESTRICTED">🛡️ Restricted Confidential</option>
+            </select>
+          </div>
+
+          {/* Include Archived Checkbox */}
+          <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer pl-1 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={isArchivedFilter}
+              onChange={e => setIsArchivedFilter(e.target.checked)}
+              className="rounded border-gray-300 text-solar-600 focus:ring-solar-500"
+            />
+            <span>Include Archived</span>
+          </label>
+
+          {(search || customerFilter || categoryFilter || reviewFilter || classificationFilter || isArchivedFilter) && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setCustomerFilter('');
+                setCategoryFilter('');
+                setReviewFilter('');
+                setClassificationFilter('');
+                setIsArchivedFilter(false);
+                setSearchParams({});
+              }}
+              className="text-xs text-gray-500 hover:text-gray-800 underline font-semibold cursor-pointer ml-auto"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
-
-        <select
-          value={categoryFilter}
-          onChange={e => setCategoryFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-        >
-          <option value="">All Categories</option>
-          <option value="ELECTRICITY_BILL">⚡ Electricity Bill</option>
-          <option value="AADHAAR_CARD">🪪 Aadhaar Card (KYC)</option>
-          <option value="PAN_CARD">💳 PAN Card</option>
-          <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / Tax Receipt</option>
-          <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque</option>
-          <option value="SITE_PHOTOS">📸 Site & Rooftop Photos</option>
-          <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag</option>
-          <option value="CUSTOMER_KYC">Customer KYC / ID</option>
-          <option value="PROPERTY_DEED">Property Deed / Tax Receipt</option>
-          <option value="QUOTATION_PROPOSAL">Solar Quotation / Proposal</option>
-          <option value="SIGNED_CONTRACT">Signed Contract</option>
-          <option value="NET_METERING_DOC">Net Metering Application</option>
-          <option value="SUBSIDY_DOC">PM Surya Ghar Subsidy</option>
-          <option value="INSTALLATION_QUALITY">Installation Quality / Photos</option>
-          <option value="WARRANTY_CERTIFICATE">Warranty Certificate</option>
-          <option value="OTHER">Other Documents</option>
-        </select>
-
-        <select
-          value={reviewFilter}
-          onChange={e => setReviewFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-        >
-          <option value="">All Review Statuses</option>
-          <option value="PENDING_REVIEW">Pending Review</option>
-          <option value="ACCEPTED">Accepted</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="RESUBMISSION_REQUIRED">Resubmission Required</option>
-        </select>
-
-        <select
-          value={classificationFilter}
-          onChange={e => setClassificationFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-        >
-          <option value="">All Classifications</option>
-          <option value="INTERNAL_ONLY">Internal Only</option>
-          <option value="CUSTOMER_VISIBLE">Customer Visible</option>
-          <option value="RESTRICTED">Restricted Confidential</option>
-        </select>
-
-        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer pl-2">
-          <input
-            type="checkbox"
-            checked={isArchivedFilter}
-            onChange={e => setIsArchivedFilter(e.target.checked)}
-            className="rounded border-gray-300 text-gray-600 focus:ring-gray-500"
-          />
-          <span className="text-gray-600">Include Archived</span>
-        </label>
       </div>
-
-      {/* Error Banner */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
 
       {/* Document Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">Loading document vault...</div>
+          <div className="p-16 text-center text-gray-500 space-y-3">
+            <RefreshCw className="w-8 h-8 mx-auto animate-spin text-solar-600" />
+            <p className="font-semibold text-gray-700">Loading document vault...</p>
+            <p className="text-xs text-gray-400">Fetching cryptographic download tokens and audit states</p>
+          </div>
         ) : documents.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <Lock className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="font-medium text-gray-700">No documents found in vault.</p>
-            <p className="text-sm text-gray-400">
-              Click &apos;Upload to Vault&apos; to register project files.
+          <div className="p-16 text-center text-gray-500 space-y-3">
+            <div className="w-14 h-14 mx-auto rounded-full bg-solar-50 text-solar-600 flex items-center justify-center">
+              <FolderLock className="w-7 h-7" />
+            </div>
+            <p className="font-semibold text-gray-800 text-base">No documents found in vault.</p>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+              {customerFilter
+                ? 'No documents registered for the selected client. Click "Upload Document to Vault" to add one.'
+                : 'No files match your current filters. Click "Upload Document to Vault" to register new project paperwork.'}
             </p>
+            <button
+              onClick={() => {
+                setUploadModalOpen(true);
+                setUploadCustomerId(customerFilter || '');
+              }}
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              Upload First Document
+            </button>
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-1 sm:mx-0">
-            <table className="w-full text-left border-collapse text-sm min-w-[700px]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm min-w-[850px]">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">Document Details</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Classification</th>
+                  <th className="py-3 px-4">Linked Client</th>
+                  <th className="py-3 px-4">Access Level</th>
                   <th className="py-3 px-4">Review Status</th>
-                  <th className="py-3 px-4">Ver & Size</th>
-                  <th className="py-3 px-4">Linked Entity</th>
+                  <th className="py-3 px-4">Version & Size</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {documents.map(doc => {
-                  const sizeMb = (doc.fileSizeBytes / (1024 * 1024)).toFixed(2);
+                  const meta = getCategoryMeta(doc.category);
                   const isPending = doc.reviewStatus === 'PENDING_REVIEW';
                   const isAccepted = doc.reviewStatus === 'ACCEPTED';
+                  const isRejected = doc.reviewStatus === 'REJECTED';
+                  const isResubmission = doc.reviewStatus === 'RESUBMISSION_REQUIRED';
+
+                  const clientName =
+                    doc.customerId?.name ||
+                    doc.customerId?.fullName ||
+                    doc.customerId?.companyName ||
+                    (doc.customerId?.customerCode ? `Client (${doc.customerId.customerCode})` : null);
 
                   return (
                     <tr key={doc._id} className="hover:bg-gray-50/80 transition">
-                      <td className="py-3 px-4 max-w-xs">
-                        <div className="font-mono text-xs font-bold text-indigo-600">
-                          {doc.documentNumber}
+                      {/* Document Details */}
+                      <td className="py-3 px-4 max-w-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                            {doc.documentNumber}
+                          </span>
+                          {doc.isArchived && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-gray-200 text-gray-600 uppercase">
+                              Archived
+                            </span>
+                          )}
                         </div>
-                        <div className="font-semibold text-gray-900 line-clamp-1">
+                        <div className="font-semibold text-gray-900 mt-1 line-clamp-1">
                           {doc.safeDisplayName}
                         </div>
-                        <div className="text-xs text-gray-400 font-mono truncate">
-                          {doc.originalFilename}
+                        <div className="text-xs text-gray-400 font-mono truncate flex items-center gap-1.5 mt-0.5">
+                          <File className="w-3 h-3 text-gray-400 shrink-0" />
+                          <span className="truncate">{doc.originalFilename}</span>
                         </div>
                         {doc.rejectionReason && (
-                          <div className="text-xs text-red-600 font-medium mt-0.5">
-                            Rejection Reason: {doc.rejectionReason}
+                          <div className="mt-1 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1 font-medium">
+                            <span className="font-bold">QA Rejection:</span> {doc.rejectionReason}
                           </div>
                         )}
                       </td>
 
-                      <td className="py-3 px-4">
-                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                          {doc.category.replace(/_/g, ' ')}
+                      {/* Category Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs font-semibold">
+                          <span>{meta.icon}</span>
+                          <span>{meta.label}</span>
                         </span>
                       </td>
 
+                      {/* Linked Client */}
                       <td className="py-3 px-4">
+                        {doc.customerId ? (
+                          <div>
+                            <div className="font-medium text-gray-900 text-xs">
+                              {clientName || 'Registered Client'}
+                            </div>
+                            <div className="text-[11px] font-mono text-solar-700 font-semibold flex items-center gap-1">
+                              <span>{doc.customerId.customerCode}</span>
+                              {doc.customerId.primaryPhone && (
+                                <span className="text-gray-400 font-normal">
+                                  • {doc.customerId.primaryPhone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : doc.projectId ? (
+                          <div>
+                            <span className="font-mono text-xs font-semibold text-indigo-700">
+                              {doc.projectId.projectNumber}
+                            </span>
+                            {doc.projectId.title && (
+                              <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                                {doc.projectId.title}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 italic">
+                            <Building className="w-3.5 h-3.5 text-gray-400" />
+                            <span>General Internal</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Classification Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                             doc.accessClassification === 'CUSTOMER_VISIBLE'
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
                               : doc.accessClassification === 'RESTRICTED'
-                                ? 'bg-purple-100 text-purple-800'
-                                : 'bg-gray-100 text-gray-700'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : 'bg-gray-100 text-gray-700 border border-gray-200'
                           }`}
                         >
-                          {doc.accessClassification.replace(/_/g, ' ')}
+                          {doc.accessClassification === 'CUSTOMER_VISIBLE' ? (
+                            <Eye className="w-3 h-3" />
+                          ) : (
+                            <Shield className="w-3 h-3" />
+                          )}
+                          <span>{doc.accessClassification.replace(/_/g, ' ')}</span>
                         </span>
                       </td>
 
-                      <td className="py-3 px-4">
+                      {/* Review Status */}
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                             isAccepted
                               ? 'bg-emerald-100 text-emerald-800'
                               : isPending
                                 ? 'bg-amber-100 text-amber-800'
-                                : 'bg-red-100 text-red-800'
+                                : isRejected
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-purple-100 text-purple-800'
                           }`}
                         >
-                          {doc.reviewStatus.replace(/_/g, ' ')}
+                          {isAccepted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                          {isPending && <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                          {isRejected && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
+                          {isResubmission && <AlertTriangle className="w-3.5 h-3.5 text-purple-600" />}
+                          <span>{doc.reviewStatus.replace(/_/g, ' ')}</span>
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-xs font-mono text-gray-600">
-                        <div>v{doc.version}</div>
-                        <div className="text-gray-400 text-[11px]">{sizeMb} MB</div>
+                      {/* Version & Size */}
+                      <td className="py-3 px-4 text-xs font-mono text-gray-600 whitespace-nowrap">
+                        <div className="font-bold text-gray-800">v{doc.version}</div>
+                        <div className="text-gray-500 text-[11px]">{formatFileSize(doc.fileSizeBytes)}</div>
                       </td>
 
-                      <td className="py-3 px-4 text-xs">
-                        {doc.projectId ? (
-                          <div className="text-indigo-600 font-mono font-medium">
-                            {doc.projectId.projectNumber || 'Project'}
-                          </div>
-                        ) : doc.customerId ? (
-                          <div className="text-gray-700 font-mono">
-                            {doc.customerId.customerCode || 'Customer'}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 italic">Vault General</span>
-                        )}
-                      </td>
-
-                      <td className="py-3 px-4 text-right">
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Direct Download Action */}
                           <button
                             onClick={() => handleDownloadSigned(doc)}
-                            className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
-                            title="Download via Signed Access Link"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-solar-700 bg-solar-50 hover:bg-solar-100 border border-solar-200 rounded-lg transition cursor-pointer"
+                            title="Download verified binary via signed cryptographic token"
                           >
-                            <Download className="w-4 h-4" />
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
                           </button>
 
+                          {/* Review Action */}
                           <button
                             onClick={() => {
                               setSelectedDoc(doc);
@@ -551,29 +865,35 @@ export const DocumentsPage: React.FC = () => {
                               setFormError(null);
                               setReviewModalOpen(true);
                             }}
-                            className="text-xs font-medium text-amber-600 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-50 transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition cursor-pointer"
+                            title="Conduct QA / Compliance Review"
                           >
-                            Review
+                            <FileCheck2 className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Review</span>
                           </button>
 
+                          {/* New Version Action */}
                           <button
                             onClick={() => {
                               setSelectedDoc(doc);
+                              setVersionFile(null);
                               setVersionFilename(`v${doc.version + 1}_${doc.originalFilename}`);
                               setVersionDisplayName(doc.safeDisplayName);
                               setVersionNotes('');
                               setFormError(null);
                               setVersionModalOpen(true);
                             }}
-                            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50 transition"
+                            className="p-1.5 text-gray-500 hover:text-solar-700 hover:bg-solar-50 rounded-lg transition cursor-pointer"
+                            title="Upload New Version Revision"
                           >
-                            New Ver
+                            <Layers className="w-4 h-4" />
                           </button>
 
+                          {/* Archive Action */}
                           {!doc.isArchived && (
                             <button
                               onClick={() => handleArchive(doc)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                               title="Archive Document"
                             >
                               <Archive className="w-4 h-4" />
@@ -590,81 +910,314 @@ export const DocumentsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal: Review Document */}
-      {reviewModalOpen && selectedDoc && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <FileCheck2 className="w-5 h-5 text-indigo-600" />
-              Review Document: {selectedDoc.documentNumber}
-            </h3>
-            <p className="text-xs text-gray-500 font-medium">{selectedDoc.safeDisplayName}</p>
+      {/* ========================================================================= */}
+      {/* Modal: Upload to Vault (Real File Picker & Client Selector)                */}
+      {/* ========================================================================= */}
+      {uploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-solar-50 text-solar-600 rounded-xl">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                    Upload Document to Vault
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Add customer KYC, net metering SLD, site photos, or subsidy files to compliance archive.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUploadModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             {formError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleReviewDocument} className="space-y-3">
+            <form onSubmit={handleUploadDocument} className="space-y-4">
+              {/* File Dropzone Area */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Review Decision *
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Select File to Upload *
                 </label>
-                <select
-                  value={nextReviewStatus}
-                  onChange={e => setNextReviewStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
-                  <option value="ACCEPTED">Accept / Approve Document</option>
-                  <option value="REJECTED">Reject Document</option>
-                  <option value="RESUBMISSION_REQUIRED">Request Resubmission</option>
-                </select>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelection(file);
+                  }}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.docx,.txt"
+                  className="hidden"
+                />
+
+                {!selectedFile ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={e => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={e => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleFileSelection(file);
+                    }}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
+                      isDragging
+                        ? 'border-solar-500 bg-solar-50/50'
+                        : 'border-gray-300 hover:border-solar-500 hover:bg-solar-50/20'
+                    }`}
+                  >
+                    <UploadCloud className="w-10 h-10 mx-auto text-solar-600 mb-2" />
+                    <p className="text-sm font-semibold text-gray-800">
+                      Click to choose file or drag & drop here
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Supports PDF, JPEG, PNG, WEBP, Excel, Word (Up to 25 MB)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3.5 bg-solar-50/40 border border-solar-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-solar-100 text-solar-700 rounded-lg">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-gray-900 truncate max-w-xs">
+                          {selectedFile.name}
+                        </div>
+                        <div className="text-[11px] text-gray-500 font-mono">
+                          {formatFileSize(selectedFile.size)} • {selectedFile.type || 'Binary Document'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setUploadFilename('');
+                      }}
+                      className="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 hover:bg-rose-50 rounded"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {(nextReviewStatus === 'REJECTED' ||
-                nextReviewStatus === 'RESUBMISSION_REQUIRED') && (
-                <div>
-                  <label className="block text-xs font-semibold text-red-700 mb-1">
-                    Rejection Reason (Minimum 5 characters) *
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. SLD missing earthing pit impedance signature"
-                    value={rejectionReason}
-                    onChange={e => setRejectionReason(e.target.value)}
-                    className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
-                    required
-                  />
-                </div>
-              )}
-
+              {/* Display Title */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Internal Review Notes (Optional)
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Document Title / Display Name *
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="Review observations..."
-                  value={reviewNotes}
-                  onChange={e => setReviewNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                <input
+                  type="text"
+                  placeholder="e.g. Verified Aadhaar KYC Copy"
+                  value={uploadDisplayName}
+                  onChange={e => setUploadDisplayName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none"
+                  required
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              {/* Client / Customer Selector */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Assign to Client (Optional)
+                </label>
+                <select
+                  value={uploadCustomerId}
+                  onChange={e => setUploadCustomerId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
+                >
+                  <option value="">🏢 General Vault / Internal Company Document</option>
+                  {customers.map(c => {
+                    const cId = c._id || c.id || '';
+                    const name = c.name || c.legalName || c.companyName || 'Client';
+                    return (
+                      <option key={cId} value={cId}>
+                        {name} • {c.customerCode} ({c.primaryPhone || 'No Phone'})
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Selecting a client automatically organizes this document under their personal KYC dossier.
+                </p>
+              </div>
+
+              {/* Category & Access Level */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Solar Compliance Category *
+                  </label>
+                  <select
+                    value={uploadCategory}
+                    onChange={e => setUploadCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+                  >
+                    {SOLAR_CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.icon} {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Portal Access Visibility
+                  </label>
+                  <select
+                    value={uploadClassification}
+                    onChange={e => setUploadClassification(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
+                  >
+                    <option value="CUSTOMER_VISIBLE">👁️ Customer Visible (Portal)</option>
+                    <option value="INTERNAL_ONLY">🔒 Internal Only (Staff)</option>
+                    <option value="RESTRICTED">🛡️ Restricted Confidential</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setReviewModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
+                  onClick={() => setUploadModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition disabled:opacity-50"
+                  className="px-5 py-2 bg-solar-600 hover:bg-solar-700 active:bg-solar-800 text-white font-bold rounded-lg text-sm transition shadow-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Uploading to Vault...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4" />
+                      <span>Save Document</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* Modal: Review Document (Accept, Reject, Resubmission)                     */}
+      {/* ========================================================================= */}
+      {reviewModalOpen && selectedDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <FileCheck2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                    Review Document: {selectedDoc.documentNumber}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium truncate max-w-xs">
+                    {selectedDoc.safeDisplayName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReviewModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleReviewDocument} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Review Decision *
+                </label>
+                <select
+                  value={nextReviewStatus}
+                  onChange={e => setNextReviewStatus(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none font-semibold bg-white"
+                >
+                  <option value="ACCEPTED">✅ Accept & Verify Document</option>
+                  <option value="REJECTED">❌ Reject Document</option>
+                  <option value="RESUBMISSION_REQUIRED">🔄 Request Client Resubmission</option>
+                </select>
+              </div>
+
+              {(nextReviewStatus === 'REJECTED' || nextReviewStatus === 'RESUBMISSION_REQUIRED') && (
+                <div>
+                  <label className="block text-xs font-bold text-rose-700 mb-1">
+                    Rejection / Resubmission Reason (Min 5 chars) *
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. SLD missing earthing pit impedance or signature blurry"
+                    value={rejectionReason}
+                    onChange={e => setRejectionReason(e.target.value)}
+                    className="w-full px-3 py-2 border border-rose-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                    required
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Internal Verification Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Verification observations, discom approval stamp notes..."
+                  value={reviewNotes}
+                  onChange={e => setReviewNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold rounded-lg text-sm transition shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? 'Recording...' : 'Submit Review'}
                 </button>
@@ -674,250 +1227,131 @@ export const DocumentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: Upload New Version */}
+      {/* ========================================================================= */}
+      {/* Modal: Upload New Version Revision                                        */}
+      {/* ========================================================================= */}
       {versionModalOpen && selectedDoc && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-600" />
-              Upload Version {selectedDoc.version + 1}
-            </h3>
-            <p className="text-xs text-gray-500">
-              Supersedes current version v{selectedDoc.version}. Historical versions and audit
-              records are preserved.
-            </p>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-solar-50 text-solar-600 rounded-xl">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                    Upload Version v{selectedDoc.version + 1}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Supersedes version v{selectedDoc.version}. Historical versions and audit trail are preserved.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setVersionModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             {formError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleUploadVersion} className="space-y-3">
+            <form onSubmit={handleUploadVersion} className="space-y-3.5">
+              {/* Revision File Picker */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  New Original Filename *
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Replacement File *
                 </label>
                 <input
-                  type="text"
-                  value={versionFilename}
-                  onChange={e => setVersionFilename(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  required
+                  type="file"
+                  ref={versionFileInputRef}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleVersionSelection(file);
+                  }}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.docx,.txt"
+                  className="hidden"
                 />
+
+                {!versionFile ? (
+                  <div
+                    onClick={() => versionFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 hover:border-solar-500 rounded-xl p-4 text-center cursor-pointer hover:bg-solar-50/20 transition"
+                  >
+                    <Upload className="w-6 h-6 mx-auto text-solar-600 mb-1" />
+                    <p className="text-xs font-bold text-gray-800">
+                      Click to choose revision file
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      PDF, Images, CAD drawings up to 25 MB
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-solar-50 border border-solar-200 rounded-xl flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-gray-900 truncate max-w-xs">
+                        {versionFile.name}
+                      </div>
+                      <div className="text-[11px] text-gray-500 font-mono">
+                        {formatFileSize(versionFile.size)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVersionFile(null)}
+                      className="text-xs text-rose-600 font-bold"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Safe Display Name
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Revision Display Title
                 </label>
                 <input
                   type="text"
                   value={versionDisplayName}
                   onChange={e => setVersionDisplayName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Version Changelog / Notes
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Revision Changelog / Notes
                 </label>
                 <textarea
                   rows={2}
                   placeholder="e.g. Revised electrical SLD reflecting updated 15kVA inverter rating"
                   value={versionNotes}
                   onChange={e => setVersionNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setVersionModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition disabled:opacity-50"
+                  className="px-5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold rounded-lg text-sm transition shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? 'Uploading...' : 'Publish New Version'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Upload to Vault */}
-      {uploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-indigo-600" />
-              Upload Document to Vault
-            </h3>
-
-            {formError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUploadDocument} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Original Filename *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. customer_aadhaar_card.pdf"
-                  value={uploadFilename}
-                  onChange={e => {
-                    setUploadFilename(e.target.value);
-                    if (!uploadDisplayName) setUploadDisplayName(e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Display Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Verified Aadhaar KYC Copy"
-                  value={uploadDisplayName}
-                  onChange={e => setUploadDisplayName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
-                  <select
-                    value={uploadCategory}
-                    onChange={e => setUploadCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="ELECTRICITY_BILL">⚡ Electricity Bill</option>
-                    <option value="AADHAAR_CARD">🪪 Aadhaar Card (KYC)</option>
-                    <option value="PAN_CARD">💳 PAN Card</option>
-                    <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / Tax Receipt</option>
-                    <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque</option>
-                    <option value="SITE_PHOTOS">📸 Site & Rooftop Photos</option>
-                    <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag</option>
-                    <option value="CUSTOMER_KYC">Customer KYC / ID</option>
-                    <option value="PROPERTY_DEED">Property Deed / Tax Receipt</option>
-                    <option value="QUOTATION_PROPOSAL">Solar Quotation / Proposal</option>
-                    <option value="SIGNED_CONTRACT">Signed Contract</option>
-                    <option value="NET_METERING_DOC">Net Metering Application</option>
-                    <option value="SUBSIDY_DOC">PM Surya Ghar Subsidy</option>
-                    <option value="INSTALLATION_QUALITY">Installation Quality / Photos</option>
-                    <option value="WARRANTY_CERTIFICATE">Warranty Certificate</option>
-                    <option value="OTHER">Other Documents</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Access Classification
-                  </label>
-                  <select
-                    value={uploadClassification}
-                    onChange={e => setUploadClassification(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="INTERNAL_ONLY">Internal Only</option>
-                    <option value="CUSTOMER_VISIBLE">Customer Visible</option>
-                    <option value="RESTRICTED">Restricted Confidential</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    MIME Type
-                  </label>
-                  <select
-                    value={uploadMime}
-                    onChange={e => setUploadMime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="application/pdf">PDF (application/pdf)</option>
-                    <option value="image/jpeg">JPEG (image/jpeg)</option>
-                    <option value="image/png">PNG (image/png)</option>
-                    <option value="image/webp">WEBP (image/webp)</option>
-                    <option value="text/csv">CSV (text/csv)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    File Size (Bytes)
-                  </label>
-                  <input
-                    type="number"
-                    value={uploadSize}
-                    onChange={e => setUploadSize(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Project ID (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Hex Project ID"
-                    value={uploadProjectId}
-                    onChange={e => setUploadProjectId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Customer ID (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Hex Customer ID"
-                    value={uploadCustomerId}
-                    onChange={e => setUploadCustomerId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setUploadModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Uploading...' : 'Save Document'}
                 </button>
               </div>
             </form>

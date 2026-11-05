@@ -688,7 +688,7 @@ export class DocumentService {
 
     const [items, total] = await Promise.all([
       DocumentModel.find(query)
-        .populate('customerId', 'customerCode fullName primaryPhone email')
+        .populate('customerId', 'customerCode name fullName companyName primaryPhone email')
         .populate('projectId', 'projectNumber title status')
         .populate('reviewActorId', 'firstName lastName email')
         .populate('uploadedBy', 'firstName lastName email customerCode fullName')
@@ -733,7 +733,7 @@ export class DocumentService {
     }
 
     const doc = await DocumentModel.findById(documentId)
-      .populate('customerId', 'customerCode fullName primaryPhone email')
+      .populate('customerId', 'customerCode name fullName companyName primaryPhone email')
       .populate('projectId', 'projectNumber title status')
       .populate('reviewActorId', 'firstName lastName email')
       .populate('previousVersionId', 'documentNumber version originalFilename createdAt')
