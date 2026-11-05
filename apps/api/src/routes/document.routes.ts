@@ -44,15 +44,51 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
     const storageAdapter = getStorageAdapter();
     let exists = await storageAdapter.objectExists(doc.storageKey);
     if (!exists && config.STORAGE_PROVIDER !== 's3') {
-      // In local dev and unit test runs with simulated/memory storage, auto-seed binary buffer for mocked fixtures
-      await storageAdapter.uploadObject(
-        doc.storageKey,
-        Buffer.from(`%PDF-1.4\n%INS-SOLAR-${doc.documentNumber}%\n`, 'utf-8'),
-        {
-          contentType: doc.mimeType || 'application/pdf',
-          contentLength: doc.fileSizeBytes || 32
-        }
-      );
+      // In local dev and test runs, seed placeholder buffer matching the mime type so images and PDFs render correctly
+      const isImg =
+        (doc.mimeType || '').startsWith('image/') ||
+        ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
+          (doc.originalFilename || '').toLowerCase().endsWith(ext)
+        );
+
+      let placeholderBuffer: Buffer;
+      let contentType = doc.mimeType || 'application/pdf';
+
+      if (isImg) {
+        contentType = 'image/svg+xml';
+        const safeTitle = (doc.safeDisplayName || doc.documentNumber).replace(/[<>&"]/g, '');
+        const safeName = (doc.originalFilename || 'Document').replace(/[<>&"]/g, '');
+        const safeCat = (doc.category || 'Solar Compliance').replace(/_/g, ' ');
+        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fffbeb"/>
+              <stop offset="100%" stop-color="#fef3c7"/>
+            </linearGradient>
+          </defs>
+          <rect width="800" height="600" fill="#0f172a"/>
+          <rect x="40" y="40" width="720" height="520" fill="url(#grad)" rx="16" stroke="#f59e0b" stroke-width="3"/>
+          <rect x="70" y="70" width="660" height="70" fill="#ffffff" rx="10" stroke="#fde68a" stroke-width="1.5"/>
+          <text x="90" y="112" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" fill="#b45309">⚡ RAREBOX SOLAR COMPLIANCE VAULT</text>
+          <text x="700" y="112" font-family="monospace" font-size="16" font-weight="bold" fill="#78350f" text-anchor="end">${doc.documentNumber}</text>
+          <circle cx="400" cy="270" r="55" fill="#f59e0b" fill-opacity="0.15"/>
+          <circle cx="400" cy="270" r="40" fill="#f59e0b" fill-opacity="0.3"/>
+          <path d="M380 270 L400 245 L420 270 L405 270 L405 295 L395 295 L395 270 Z" fill="#b45309"/>
+          <text x="400" y="370" font-family="system-ui, sans-serif" font-size="24" font-weight="bold" fill="#0f172a" text-anchor="middle">${safeTitle}</text>
+          <text x="400" y="405" font-family="monospace" font-size="14" fill="#475569" text-anchor="middle">${safeName}</text>
+          <rect x="250" y="435" width="300" height="32" fill="#d97706" rx="16"/>
+          <text x="400" y="456" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">CATEGORY: ${safeCat}</text>
+          <text x="400" y="515" font-family="system-ui, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Audit Safe Storage • Cryptographic Signature Verified</text>
+        </svg>`;
+        placeholderBuffer = Buffer.from(svgContent, 'utf-8');
+      } else {
+        placeholderBuffer = Buffer.from(`%PDF-1.4\n%INS-SOLAR-${doc.documentNumber}%\n`, 'utf-8');
+      }
+
+      await storageAdapter.uploadObject(doc.storageKey, placeholderBuffer, {
+        contentType,
+        contentLength: placeholderBuffer.length
+      });
       exists = true;
     }
 

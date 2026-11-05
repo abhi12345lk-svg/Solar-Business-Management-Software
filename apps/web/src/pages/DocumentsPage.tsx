@@ -21,7 +21,11 @@ import {
   FolderLock,
   RefreshCw,
   Upload,
-  ExternalLink
+  ExternalLink,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Loader2
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -418,6 +422,11 @@ export const DocumentsPage: React.FC = () => {
     downloadUrl: string;
   } | null>(null);
 
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewRotation, setPreviewRotation] = useState(0);
+  const [previewImgLoading, setPreviewImgLoading] = useState(true);
+  const [previewImgError, setPreviewImgError] = useState(false);
+
   const handleViewDocument = async (doc: DocumentItem) => {
     try {
       const res = await apiClient<{ downloadUrl: string; viewUrl?: string; mimeType?: string }>(
@@ -425,6 +434,10 @@ export const DocumentsPage: React.FC = () => {
       );
       if (res?.downloadUrl) {
         const viewUrl = res.viewUrl || `${res.downloadUrl}&inline=true`;
+        setPreviewZoom(1);
+        setPreviewRotation(0);
+        setPreviewImgLoading(true);
+        setPreviewImgError(false);
         setPreviewDoc({
           isOpen: true,
           title: doc.safeDisplayName || doc.documentNumber,
@@ -1415,7 +1428,7 @@ export const DocumentsPage: React.FC = () => {
         <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-200">
             {/* Header */}
-            <div className="p-3.5 sm:p-4 border-b border-gray-200 flex items-center justify-between shrink-0 bg-gray-50/80">
+            <div className="p-3.5 sm:p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-gray-50/80">
               <div className="flex items-center space-x-3 min-w-0">
                 <div className="p-2 bg-solar-50 text-solar-600 rounded-xl shrink-0">
                   <Eye className="w-5 h-5" />
@@ -1426,7 +1439,7 @@ export const DocumentsPage: React.FC = () => {
                       {previewDoc.title}
                     </h3>
                     {previewDoc.documentNumber && (
-                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 shrink-0">
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 shrink-0 border border-gray-300">
                         {previewDoc.documentNumber}
                       </span>
                     )}
@@ -1437,7 +1450,57 @@ export const DocumentsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Toolbar Controls */}
               <div className="flex items-center space-x-2 shrink-0">
+                {/* Image Zoom & Rotate Controls */}
+                {previewDoc.mimeType?.startsWith('image/') ||
+                ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
+                  previewDoc.originalFilename?.toLowerCase().endsWith(ext)
+                ) ? (
+                  <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 space-x-1 text-xs shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(z => Math.max(0.5, Number((z - 0.25).toFixed(2))))}
+                      className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-mono text-[10px] px-1 font-bold text-gray-600 min-w-[38px] text-center">
+                      {Math.round(previewZoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(z => Math.min(3, Number((z + 0.25).toFixed(2))))}
+                      className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="h-3 w-px bg-gray-200" />
+                    <button
+                      type="button"
+                      onClick={() => setPreviewRotation(r => (r + 90) % 360)}
+                      className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900"
+                      title="Rotate 90° Clockwise"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                    </button>
+                    {(previewZoom !== 1 || previewRotation !== 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewZoom(1);
+                          setPreviewRotation(0);
+                        }}
+                        className="text-[10px] text-solar-600 font-bold px-1.5 hover:underline"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+
                 <a
                   href={previewDoc.viewUrl}
                   target="_blank"
@@ -1467,42 +1530,100 @@ export const DocumentsPage: React.FC = () => {
             </div>
 
             {/* Preview Body */}
-            <div className="flex-1 overflow-auto bg-slate-900/5 flex items-center justify-center min-h-[350px] max-h-[75vh]">
+            <div className="flex-1 overflow-auto bg-slate-950 p-4 flex items-center justify-center min-h-[420px] max-h-[75vh] relative select-none">
               {previewDoc.mimeType?.startsWith('image/') ||
               ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
                 previewDoc.originalFilename?.toLowerCase().endsWith(ext)
               ) ? (
-                <div className="p-4 flex items-center justify-center w-full h-full">
-                  <img
-                    src={previewDoc.viewUrl}
-                    alt={previewDoc.title}
-                    className="max-w-full max-h-[70vh] rounded-lg shadow-md object-contain"
-                  />
+                <div className="relative flex items-center justify-center w-full h-full min-h-[380px]">
+                  {previewImgLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-10">
+                      <Loader2 className="w-8 h-8 animate-spin text-solar-500" />
+                    </div>
+                  )}
+
+                  {previewImgError ? (
+                    <div className="text-center p-8 space-y-3 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-xl">
+                      <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center">
+                        <AlertCircle className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-white font-bold text-base">Image Preview Notice</h4>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        The browser could not directly render this image inline. You can open it in a new window or download the original file to view.
+                      </p>
+                      <div className="flex items-center justify-center gap-2.5 pt-2">
+                        <a
+                          href={previewDoc.viewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition inline-flex items-center space-x-1.5"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Open in New Tab</span>
+                        </a>
+                        <a
+                          href={previewDoc.downloadUrl}
+                          download={previewDoc.originalFilename}
+                          className="px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center space-x-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download File</span>
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={previewDoc.viewUrl}
+                      alt={previewDoc.title}
+                      onLoad={() => setPreviewImgLoading(false)}
+                      onError={() => {
+                        setPreviewImgLoading(false);
+                        setPreviewImgError(true);
+                      }}
+                      style={{
+                        transform: `scale(${previewZoom}) rotate(${previewRotation}deg)`,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.15s ease-out'
+                      }}
+                      className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain ring-1 ring-white/10"
+                    />
+                  )}
                 </div>
               ) : previewDoc.mimeType === 'application/pdf' ||
                 previewDoc.originalFilename?.toLowerCase().endsWith('.pdf') ? (
                 <iframe
                   src={previewDoc.viewUrl}
                   title={previewDoc.title}
-                  className="w-full h-[70vh] border-0"
+                  className="w-full h-[70vh] border-0 rounded-lg bg-white"
                 />
               ) : (
-                <div className="p-8 text-center space-y-3">
-                  <FileText className="w-12 h-12 mx-auto text-solar-600" />
-                  <p className="font-semibold text-gray-800 text-sm">
+                <div className="p-8 text-center space-y-3 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-xl">
+                  <FileText className="w-12 h-12 mx-auto text-solar-500" />
+                  <p className="font-semibold text-white text-sm">
                     Direct in-browser preview not supported for this file type.
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Please download the file to inspect its contents.
+                  <p className="text-xs text-slate-400">
+                    Please download or open in a new tab to inspect its contents.
                   </p>
-                  <a
-                    href={previewDoc.downloadUrl}
-                    download={previewDoc.originalFilename}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download File</span>
-                  </a>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <a
+                      href={previewDoc.viewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open in New Tab</span>
+                    </a>
+                    <a
+                      href={previewDoc.downloadUrl}
+                      download={previewDoc.originalFilename}
+                      className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download File</span>
+                    </a>
+                  </div>
                 </div>
               )}
             </div>

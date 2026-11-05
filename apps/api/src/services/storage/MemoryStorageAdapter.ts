@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   IObjectStorageAdapter,
   StorageUploadOptions,
@@ -14,6 +16,23 @@ interface StoredRecord {
   metadata?: Record<string, string>;
   checksumSha256: string;
   lastModified: Date;
+}
+
+const DISK_STORAGE_DIR = path.resolve(process.cwd(), '.storage_vault');
+
+function getDiskPaths(storageKey: string) {
+  if (!fs.existsSync(DISK_STORAGE_DIR)) {
+    try {
+      fs.mkdirSync(DISK_STORAGE_DIR, { recursive: true });
+    } catch {
+      // Ignore if exists
+    }
+  }
+  const safeFilename = crypto.createHash('sha256').update(storageKey).digest('hex');
+  return {
+    filePath: path.join(DISK_STORAGE_DIR, safeFilename),
+    metaPath: path.join(DISK_STORAGE_DIR, `${safeFilename}.meta.json`)
+  };
 }
 
 export class MemoryStorageAdapter implements IObjectStorageAdapter {
@@ -51,6 +70,24 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
       lastModified: new Date()
     });
 
+    // Also persist to local disk directory so files survive backend restarts
+    try {
+      const { filePath, metaPath } = getDiskPaths(storageKey);
+      fs.writeFileSync(filePath, buffer);
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify({
+          storageKey,
+          contentType: options.contentType,
+          metadata: options.metadata,
+          checksumSha256,
+          lastModified: new Date().toISOString()
+        })
+      );
+    } catch (diskErr) {
+      console.warn('[Storage] Disk fallback notice:', diskErr);
+    }
+
     return {
       storageKey,
       checksumSha256,
@@ -60,7 +97,29 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
   }
 
   public async downloadObject(storageKey: string): Promise<StorageDownloadResult> {
-    const record = this.storage.get(storageKey);
+    let record = this.storage.get(storageKey);
+
+    // If not in RAM, attempt to load from local disk cache
+    if (!record) {
+      try {
+        const { filePath, metaPath } = getDiskPaths(storageKey);
+        if (fs.existsSync(filePath) && fs.existsSync(metaPath)) {
+          const buffer = fs.readFileSync(filePath);
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+          record = {
+            buffer,
+            contentType: meta.contentType || 'application/octet-stream',
+            metadata: meta.metadata,
+            checksumSha256: meta.checksumSha256 || '',
+            lastModified: new Date(meta.lastModified || Date.now())
+          };
+          this.storage.set(storageKey, record);
+        }
+      } catch (loadErr) {
+        console.warn('[Storage] Failed to read disk file for', storageKey, loadErr);
+      }
+    }
+
     if (!record) {
       throw AppError.notFound(`Storage object '${storageKey}' not found.`);
     }
@@ -76,10 +135,23 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
 
   public async deleteObject(storageKey: string): Promise<void> {
     this.storage.delete(storageKey);
+    try {
+      const { filePath, metaPath } = getDiskPaths(storageKey);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+    } catch {
+      // Ignore
+    }
   }
 
   public async objectExists(storageKey: string): Promise<boolean> {
-    return this.storage.has(storageKey);
+    if (this.storage.has(storageKey)) return true;
+    try {
+      const { filePath } = getDiskPaths(storageKey);
+      return fs.existsSync(filePath);
+    } catch {
+      return false;
+    }
   }
 
   public async generatePresignedDownloadUrl(
