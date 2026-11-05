@@ -48,4 +48,6 @@ Thumbs.db
 # Temporary / Scratch Files
 scratch/
 tmp/
+.storage_vault/
+apps/api/.storage_vault/
 temp/

@@ -469,6 +469,7 @@ export const CustomersPage: React.FC = () => {
   // Document In-App Preview Modal State
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean;
+    docId: string;
     title: string;
     documentNumber?: string;
     category?: string;
@@ -482,6 +483,44 @@ export const CustomersPage: React.FC = () => {
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewImgLoading, setPreviewImgLoading] = useState(true);
   const [previewImgError, setPreviewImgError] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!previewModal?.viewUrl) {
+      setPreviewBlobUrl(null);
+      return;
+    }
+    let isMounted = true;
+    setPreviewImgLoading(true);
+    setPreviewImgError(false);
+
+    fetch(previewModal.viewUrl, { credentials: 'include' })
+      .then(async res => {
+        if (!res.ok) {
+          throw new Error(`Failed to load document (${res.status} ${res.statusText})`);
+        }
+        return res.blob();
+      })
+      .then(blob => {
+        if (!isMounted) return;
+        const objectUrl = URL.createObjectURL(blob);
+        setPreviewBlobUrl(objectUrl);
+        setPreviewImgLoading(false);
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        console.error('Document preview error:', err);
+        setPreviewImgLoading(false);
+        setPreviewImgError(true);
+      });
+
+    return () => {
+      isMounted = false;
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+      }
+    };
+  }, [previewModal?.viewUrl]);
 
   const handleViewDocument = async (doc: any) => {
     try {
@@ -497,6 +536,7 @@ export const CustomersPage: React.FC = () => {
         setPreviewImgError(false);
         setPreviewModal({
           isOpen: true,
+          docId,
           title: doc.safeDisplayName || doc.title || doc.originalFilename || 'Document Preview',
           documentNumber: doc.documentNumber,
           category: doc.category,
@@ -510,6 +550,44 @@ export const CustomersPage: React.FC = () => {
       }
     } catch (err: any) {
       alert(err?.message || 'Failed to open document preview.');
+    }
+  };
+
+  const handleModalFileReplace = async (file: File) => {
+    if (!previewModal?.docId) return;
+    try {
+      setPreviewImgLoading(true);
+      setPreviewImgError(false);
+      const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
+      await fetch(`/api/v1/documents/${previewModal.docId}/content`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
+        },
+        body: file
+      });
+
+      setPreviewModal(prev =>
+        prev
+          ? {
+              ...prev,
+              originalFilename: file.name,
+              mimeType: file.type || prev.mimeType,
+              viewUrl: `${prev.viewUrl}&_t=${Date.now()}`
+            }
+          : null
+      );
+
+      if (vaultCustomer) {
+        fetchVaultDocuments(vaultCustomer.id);
+      }
+      setVaultSuccess(`"${file.name}" uploaded to vault successfully!`);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update document file.');
+    } finally {
+      setPreviewImgLoading(false);
     }
   };
 
@@ -2071,6 +2149,20 @@ export const CustomersPage: React.FC = () => {
                   </div>
                 ) : null}
 
+                <label className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-solar-50 hover:bg-solar-100 text-solar-700 border border-solar-200 transition cursor-pointer">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Replace File</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    onChange={e => {
+                      if (e.target.files?.[0]) {
+                        handleModalFileReplace(e.target.files[0]);
+                      }
+                    }}
+                  />
+                </label>
                 <a
                   href={previewModal.viewUrl}
                   target="_blank"
@@ -2102,7 +2194,7 @@ export const CustomersPage: React.FC = () => {
             {/* Preview Body */}
             <div className="flex-1 overflow-auto bg-slate-950 p-4 flex items-center justify-center min-h-[420px] max-h-[75vh] relative select-none">
               {previewModal.mimeType?.startsWith('image/') ||
-              ['.jpg', '.jpeg', '.png', '.webp'].some(ext =>
+              ['.jpg', '.jpeg', '.png', '.webp', '.svg'].some(ext =>
                 previewModal.originalFilename?.toLowerCase().endsWith(ext)
               ) ? (
                 <div className="relative flex items-center justify-center w-full h-full min-h-[380px]">
@@ -2112,16 +2204,30 @@ export const CustomersPage: React.FC = () => {
                     </div>
                   )}
 
-                  {previewImgError ? (
+                  {previewImgError && !previewBlobUrl ? (
                     <div className="text-center p-8 space-y-3 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-xl">
                       <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center">
                         <AlertCircle className="w-6 h-6" />
                       </div>
                       <h4 className="text-white font-bold text-base">Image Preview Notice</h4>
                       <p className="text-slate-400 text-xs leading-relaxed">
-                        The browser could not directly render this image inline. You can open it in a new window or download the original file to view.
+                        The browser could not directly render this image inline. You can open it in a new window, download the original file, or upload a replacement photo.
                       </p>
                       <div className="flex items-center justify-center gap-2.5 pt-2">
+                        <label className="px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload / Replace File</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*,application/pdf"
+                            onChange={e => {
+                              if (e.target.files?.[0]) {
+                                handleModalFileReplace(e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </label>
                         <a
                           href={previewModal.viewUrl}
                           target="_blank"
@@ -2131,24 +2237,18 @@ export const CustomersPage: React.FC = () => {
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Open in New Tab</span>
                         </a>
-                        <a
-                          href={previewModal.downloadUrl}
-                          download={previewModal.originalFilename}
-                          className="px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center space-x-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download File</span>
-                        </a>
                       </div>
                     </div>
                   ) : (
                     <img
-                      src={previewModal.viewUrl}
+                      src={previewBlobUrl || previewModal.viewUrl}
                       alt={previewModal.title}
                       onLoad={() => setPreviewImgLoading(false)}
                       onError={() => {
-                        setPreviewImgLoading(false);
-                        setPreviewImgError(true);
+                        if (!previewBlobUrl) {
+                          setPreviewImgLoading(false);
+                          setPreviewImgError(true);
+                        }
                       }}
                       style={{
                         transform: `scale(${previewZoom}) rotate(${previewRotation}deg)`,
@@ -2162,7 +2262,7 @@ export const CustomersPage: React.FC = () => {
               ) : previewModal.mimeType === 'application/pdf' ||
                 previewModal.originalFilename?.toLowerCase().endsWith('.pdf') ? (
                 <iframe
-                  src={previewModal.viewUrl}
+                  src={previewBlobUrl || previewModal.viewUrl}
                   title={previewModal.title}
                   className="w-full h-[70vh] border-0 rounded-lg bg-white"
                 />

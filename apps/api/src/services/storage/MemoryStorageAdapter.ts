@@ -18,21 +18,46 @@ interface StoredRecord {
   lastModified: Date;
 }
 
-const DISK_STORAGE_DIR = path.resolve(process.cwd(), '.storage_vault');
+function getStorageDirs(): string[] {
+  const dirs = new Set<string>();
+  const cwd = process.cwd();
+  dirs.add(path.resolve(cwd, '.storage_vault'));
+  dirs.add(path.resolve(cwd, 'apps/api/.storage_vault'));
+  dirs.add(path.resolve(cwd, '..', '.storage_vault'));
+  dirs.add(path.resolve('d:/My project/Solar Business Management Software/.storage_vault'));
+  dirs.add(path.resolve('d:/My project/Solar Business Management Software/apps/api/.storage_vault'));
+  return Array.from(dirs);
+}
 
-function getDiskPaths(storageKey: string) {
-  if (!fs.existsSync(DISK_STORAGE_DIR)) {
-    try {
-      fs.mkdirSync(DISK_STORAGE_DIR, { recursive: true });
-    } catch {
-      // Ignore if exists
+function findExistingDiskPaths(storageKey: string): { filePath: string; metaPath: string } | null {
+  const safeFilename = crypto.createHash('sha256').update(storageKey).digest('hex');
+  const dirs = getStorageDirs();
+  for (const dir of dirs) {
+    const filePath = path.join(dir, safeFilename);
+    const metaPath = path.join(dir, `${safeFilename}.meta.json`);
+    if (fs.existsSync(filePath)) {
+      return { filePath, metaPath };
     }
   }
+  return null;
+}
+
+function getWriteDiskPaths(storageKey: string): Array<{ filePath: string; metaPath: string }> {
   const safeFilename = crypto.createHash('sha256').update(storageKey).digest('hex');
-  return {
-    filePath: path.join(DISK_STORAGE_DIR, safeFilename),
-    metaPath: path.join(DISK_STORAGE_DIR, `${safeFilename}.meta.json`)
-  };
+  const dirs = getStorageDirs();
+  return dirs.map(dir => {
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch {
+        // ignore
+      }
+    }
+    return {
+      filePath: path.join(dir, safeFilename),
+      metaPath: path.join(dir, `${safeFilename}.meta.json`)
+    };
+  });
 }
 
 export class MemoryStorageAdapter implements IObjectStorageAdapter {
@@ -72,18 +97,20 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
 
     // Also persist to local disk directory so files survive backend restarts
     try {
-      const { filePath, metaPath } = getDiskPaths(storageKey);
-      fs.writeFileSync(filePath, buffer);
-      fs.writeFileSync(
-        metaPath,
-        JSON.stringify({
-          storageKey,
-          contentType: options.contentType,
-          metadata: options.metadata,
-          checksumSha256,
-          lastModified: new Date().toISOString()
-        })
-      );
+      const diskTargets = getWriteDiskPaths(storageKey);
+      for (const { filePath, metaPath } of diskTargets) {
+        fs.writeFileSync(filePath, buffer);
+        fs.writeFileSync(
+          metaPath,
+          JSON.stringify({
+            storageKey,
+            contentType: options.contentType,
+            metadata: options.metadata,
+            checksumSha256,
+            lastModified: new Date().toISOString()
+          })
+        );
+      }
     } catch (diskErr) {
       console.warn('[Storage] Disk fallback notice:', diskErr);
     }
@@ -102,10 +129,10 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
     // If not in RAM, attempt to load from local disk cache
     if (!record) {
       try {
-        const { filePath, metaPath } = getDiskPaths(storageKey);
-        if (fs.existsSync(filePath) && fs.existsSync(metaPath)) {
-          const buffer = fs.readFileSync(filePath);
-          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+        const found = findExistingDiskPaths(storageKey);
+        if (found && fs.existsSync(found.filePath) && fs.existsSync(found.metaPath)) {
+          const buffer = fs.readFileSync(found.filePath);
+          const meta = JSON.parse(fs.readFileSync(found.metaPath, 'utf-8'));
           record = {
             buffer,
             contentType: meta.contentType || 'application/octet-stream',
@@ -136,9 +163,11 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
   public async deleteObject(storageKey: string): Promise<void> {
     this.storage.delete(storageKey);
     try {
-      const { filePath, metaPath } = getDiskPaths(storageKey);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+      const diskTargets = getWriteDiskPaths(storageKey);
+      for (const { filePath, metaPath } of diskTargets) {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+      }
     } catch {
       // Ignore
     }
@@ -147,8 +176,8 @@ export class MemoryStorageAdapter implements IObjectStorageAdapter {
   public async objectExists(storageKey: string): Promise<boolean> {
     if (this.storage.has(storageKey)) return true;
     try {
-      const { filePath } = getDiskPaths(storageKey);
-      return fs.existsSync(filePath);
+      const found = findExistingDiskPaths(storageKey);
+      return !!found && fs.existsSync(found.filePath);
     } catch {
       return false;
     }
