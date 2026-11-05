@@ -83,7 +83,32 @@ export async function seedWorkstationUsers(): Promise<void> {
       logger.info('Verified Accounts Officer (accounts@inssolar.com).');
     }
 
-    logger.info('All 3 Panel Workstation Accounts verified in Atlas MongoDB successfully.');
+    // 4. Field Installer / Installation Crew
+    const installerExists = await User.findOne({ email: 'installer@inssolar.com' });
+    const installerPassHash = await hashPassword('SolarInstaller2026!');
+    if (!installerExists) {
+      await User.create({
+        employeeCode: 'EMP-0004',
+        firstName: 'Vikram',
+        lastName: 'Sahu',
+        email: 'installer@inssolar.com',
+        phone: '+919876500003',
+        passwordHash: installerPassHash,
+        department: Department.OPERATIONS,
+        role: UserRole.INSTALLATION_CREW,
+        permissions: [],
+        isActive: true,
+        mfaEnabled: false,
+        sessionVersion: 1
+      });
+      logger.info('Created default Field Installer Crew (installer@inssolar.com).');
+    } else {
+      installerExists.passwordHash = installerPassHash;
+      await installerExists.save();
+      logger.info('Verified Field Installer Crew (installer@inssolar.com).');
+    }
+
+    logger.info('All 4 Panel Workstation Accounts verified in Atlas MongoDB successfully.');
   } finally {
     await dbManager.disconnect();
   }

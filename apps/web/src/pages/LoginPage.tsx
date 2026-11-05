@@ -23,7 +23,7 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
 
-  type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'CUSTOMER';
+  type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'INSTALLER' | 'CUSTOMER';
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
 
   const [email, setEmail] = useState('admin@inssolar.com');
@@ -49,6 +49,9 @@ export const LoginPage: React.FC = () => {
     } else if (portal === 'ACCOUNTS') {
       setEmail('accounts@inssolar.com');
       setPassword('SolarAccounts2026!');
+    } else if (portal === 'INSTALLER') {
+      setEmail('installer@inssolar.com');
+      setPassword('SolarInstaller2026!');
     } else if (portal === 'CUSTOMER') {
       navigate('/customer-portal');
     }
@@ -81,6 +84,15 @@ export const LoginPage: React.FC = () => {
         'Sign in to oversee payment collections, vendor 3-way matching, DBT subsidies, and costing.',
       themeColor: 'from-emerald-500 to-emerald-600',
       tabActive: 'bg-emerald-500 text-white font-bold shadow-md'
+    },
+    INSTALLER: {
+      badge: 'Installer Field Workstation',
+      badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+      title: 'Field Installer & Commissioning Workstation',
+      description:
+        'Sign in to record rooftop equipment serials, scan barcodes with phone camera, capture live GPS, and upload 10 site photos.',
+      themeColor: 'from-amber-500 to-orange-500',
+      tabActive: 'bg-amber-500 text-slate-950 font-bold shadow-md'
     },
     CUSTOMER: {
       badge: 'Client Portal',
@@ -117,7 +129,8 @@ export const LoginPage: React.FC = () => {
       if (result.requiresMfa) {
         navigate('/mfa-challenge');
       } else {
-        navigate(from, { replace: true });
+        const destination = selectedPortal === 'INSTALLER' ? '/installations' : from;
+        navigate(destination, { replace: true });
       }
     } catch (err: any) {
       const msg = err.message || '';
@@ -273,11 +286,11 @@ export const LoginPage: React.FC = () => {
             <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Select Operating Portal
             </label>
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-700/60">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-700/60">
               <button
                 type="button"
                 onClick={() => handleSelectPortal('ADMIN')}
-                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                className={`py-2 px-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                   selectedPortal === 'ADMIN'
                     ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -289,7 +302,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSelectPortal('SALES')}
-                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                className={`py-2 px-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                   selectedPortal === 'SALES'
                     ? 'bg-sky-500 text-white shadow-sm font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -301,7 +314,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSelectPortal('ACCOUNTS')}
-                className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                className={`py-2 px-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                   selectedPortal === 'ACCOUNTS'
                     ? 'bg-emerald-500 text-white shadow-sm font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -309,6 +322,18 @@ export const LoginPage: React.FC = () => {
               >
                 <span>💳</span>
                 <span className="truncate">Accounts</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPortal('INSTALLER')}
+                className={`py-2 px-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                  selectedPortal === 'INSTALLER'
+                    ? 'bg-amber-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>⛑️</span>
+                <span className="truncate">Installer</span>
               </button>
             </div>
           </div>

@@ -153,6 +153,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>Accounts</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => onViewChange(PanelType.INSTALLER)}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  currentView === PanelType.INSTALLER
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}
+                title="Switch to Installer Field Panel"
+              >
+                <HardHat className="w-3.5 h-3.5" />
+                <span>Installer</span>
+              </button>
             </div>
           )}
 

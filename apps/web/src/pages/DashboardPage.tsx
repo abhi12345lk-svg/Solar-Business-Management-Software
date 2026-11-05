@@ -15,6 +15,7 @@ import { DashboardHeader } from '../components/dashboard/DashboardHeader.js';
 import { AdminDashboard } from '../components/dashboard/AdminDashboard.js';
 import { SalesDashboard } from '../components/dashboard/SalesDashboard.js';
 import { AccountsDashboard } from '../components/dashboard/AccountsDashboard.js';
+import { InstallationsPage } from './InstallationsPage.js';
 import { DateFilterRange } from '../components/dashboard/dashboardUtils.js';
 
 export const DashboardPage: React.FC = () => {
@@ -67,6 +68,8 @@ export const DashboardPage: React.FC = () => {
       {currentView === PanelType.SALES && <SalesDashboard dateRange={dateRange} />}
 
       {currentView === PanelType.ACCOUNTS && <AccountsDashboard dateRange={dateRange} />}
+
+      {currentView === PanelType.INSTALLER && <InstallationsPage />}
     </div>
   );
 };
