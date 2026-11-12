@@ -443,7 +443,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
         `Document "${title}" (${docRes.documentNumber || 'DOC-REG'}) saved into customer vault successfully!`
       );
     } catch (err: any) {
-      alert('Failed to save document in vault: ' + (err?.message || 'Error'));
+      const errorMsg =
+        (err?.details && Array.isArray(err.details) && err.details.length > 0
+          ? err.details.map((d: any) => `${d.path?.join('.') || 'field'}: ${d.message}`).join(', ')
+          : '') ||
+        err?.message ||
+        'Error saving document';
+      alert('Failed to save document in vault: ' + errorMsg);
     } finally {
       setIsSavingToVault(false);
     }

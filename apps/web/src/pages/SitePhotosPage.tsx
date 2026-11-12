@@ -246,15 +246,29 @@ export const SitePhotosPage: React.FC = () => {
         filename
       });
 
-      const title = `Client Site Photos Compliance – ${tplConsumerName}`;
+      const title = `Client Site Photos Compliance – ${tplConsumerName.trim() || 'Beneficiary'}`;
+
+      // Check customer linkage from selected customer or match by consumer number / name
+      let custId = selectedCustomer?._id || selectedCustomer?.id;
+      if (!custId && customers.length > 0) {
+        const match = customers.find(c =>
+          (c.customerCode && tplConsumerNumber && c.customerCode.includes(tplConsumerNumber)) ||
+          (c.name && tplConsumerName && c.name.toLowerCase().trim() === tplConsumerName.toLowerCase().trim())
+        );
+        if (match) {
+          custId = match._id || match.id;
+        }
+      }
+
+      const isValidObjectId = (id?: string) => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
+
       const payload: any = {
-        title,
-        documentType: 'SITE_PHOTOS',
+        originalFilename: filename,
+        safeDisplayName: title,
         category: 'SITE_PHOTOS',
+        accessClassification: 'CUSTOMER_VISIBLE',
         mimeType: 'application/pdf',
         fileSizeBytes: blob.size,
-        fileName: filename,
-        description: `Official 4-angle rooftop site photos document for ${tplConsumerName} (${tplConsumerNumber || 'BP'}).`,
         metadata: {
           templateId: 'SITE_PHOTOS_REPORT',
           consumerName: tplConsumerName,
@@ -266,8 +280,10 @@ export const SitePhotosPage: React.FC = () => {
         }
       };
 
-      if (selectedCustomer) {
-        payload.customerId = selectedCustomer._id || selectedCustomer.id;
+      if (isValidObjectId(custId)) {
+        payload.customerId = custId;
+        payload.relatedEntityType = 'Customer';
+        payload.relatedEntityId = custId;
       }
 
       const docRes: any = await apiClient<any>('/documents', {
@@ -294,10 +310,16 @@ export const SitePhotosPage: React.FC = () => {
       }
 
       setVaultSaveSuccess(
-        `Document "${title}" (${docRes.documentNumber || 'DOC-REG'}) saved into customer vault successfully!`
+        `Document "${title}" (${docRes.documentNumber || 'DOC-REG'}) saved into document vault successfully!`
       );
     } catch (err: any) {
-      alert('Failed to save document in vault: ' + (err?.message || 'Error'));
+      const errorMsg =
+        (err?.details && Array.isArray(err.details) && err.details.length > 0
+          ? err.details.map((d: any) => `${d.path?.join('.') || 'field'}: ${d.message}`).join(', ')
+          : '') ||
+        err?.message ||
+        'Error saving document';
+      alert('Failed to save document in vault: ' + errorMsg);
     } finally {
       setIsSavingToVault(false);
     }
