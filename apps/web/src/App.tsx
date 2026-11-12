@@ -391,6 +391,14 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="site-photos"
+            element={
+              <ProtectedRoute>
+                <CreateDocumentPage defaultTemplate="SITE_PHOTOS_REPORT" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="documents/create"
             element={
               <ProtectedRoute>

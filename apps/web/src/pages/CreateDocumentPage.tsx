@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import {
   FilePlus2,
   FolderLock,
@@ -30,6 +30,8 @@ import {
   SAMPLE_PHOTO3_BASE64,
   SAMPLE_PHOTO4_BASE64
 } from '../assets/sampleSitePhotosBase64.js';
+import { useAuth } from '../context/AuthContext.js';
+import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 
 interface CustomerOption {
   _id?: string;
@@ -127,10 +129,32 @@ const TEMPLATE_OPTIONS = [
   }
 ];
 
-export const CreateDocumentPage: React.FC = () => {
+interface CreateDocumentPageProps {
+  defaultTemplate?: string;
+}
+
+export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultTemplate }) => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const activePanel: PanelType = user?.role
+    ? getDefaultPanelForRole(user.role, user.department)
+    : PanelType.ADMIN;
+
+  const isInstaller = activePanel === PanelType.INSTALLER;
+  const isSitePhotosRoute = location.pathname === '/site-photos' || searchParams.get('template') === 'SITE_PHOTOS_REPORT';
+
+  // SITE_PHOTOS_REPORT is strictly visible in Installer panel or on dedicated /site-photos route
+  const availableTemplates = TEMPLATE_OPTIONS.filter(tpl => {
+    if (tpl.id === 'SITE_PHOTOS_REPORT') {
+      return isInstaller || isSitePhotosRoute;
+    }
+    return true;
+  });
+
   const preselectedCustomerId = searchParams.get('customerId') || '';
-  const preselectedTemplate = searchParams.get('template') || '';
+  const preselectedTemplate = defaultTemplate || searchParams.get('template') || (isSitePhotosRoute ? 'SITE_PHOTOS_REPORT' : '');
 
   // Customer Directory State
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -142,14 +166,15 @@ export const CreateDocumentPage: React.FC = () => {
 
   // Active Template
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    preselectedTemplate || 'ANNEXURE_2_AGREEMENT'
+    preselectedTemplate || (isSitePhotosRoute ? 'SITE_PHOTOS_REPORT' : 'ANNEXURE_2_AGREEMENT')
   );
 
   useEffect(() => {
-    if (preselectedTemplate && TEMPLATE_OPTIONS.some(t => t.id === preselectedTemplate)) {
-      setSelectedTemplateId(preselectedTemplate);
+    const target = defaultTemplate || searchParams.get('template') || (location.pathname === '/site-photos' ? 'SITE_PHOTOS_REPORT' : '');
+    if (target && TEMPLATE_OPTIONS.some(t => t.id === target)) {
+      setSelectedTemplateId(target);
     }
-  }, [preselectedTemplate]);
+  }, [defaultTemplate, searchParams, location.pathname]);
 
   // Customer & Site Information
   const [tplConsumerName, setTplConsumerName] = useState('SHRI GYAN CHAND JAISWAL');
@@ -562,7 +587,7 @@ export const CreateDocumentPage: React.FC = () => {
                     onChange={e => setSelectedTemplateId(e.target.value)}
                     className="w-full sm:w-[350px] px-3.5 py-2.5 text-xs sm:text-sm font-bold bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
                   >
-                    {TEMPLATE_OPTIONS.map(tpl => (
+                    {availableTemplates.map(tpl => (
                       <option key={tpl.id} value={tpl.id}>
                         {tpl.name}
                       </option>

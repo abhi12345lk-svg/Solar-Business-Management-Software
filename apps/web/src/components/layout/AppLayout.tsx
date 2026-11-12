@@ -183,7 +183,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Site Documents & Compliance',
     items: [
       { to: '/create-document', label: 'Create Document (WCR & Forms)', icon: FilePlus2 },
-      { to: '/create-document?template=SITE_PHOTOS_REPORT', label: 'Site Photos Document', icon: Camera },
+      { to: '/site-photos', label: 'Site Photos Document', icon: Camera },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -205,6 +205,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   }
   if (pathname.startsWith('/installations/new')) return { section: 'Field Operations', title: 'New Installation Entry' };
   if (pathname.startsWith('/installations')) return { section: 'Field Operations', title: 'Assigned Installations' };
+  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Photos Document' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
@@ -422,33 +423,45 @@ export const AppLayout: React.FC = () => {
             <div className="space-y-0.5">
               {section.items.map(item => {
                 const ItemIcon = item.icon;
-                const isSitePhotosDoc = item.to.includes('template=SITE_PHOTOS_REPORT');
-                const isExact = item.to === '/' || item.to === '/documents' || item.to === '/create-document' || isSitePhotosDoc;
-                const isDocVault = item.to === '/documents';
-                const isCreateDoc = !isSitePhotosDoc && (item.to === '/create-document' || item.to === '/documents/create');
 
-                const currentIsSitePhotos = location.search.includes('template=SITE_PHOTOS_REPORT');
-
-                const isActive = isSitePhotosDoc
-                  ? location.pathname === '/create-document' && currentIsSitePhotos
-                  : isDocVault
-                  ? location.pathname === '/documents' || (location.pathname.startsWith('/documents/') && !location.pathname.startsWith('/documents/create'))
-                  : isCreateDoc
-                  ? (location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')) && !currentIsSitePhotos
-                  : isExact
-                  ? location.pathname === item.to
-                  : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+                // Bulletproof mutually-exclusive active matching to eliminate dual/overlap highlights:
+                const isActive = (() => {
+                  if (item.to === '/') {
+                    return location.pathname === '/';
+                  }
+                  if (item.to === '/installations') {
+                    // Exact match: never active on /installations/new
+                    return location.pathname === '/installations';
+                  }
+                  if (item.to === '/installations/new') {
+                    return location.pathname === '/installations/new';
+                  }
+                  if (item.to === '/site-photos') {
+                    return location.pathname === '/site-photos' || location.search.includes('template=SITE_PHOTOS_REPORT');
+                  }
+                  if (item.to === '/create-document') {
+                    return (
+                      (location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')) &&
+                      !location.search.includes('template=SITE_PHOTOS_REPORT')
+                    );
+                  }
+                  if (item.to === '/documents') {
+                    return (
+                      location.pathname === '/documents' ||
+                      (location.pathname.startsWith('/documents/') && !location.pathname.startsWith('/documents/create'))
+                    );
+                  }
+                  return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+                })();
 
                 return (
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={isExact}
                     title={isCollapsed ? item.label : undefined}
-                    className={({ isActive: navActive }) => {
-                      const active = isExact ? navActive : isActive;
+                    className={() => {
                       return `flex items-center ${isCollapsed ? 'justify-center p-2.5 min-h-[44px]' : 'justify-between px-3 py-2.5 min-h-[44px]'} rounded-lg text-xs font-medium transition-all group ${
-                        active
+                        isActive
                           ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border-l-3 border-solar-500 shadow-xs'
                           : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                       }`;

@@ -305,7 +305,7 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
               <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-solar-600' : ''}`} />
             </button>
             <Link
-              to="/create-document?template=SITE_PHOTOS_REPORT"
+              to="/site-photos"
               className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 font-bold text-sm transition shadow-2xs cursor-pointer"
               title="Generate Client Site Photos Compliance Document (SITE PHOTOS AT ...)"
             >
@@ -335,7 +335,7 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
           </div>
           <div className="flex items-center space-x-2">
             <Link
-              to="/create-document?template=SITE_PHOTOS_REPORT"
+              to="/site-photos"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 text-xs font-bold transition cursor-pointer"
               title="Generate Client Site Photos Compliance Document (SITE PHOTOS AT ...)"
             >
@@ -688,7 +688,7 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
                         </Link>
 
                         <Link
-                          to={`/create-document?template=SITE_PHOTOS_REPORT&customerId=${item.customerId || ''}`}
+                          to={`/site-photos?customerId=${item.customerId || ''}`}
                           className="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition cursor-pointer"
                           title="Generate Client Site Photos Document (SITE PHOTOS AT ...)"
                         >
