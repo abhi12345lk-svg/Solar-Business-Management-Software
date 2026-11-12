@@ -17,7 +17,8 @@ import {
   MapPin,
   Layers,
   UserPlus,
-  X
+  X,
+  FilePlus2
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -75,7 +76,11 @@ interface InstallerOption {
   employeeCode?: string;
 }
 
-export const InstallationsPage: React.FC = () => {
+interface InstallationsPageProps {
+  embedded?: boolean;
+}
+
+export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded = false }) => {
   const { user } = useAuth();
 
   const [installations, setInstallations] = useState<InstallationSummaryItem[]>([]);
@@ -269,43 +274,75 @@ export const InstallationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className={`space-y-6 ${embedded ? '' : 'max-w-7xl mx-auto'} pb-12`}>
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-solar-50 text-solar-700 border border-solar-200">
-              <HardHat className="w-3.5 h-3.5 mr-1 text-solar-600" />
-              Field Operations Hub
-            </span>
-            <span className="text-xs text-slate-400">• Rarebox Solar ERP</span>
+      {!embedded ? (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-solar-50 text-solar-700 border border-solar-200">
+                <HardHat className="w-3.5 h-3.5 mr-1 text-solar-600" />
+                Field Operations Hub
+              </span>
+              <span className="text-xs text-slate-400">• Rarebox Solar ERP</span>
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
+              Installer Panel &amp; Installation Management
+            </h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Record rooftop solar installations, equipment serials, barcode scans, GPS coordinates, and site photographs.
+            </p>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Installer Panel & Installation Management
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Record rooftop solar installations, equipment serials, barcode scans, GPS coordinates, and site photographs.
-          </p>
-        </div>
 
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={fetchData}
-            disabled={isRefreshing}
-            className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
-            title="Refresh Data"
-          >
-            <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-solar-600' : ''}`} />
-          </button>
-          <Link
-            to="/installations/new"
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-sm shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Installation Entry</span>
-          </Link>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={fetchData}
+              disabled={isRefreshing}
+              className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
+              title="Refresh Data"
+            >
+              <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-solar-600' : ''}`} />
+            </button>
+            <Link
+              to="/installations/new"
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-sm shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Installation Entry</span>
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Sleek quick toolbar for embedded dashboard to prevent redundant stacked banners */
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-solar-50 text-solar-700 border border-solar-200">
+              <HardHat className="w-3.5 h-3.5 mr-1.5 text-solar-600" />
+              Active Field Installation Queue
+            </span>
+            <span className="hidden md:inline text-xs text-slate-500 font-medium">
+              Real-time synchronization with mobile submissions &amp; QA checks
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Link
+              to="/create-document"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+              title="Create Work Completion Report (WCR) or Annexure A"
+            >
+              <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
+              <span>Generate WCR / Docs</span>
+            </Link>
+            <Link
+              to="/installations/new"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Installation Entry</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* 6 Summary Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">

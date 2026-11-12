@@ -173,24 +173,36 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Field Installation Hub',
     items: [
+      { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
       { to: '/installations', label: 'Assigned Installations', icon: HardHat },
-      { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList },
+      { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList }
+    ]
+  },
+  {
+    title: 'Site Documents & Compliance',
+    items: [
+      { to: '/create-document', label: 'Create Document (WCR & Forms)', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   },
   {
-    title: 'Site Surveys & Pipeline',
+    title: 'Site Technical Reference',
     items: [
-      { to: '/surveys', label: 'Site Surveys', icon: Layers },
-      { to: '/projects', label: 'Project Pipeline', icon: FolderKanban }
+      { to: '/surveys', label: 'Site Surveys & Feasibility', icon: Layers }
     ]
   }
 ];
 
-function getBreadcrumb(pathname: string): { section: string; title: string } {
-  if (pathname === '/') return { section: 'Executive', title: 'Dashboard' };
+function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
+  if (pathname === '/') {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Installer Dashboard' };
+    if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Dashboard' };
+    if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
+    return { section: 'Executive', title: 'Admin Dashboard' };
+  }
+  if (pathname.startsWith('/installations/new')) return { section: 'Field Operations', title: 'New Installation Entry' };
+  if (pathname.startsWith('/installations')) return { section: 'Field Operations', title: 'Assigned Installations' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
@@ -266,7 +278,7 @@ export const AppLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const breadcrumb = getBreadcrumb(location.pathname);
+  const breadcrumb = getBreadcrumb(location.pathname, activePanel);
 
   const renderNavContent = (isCollapsed = false) => (
     <div className="flex flex-col h-full select-none">
@@ -333,7 +345,9 @@ export const AppLayout: React.FC = () => {
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
                 : activePanel === PanelType.SALES
                   ? 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-400'
-                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                  : activePanel === PanelType.INSTALLER
+                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
             }`}
           >
             <div
@@ -342,7 +356,9 @@ export const AppLayout: React.FC = () => {
                   ? 'bg-amber-500 shadow-sm shadow-amber-500/50'
                   : activePanel === PanelType.SALES
                     ? 'bg-sky-500 shadow-sm shadow-sky-500/50'
-                    : 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
+                    : activePanel === PanelType.INSTALLER
+                      ? 'bg-orange-500 shadow-sm shadow-orange-500/50'
+                      : 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
               }`}
             />
             <div className="flex flex-col min-w-0">
@@ -351,14 +367,18 @@ export const AppLayout: React.FC = () => {
                   ? '⚡ Admin Workstation'
                   : activePanel === PanelType.SALES
                     ? '💼 Sales & CRM Suite'
-                    : '💳 Accounts & Finance'}
+                    : activePanel === PanelType.INSTALLER
+                      ? '👷 Field Installer Workstation'
+                      : '💳 Accounts & Finance'}
               </span>
               <span className="text-[10px] text-muted-foreground font-medium truncate">
                 {activePanel === PanelType.ADMIN
                   ? 'Full EPC Operations & Oversight'
                   : activePanel === PanelType.SALES
                     ? 'Proposals, PV Sizing & Pipeline'
-                    : 'Billing, Invoices & Subsidies'}
+                    : activePanel === PanelType.INSTALLER
+                      ? 'Rooftop Installation & Commissioning'
+                      : 'Billing, Invoices & Subsidies'}
               </span>
             </div>
           </div>
@@ -369,11 +389,19 @@ export const AppLayout: React.FC = () => {
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-400'
                 : activePanel === PanelType.SALES
                   ? 'bg-sky-500/15 border-sky-500/40 text-sky-700 dark:text-sky-400'
-                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
+                  : activePanel === PanelType.INSTALLER
+                    ? 'bg-orange-500/15 border-orange-500/40 text-orange-700 dark:text-orange-400'
+                    : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
             }`}
             title={`${activePanel} Panel Active`}
           >
-            {activePanel === PanelType.ADMIN ? '⚡' : activePanel === PanelType.SALES ? '💼' : '💳'}
+            {activePanel === PanelType.ADMIN
+              ? '⚡'
+              : activePanel === PanelType.SALES
+                ? '💼'
+                : activePanel === PanelType.INSTALLER
+                  ? '👷'
+                  : '💳'}
           </div>
         )}
       </div>
@@ -541,10 +569,12 @@ export const AppLayout: React.FC = () => {
               <span
                 className={`ml-1.5 hidden xs:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                   activePanel === PanelType.ADMIN
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
                     : activePanel === PanelType.SALES
-                      ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400'
-                      : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                      ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20'
+                      : activePanel === PanelType.INSTALLER
+                        ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20'
+                        : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                 }`}
               >
                 {activePanel}

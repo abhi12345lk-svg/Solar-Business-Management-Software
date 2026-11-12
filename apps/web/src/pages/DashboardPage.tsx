@@ -69,7 +69,7 @@ export const DashboardPage: React.FC = () => {
 
       {currentView === PanelType.ACCOUNTS && <AccountsDashboard dateRange={dateRange} />}
 
-      {currentView === PanelType.INSTALLER && <InstallationsPage />}
+      {currentView === PanelType.INSTALLER && <InstallationsPage embedded={true} />}
     </div>
   );
 };

@@ -129,7 +129,7 @@ export const LoginPage: React.FC = () => {
       if (result.requiresMfa) {
         navigate('/mfa-challenge');
       } else {
-        const destination = selectedPortal === 'INSTALLER' ? '/installations' : from;
+        const destination = from;
         navigate(destination, { replace: true });
       }
     } catch (err: any) {
