@@ -32,7 +32,8 @@ import {
   FolderLock,
   HardHat,
   ClipboardList,
-  FilePlus2
+  FilePlus2,
+  Camera
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -182,6 +183,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Site Documents & Compliance',
     items: [
       { to: '/create-document', label: 'Create Document (WCR & Forms)', icon: FilePlus2 },
+      { to: '/create-document?template=SITE_PHOTOS_REPORT', label: 'Site Photos Document', icon: Camera },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -420,14 +422,19 @@ export const AppLayout: React.FC = () => {
             <div className="space-y-0.5">
               {section.items.map(item => {
                 const ItemIcon = item.icon;
-                const isExact = item.to === '/' || item.to === '/documents' || item.to === '/create-document';
+                const isSitePhotosDoc = item.to.includes('template=SITE_PHOTOS_REPORT');
+                const isExact = item.to === '/' || item.to === '/documents' || item.to === '/create-document' || isSitePhotosDoc;
                 const isDocVault = item.to === '/documents';
-                const isCreateDoc = item.to === '/create-document' || item.to === '/documents/create';
+                const isCreateDoc = !isSitePhotosDoc && (item.to === '/create-document' || item.to === '/documents/create');
 
-                const isActive = isDocVault
+                const currentIsSitePhotos = location.search.includes('template=SITE_PHOTOS_REPORT');
+
+                const isActive = isSitePhotosDoc
+                  ? location.pathname === '/create-document' && currentIsSitePhotos
+                  : isDocVault
                   ? location.pathname === '/documents' || (location.pathname.startsWith('/documents/') && !location.pathname.startsWith('/documents/create'))
                   : isCreateDoc
-                  ? location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')
+                  ? (location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')) && !currentIsSitePhotos
                   : isExact
                   ? location.pathname === item.to
                   : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);

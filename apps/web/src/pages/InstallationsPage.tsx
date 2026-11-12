@@ -18,7 +18,8 @@ import {
   Layers,
   UserPlus,
   X,
-  FilePlus2
+  FilePlus2,
+  Camera
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -304,6 +305,14 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
               <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-solar-600' : ''}`} />
             </button>
             <Link
+              to="/create-document?template=SITE_PHOTOS_REPORT"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 font-bold text-sm transition shadow-2xs cursor-pointer"
+              title="Generate Client Site Photos Compliance Document (SITE PHOTOS AT ...)"
+            >
+              <Camera className="w-4 h-4 text-amber-600" />
+              <span>Site Photos Doc</span>
+            </Link>
+            <Link
               to="/installations/new"
               className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-sm shadow-xs transition cursor-pointer"
             >
@@ -325,6 +334,14 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
             </span>
           </div>
           <div className="flex items-center space-x-2">
+            <Link
+              to="/create-document?template=SITE_PHOTOS_REPORT"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 text-xs font-bold transition cursor-pointer"
+              title="Generate Client Site Photos Compliance Document (SITE PHOTOS AT ...)"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-600" />
+              <span>Site Photos Doc</span>
+            </Link>
             <Link
               to="/create-document"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
@@ -668,6 +685,14 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
                           title="View Installation Report"
                         >
                           <Eye className="w-4 h-4" />
+                        </Link>
+
+                        <Link
+                          to={`/create-document?template=SITE_PHOTOS_REPORT&customerId=${item.customerId || ''}`}
+                          className="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition cursor-pointer"
+                          title="Generate Client Site Photos Document (SITE PHOTOS AT ...)"
+                        >
+                          <Camera className="w-4 h-4" />
                         </Link>
 
                         {(item.status === InstallationStatus.IN_PROGRESS ||
