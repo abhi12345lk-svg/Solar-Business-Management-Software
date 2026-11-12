@@ -182,8 +182,8 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Site Documents & Compliance',
     items: [
-      { to: '/create-document', label: 'Create Document (WCR & Forms)', icon: FilePlus2 },
       { to: '/site-photos', label: 'Site Photos Document', icon: Camera },
+      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -437,12 +437,11 @@ export const AppLayout: React.FC = () => {
                     return location.pathname === '/installations/new';
                   }
                   if (item.to === '/site-photos') {
-                    return location.pathname === '/site-photos' || location.search.includes('template=SITE_PHOTOS_REPORT');
+                    return location.pathname === '/site-photos';
                   }
                   if (item.to === '/create-document') {
                     return (
-                      (location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')) &&
-                      !location.search.includes('template=SITE_PHOTOS_REPORT')
+                      location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')
                     );
                   }
                   if (item.to === '/documents') {

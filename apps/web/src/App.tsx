@@ -38,6 +38,7 @@ import { TeamsPage } from './pages/TeamsPage.js';
 import { TasksPage } from './pages/TasksPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
+import { SitePhotosPage } from './pages/SitePhotosPage.js';
 import { InstallationsPage } from './pages/InstallationsPage.js';
 import { InstallationDetailPage } from './pages/InstallationDetailPage.js';
 import { InstallationWorkflowPage } from './pages/InstallationWorkflowPage.js';
@@ -394,7 +395,7 @@ export const App: React.FC = () => {
             path="site-photos"
             element={
               <ProtectedRoute>
-                <CreateDocumentPage defaultTemplate="SITE_PHOTOS_REPORT" />
+                <SitePhotosPage />
               </ProtectedRoute>
             }
           />
