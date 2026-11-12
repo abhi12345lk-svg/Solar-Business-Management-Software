@@ -765,7 +765,7 @@ export const CustomersPage: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <Link
-            to="/documents/create"
+            to="/create-document"
             className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-card border border-border hover:bg-muted text-foreground shadow-2xs transition"
           >
             <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
@@ -1573,7 +1573,7 @@ export const CustomersPage: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Link
-                  to={`/documents/create?customerId=${vaultCustomer.id}`}
+                  to={`/create-document?customerId=${vaultCustomer.id}`}
                   className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
                   title="Create Document for this Client"
                 >

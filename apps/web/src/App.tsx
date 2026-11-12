@@ -383,7 +383,7 @@ export const App: React.FC = () => {
             }
           />
           <Route
-            path="documents/create"
+            path="create-document"
             element={
               <ProtectedRoute>
                 <CreateDocumentPage />
@@ -391,8 +391,12 @@ export const App: React.FC = () => {
             }
           />
           <Route
-            path="create-document"
-            element={<Navigate to="/documents/create" replace />}
+            path="documents/create"
+            element={
+              <ProtectedRoute>
+                <CreateDocumentPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="documents"

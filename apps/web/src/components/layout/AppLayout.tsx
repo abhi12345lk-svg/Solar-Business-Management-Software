@@ -63,7 +63,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
+      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
@@ -116,7 +116,7 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
+      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell }
     ]
@@ -176,7 +176,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
       { to: '/installations', label: 'Assigned Installations', icon: HardHat },
       { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
+      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   },
@@ -223,7 +223,7 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
   if (pathname.startsWith('/installations'))
     return { section: 'Field Operations', title: 'Installation Management' };
-  if (pathname.startsWith('/documents/create'))
+  if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'CRM', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
     return { section: 'CRM', title: 'Document Vault' };
@@ -392,9 +392,16 @@ export const AppLayout: React.FC = () => {
             <div className="space-y-0.5">
               {section.items.map(item => {
                 const ItemIcon = item.icon;
-                const isExact = item.to === '/';
-                const isActive = isExact
-                  ? location.pathname === '/'
+                const isExact = item.to === '/' || item.to === '/documents' || item.to === '/create-document';
+                const isDocVault = item.to === '/documents';
+                const isCreateDoc = item.to === '/create-document' || item.to === '/documents/create';
+
+                const isActive = isDocVault
+                  ? location.pathname === '/documents' || (location.pathname.startsWith('/documents/') && !location.pathname.startsWith('/documents/create'))
+                  : isCreateDoc
+                  ? location.pathname === '/create-document' || location.pathname.startsWith('/documents/create')
+                  : isExact
+                  ? location.pathname === item.to
                   : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
 
                 return (
