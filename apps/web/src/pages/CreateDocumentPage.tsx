@@ -17,7 +17,8 @@ import {
   Zap,
   RotateCcw,
   Landmark,
-  ClipboardCheck
+  ClipboardCheck,
+  Check
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
@@ -126,7 +127,7 @@ export const CreateDocumentPage: React.FC = () => {
   // Active Template
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('ANNEXURE_2_AGREEMENT');
 
-  // Core Consumer & Site Details
+  // Customer & Site Information
   const [tplConsumerName, setTplConsumerName] = useState('SHRI GYAN CHAND JAISWAL');
   const [tplParentage, setTplParentage] = useState('S/O LATE HARIKISHAN JAISWAL');
   const [tplApplicationNo, setTplApplicationNo] = useState('NP-CGSPD26-11760274 / 06-05-2026');
@@ -178,6 +179,14 @@ export const CreateDocumentPage: React.FC = () => {
   const [tplWcrInverterCount, setTplWcrInverterCount] = useState('01 NOS');
   const [tplWcrInverterSerial, setTplWcrInverterSerial] = useState('3K6300326-2605-668002567P');
   const [tplWcrInverterStandard, setTplWcrInverterStandard] = useState('IEC');
+
+  // WCR Checklist Toggles
+  const [wcrAcdb, setWcrAcdb] = useState(true);
+  const [wcrLaEarthing, setWcrLaEarthing] = useState(true);
+  const [wcrAcCable, setWcrAcCable] = useState(true);
+  const [wcrDcCable, setWcrDcCable] = useState(true);
+  const [wcrMeterBoard, setWcrMeterBoard] = useState(true);
+  const [wcrEarthingCable, setWcrEarthingCable] = useState(true);
 
   // CSPDCL Grid Connectivity Details
   const [tplDiscomSubDivAE, setTplDiscomSubDivAE] = useState('Sub. Div. Deendayal');
@@ -277,7 +286,7 @@ export const CreateDocumentPage: React.FC = () => {
         setTplAddress(addr.addressLine1.toUpperCase());
       }
       if (addr.city || addr.district) {
-        setTplDistrict((addr.district || addr.city || 'Raipur'));
+        setTplDistrict(addr.district || addr.city || 'Raipur');
       }
       if (addr.state) {
         setTplState(addr.state);
@@ -591,165 +600,148 @@ export const CreateDocumentPage: React.FC = () => {
         {/* Split Screen Layout: Left = Editable Details, Right = Live Authentic Document */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* ========================================================= */}
-          {/* LEFT COLUMN: CUSTOMER-SPECIFIC EDITABLE FORM FIELDS       */}
+          {/* LEFT COLUMN: DYNAMIC CUSTOMER-SPECIFIC EDITABLE FORM      */}
           {/* ========================================================= */}
           <div className="lg:col-span-5 space-y-5">
             <div className="bg-card border border-border rounded-2xl p-5 shadow-2xs space-y-5">
+              {/* Header: Indicates tailored form for current document */}
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-7 h-7 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold text-xs">
                     ✏️
                   </div>
-                  <h2 className="text-sm font-black text-foreground">
-                    Customer-Specific Details
-                  </h2>
+                  <div>
+                    <h2 className="text-sm font-black text-foreground">
+                      Customer-Specific Details
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground font-medium">
+                      Tailored for: <span className="text-solar-600 font-bold">{currentTemplate.name.split('–')[0]?.trim()}</span>
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  Live updates preview
+                <span className="text-[10px] bg-solar-500/10 text-solar-700 dark:text-solar-400 font-bold px-2 py-0.5 rounded-full">
+                  Live Sync
                 </span>
               </div>
 
-              {/* Section 1: Customer Identity & Site Details */}
-              <div className="space-y-3.5">
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Customer &amp; Site Information</span>
-                </div>
+              {/* ----------------------------------------------------- */}
+              {/* 1. ANNEXURE 2 AGREEMENT FIELDS                        */}
+              {/* ----------------------------------------------------- */}
+              {selectedTemplateId === 'ANNEXURE_2_AGREEMENT' && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Consumer (First Party) Information</span>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-foreground mb-1">
-                    Consumer Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={tplConsumerName}
-                    onChange={e => setTplConsumerName(e.target.value)}
-                    placeholder="e.g. SHRI GYAN CHAND JAISWAL"
-                    className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-foreground mb-1">
-                    Father's / Husband's / Guardian's Name
-                  </label>
-                  <input
-                    type="text"
-                    value={tplParentage}
-                    onChange={e => setTplParentage(e.target.value)}
-                    placeholder="e.g. S/O LATE HARIKISHAN JAISWAL"
-                    className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-foreground mb-1">
-                      BP / Service Connection No.
+                      Consumer Full Name
                     </label>
                     <input
                       type="text"
-                      value={tplConsumerNumber}
-                      onChange={e => setTplConsumerNumber(e.target.value)}
-                      placeholder="e.g. 1001750390"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground font-semibold"
+                      value={tplConsumerName}
+                      onChange={e => setTplConsumerName(e.target.value)}
+                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Contact Mobile No.
-                    </label>
-                    <input
-                      type="text"
-                      value={tplMobile}
-                      onChange={e => setTplMobile(e.target.value)}
-                      placeholder="e.g. 9826178156"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-foreground mb-1">
-                    Application Registration Number
-                  </label>
-                  <input
-                    type="text"
-                    value={tplApplicationNo}
-                    onChange={e => setTplApplicationNo(e.target.value)}
-                    placeholder="e.g. NP-CGSPD26-11760274 / 06-05-2026"
-                    className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Father's / Husband's / Guardian's Name
+                    </label>
+                    <input
+                      type="text"
+                      value={tplParentage}
+                      onChange={e => setTplParentage(e.target.value)}
+                      placeholder="e.g. S/O LATE HARIKISHAN JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-foreground mb-1">
-                    Installation Premises Address
-                  </label>
-                  <input
-                    type="text"
-                    value={tplAddress}
-                    onChange={e => setTplAddress(e.target.value)}
-                    placeholder="e.g. SHANTI VIHAR COLONY, DANGANIA"
-                    className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
-                  />
-                </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Consumer / BP Number
+                      </label>
+                      <input
+                        type="text"
+                        value={tplConsumerNumber}
+                        onChange={e => setTplConsumerNumber(e.target.value)}
+                        placeholder="e.g. 1001750390"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        System Capacity (kWp)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplCapacityKwp}
+                        onChange={e => setTplCapacityKwp(e.target.value)}
+                        placeholder="e.g. 3.30"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-solar-600"
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-foreground mb-1">
-                      District
+                      Installation Premises Address
                     </label>
                     <input
                       type="text"
-                      value={tplDistrict}
-                      onChange={e => setTplDistrict(e.target.value)}
-                      placeholder="e.g. Raipur"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
+                      value={tplAddress}
+                      onChange={e => setTplAddress(e.target.value)}
+                      placeholder="e.g. SHANTI VIHAR COLONY, DANGANIA"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      value={tplState}
-                      onChange={e => setTplState(e.target.value)}
-                      placeholder="e.g. Chhattisgarh"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      PIN Code
-                    </label>
-                    <input
-                      type="text"
-                      value={tplPinCode}
-                      onChange={e => setTplPinCode(e.target.value)}
-                      placeholder="e.g. 492013"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Solar System Capacity (kW)
-                    </label>
-                    <input
-                      type="text"
-                      value={tplCapacityKwp}
-                      onChange={e => setTplCapacityKwp(e.target.value)}
-                      placeholder="e.g. 3"
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-solar-600"
-                    />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        District
+                      </label>
+                      <input
+                        type="text"
+                        value={tplDistrict}
+                        onChange={e => setTplDistrict(e.target.value)}
+                        placeholder="e.g. RAIPUR"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={tplState}
+                        onChange={e => setTplState(e.target.value)}
+                        placeholder="e.g. Chhattisgarh"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        PIN Code
+                      </label>
+                      <input
+                        type="text"
+                        value={tplPinCode}
+                        onChange={e => setTplPinCode(e.target.value)}
+                        placeholder="e.g. 492013"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground"
+                      />
+                    </div>
                   </div>
+
                   <div>
                     <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Execution / Application Date
+                      Agreement Execution Date
                     </label>
                     <input
                       type="text"
@@ -759,191 +751,299 @@ export const CreateDocumentPage: React.FC = () => {
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-medium text-foreground"
                     />
                   </div>
-                </div>
-              </div>
 
-              {/* Section 2: Template-Specific Dynamic Fields */}
-              {selectedTemplateId === 'ANNEXURE_2_AGREEMENT' && (
-                <div className="pt-4 border-t border-border space-y-3">
-                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Payment Milestone Terms</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-3">
-                        <input
-                          type="text"
-                          value={tplAdvancePercent}
-                          onChange={e => setTplAdvancePercent(e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
-                        />
-                      </div>
-                      <div className="col-span-9">
-                        <input
-                          type="text"
-                          value={tplAdvanceDesc}
-                          onChange={e => setTplAdvanceDesc(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
-                        />
-                      </div>
+                  {/* Payment Milestone Terms */}
+                  <div className="pt-3 border-t border-border space-y-3">
+                    <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Payment Milestone Terms</span>
                     </div>
 
-                    <div className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-3">
-                        <input
-                          type="text"
-                          value={tplMilestonePercent}
-                          onChange={e => setTplMilestonePercent(e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
-                        />
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-3">
+                          <input
+                            type="text"
+                            value={tplAdvancePercent}
+                            onChange={e => setTplAdvancePercent(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
+                          />
+                        </div>
+                        <div className="col-span-9">
+                          <input
+                            type="text"
+                            value={tplAdvanceDesc}
+                            onChange={e => setTplAdvanceDesc(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
+                          />
+                        </div>
                       </div>
-                      <div className="col-span-9">
-                        <input
-                          type="text"
-                          value={tplMilestoneDesc}
-                          onChange={e => setTplMilestoneDesc(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-3">
-                        <input
-                          type="text"
-                          value={tplFinalPercent}
-                          onChange={e => setTplFinalPercent(e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
-                        />
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-3">
+                          <input
+                            type="text"
+                            value={tplMilestonePercent}
+                            onChange={e => setTplMilestonePercent(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
+                          />
+                        </div>
+                        <div className="col-span-9">
+                          <input
+                            type="text"
+                            value={tplMilestoneDesc}
+                            onChange={e => setTplMilestoneDesc(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
+                          />
+                        </div>
                       </div>
-                      <div className="col-span-9">
-                        <input
-                          type="text"
-                          value={tplFinalDesc}
-                          onChange={e => setTplFinalDesc(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
-                        />
+
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-3">
+                          <input
+                            type="text"
+                            value={tplFinalPercent}
+                            onChange={e => setTplFinalPercent(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs bg-background border border-border rounded-lg font-bold text-center text-foreground"
+                          />
+                        </div>
+                        <div className="col-span-9">
+                          <input
+                            type="text"
+                            value={tplFinalDesc}
+                            onChange={e => setTplFinalDesc(e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* ----------------------------------------------------- */}
+              {/* 2. ANNEXURE A DCR UNDERTAKING FIELDS                  */}
+              {/* ----------------------------------------------------- */}
               {selectedTemplateId === 'ANNEXURE_A_DCR' && (
-                <div className="pt-4 border-t border-border space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>DCR Module &amp; Cell Information</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        PV Module Capacity
-                      </label>
-                      <input
-                        type="text"
-                        value={tplDcrCapacityWp}
-                        onChange={e => setTplDcrCapacityWp(e.target.value)}
-                        placeholder="620 Wp"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Number of PV Modules
-                      </label>
-                      <input
-                        type="text"
-                        value={tplDcrModuleCount}
-                        onChange={e => setTcrDcrModuleCount(e.target.value)}
-                        placeholder="05 No’s"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        PV Module Make
-                      </label>
-                      <input
-                        type="text"
-                        value={tplDcrModuleMake}
-                        onChange={e => setTplDcrModuleMake(e.target.value)}
-                        placeholder="Adani Solar"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Cell Manufacturer Name
-                      </label>
-                      <input
-                        type="text"
-                        value={tplDcrCellManufacturer}
-                        onChange={e => setTplDcrCellManufacturer(e.target.value)}
-                        placeholder="Mundra Solar PV Limited"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
-                      />
-                    </div>
+                    <User className="w-3.5 h-3.5" />
+                    <span>Customer &amp; Site Details (Annexure A)</span>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Solar PV Module Serial Numbers (Comma-separated)
+                      Customer / Beneficiary Name
                     </label>
-                    <textarea
-                      rows={3}
-                      value={tplDcrSerials.join(', ')}
-                      onChange={e =>
-                        setTplDcrSerials(
-                          e.target.value
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(Boolean)
-                        )
-                      }
-                      placeholder="AS2605132C1835, AS2605132C3736..."
-                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl font-mono text-foreground"
+                    <input
+                      type="text"
+                      value={tplConsumerName}
+                      onChange={e => setTplConsumerName(e.target.value)}
+                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Installation Premises Address
+                    </label>
+                    <input
+                      type="text"
+                      value={tplAddress}
+                      onChange={e => setTplAddress(e.target.value)}
+                      placeholder="e.g. SHANTI VIHAR COLONY, DANGANIA"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        District
+                      </label>
+                      <input
+                        type="text"
+                        value={tplDistrict}
+                        onChange={e => setTplDistrict(e.target.value)}
+                        placeholder="Raipur"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={tplState}
+                        onChange={e => setTplState(e.target.value)}
+                        placeholder="Chhattisgarh"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-semibold text-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Application Number
+                      </label>
+                      <input
+                        type="text"
+                        value={tplApplicationNo}
+                        onChange={e => setTplApplicationNo(e.target.value)}
+                        placeholder="NP-CGSPD26-11760274 / 06-05-2026"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-mono text-foreground font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Installed Capacity (KW)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplCapacityKwp}
+                        onChange={e => setTplCapacityKwp(e.target.value)}
+                        placeholder="3"
+                        className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-solar-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* DCR Module & Cell Parameters */}
+                  <div className="pt-3 border-t border-border space-y-3">
+                    <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>DCR Modules &amp; Serial Numbers Grid</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          PV Module Capacity
+                        </label>
+                        <input
+                          type="text"
+                          value={tplDcrCapacityWp}
+                          onChange={e => setTplDcrCapacityWp(e.target.value)}
+                          placeholder="620 Wp"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Number of Modules
+                        </label>
+                        <input
+                          type="text"
+                          value={tplDcrModuleCount}
+                          onChange={e => setTcrDcrModuleCount(e.target.value)}
+                          placeholder="05 No’s"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          PV Module Make
+                        </label>
+                        <input
+                          type="text"
+                          value={tplDcrModuleMake}
+                          onChange={e => setTplDcrModuleMake(e.target.value)}
+                          placeholder="Adani Solar"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Cell Manufacturer
+                        </label>
+                        <input
+                          type="text"
+                          value={tplDcrCellManufacturer}
+                          onChange={e => setTplDcrCellManufacturer(e.target.value)}
+                          placeholder="Mundra Solar PV Limited"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1.5">
+                        Module Serial Numbers (Grid of 5)
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[0, 1, 2, 3, 4].map(idx => (
+                          <div key={idx}>
+                            <input
+                              type="text"
+                              value={tplDcrSerials[idx] || ''}
+                              onChange={e => {
+                                const updated = [...tplDcrSerials];
+                                updated[idx] = e.target.value.trim();
+                                setTplDcrSerials(updated);
+                              }}
+                              placeholder={`Sr #${idx + 1}`}
+                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg font-mono font-semibold text-foreground"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* ----------------------------------------------------- */}
+              {/* 3. WORK COMPLETION REPORT (WCR) FIELDS               */}
+              {/* ----------------------------------------------------- */}
               {selectedTemplateId === 'WORK_COMPLETION_REPORT' && (
-                <div className="pt-4 border-t border-border space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
                     <ClipboardCheck className="w-3.5 h-3.5" />
-                    <span>Technical Handover &amp; Equipment Details</span>
+                    <span>Applicant &amp; Equipment Handover Details</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Name of Applicant
+                    </label>
+                    <input
+                      type="text"
+                      value={tplConsumerName}
+                      onChange={e => setTplConsumerName(e.target.value)}
+                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Module Manufacturer
+                        Application Reg. No.
                       </label>
                       <input
                         type="text"
-                        value={tplWcrModuleManufacturer}
-                        onChange={e => setTplWcrModuleManufacturer(e.target.value)}
-                        placeholder="Mundra Solar PV Limited"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
+                        value={tplApplicationNo}
+                        onChange={e => setTplApplicationNo(e.target.value)}
+                        placeholder="NP-CGSPD26-11760274 / 06-05-2026"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-semibold"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Module Wattage (Wp)
+                        BP No.
                       </label>
                       <input
                         type="text"
-                        value={tplWcrModuleWattage}
-                        onChange={e => setTplWcrModuleWattage(e.target.value)}
-                        placeholder="620 (Wp)"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        value={tplConsumerNumber}
+                        onChange={e => setTplConsumerNumber(e.target.value)}
+                        placeholder="1001750390"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-bold"
                       />
                     </div>
                   </div>
@@ -951,19 +1051,19 @@ export const CreateDocumentPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        No. of Modules
+                        Mobile No.
                       </label>
                       <input
                         type="text"
-                        value={tplWcrModuleCount}
-                        onChange={e => setTplWcrModuleCount(e.target.value)}
-                        placeholder="5 Nos"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        value={tplMobile}
+                        onChange={e => setTplMobile(e.target.value)}
+                        placeholder="9826178156"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-semibold"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Installation Date
+                        Date of Installation
                       </label>
                       <input
                         type="text"
@@ -975,108 +1075,319 @@ export const CreateDocumentPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Inverter Manufacturer
-                      </label>
-                      <input
-                        type="text"
-                        value={tplWcrInverterManufacturer}
-                        onChange={e => setTplWcrInverterManufacturer(e.target.value)}
-                        placeholder="POLYCAB"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
+                  {/* Module Specifications */}
+                  <div className="pt-3 border-t border-border space-y-3">
+                    <h3 className="text-xs font-bold text-solar-600 uppercase tracking-wider">
+                      Solar PV Module Specifications
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Module Manufacturer
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrModuleManufacturer}
+                          onChange={e => setTplWcrModuleManufacturer(e.target.value)}
+                          placeholder="Mundra Solar PV Limited"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Module Wattage (Wp)
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrModuleWattage}
+                          onChange={e => setTplWcrModuleWattage(e.target.value)}
+                          placeholder="620 (Wp)"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Inverter AC Capacity
-                      </label>
-                      <input
-                        type="text"
-                        value={tplWcrInverterCapacity}
-                        onChange={e => setTplWcrInverterCapacity(e.target.value)}
-                        placeholder="3 KVA"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          No. of Modules
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrModuleCount}
+                          onChange={e => setTplWcrModuleCount(e.target.value)}
+                          placeholder="5 Nos"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Total Capacity (kWp)
+                        </label>
+                        <input
+                          type="text"
+                          value={tplCapacityKwp}
+                          onChange={e => setTplCapacityKwp(e.target.value)}
+                          placeholder="3"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold text-solar-600"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        No. of Inverters
-                      </label>
-                      <input
-                        type="text"
-                        value={tplWcrInverterCount}
-                        onChange={e => setTplWcrInverterCount(e.target.value)}
-                        placeholder="01 NOS"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
+                  {/* Inverter Specifications */}
+                  <div className="pt-3 border-t border-border space-y-3">
+                    <h3 className="text-xs font-bold text-solar-600 uppercase tracking-wider">
+                      Inverter Installed Details
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Inverter Make &amp; Manufacturer
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrInverterManufacturer}
+                          onChange={e => setTplWcrInverterManufacturer(e.target.value)}
+                          placeholder="POLYCAB"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          AC Capacity (KVA)
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrInverterCapacity}
+                          onChange={e => setTplWcrInverterCapacity(e.target.value)}
+                          placeholder="3 KVA"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Standard (BIS/IEC)
-                      </label>
-                      <input
-                        type="text"
-                        value={tplWcrInverterStandard}
-                        onChange={e => setTplWcrInverterStandard(e.target.value)}
-                        placeholder="IEC"
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
-                      />
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          No. of Inverters
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrInverterCount}
+                          onChange={e => setTplWcrInverterCount(e.target.value)}
+                          placeholder="01 NOS"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Inverter Serial Number
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrInverterSerial}
+                          onChange={e => setTplWcrInverterSerial(e.target.value)}
+                          placeholder="3K6300326-2605-668002567P"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-bold text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                          Standard (BIS/IEC)
+                        </label>
+                        <input
+                          type="text"
+                          value={tplWcrInverterStandard}
+                          onChange={e => setTplWcrInverterStandard(e.target.value)}
+                          placeholder="IEC"
+                          className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Inverter Serial Number
-                    </label>
-                    <input
-                      type="text"
-                      value={tplWcrInverterSerial}
-                      onChange={e => setTplWcrInverterSerial(e.target.value)}
-                      placeholder="3K6300326-2605-668002567P"
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-bold"
-                    />
+                  {/* Safety & Checklist Toggles */}
+                  <div className="pt-3 border-t border-border space-y-2">
+                    <h3 className="text-xs font-bold text-solar-600 uppercase tracking-wider">
+                      Technical &amp; Safety Checklist (Click to Toggle)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { label: 'ACDB & DCDB', state: wcrAcdb, setter: setWcrAcdb },
+                        { label: 'LA Earthing Cable', state: wcrLaEarthing, setter: setWcrLaEarthing },
+                        { label: 'AC Cable', state: wcrAcCable, setter: setWcrAcCable },
+                        { label: 'DC Cable', state: wcrDcCable, setter: setWcrDcCable },
+                        { label: 'METER BOARD', state: wcrMeterBoard, setter: setWcrMeterBoard },
+                        { label: 'Earthing ISI Mark', state: wcrEarthingCable, setter: setWcrEarthingCable }
+                      ].map((chk, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => chk.setter(!chk.state)}
+                          className={`p-2 rounded-lg border text-left flex items-center justify-between transition cursor-pointer ${
+                            chk.state
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold'
+                              : 'bg-muted/40 border-border text-muted-foreground'
+                          }`}
+                        >
+                          <span className="truncate">{chk.label}</span>
+                          {chk.state ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* ----------------------------------------------------- */}
+              {/* 4. CSPDCL GRID CONNECTIVITY APPLICATION FIELDS       */}
+              {/* ----------------------------------------------------- */}
               {selectedTemplateId === 'GRID_CONNECTIVITY_APP' && (
-                <div className="pt-4 border-t border-border space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
                     <Zap className="w-3.5 h-3.5" />
-                    <span>CSPDCL Sub-Division Information</span>
+                    <span>CSPDCL Sub-Division &amp; Connection Details</span>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-foreground mb-1">
-                      CSPDCL Sub-Division Name
+                      CSPDCL Sub Division AE Office
                     </label>
                     <input
                       type="text"
                       value={tplDiscomSubDivAE}
                       onChange={e => setTplDiscomSubDivAE(e.target.value)}
-                      placeholder="Sub. Div. Deendayal"
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                      placeholder="Sub Division AE Sub. Div. Deendayal"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
                     />
-                  </div>
-                </div>
-              )}
-
-              {selectedTemplateId === 'CSPDCL_PPA_AGREEMENT' && (
-                <div className="pt-4 border-t border-border space-y-3">
-                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>CSPDCL PPA Parameters</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        PPA Execution Location
+                        Application Date
+                      </label>
+                      <input
+                        type="text"
+                        value={tplAgreementDate}
+                        onChange={e => setTplAgreementDate(e.target.value)}
+                        placeholder="11/06/2026"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Plant Capacity (KW)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplCapacityKwp}
+                        onChange={e => setTplCapacityKwp(e.target.value)}
+                        placeholder="3"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold text-solar-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Consumer Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={tplConsumerName}
+                      onChange={e => setTplConsumerName(e.target.value)}
+                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      value={tplAddress}
+                      onChange={e => setTplAddress(e.target.value)}
+                      placeholder="SHANTI VIHAR COLONY, DANGANIA"
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        District
+                      </label>
+                      <input
+                        type="text"
+                        value={tplDistrict}
+                        onChange={e => setTplDistrict(e.target.value)}
+                        placeholder="Raipur"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={tplState}
+                        onChange={e => setTplState(e.target.value)}
+                        placeholder="Chhattisgarh"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Contact Mobile (MOB)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplMobile}
+                        onChange={e => setTplMobile(e.target.value)}
+                        placeholder="9826178156"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Consumer BP Number
+                      </label>
+                      <input
+                        type="text"
+                        value={tplConsumerNumber}
+                        onChange={e => setTplConsumerNumber(e.target.value)}
+                        placeholder="1001750390"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ----------------------------------------------------- */}
+              {/* 5. CSPDCL POWER PURCHASE AGREEMENT (PPA) FIELDS      */}
+              {/* ----------------------------------------------------- */}
+              {selectedTemplateId === 'CSPDCL_PPA_AGREEMENT' && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>CSPDCL Prosumer PPA Parameters</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        Execution Place / City
                       </label>
                       <input
                         type="text"
@@ -1088,30 +1399,126 @@ export const CreateDocumentPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Settlement Tariff Modality
+                        Execution Date
                       </label>
                       <input
                         type="text"
-                        value={tplPpaTariff}
-                        onChange={e => setTplPpaTariff(e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground text-[11px]"
+                        value={tplAgreementDate}
+                        onChange={e => setTplAgreementDate(e.target.value)}
+                        placeholder="11/06/2026"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-mono"
                       />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {selectedTemplateId === 'BANK_LOAN_DISBURSEMENT' && (
-                <div className="pt-4 border-t border-border space-y-3">
-                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
-                    <Landmark className="w-3.5 h-3.5" />
-                    <span>Bank &amp; Loan Details (बैंक विवरण)</span>
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Prosumer Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={tplConsumerName}
+                      onChange={e => setTplConsumerName(e.target.value)}
+                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Bank Name (बैंक का नाम)
+                        Prosumer BP Number
+                      </label>
+                      <input
+                        type="text"
+                        value={tplConsumerNumber}
+                        onChange={e => setTplConsumerNumber(e.target.value)}
+                        placeholder="1001750390"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-mono text-foreground font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        RTS Plant Capacity (kWp)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplCapacityKwp}
+                        onChange={e => setTplCapacityKwp(e.target.value)}
+                        placeholder="3"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold text-solar-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      Premises Address
+                    </label>
+                    <input
+                      type="text"
+                      value={tplAddress}
+                      onChange={e => setTplAddress(e.target.value)}
+                      placeholder="SHANTI VIHAR COLONY, DANGANIA"
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        District
+                      </label>
+                      <input
+                        type="text"
+                        value={tplDistrict}
+                        onChange={e => setTplDistrict(e.target.value)}
+                        placeholder="Raipur"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={tplState}
+                        onChange={e => setTplState(e.target.value)}
+                        placeholder="Chhattisgarh"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-foreground mb-1">
+                      PPA Tariff &amp; Modality
+                    </label>
+                    <input
+                      type="text"
+                      value={tplPpaTariff}
+                      onChange={e => setTplPpaTariff(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ----------------------------------------------------- */}
+              {/* 6. BANK LOAN DISBURSEMENT APPLICATION FIELDS         */}
+              {/* ----------------------------------------------------- */}
+              {selectedTemplateId === 'BANK_LOAN_DISBURSEMENT' && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-solar-600 uppercase tracking-wider">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>बैंक एवं ऋण विवरण (Bank Loan Application)</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        बैंक का नाम (Bank Name)
                       </label>
                       <input
                         type="text"
@@ -1123,7 +1530,7 @@ export const CreateDocumentPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Branch Name (शाखा)
+                        शाखा (Branch Name)
                       </label>
                       <input
                         type="text"
@@ -1138,7 +1545,7 @@ export const CreateDocumentPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Applicant Name (आवेदक का नाम)
+                        आवेदक / ऋणधारक का नाम (Applicant)
                       </label>
                       <input
                         type="text"
@@ -1150,7 +1557,7 @@ export const CreateDocumentPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-foreground mb-1">
-                        Applicant Mobile No. (मोबाइल)
+                        मोबाइल नंबर (Mobile)
                       </label>
                       <input
                         type="text"
@@ -1162,22 +1569,38 @@ export const CreateDocumentPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-foreground mb-1">
-                      Disbursed % (वितरण प्रतिशत)
-                    </label>
-                    <input
-                      type="text"
-                      value={tplLoanDisbursedPercent}
-                      onChange={e => setTplLoanDisbursedPercent(e.target.value)}
-                      placeholder="100%"
-                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        स्वीकृत ऋण वितरण प्रतिशत (%)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplLoanDisbursedPercent}
+                        onChange={e => setTplLoanDisbursedPercent(e.target.value)}
+                        placeholder="100%"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-foreground mb-1">
+                        आवेदन दिनांक (Date)
+                      </label>
+                      <input
+                        type="text"
+                        value={tplAgreementDate}
+                        onChange={e => setTplAgreementDate(e.target.value)}
+                        placeholder="11/06/2026"
+                        className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-mono"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Section 3: Vendor / Second Party Signatory */}
+              {/* ----------------------------------------------------- */}
+              {/* COMMON VENDOR SIGNATORY SECTION                       */}
+              {/* ----------------------------------------------------- */}
               <div className="pt-4 border-t border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
@@ -1678,32 +2101,44 @@ export const CreateDocumentPage: React.FC = () => {
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono w-12 text-center">a)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">ACDB &amp; DCDB</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center w-16">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center w-16">
+                                {wcrAcdb ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono text-center">b)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">LA Earthing Cable</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center">
+                                {wcrLaEarthing ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono text-center">c)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">AC Cable</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center">
+                                {wcrAcCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono text-center">d)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">DC Cable</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center">
+                                {wcrDcCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono text-center">e)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">METER BOARD</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center">
+                                {wcrMeterBoard ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                             <tr>
                               <td className="border border-slate-300 px-3 py-1 font-mono text-center">f)</td>
                               <td className="border border-slate-300 px-3 py-1 font-medium">Earthing Cable – ISI Mark</td>
-                              <td className="border border-slate-300 px-3 py-1 font-bold text-emerald-600 text-center">✅</td>
+                              <td className="border border-slate-300 px-3 py-1 font-bold text-center">
+                                {wcrEarthingCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
+                              </td>
                             </tr>
                           </tbody>
                         </table>
