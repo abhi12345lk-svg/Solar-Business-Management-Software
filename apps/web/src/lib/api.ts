@@ -4,7 +4,21 @@
  * and standardized JSON envelope parsing.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+export function getFullApiUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanBase = (API_BASE_URL || '/api/v1').replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (cleanBase.endsWith('/api/v1') && cleanPath.startsWith('/api/v1')) {
+    const origin = cleanBase.substring(0, cleanBase.length - '/api/v1'.length);
+    return `${origin}${cleanPath}`;
+  }
+  return `${cleanBase}${cleanPath}`;
+}
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));

@@ -37,6 +37,7 @@ import { EmployeesPage } from './pages/EmployeesPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
 import { TasksPage } from './pages/TasksPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
+import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
 import { InstallationsPage } from './pages/InstallationsPage.js';
 import { InstallationDetailPage } from './pages/InstallationDetailPage.js';
 import { InstallationWorkflowPage } from './pages/InstallationWorkflowPage.js';
@@ -380,6 +381,18 @@ export const App: React.FC = () => {
                 <TasksPage />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="documents/create"
+            element={
+              <ProtectedRoute>
+                <CreateDocumentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="create-document"
+            element={<Navigate to="/documents/create" replace />}
           />
           <Route
             path="documents"

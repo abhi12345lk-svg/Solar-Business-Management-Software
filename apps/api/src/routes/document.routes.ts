@@ -253,6 +253,8 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
 
     res.setHeader('Content-Type', effectiveContentType);
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || config.CORS_ORIGIN || 'http://localhost:5173');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader(
       'Content-Disposition',
       `${dispositionType}; filename="${encodeURIComponent(doc.originalFilename)}"`

@@ -33,9 +33,10 @@ import {
   X,
   ZoomIn,
   ZoomOut,
-  RotateCw
+  RotateCw,
+  FilePlus2
 } from 'lucide-react';
-import { apiClient } from '../lib/api.js';
+import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
 
 export const CustomersPage: React.FC = () => {
@@ -482,42 +483,60 @@ export const CustomersPage: React.FC = () => {
   const [previewZoom, setPreviewZoom] = useState(1);
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewImgLoading, setPreviewImgLoading] = useState(true);
-  const [previewImgError, setPreviewImgError] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewSvgContent, setPreviewSvgContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!previewModal?.viewUrl) {
       setPreviewBlobUrl(null);
+      setPreviewSvgContent(null);
       return;
     }
     let isMounted = true;
     setPreviewImgLoading(true);
-    setPreviewImgError(false);
+    setPreviewBlobUrl(null);
+    setPreviewSvgContent(null);
 
-    fetch(previewModal.viewUrl, { credentials: 'include' })
+    const targetUrl = getFullApiUrl(previewModal.viewUrl);
+
+    fetch(targetUrl, { credentials: 'include' })
       .then(async res => {
         if (!res.ok) {
           throw new Error(`Failed to load document (${res.status} ${res.statusText})`);
         }
-        return res.blob();
-      })
-      .then(blob => {
-        if (!isMounted) return;
-        const objectUrl = URL.createObjectURL(blob);
-        setPreviewBlobUrl(objectUrl);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('image/svg+xml') || previewModal.originalFilename?.toLowerCase().endsWith('.svg')) {
+          const svgText = await res.text();
+          if (!isMounted) return;
+          setPreviewSvgContent(svgText);
+          setPreviewBlobUrl(null);
+        } else {
+          const blob = await res.blob();
+          if (!isMounted) return;
+          if (blob.type.includes('svg')) {
+            const svgText = await blob.text();
+            if (!isMounted) return;
+            setPreviewSvgContent(svgText);
+            setPreviewBlobUrl(null);
+          } else {
+            const objectUrl = URL.createObjectURL(blob);
+            setPreviewBlobUrl(objectUrl);
+            setPreviewSvgContent(null);
+          }
+        }
         setPreviewImgLoading(false);
-        setPreviewImgError(false);
       })
       .catch(err => {
         if (!isMounted) return;
-        console.error('Document preview error:', err);
+        console.warn('Document preview loading notice:', err);
+        // Fallback directly to full URL
+        setPreviewBlobUrl(targetUrl);
         setPreviewImgLoading(false);
-        setPreviewImgError(true);
       });
 
     return () => {
       isMounted = false;
-      if (previewBlobUrl) {
+      if (previewBlobUrl && previewBlobUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewBlobUrl);
       }
     };
@@ -534,7 +553,8 @@ export const CustomersPage: React.FC = () => {
         setPreviewZoom(1);
         setPreviewRotation(0);
         setPreviewImgLoading(true);
-        setPreviewImgError(false);
+        setPreviewBlobUrl(null);
+        setPreviewSvgContent(null);
         setPreviewModal({
           isOpen: true,
           docId,
@@ -558,9 +578,9 @@ export const CustomersPage: React.FC = () => {
     if (!previewModal?.docId) return;
     try {
       setPreviewImgLoading(true);
-      setPreviewImgError(false);
       const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
-      await fetch(`/api/v1/documents/${previewModal.docId}/content`, {
+      const uploadUrl = getFullApiUrl(`/documents/${previewModal.docId}/content`);
+      await fetch(uploadUrl, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -570,17 +590,23 @@ export const CustomersPage: React.FC = () => {
         body: file
       });
 
+      // Instantaneous local preview
+      if (file.type.includes('svg') || file.name.toLowerCase().endsWith('.svg')) {
+        const text = await file.text();
+        setPreviewSvgContent(text);
+        setPreviewBlobUrl(null);
+      } else {
+        const directBlobUrl = URL.createObjectURL(file);
+        setPreviewBlobUrl(directBlobUrl);
+        setPreviewSvgContent(null);
+      }
+      setPreviewImgLoading(false);
+
       // Re-fetch fresh signed access URL
       const urlInfo = await apiClient<{ downloadUrl: string; viewUrl?: string }>(
         `/documents/${previewModal.docId}/access-url`
       );
       const freshViewUrl = urlInfo.viewUrl || `${urlInfo.downloadUrl}&inline=true`;
-
-      // Instantaneous local blob preview
-      const directBlobUrl = URL.createObjectURL(file);
-      setPreviewBlobUrl(directBlobUrl);
-      setPreviewImgLoading(false);
-      setPreviewImgError(false);
 
       setPreviewModal(prev =>
         prev
@@ -600,7 +626,6 @@ export const CustomersPage: React.FC = () => {
       setVaultSuccess(`"${file.name}" uploaded to vault successfully!`);
     } catch (err: any) {
       alert(err?.message || 'Failed to update document file.');
-    } finally {
       setPreviewImgLoading(false);
     }
   };
@@ -738,13 +763,22 @@ export const CustomersPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Register New Customer</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <Link
+            to="/documents/create"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-card border border-border hover:bg-muted text-foreground shadow-2xs transition"
+          >
+            <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
+            <span>Create Document</span>
+          </Link>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Register New Customer</span>
+          </button>
+        </div>
       </div>
 
       {/* Sleek Filter & Search Strip */}
@@ -1539,6 +1573,14 @@ export const CustomersPage: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Link
+                  to={`/documents/create?customerId=${vaultCustomer.id}`}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                  title="Create Document for this Client"
+                >
+                  <FilePlus2 className="w-3.5 h-3.5" />
+                  <span>+ Create Document</span>
+                </Link>
+                <Link
                   to={`/documents?customerId=${vaultCustomer.id}`}
                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
                   title="Open in Full Document Vault"
@@ -2178,7 +2220,7 @@ export const CustomersPage: React.FC = () => {
                   />
                 </label>
                 <a
-                  href={previewModal.viewUrl}
+                  href={getFullApiUrl(previewModal.viewUrl)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition"
@@ -2188,7 +2230,7 @@ export const CustomersPage: React.FC = () => {
                   <span className="hidden sm:inline">New Tab</span>
                 </a>
                 <a
-                  href={previewModal.downloadUrl}
+                  href={getFullApiUrl(previewModal.downloadUrl)}
                   download={previewModal.originalFilename}
                   className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-2xs transition"
                   title="Download Document"
@@ -2207,107 +2249,40 @@ export const CustomersPage: React.FC = () => {
 
             {/* Preview Body */}
             <div className="flex-1 overflow-auto bg-slate-950 p-4 flex items-center justify-center min-h-[420px] max-h-[75vh] relative select-none">
-              {previewModal.mimeType?.startsWith('image/') ||
-              ['.jpg', '.jpeg', '.png', '.webp', '.svg'].some(ext =>
-                previewModal.originalFilename?.toLowerCase().endsWith(ext)
-              ) ? (
-                <div className="relative flex items-center justify-center w-full h-full min-h-[380px]">
-                  {previewImgLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-10">
-                      <Loader2 className="w-8 h-8 animate-spin text-solar-500" />
-                    </div>
-                  )}
-
-                  {previewImgError && !previewBlobUrl ? (
-                    <div className="text-center p-8 space-y-3 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-xl">
-                      <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center">
-                        <AlertCircle className="w-6 h-6" />
-                      </div>
-                      <h4 className="text-white font-bold text-base">Image Preview Notice</h4>
-                      <p className="text-slate-400 text-xs leading-relaxed">
-                        The browser could not directly render this image inline. You can open it in a new window, download the original file, or upload a replacement photo.
-                      </p>
-                      <div className="flex items-center justify-center gap-2.5 pt-2">
-                        <label className="px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload / Replace File</span>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*,application/pdf"
-                            onChange={e => {
-                              if (e.target.files?.[0]) {
-                                handleModalFileReplace(e.target.files[0]);
-                              }
-                            }}
-                          />
-                        </label>
-                        <a
-                          href={previewModal.viewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition inline-flex items-center space-x-1.5"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Open in New Tab</span>
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <img
-                      src={previewBlobUrl || previewModal.viewUrl}
-                      alt={previewModal.title}
-                      onLoad={() => setPreviewImgLoading(false)}
-                      onError={() => {
-                        if (!previewBlobUrl) {
-                          setPreviewImgLoading(false);
-                          setPreviewImgError(true);
-                        }
-                      }}
-                      style={{
-                        transform: `scale(${previewZoom}) rotate(${previewRotation}deg)`,
-                        transformOrigin: 'center center',
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain ring-1 ring-white/10"
-                    />
-                  )}
+              {previewImgLoading ? (
+                <div className="flex flex-col items-center justify-center p-12 space-y-3">
+                  <Loader2 className="w-10 h-10 animate-spin text-solar-500" />
+                  <p className="text-slate-300 text-sm font-medium">Loading document preview...</p>
                 </div>
+              ) : previewSvgContent ? (
+                <div
+                  style={{
+                    transform: `scale(${previewZoom}) rotate(${previewRotation}deg)`,
+                    transformOrigin: 'center center',
+                    transition: 'transform 0.15s ease-out'
+                  }}
+                  className="w-full max-w-4xl max-h-[70vh] flex items-center justify-center p-2 rounded-lg shadow-2xl overflow-auto ring-1 ring-white/10 bg-slate-900"
+                  dangerouslySetInnerHTML={{ __html: previewSvgContent }}
+                />
               ) : previewModal.mimeType === 'application/pdf' ||
                 previewModal.originalFilename?.toLowerCase().endsWith('.pdf') ? (
                 <iframe
-                  src={previewBlobUrl || previewModal.viewUrl}
+                  src={previewBlobUrl || getFullApiUrl(previewModal.viewUrl)}
                   title={previewModal.title}
-                  className="w-full h-[70vh] border-0 rounded-lg bg-white"
+                  className="w-full h-[70vh] border-0 rounded-lg bg-white shadow-2xl"
                 />
               ) : (
-                <div className="p-8 text-center space-y-3 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-xl">
-                  <FileText className="w-12 h-12 mx-auto text-solar-500" />
-                  <p className="font-semibold text-white text-sm">
-                    Direct in-browser preview not supported for this file type.
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    Please download or open in a new tab to inspect its contents.
-                  </p>
-                  <div className="flex items-center justify-center gap-2 pt-2">
-                    <a
-                      href={previewModal.viewUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Open in New Tab</span>
-                    </a>
-                    <a
-                      href={previewModal.downloadUrl}
-                      download={previewModal.originalFilename}
-                      className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Download File</span>
-                    </a>
-                  </div>
+                <div className="relative flex items-center justify-center w-full h-full min-h-[380px]">
+                  <img
+                    src={previewBlobUrl || getFullApiUrl(previewModal.viewUrl)}
+                    alt={previewModal.title}
+                    style={{
+                      transform: `scale(${previewZoom}) rotate(${previewRotation}deg)`,
+                      transformOrigin: 'center center',
+                      transition: 'transform 0.15s ease-out'
+                    }}
+                    className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain ring-1 ring-white/10"
+                  />
                 </div>
               )}
             </div>

@@ -31,7 +31,8 @@ import {
   ChevronRight,
   FolderLock,
   HardHat,
-  ClipboardList
+  ClipboardList,
+  FilePlus2
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -62,6 +63,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
     ]
@@ -114,6 +116,7 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock },
       { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell }
     ]
@@ -173,6 +176,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
       { to: '/installations', label: 'Assigned Installations', icon: HardHat },
       { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents/create', label: 'Create Document', icon: FilePlus2 },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   },
@@ -219,6 +223,8 @@ function getBreadcrumb(pathname: string): { section: string; title: string } {
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
   if (pathname.startsWith('/installations'))
     return { section: 'Field Operations', title: 'Installation Management' };
+  if (pathname.startsWith('/documents/create'))
+    return { section: 'CRM', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
     return { section: 'CRM', title: 'Document Vault' };
   if (pathname.startsWith('/customer-portal'))
