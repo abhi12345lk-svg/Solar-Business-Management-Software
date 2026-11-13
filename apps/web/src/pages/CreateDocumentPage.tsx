@@ -3,8 +3,6 @@ import { useSearchParams, Link } from 'react-router-dom';
 import {
   FilePlus2,
   FolderLock,
-  ChevronRight,
-  Sparkles,
   Download,
   Eye,
   X,
@@ -459,76 +457,44 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
   return (
     <div className="min-h-screen bg-muted/20 pb-16">
-      {/* Clean Top Header */}
-      <div className="bg-card border-b border-border shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground mb-1">
-                <Link to="/customers" className="hover:text-solar-600 transition">CRM</Link>
-                <ChevronRight className="w-3.5 h-3.5" />
-                <span className="text-foreground font-bold">Create Document</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shadow-2xs">
-                  <FilePlus2 className="w-6 h-6" />
+      {/* Clean, Simple Top Navigation Header */}
+      <div className="bg-card border-b border-border shadow-2xs sticky top-0 z-30 backdrop-blur-md bg-card/95">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            {/* Title & Selectors */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
+                  <FilePlus2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                    Document Template Editor &amp; Generator
+                  <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                    Create Document
                   </h1>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Official PM Surya Ghar &amp; CSPDCL document formats. Edit customer details with instant PDF preview and download.
+                  <p className="text-[11px] text-muted-foreground">
+                    PM Surya Ghar &amp; CSPDCL official agreement &amp; handover forms
                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Active Template Pill */}
-            <div className="flex items-center space-x-2 bg-muted/40 px-3.5 py-2 rounded-xl border border-border">
-              <Sparkles className="w-4 h-4 text-solar-600" />
-              <div className="text-xs">
-                <span className="text-muted-foreground">Active Format: </span>
-                <span className="font-bold text-foreground">{currentTemplate.name.split('–')[0]?.trim()}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-        {/* Top Control Bar: Template Selector, Customer Autofill & Actions */}
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-2xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Template & Customer Selectors */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               {/* Template Selector */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  1. Select Document Template
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedTemplateId}
-                    onChange={e => setSelectedTemplateId(e.target.value)}
-                    className="w-full sm:w-[350px] px-3.5 py-2.5 text-xs sm:text-sm font-bold bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
-                  >
-                    {availableTemplates.map(tpl => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="relative sm:ml-2">
+                <select
+                  value={selectedTemplateId}
+                  onChange={e => setSelectedTemplateId(e.target.value)}
+                  className="w-full sm:w-[270px] md:w-[310px] px-3 py-1.5 text-xs font-bold bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
+                >
+                  {availableTemplates.map(tpl => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.badge}: {tpl.name.split('–')[0]?.trim()}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Customer Autofill Selector */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  2. Select Customer to Autofill Details {loadingCustomers && '(Loading...)'}
-                </label>
-                <div className="flex items-center space-x-2">
+              {/* Customer Selector */}
+              <div className="flex items-center space-x-1.5">
+                <div className="relative">
                   <select
                     disabled={loadingCustomers}
                     value={selectedCustomer?._id || selectedCustomer?.id || ''}
@@ -537,42 +503,42 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       const match = customers.find(c => (c._id || c.id) === val);
                       setSelectedCustomer(match || null);
                     }}
-                    className="w-full sm:w-[280px] px-3 py-2.5 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs font-medium disabled:opacity-50"
+                    className="w-full sm:w-[220px] md:w-[250px] px-3 py-1.5 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs font-medium disabled:opacity-50"
                   >
-                    <option value="">{loadingCustomers ? 'Loading directory...' : '-- Manual Entry / Choose Customer --'}</option>
+                    <option value="">{loadingCustomers ? 'Loading...' : '-- Select Customer --'}</option>
                     {customers.map(c => (
                       <option key={c._id || c.id} value={c._id || c.id}>
-                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''} - {c.installationAddress?.city || 'Raipur'}
+                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''}
                       </option>
                     ))}
                   </select>
-
-                  {selectedCustomer && (
-                    <button
-                      type="button"
-                      onClick={handleResetDefaults}
-                      title="Reset to default sample"
-                      className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl border border-border transition cursor-pointer"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
+
+                {selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={handleResetDefaults}
+                    title="Reset to default sample"
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl border border-border transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Action Buttons: Preview PDF, Download PDF & Save to Vault */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-2 lg:pt-0">
+            {/* Action Buttons: 1 Single Compact Row */}
+            <div className="flex items-center space-x-2 shrink-0">
               <button
                 type="button"
                 onClick={handleOpenPdfPreview}
                 disabled={generatingPdf}
-                className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs rounded-xl shadow-2xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground font-bold text-xs rounded-xl shadow-2xs transition inline-flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
               >
                 {generatingPdf ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-solar-500" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-solar-500" />
                 ) : (
-                  <Eye className="w-4 h-4 text-solar-600" />
+                  <Eye className="w-3.5 h-3.5 text-solar-600" />
                 )}
                 <span>Preview PDF</span>
               </button>
@@ -581,12 +547,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={generatingPdf}
-                className="px-4 py-2.5 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
                 {generatingPdf ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                 )}
                 <span>Download PDF</span>
               </button>
@@ -596,20 +562,21 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                 onClick={handleSaveTemplateToVault}
                 disabled={isSavingToVault || !selectedCustomer}
                 title={!selectedCustomer ? 'Please select a customer above to enable saving to vault' : undefined}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isSavingToVault ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <FolderLock className="w-4 h-4" />
+                  <FolderLock className="w-3.5 h-3.5" />
                 )}
-                <span>Save to Customer Vault</span>
+                <span>Save to Vault</span>
               </button>
             </div>
           </div>
 
+          {/* Success Notification if Saved to Vault */}
           {vaultSaveSuccess && (
-            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-center justify-between animate-fadeIn">
+            <div className="mt-3 p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-center justify-between animate-fadeIn">
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{vaultSaveSuccess}</span>
@@ -620,6 +587,10 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
             </div>
           )}
         </div>
+      </div>
+
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
 
         {/* Split Screen Layout: Left = Editable Details, Right = Live Authentic Document */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
