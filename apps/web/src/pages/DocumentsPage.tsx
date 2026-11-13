@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   FileText,
   Search,
@@ -25,7 +25,8 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Loader2
+  Loader2,
+  FilePlus2
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 
@@ -616,22 +617,38 @@ export const DocumentsPage: React.FC = () => {
   ).length;
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
       {/* Top Banner / Breadcrumb & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-solar-700 mb-1">
-            <FolderLock className="w-4 h-4 text-solar-600" />
-            <span>Rarebox Solar ERP • Compliance & Document Vault</span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+        <div className="flex items-center space-x-3 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
+            <FolderLock className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            Document Vault & Project Compliance
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Centralized digital repository for solar consumer KYC, DISCOM net metering, rooftop survey photos, and PM Surya Ghar subsidy dossiers.
-          </p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight whitespace-nowrap">
+                Document Vault &amp; Compliance
+              </h1>
+              <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-full bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-200 dark:border-solar-800">
+                {totalCount} Total
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block mt-0.5">
+              Centralized repository for solar KYC, DISCOM net metering, site photos, and PM Surya Ghar dossiers
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        {/* Action Buttons: Generate Agreement & Upload File */}
+        <div className="flex items-center space-x-2.5 shrink-0">
+          <Link
+            to="/documents/create"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
+          >
+            <FilePlus2 className="w-4 h-4 text-solar-600" />
+            <span>Generate Document</span>
+          </Link>
+
           <button
             onClick={() => {
               setFormError(null);
@@ -641,24 +658,24 @@ export const DocumentsPage: React.FC = () => {
               setUploadCustomerId(customerFilter || '');
               setUploadModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-solar-600 hover:bg-solar-700 active:bg-solar-800 text-white font-semibold text-sm rounded-xl shadow-sm transition cursor-pointer"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
           >
             <UploadCloud className="w-4 h-4" />
-            Upload Document to Vault
+            <span>Upload to Vault</span>
           </button>
         </div>
       </div>
 
       {/* Success Notification Banner */}
       {actionSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm flex items-center justify-between shadow-2xs animate-fadeIn">
-          <div className="flex items-center gap-2.5 font-medium">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between shadow-2xs animate-fadeIn">
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
           <button
             onClick={() => setActionSuccess(null)}
-            className="text-emerald-700 hover:text-emerald-900 text-xs font-bold"
+            className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold text-xs"
           >
             Dismiss
           </button>
@@ -667,72 +684,121 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-2.5 shadow-2xs">
-          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2 shadow-2xs">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span className="font-medium">{error}</span>
         </div>
       )}
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-4 hover:border-gray-300 transition">
-          <div className="p-3 bg-gray-100 text-gray-700 rounded-xl">
-            <FileText className="w-6 h-6" />
+      {/* Interactive Stat Cards (Clickable Quick Filters) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Documents */}
+        <div
+          onClick={() => {
+            setReviewFilter('');
+            setClassificationFilter('');
+          }}
+          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+            !reviewFilter && !classificationFilter
+              ? 'border-solar-500 ring-2 ring-solar-500/20'
+              : 'border-border hover:border-solar-300'
+          }`}
+          title="Click to show all documents"
+        >
+          <div className="w-10 h-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{totalCount}</div>
-            <div className="text-xs font-medium text-gray-500">Total Vault Documents</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/20 shadow-2xs flex items-center gap-4 hover:border-amber-300 transition">
-          <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-amber-700">{pendingCount}</div>
-            <div className="text-xs font-medium text-amber-700">Pending Review / QA</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-2xs flex items-center gap-4 hover:border-emerald-300 transition">
-          <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-emerald-700">{acceptedCount}</div>
-            <div className="text-xs font-medium text-emerald-700">Accepted & Verified</div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
+            <div className="text-xs font-semibold text-muted-foreground truncate">Total Vault Files</div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/20 shadow-2xs flex items-center gap-4 hover:border-blue-300 transition">
-          <div className="p-3 bg-blue-100 text-blue-700 rounded-xl">
-            <Eye className="w-6 h-6" />
+        {/* Pending Review */}
+        <div
+          onClick={() => {
+            setReviewFilter(reviewFilter === 'PENDING_REVIEW' ? '' : 'PENDING_REVIEW');
+            setClassificationFilter('');
+          }}
+          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+            reviewFilter === 'PENDING_REVIEW'
+              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
+              : 'border-border hover:border-amber-300'
+          }`}
+          title="Click to filter Pending Review"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-2xl font-bold text-blue-700">{customerVisibleCount}</div>
-            <div className="text-xs font-medium text-blue-700">Client Portal Visible</div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount}</div>
+            <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Pending Review / QA</div>
+          </div>
+        </div>
+
+        {/* Accepted & Verified */}
+        <div
+          onClick={() => {
+            setReviewFilter(reviewFilter === 'ACCEPTED' ? '' : 'ACCEPTED');
+            setClassificationFilter('');
+          }}
+          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+            reviewFilter === 'ACCEPTED'
+              ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
+              : 'border-border hover:border-emerald-300'
+          }`}
+          title="Click to filter Accepted & Verified"
+        >
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-black text-emerald-600">{acceptedCount}</div>
+            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">Accepted &amp; Verified</div>
+          </div>
+        </div>
+
+        {/* Client Portal Visible */}
+        <div
+          onClick={() => {
+            setClassificationFilter(classificationFilter === 'CUSTOMER_VISIBLE' ? '' : 'CUSTOMER_VISIBLE');
+            setReviewFilter('');
+          }}
+          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+            classificationFilter === 'CUSTOMER_VISIBLE'
+              ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-500/5'
+              : 'border-border hover:border-blue-300'
+          }`}
+          title="Click to filter Customer Portal Visible"
+        >
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+            <Eye className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-black text-blue-600">{customerVisibleCount}</div>
+            <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 truncate">Customer Portal Visible</div>
           </div>
         </div>
       </div>
 
-      {/* Filter and Query Control Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
-        <div className="flex flex-wrap gap-3 items-center">
+      {/* Filter and Query Control Bar - Organized Grid */}
+      <div className="bg-card p-3.5 sm:p-4 rounded-xl border border-border shadow-2xs space-y-3">
+        {/* Row 1: Core Search & Selectors */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-3 items-center">
           {/* Keyword Search */}
-          <div className="flex-1 min-w-[220px] relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="sm:col-span-2 lg:col-span-4 relative">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by document number, title, or original file name..."
+              placeholder="Search by doc #, title, or filename..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:border-solar-500 focus:outline-none transition"
+              className="w-full pl-9 pr-3 py-1.5 border border-border rounded-lg text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none transition"
             />
           </div>
 
           {/* Client / Customer Filter */}
-          <div className="min-w-[190px]">
+          <div className="lg:col-span-3">
             <select
               value={customerFilter}
               onChange={e => {
@@ -743,7 +809,7 @@ export const DocumentsPage: React.FC = () => {
                   setSearchParams({});
                 }
               }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
+              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none font-medium cursor-pointer"
             >
               <option value="">All Clients (No filter)</option>
               {customers.map(c => {
@@ -751,7 +817,7 @@ export const DocumentsPage: React.FC = () => {
                 const name = c.name || c.legalName || c.companyName || 'Client';
                 return (
                   <option key={cId} value={cId}>
-                    {name} • {c.customerCode}
+                    {name} ({c.customerCode})
                   </option>
                 );
               })}
@@ -759,11 +825,11 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {/* Category Filter */}
-          <div className="min-w-[180px]">
+          <div className="lg:col-span-3">
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer"
             >
               <option value="">All Document Categories</option>
               {SOLAR_CATEGORIES.map(cat => (
@@ -775,45 +841,52 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {/* Review Status Filter */}
-          <div className="min-w-[160px]">
+          <div className="lg:col-span-2">
             <select
               value={reviewFilter}
               onChange={e => setReviewFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
             >
               <option value="">All Review Statuses</option>
               <option value="PENDING_REVIEW">⏳ Pending Review</option>
-              <option value="ACCEPTED">✅ Accepted & Verified</option>
+              <option value="ACCEPTED">✅ Accepted</option>
               <option value="REJECTED">❌ Rejected</option>
-              <option value="RESUBMISSION_REQUIRED">🔄 Resubmission Required</option>
+              <option value="RESUBMISSION_REQUIRED">🔄 Resubmission</option>
             </select>
           </div>
+        </div>
 
-          {/* Access Classification */}
-          <div className="min-w-[160px]">
-            <select
-              value={classificationFilter}
-              onChange={e => setClassificationFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
-            >
-              <option value="">All Access Levels</option>
-              <option value="CUSTOMER_VISIBLE">👁️ Customer Visible</option>
-              <option value="INTERNAL_ONLY">🔒 Internal Only</option>
-              <option value="RESTRICTED">🛡️ Restricted Confidential</option>
-            </select>
+        {/* Row 2: Secondary Refinements & Reset */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-border/60 text-xs">
+          <div className="flex items-center space-x-4">
+            {/* Access Classification */}
+            <div className="flex items-center space-x-1.5">
+              <span className="text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">Visibility:</span>
+              <select
+                value={classificationFilter}
+                onChange={e => setClassificationFilter(e.target.value)}
+                className="border border-border rounded-lg px-2 py-1 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Visibility Levels</option>
+                <option value="CUSTOMER_VISIBLE">👁️ Customer Visible</option>
+                <option value="INTERNAL_ONLY">🔒 Staff Internal Only</option>
+                <option value="RESTRICTED">🛡️ Restricted Confidential</option>
+              </select>
+            </div>
+
+            {/* Include Archived Checkbox */}
+            <label className="flex items-center space-x-1.5 font-medium text-muted-foreground hover:text-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isArchivedFilter}
+                onChange={e => setIsArchivedFilter(e.target.checked)}
+                className="rounded border-border text-solar-600 focus:ring-solar-500 cursor-pointer"
+              />
+              <span className="text-[11px]">Include Archived</span>
+            </label>
           </div>
 
-          {/* Include Archived Checkbox */}
-          <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer pl-1 whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={isArchivedFilter}
-              onChange={e => setIsArchivedFilter(e.target.checked)}
-              className="rounded border-gray-300 text-solar-600 focus:ring-solar-500"
-            />
-            <span>Include Archived</span>
-          </label>
-
+          {/* Reset Filters */}
           {(search || customerFilter || categoryFilter || reviewFilter || classificationFilter || isArchivedFilter) && (
             <button
               onClick={() => {
@@ -825,59 +898,57 @@ export const DocumentsPage: React.FC = () => {
                 setIsArchivedFilter(false);
                 setSearchParams({});
               }}
-              className="text-xs text-gray-500 hover:text-gray-800 underline font-semibold cursor-pointer ml-auto"
+              className="text-xs text-solar-600 hover:text-solar-700 font-bold underline cursor-pointer ml-auto"
             >
-              Reset Filters
+              Reset Filters (✕)
             </button>
           )}
         </div>
       </div>
 
-      {/* Document Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+      {/* Document Table - 5 Columns, No Awkward Breaking, Actions Always Visible */}
+      <div className="bg-card rounded-xl border border-border shadow-2xs overflow-hidden">
         {loading ? (
-          <div className="p-16 text-center text-gray-500 space-y-3">
+          <div className="p-16 text-center text-muted-foreground space-y-3">
             <RefreshCw className="w-8 h-8 mx-auto animate-spin text-solar-600" />
-            <p className="font-semibold text-gray-700">Loading document vault...</p>
-            <p className="text-xs text-gray-400">Fetching cryptographic download tokens and audit states</p>
+            <p className="font-semibold text-foreground">Loading document vault...</p>
+            <p className="text-xs text-muted-foreground">Fetching verified files and audit trail</p>
           </div>
         ) : documents.length === 0 ? (
-          <div className="p-16 text-center text-gray-500 space-y-3">
-            <div className="w-14 h-14 mx-auto rounded-full bg-solar-50 text-solar-600 flex items-center justify-center">
+          <div className="p-16 text-center text-muted-foreground space-y-3">
+            <div className="w-14 h-14 mx-auto rounded-full bg-solar-500/10 text-solar-600 flex items-center justify-center">
               <FolderLock className="w-7 h-7" />
             </div>
-            <p className="font-semibold text-gray-800 text-base">No documents found in vault.</p>
-            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+            <p className="font-bold text-foreground text-base">No documents found in vault.</p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
               {customerFilter
-                ? 'No documents registered for the selected client. Click "Upload Document to Vault" to add one.'
-                : 'No files match your current filters. Click "Upload Document to Vault" to register new project paperwork.'}
+                ? 'No documents found for this selected client. Click "Upload to Vault" or "Generate Document" to add files.'
+                : 'No files match your current filter criteria.'}
             </p>
             <button
               onClick={() => {
                 setUploadModalOpen(true);
                 setUploadCustomerId(customerFilter || '');
               }}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition cursor-pointer"
+              className="mt-2 inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
             >
               <UploadCloud className="w-4 h-4" />
-              Upload First Document
+              <span>Upload First Document</span>
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm min-w-[850px]">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider">
-                  <th className="py-3 px-4">Document Details</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Linked Client</th>
-                  <th className="py-3 px-4">Access Level</th>
-                  <th className="py-3 px-4">Review Status</th>
-                  <th className="py-3 px-4">Version & Size</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="bg-muted/40 border-b border-border text-muted-foreground font-bold text-[11px] uppercase tracking-wider">
+                  <th className="py-3 px-4 w-[34%]">Document Details</th>
+                  <th className="py-3 px-4 w-[20%]">Category &amp; Visibility</th>
+                  <th className="py-3 px-4 w-[18%] whitespace-nowrap">Linked Client</th>
+                  <th className="py-3 px-4 w-[14%] whitespace-nowrap">Status</th>
+                  <th className="py-3 px-4 w-[14%] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/60">
                 {documents.map(doc => {
                   const meta = getCategoryMeta(doc.category);
                   const isPending = doc.reviewStatus === 'PENDING_REVIEW';
@@ -891,53 +962,99 @@ export const DocumentsPage: React.FC = () => {
                     doc.customerId?.companyName ||
                     (doc.customerId?.customerCode ? `Client (${doc.customerId.customerCode})` : null);
 
+                  const formattedDate = doc.createdAt
+                    ? new Date(doc.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })
+                    : 'Recent';
+
                   return (
-                    <tr key={doc._id} className="hover:bg-gray-50/80 transition">
-                      {/* Document Details */}
-                      <td className="py-3 px-4 max-w-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                    <tr key={doc._id} className="hover:bg-muted/30 transition">
+                      {/* 1. Document Details & File Metadata */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border shrink-0">
                             {doc.documentNumber}
                           </span>
                           {doc.isArchived && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-gray-200 text-gray-600 uppercase">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase border border-border shrink-0">
                               Archived
                             </span>
                           )}
                         </div>
-                        <div className="font-semibold text-gray-900 mt-1 line-clamp-1">
+
+                        {/* Title - clickable for quick view */}
+                        <div
+                          onClick={() => handleViewDocument(doc)}
+                          className="font-bold text-foreground text-xs mt-1 hover:text-solar-600 transition cursor-pointer line-clamp-1"
+                          title={doc.safeDisplayName}
+                        >
                           {doc.safeDisplayName}
                         </div>
-                        <div className="text-xs text-gray-400 font-mono truncate flex items-center gap-1.5 mt-0.5">
-                          <File className="w-3 h-3 text-gray-400 shrink-0" />
-                          <span className="truncate">{doc.originalFilename}</span>
+
+                        {/* File Name + Version + File Size */}
+                        <div className="text-[11px] text-muted-foreground flex items-center space-x-1.5 mt-0.5 font-mono truncate">
+                          <File className="w-3 h-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate max-w-[200px]" title={doc.originalFilename}>
+                            {doc.originalFilename}
+                          </span>
+                          <span className="shrink-0">• v{doc.version}</span>
+                          <span className="shrink-0">• {formatFileSize(doc.fileSizeBytes)}</span>
                         </div>
+
+                        {/* QA Rejection Reason if any */}
                         {doc.rejectionReason && (
-                          <div className="mt-1 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1 font-medium">
-                            <span className="font-bold">QA Rejection:</span> {doc.rejectionReason}
+                          <div className="mt-1.5 text-[11px] text-rose-700 dark:text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2 py-1 font-medium flex items-center space-x-1.5">
+                            <span className="font-bold shrink-0">QA Note:</span>
+                            <span className="truncate">{doc.rejectionReason}</span>
                           </div>
                         )}
                       </td>
 
-                      {/* Category Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs font-semibold">
-                          <span>{meta.icon}</span>
-                          <span>{meta.label}</span>
-                        </span>
+                      {/* 2. Category & Visibility Badge */}
+                      <td className="py-3.5 px-4">
+                        <div className="space-y-1.5">
+                          {/* Category Badge */}
+                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-lg text-[11px] font-bold whitespace-nowrap">
+                            <span>{meta.icon}</span>
+                            <span className="truncate max-w-[150px]">{meta.label}</span>
+                          </span>
+
+                          {/* Access Visibility Pill */}
+                          <div>
+                            <span
+                              className={`inline-flex items-center space-x-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                doc.accessClassification === 'CUSTOMER_VISIBLE'
+                                  ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
+                                  : doc.accessClassification === 'RESTRICTED'
+                                    ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+                                    : 'bg-muted text-muted-foreground border border-border'
+                              }`}
+                            >
+                              {doc.accessClassification === 'CUSTOMER_VISIBLE' ? (
+                                <Eye className="w-2.5 h-2.5" />
+                              ) : (
+                                <Shield className="w-2.5 h-2.5" />
+                              )}
+                              <span>{doc.accessClassification.replace(/_/g, ' ')}</span>
+                            </span>
+                          </div>
+                        </div>
                       </td>
 
-                      {/* Linked Client */}
-                      <td className="py-3 px-4">
+                      {/* 3. Linked Client - NO VERTICAL BREAKS! */}
+                      <td className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">
                         {doc.customerId ? (
                           <div>
-                            <div className="font-medium text-gray-900 text-xs">
+                            <div className="font-bold text-foreground text-xs truncate max-w-[170px]" title={clientName || 'Registered Client'}>
                               {clientName || 'Registered Client'}
                             </div>
-                            <div className="text-[11px] font-mono text-solar-700 font-semibold flex items-center gap-1">
-                              <span>{doc.customerId.customerCode}</span>
+                            <div className="text-[11px] font-mono text-solar-600 dark:text-solar-400 font-bold flex items-center space-x-1 mt-0.5">
+                              <span className="whitespace-nowrap">{doc.customerId.customerCode}</span>
                               {doc.customerId.primaryPhone && (
-                                <span className="text-gray-400 font-normal">
+                                <span className="text-muted-foreground font-normal whitespace-nowrap">
                                   • {doc.customerId.primaryPhone}
                                 </span>
                               )}
@@ -945,77 +1062,57 @@ export const DocumentsPage: React.FC = () => {
                           </div>
                         ) : doc.projectId ? (
                           <div>
-                            <span className="font-mono text-xs font-semibold text-indigo-700">
+                            <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                               {doc.projectId.projectNumber}
                             </span>
                             {doc.projectId.title && (
-                              <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                              <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
                                 {doc.projectId.title}
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 italic">
-                            <Building className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="inline-flex items-center space-x-1 text-xs text-muted-foreground italic">
+                            <Building className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span>General Internal</span>
                           </span>
                         )}
                       </td>
 
-                      {/* Classification Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            doc.accessClassification === 'CUSTOMER_VISIBLE'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : doc.accessClassification === 'RESTRICTED'
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                : 'bg-gray-100 text-gray-700 border border-gray-200'
-                          }`}
-                        >
-                          {doc.accessClassification === 'CUSTOMER_VISIBLE' ? (
-                            <Eye className="w-3 h-3" />
-                          ) : (
-                            <Shield className="w-3 h-3" />
-                          )}
-                          <span>{doc.accessClassification.replace(/_/g, ' ')}</span>
-                        </span>
+                      {/* 4. Review Status & Date */}
+                      <td className="py-3.5 px-4 whitespace-nowrap min-w-[130px]">
+                        <div>
+                          <span
+                            className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              isAccepted
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                                : isPending
+                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                                  : isRejected
+                                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20'
+                                    : 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+                            }`}
+                          >
+                            {isAccepted && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                            {isPending && <Clock className="w-3 h-3 text-amber-600" />}
+                            {isRejected && <XCircle className="w-3 h-3 text-rose-600" />}
+                            {isResubmission && <AlertTriangle className="w-3 h-3 text-purple-600" />}
+                            <span>{doc.reviewStatus.replace(/_/g, ' ')}</span>
+                          </span>
+
+                          <div className="text-[10px] text-muted-foreground mt-1 font-medium">
+                            {formattedDate}
+                          </div>
+                        </div>
                       </td>
 
-                      {/* Review Status */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                            isAccepted
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : isPending
-                                ? 'bg-amber-100 text-amber-800'
-                                : isRejected
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : 'bg-purple-100 text-purple-800'
-                          }`}
-                        >
-                          {isAccepted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                          {isPending && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                          {isRejected && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
-                          {isResubmission && <AlertTriangle className="w-3.5 h-3.5 text-purple-600" />}
-                          <span>{doc.reviewStatus.replace(/_/g, ' ')}</span>
-                        </span>
-                      </td>
-
-                      {/* Version & Size */}
-                      <td className="py-3 px-4 text-xs font-mono text-gray-600 whitespace-nowrap">
-                        <div className="font-bold text-gray-800">v{doc.version}</div>
-                        <div className="text-gray-500 text-[11px]">{formatFileSize(doc.fileSizeBytes)}</div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      {/* 5. Actions - Aligned Right & Always Visible */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap min-w-[160px]">
+                        <div className="flex items-center justify-end space-x-1.5">
                           {/* In-App View / Preview Action */}
                           <button
                             onClick={() => handleViewDocument(doc)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-solar-700 bg-solar-50 hover:bg-solar-100 border border-solar-200 rounded-lg transition cursor-pointer"
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-solar-700 dark:text-solar-300 bg-solar-500/10 hover:bg-solar-500/20 border border-solar-500/20 rounded-lg transition cursor-pointer"
                             title="View / Inspect Document"
                           >
                             <Eye className="w-3.5 h-3.5 text-solar-600" />
@@ -1025,13 +1122,13 @@ export const DocumentsPage: React.FC = () => {
                           {/* Direct Download Action */}
                           <button
                             onClick={() => handleDownloadSigned(doc)}
-                            className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition cursor-pointer"
-                            title="Download verified binary via signed cryptographic token"
+                            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition cursor-pointer"
+                            title="Download verified document binary"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Review Action */}
+                          {/* Review Action (if pending, highlighted) */}
                           <button
                             onClick={() => {
                               setSelectedDoc(doc);
@@ -1041,10 +1138,14 @@ export const DocumentsPage: React.FC = () => {
                               setFormError(null);
                               setReviewModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition cursor-pointer"
+                            className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold rounded-lg transition cursor-pointer border ${
+                              isPending
+                                ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                                : 'bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80'
+                            }`}
                             title="Conduct QA / Compliance Review"
                           >
-                            <FileCheck2 className="w-3.5 h-3.5 text-amber-600" />
+                            <FileCheck2 className={`w-3.5 h-3.5 ${isPending ? 'text-amber-600' : 'text-muted-foreground'}`} />
                             <span>Review</span>
                           </button>
 
@@ -1059,20 +1160,20 @@ export const DocumentsPage: React.FC = () => {
                               setFormError(null);
                               setVersionModalOpen(true);
                             }}
-                            className="p-1.5 text-gray-500 hover:text-solar-700 hover:bg-solar-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-muted-foreground hover:text-solar-600 hover:bg-solar-500/10 rounded-lg transition cursor-pointer"
                             title="Upload New Version Revision"
                           >
-                            <Layers className="w-4 h-4" />
+                            <Layers className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Archive Action */}
                           {!doc.isArchived && (
                             <button
                               onClick={() => handleArchive(doc)}
-                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                              className="p-1.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
                               title="Archive Document"
                             >
-                              <Archive className="w-4 h-4" />
+                              <Archive className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
