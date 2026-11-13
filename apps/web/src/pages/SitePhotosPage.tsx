@@ -14,7 +14,6 @@ import {
   UploadCloud,
   Trash2,
   Navigation,
-  Sparkles,
   Plus,
   Search,
   Barcode,
@@ -34,12 +33,6 @@ import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
 import { DocumentCategory, DocumentAccessClassification } from '@ins-solar/shared';
 import { RAREBOX_STAMP_BASE64 } from '../assets/rareboxStampBase64.js';
-import {
-  SAMPLE_PHOTO1_BASE64,
-  SAMPLE_PHOTO2_BASE64,
-  SAMPLE_PHOTO3_BASE64,
-  SAMPLE_PHOTO4_BASE64
-} from '../assets/sampleSitePhotosBase64.js';
 
 interface CustomerOption {
   _id?: string;
@@ -1335,63 +1328,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     >
                       {isLocatingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
                       <span>📍 Geotag All</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const timeNow = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        setPhotoSlots({
-                          structure: {
-                            dataUrl: SAMPLE_PHOTO1_BASE64,
-                            caption: '1. Rooftop Solar Structure & Array with Beneficiary Consumer',
-                            gps: `Lat: 21.237361°, Long: 81.603828° • Acc: ±4m • ${tplAgreementDate} ${timeNow}`,
-                            latitude: 21.237361,
-                            longitude: 81.603828,
-                            accuracy: 4,
-                            timestamp: `${tplAgreementDate} ${timeNow}`
-                          },
-                          inverter: {
-                            dataUrl: SAMPLE_PHOTO3_BASE64,
-                            caption: '2. On-Grid Solar Inverter, ACDB & DCDB Junction with Consumer',
-                            gps: `Lat: 21.237278°, Long: 81.604320° • Acc: ±3m • ${tplAgreementDate} ${timeNow}`,
-                            latitude: 21.237278,
-                            longitude: 81.604320,
-                            accuracy: 3,
-                            timestamp: `${tplAgreementDate} ${timeNow}`
-                          },
-                          meter: {
-                            dataUrl: SAMPLE_PHOTO1_BASE64,
-                            caption: '3. Bi-Directional Net Meter with Serial Number & Consumer',
-                            gps: `Lat: 21.237300°, Long: 81.604100° • Acc: ±4m • ${tplAgreementDate} ${timeNow}`,
-                            latitude: 21.2373,
-                            longitude: 81.6041,
-                            accuracy: 4,
-                            timestamp: `${tplAgreementDate} ${timeNow}`
-                          },
-                          earthing: {
-                            dataUrl: SAMPLE_PHOTO2_BASE64,
-                            caption: '4. Chemical Earthing Pits & Heavy-Duty Grounding Chambers',
-                            gps: `Lat: 21.237414°, Long: 81.603882° • Acc: ±5m • ${tplAgreementDate} ${timeNow}`,
-                            latitude: 21.237414,
-                            longitude: 81.603882,
-                            accuracy: 5,
-                            timestamp: `${tplAgreementDate} ${timeNow}`
-                          },
-                          lightning: {
-                            dataUrl: SAMPLE_PHOTO4_BASE64,
-                            caption: '5. Lightning Arrester (LA) Terminal & Terrace Grounding with Consumer',
-                            gps: `Lat: 21.237171°, Long: 81.603859° • Acc: ±4m • ${tplAgreementDate} ${timeNow}`,
-                            latitude: 21.237171,
-                            longitude: 81.603859,
-                            accuracy: 4,
-                            timestamp: `${tplAgreementDate} ${timeNow}`
-                          }
-                        });
-                      }}
-                      className="px-2.5 py-1 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-[11px] font-semibold rounded-lg border cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3 text-solar-600 inline mr-1" />
-                      <span>Demo</span>
                     </button>
                   </div>
                 </div>
