@@ -3,7 +3,6 @@ import { useSearchParams, Link } from 'react-router-dom';
 import {
   Camera,
   FolderLock,
-  ChevronRight,
   Download,
   Eye,
   X,
@@ -12,12 +11,10 @@ import {
   RotateCcw,
   UserCheck,
   FileCheck2,
-  ShieldCheck,
   MapPin,
   ExternalLink,
   UploadCloud,
   Trash2,
-  Info,
   Navigation,
   Sparkles,
   CheckSquare
@@ -648,147 +645,86 @@ export const SitePhotosPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-muted/20 pb-16">
-      {/* Clean Top Header */}
-      <div className="bg-card border-b border-border shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground mb-1">
-                <Link to="/" className="hover:text-solar-600 transition">Field Operations</Link>
-                <ChevronRight className="w-3.5 h-3.5" />
-                <span className="text-foreground font-bold">Site Photos Document</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold shadow-2xs">
-                  <Camera className="w-6 h-6" />
+      {/* Clean, Simple Top Navigation Header */}
+      <div className="bg-card border-b border-border shadow-2xs sticky top-0 z-30 backdrop-blur-md bg-card/95">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            {/* Title & Customer Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold shrink-0">
+                  <Camera className="w-5 h-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                    Client Rooftop Site Photos Compliance Document
-                  </h1>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    PM Surya Ghar &amp; DISCOM 5-point photographic inspection report with live browser GPS geotagging.
+                  <div className="flex items-center space-x-2">
+                    <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                      Site Photos Document
+                    </h1>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                        uploadedCount === 5
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
+                      }`}
+                    >
+                      {uploadedCount}/5 Uploaded
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    PM Surya Ghar 5-point inspection report with live GPS geotags
                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Active Format Badge & Upload Status */}
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2 bg-orange-500/10 px-3.5 py-2 rounded-xl border border-orange-500/30 text-orange-800 dark:text-orange-300">
-                <Camera className="w-4 h-4 text-orange-600 shrink-0" />
-                <div className="text-xs">
-                  <span className="font-semibold text-orange-600 dark:text-orange-400">Locked Format: </span>
-                  <span className="font-bold">SITE PHOTOS AT &lt;CUSTOMER&gt;</span>
-                </div>
-              </div>
-
-              <div className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center space-x-1.5 ${
-                uploadedCount === 5
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200'
-                  : 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200'
-              }`}>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{uploadedCount} / 5 Photos Uploaded</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-        {/* Top Control Bar */}
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-2xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Format Indicator & Customer Autofill */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              {/* Dedicated Locked Format Badge */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  1. Document Format (Exclusive to Site Photos)
-                </label>
-                <div className="flex items-center space-x-2 px-3.5 py-2.5 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl text-orange-900 dark:text-orange-200 text-xs sm:text-sm font-bold shadow-2xs">
-                  <ShieldCheck className="w-4 h-4 text-orange-600 shrink-0" />
-                  <span className="truncate">Client Site Photos Compliance Document (5 Categories)</span>
-                </div>
-              </div>
-
-              {/* Customer Autofill Selector */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  2. Select Customer to Autofill Details
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedCustomer ? selectedCustomer._id || selectedCustomer.id || '' : ''}
-                    onChange={e => {
-                      const id = e.target.value;
-                      if (!id) {
-                        setSelectedCustomer(null);
-                        return;
-                      }
-                      const match = customers.find(c => (c._id || c.id) === id);
-                      if (match) setSelectedCustomer(match);
-                    }}
-                    className="w-full sm:w-[320px] px-3.5 py-2.5 text-xs sm:text-sm bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
-                  >
-                    <option value="">-- Manual Entry / Choose Customer --</option>
-                    {customers.map(c => {
-                      const cid = c._id || c.id || '';
-                      return (
-                        <option key={cid} value={cid}>
-                          {c.name} {c.customerCode ? `(${c.customerCode})` : ''} - {c.installationAddress?.city || 'Raipur'}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {loadingCustomers && (
-                    <div className="absolute right-3 top-3 pointer-events-none">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
+              {/* Customer Selector Directly in Header */}
+              <div className="relative sm:ml-2">
+                <select
+                  value={selectedCustomer ? selectedCustomer._id || selectedCustomer.id || '' : ''}
+                  onChange={e => {
+                    const id = e.target.value;
+                    if (!id) {
+                      setSelectedCustomer(null);
+                      return;
+                    }
+                    const match = customers.find(c => (c._id || c.id) === id);
+                    if (match) setSelectedCustomer(match);
+                  }}
+                  className="w-full sm:w-[280px] px-3 py-1.5 text-xs bg-background border border-border rounded-xl font-medium text-foreground cursor-pointer shadow-2xs focus:ring-2 focus:ring-solar-500"
+                >
+                  <option value="">-- Select Customer (Autofill) --</option>
+                  {customers.map(c => {
+                    const cid = c._id || c.id || '';
+                    return (
+                      <option key={cid} value={cid}>
+                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''} - {c.installationAddress?.city || 'Raipur'}
+                      </option>
+                    );
+                  })}
+                </select>
+                {loadingCustomers && (
+                  <div className="absolute right-3 top-2 pointer-events-none">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0">
+            {/* Action Buttons: Simple, Clean & Powerful */}
+            <div className="flex items-center space-x-2 shrink-0">
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition flex items-center space-x-1 cursor-pointer"
-                title="Reset all fields to clean defaults"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition cursor-pointer"
+                title="Reset fields"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLoadSamplePhotos}
-                className="px-3 py-2 text-xs font-semibold text-solar-700 bg-solar-50 hover:bg-solar-100 dark:bg-solar-950/40 dark:text-solar-300 rounded-xl transition flex items-center space-x-1 cursor-pointer border border-solar-200 dark:border-solar-800"
-                title="Populate with sample photos for quick preview / demo testing"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-solar-600" />
-                <span>Load Sample Demo Photos</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setImageFit(f => (f === 'contain' ? 'cover' : 'contain'))}
-                className="px-3 py-2 text-xs font-semibold text-foreground bg-muted hover:bg-muted/80 rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
-                title="Toggle between fitting full image without cropping or filling frame"
-              >
-                <Camera className="w-3.5 h-3.5 text-orange-600" />
-                <span>Photo Fit: <strong>{imageFit === 'contain' ? 'Full Image (Fit)' : 'Fill Frame (Crop)'}</strong></span>
+                <RotateCcw className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={handleOpenPdfPreview}
                 disabled={generatingPdf}
-                className="px-3.5 py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-2xs border border-border cursor-pointer disabled:opacity-50"
+                className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
               >
                 {generatingPdf ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -802,7 +738,7 @@ export const SitePhotosPage: React.FC = () => {
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={generatingPdf}
-                className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
               >
                 {generatingPdf ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -816,7 +752,7 @@ export const SitePhotosPage: React.FC = () => {
                 type="button"
                 onClick={handleSaveToVault}
                 disabled={isSavingToVault}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
                 title="Save generated PDF into customer's document vault"
               >
                 {isSavingToVault ? (
@@ -824,62 +760,28 @@ export const SitePhotosPage: React.FC = () => {
                 ) : (
                   <FolderLock className="w-3.5 h-3.5" />
                 )}
-                <span>Save to Customer Vault</span>
+                <span>Save to Vault</span>
               </button>
             </div>
           </div>
 
+          {/* Success Notification if Saved to Vault */}
           {vaultSaveSuccess && (
-            <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 animate-fadeIn">
+            <div className="mt-3 p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200">
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{vaultSaveSuccess}</span>
               </div>
-              <Link
-                to="/documents"
-                className="font-bold underline hover:text-emerald-900 transition shrink-0 ml-3"
-              >
+              <Link to="/documents" className="font-bold underline hover:text-emerald-900 transition shrink-0 ml-3">
                 Open Vault &rarr;
               </Link>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Global Inspection Guidelines Banner */}
-        <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-4 shadow-2xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-orange-600 text-white rounded-xl shadow-xs mt-0.5 shrink-0">
-                <Info className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  PM Surya Ghar 5 Mandatory Inspection Photo Requirements
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  DISCOM &amp; MNRE inspection mandates 5 live photos: <strong>Structure with Consumer</strong>, <strong>Inverter with Consumer</strong>, <strong>Meter with Consumer</strong>, <strong>Earthing Pic</strong>, and <strong>Lightning Arrester with Consumer</strong>. Live GPS coordinates and timestamps are automatically hooked into each photo.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleGeotagAllSlots}
-                disabled={isLocatingAll}
-                className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                title="Hook live GPS coordinates into all 5 photo slots at once"
-              >
-                {isLocatingAll ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Navigation className="w-3.5 h-3.5" />
-                )}
-                <span>📍 Auto-Geotag All 5 Slots</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Main Workspace */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
 
         {/* Workspace: 2 Columns (Left: Customer Details & 5 Photo Upload Cards, Right: Live Paper View) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -992,19 +894,50 @@ export const SitePhotosPage: React.FC = () => {
               <div className="flex items-center justify-between px-1">
                 <div>
                   <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    5 Mandatory Site Photo Uploaders
+                    5 Inspection Photos
                   </h3>
                   <p className="text-[10px] text-muted-foreground">
-                    Direct GPS hooked • Live coordinate stamping
+                    Auto-geotags live device GPS coordinates
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleClearAllPhotos}
-                  className="text-[10px] text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                >
-                  Clear All Photos
-                </button>
+
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    type="button"
+                    onClick={handleGeotagAllSlots}
+                    disabled={isLocatingAll}
+                    className="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                    title="Hook live GPS coordinates into all 5 photo slots at once"
+                  >
+                    {isLocatingAll ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Navigation className="w-3 h-3" />
+                    )}
+                    <span>📍 Geotag All</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadSamplePhotos}
+                    className="px-2.5 py-1 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-[11px] font-semibold rounded-lg transition border border-border cursor-pointer"
+                    title="Load sample demo photos"
+                  >
+                    <Sparkles className="w-3 h-3 text-solar-600 inline mr-1" />
+                    <span>Demo</span>
+                  </button>
+
+                  {uploadedCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllPhotos}
+                      className="p-1 text-muted-foreground hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                      title="Clear all photos"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {PHOTO_SLOT_CONFIGS.map((cfg, index) => {
@@ -1214,18 +1147,27 @@ export const SitePhotosPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <FileCheck2 className="w-4 h-4 text-orange-600" />
                   <span className="text-xs font-bold text-foreground">
-                    Live Paper Document View (A4 Compliance Report)
+                    Live Document Preview (A4 Report)
                   </span>
-                  <span className="text-[10px] text-muted-foreground">(Synchronized with all 5 photos)</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleOpenPdfPreview}
-                  className="text-xs font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Full PDF Preview</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setImageFit(f => (f === 'contain' ? 'cover' : 'contain'))}
+                    className="px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition cursor-pointer"
+                    title="Toggle full uncropped image or crop to fill"
+                  >
+                    <span>Framing: <strong>{imageFit === 'contain' ? 'Full Image' : 'Fill Frame'}</strong></span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenPdfPreview}
+                    className="text-xs font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Fullscreen</span>
+                  </button>
+                </div>
               </div>
 
               {/* White Sheet Paper Container */}
