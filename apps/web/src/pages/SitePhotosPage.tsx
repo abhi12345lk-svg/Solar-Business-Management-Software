@@ -651,17 +651,17 @@ export const SitePhotosPage: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             {/* Title & Customer Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-2.5 shrink-0">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold shrink-0">
                   <Camera className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="shrink-0">
                   <div className="flex items-center space-x-2">
-                    <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                    <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight whitespace-nowrap">
                       Site Photos Document
                     </h1>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 ${
                         uploadedCount === 5
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
                           : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
@@ -670,7 +670,7 @@ export const SitePhotosPage: React.FC = () => {
                       {uploadedCount}/5 Uploaded
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="hidden sm:block text-[11px] text-muted-foreground whitespace-nowrap">
                     PM Surya Ghar 5-point inspection report with live GPS geotags
                   </p>
                 </div>

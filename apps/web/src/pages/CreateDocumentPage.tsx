@@ -459,71 +459,20 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
     <div className="min-h-screen bg-muted/20 pb-16">
       {/* Clean, Simple Top Navigation Header */}
       <div className="bg-card border-b border-border shadow-2xs sticky top-0 z-30 backdrop-blur-md bg-card/95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            {/* Title & Selectors */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
-                  <FilePlus2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight">
-                    Create Document
-                  </h1>
-                  <p className="text-[11px] text-muted-foreground">
-                    PM Surya Ghar &amp; CSPDCL official agreement &amp; handover forms
-                  </p>
-                </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Title Block - Always Horizontal, Never Wraps Vertically */}
+            <div className="flex items-center space-x-3 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
+                <FilePlus2 className="w-5 h-5" />
               </div>
-
-              {/* Template Selector */}
-              <div className="relative sm:ml-2">
-                <select
-                  value={selectedTemplateId}
-                  onChange={e => setSelectedTemplateId(e.target.value)}
-                  className="w-full sm:w-[270px] md:w-[310px] px-3 py-1.5 text-xs font-bold bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
-                >
-                  {availableTemplates.map(tpl => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.badge}: {tpl.name.split('–')[0]?.trim()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Customer Selector */}
-              <div className="flex items-center space-x-1.5">
-                <div className="relative">
-                  <select
-                    disabled={loadingCustomers}
-                    value={selectedCustomer?._id || selectedCustomer?.id || ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      const match = customers.find(c => (c._id || c.id) === val);
-                      setSelectedCustomer(match || null);
-                    }}
-                    className="w-full sm:w-[220px] md:w-[250px] px-3 py-1.5 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs font-medium disabled:opacity-50"
-                  >
-                    <option value="">{loadingCustomers ? 'Loading...' : '-- Select Customer --'}</option>
-                    {customers.map(c => (
-                      <option key={c._id || c.id} value={c._id || c.id}>
-                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {selectedCustomer && (
-                  <button
-                    type="button"
-                    onClick={handleResetDefaults}
-                    title="Reset to default sample"
-                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl border border-border transition cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
-                )}
+              <div className="shrink-0">
+                <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight whitespace-nowrap">
+                  Create Document
+                </h1>
+                <p className="hidden sm:block text-[11px] text-muted-foreground whitespace-nowrap">
+                  PM Surya Ghar &amp; CSPDCL official agreement &amp; handover forms
+                </p>
               </div>
             </div>
 
@@ -561,7 +510,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                 type="button"
                 onClick={handleSaveTemplateToVault}
                 disabled={isSavingToVault || !selectedCustomer}
-                title={!selectedCustomer ? 'Please select a customer above to enable saving to vault' : undefined}
+                title={!selectedCustomer ? 'Please select a customer below to enable saving to vault' : undefined}
                 className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isSavingToVault ? (
@@ -590,7 +539,71 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
       </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-5">
+        {/* Sleek Horizontal Toolbar Card */}
+        <div className="bg-card border border-border rounded-xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+            {/* Template Selector with Label */}
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+                Template:
+              </span>
+              <select
+                value={selectedTemplateId}
+                onChange={e => setSelectedTemplateId(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold bg-background border border-border rounded-lg focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs"
+              >
+                {availableTemplates.map(tpl => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.badge}: {tpl.name.split('–')[0]?.trim()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Customer Selector with Label */}
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+                Customer:
+              </span>
+              <div className="flex items-center space-x-1.5 w-full min-w-0">
+                <select
+                  disabled={loadingCustomers}
+                  value={selectedCustomer?._id || selectedCustomer?.id || ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const match = customers.find(c => (c._id || c.id) === val);
+                    setSelectedCustomer(match || null);
+                  }}
+                  className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:ring-2 focus:ring-solar-500 text-foreground cursor-pointer shadow-2xs font-medium disabled:opacity-50"
+                >
+                  <option value="">{loadingCustomers ? 'Loading...' : '-- Manual Entry / Select Customer --'}</option>
+                  {customers.map(c => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.name} {c.customerCode ? `(${c.customerCode})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={handleResetDefaults}
+                    title="Reset to default sample"
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg border border-border transition cursor-pointer shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Active Format Badge */}
+          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 bg-solar-500/10 text-solar-700 dark:text-solar-300 rounded-lg border border-solar-200 dark:border-solar-800 text-[11px] font-bold shrink-0">
+            <span className="text-muted-foreground font-normal">Active Format:</span>
+            <span>{currentTemplate.badge}</span>
+          </div>
+        </div>
 
         {/* Split Screen Layout: Left = Editable Details, Right = Live Authentic Document */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
