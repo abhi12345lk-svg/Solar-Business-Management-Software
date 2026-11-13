@@ -191,6 +191,13 @@ export const POST_INSTALL_DOC_TEMPLATES = [
   }
 ];
 
+export const parseBarcodesFromText = (text: string): string[] => {
+  return text
+    .split(/[\r\n,;\t]+/)
+    .map(line => line.trim().replace(/^['"\s]+|['"\s,.;:]+$/g, '').trim())
+    .filter(Boolean);
+};
+
 const createEmptySlots = (): Record<PhotoSlotId, PhotoSlotData> => ({
   structure: {
     dataUrl: null,
@@ -795,10 +802,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   };
 
   const handleApplyBulkBarcodes = () => {
-    const lines = bulkBarcodeText
-      .split(/\r?\n|,/)
-      .map(s => s.trim())
-      .filter(Boolean);
+    const lines = parseBarcodesFromText(bulkBarcodeText);
 
     if (lines.length === 0) {
       setIsBulkPasteOpen(false);
@@ -825,6 +829,27 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
     setIsBulkPasteOpen(false);
     setBulkBarcodeText('');
+  };
+
+  const handleExportCsv = () => {
+    const csv =
+      'S.No,Description,Serial Number,Barcode,Status\n' +
+      panelRows
+        .map(
+          r =>
+            `${r.itemNumber},"${(r.description || '').replace(/"/g, '""')}","${(r.serialNumber || '').replace(/"/g, '""')}","${(r.barcode || '').replace(/"/g, '""')}",${r.status}`
+        )
+        .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cleanClient = (tplConsumerName || 'Client').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    a.download = `Solar_Panels_Barcodes_${cleanClient}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleSaveEquipment = async () => {
@@ -1084,13 +1109,17 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   <div className="flex items-center space-x-2">
                     <h1 className="text-sm sm:text-base font-black text-foreground tracking-tight whitespace-nowrap">
                       {activeTab === 'photos'
-                        ? '1. Site Inspection Photos'
+                        ? 'Site Inspection Photos'
                         : activeTab === 'equipment'
-                          ? '2. Equipment & Panel Barcodes'
-                          : '3. After-Installation Documents'}
+                          ? 'Equipment & Barcode Register'
+                          : 'Installation Compliance Documents'}
                     </h1>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/30">
-                      Step {activeTab === 'photos' ? '1' : activeTab === 'equipment' ? '2' : '3'} of 3
+                      {activeTab === 'photos'
+                        ? '5-Point Inspection'
+                        : activeTab === 'equipment'
+                          ? 'Hardware Compliance'
+                          : 'Handover Dossiers'}
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate">
@@ -1164,32 +1193,22 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <>
                   <button
                     type="button"
-                    onClick={handleAddSinglePanel}
-                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
-                    title="Add One Solar Panel Row"
+                    onClick={handleExportCsv}
+                    className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
+                    title="Export Barcode Register to CSV file"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add Panel</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsBulkPasteOpen(true)}
-                    className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer"
-                    title="Bulk Paste Serial Numbers & Barcodes"
-                  >
-                    <ClipboardList className="w-3.5 h-3.5 text-solar-600" />
-                    <span className="hidden sm:inline">Bulk Paste</span>
+                    <Download className="w-3.5 h-3.5 text-solar-600" />
+                    <span>Export CSV</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleSaveEquipment}
                     className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
-                    title="Save Equipment Register"
+                    title="Save Equipment Register to Customer Vault"
                   >
                     <FolderLock className="w-3.5 h-3.5" />
-                    <span>Save Equipment</span>
+                    <span>Save to Vault</span>
                   </button>
                 </>
               )}
@@ -1940,11 +1959,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     <button
                       type="button"
                       onClick={() => setIsBulkPasteOpen(true)}
-                      className="px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold rounded-xl transition flex items-center space-x-1 cursor-pointer"
+                      className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
                       title="Paste multiple barcodes at once"
                     >
-                      <ClipboardList className="w-3.5 h-3.5" />
-                      <span>Bulk Paste</span>
+                      <ClipboardList className="w-3.5 h-3.5 text-solar-600" />
+                      <span>Bulk Paste Barcodes</span>
                     </button>
 
                     <button
@@ -1953,7 +1972,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       className="px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1 shadow-xs cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Add Panel</span>
+                      <span>+ Add Panel Row</span>
                     </button>
 
                     <button
@@ -1962,7 +1981,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Save All</span>
+                      <span>Save Changes</span>
                     </button>
                   </div>
                 </div>
@@ -2063,20 +2082,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      const csv = 'S.No,Description,Serial Number,Barcode,Status\n' +
-                        panelRows.map(r => `${r.itemNumber},"${r.description}","${r.serialNumber}","${r.barcode}",${r.status}`).join('\n');
-                      const blob = new Blob([csv], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `Solar_Panels_Barcodes_${tplConsumerName.replace(/\s+/g, '_')}.csv`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="text-xs text-solar-600 hover:underline font-semibold cursor-pointer"
+                    onClick={handleExportCsv}
+                    className="text-xs text-solar-600 hover:underline font-semibold cursor-pointer inline-flex items-center space-x-1"
                   >
-                    Export Barcodes (CSV) &rarr;
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Barcode Register (CSV) &rarr;</span>
                   </button>
                 </div>
               </div>
@@ -2545,30 +2555,84 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
           <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center space-x-2">
-                <ClipboardList className="w-5 h-5 text-solar-600" />
+                <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
+                  <ClipboardList className="w-4 h-4" />
+                </div>
                 <div>
                   <h3 className="text-sm font-bold text-foreground">Bulk Paste Barcodes</h3>
                   <p className="text-[10px] text-muted-foreground">Paste barcodes from packing list, shipping manifest, or scanner</p>
                 </div>
               </div>
-              <button onClick={() => setIsBulkPasteOpen(false)} className="p-1 rounded-lg text-muted-foreground hover:bg-muted">
+              <button onClick={() => setIsBulkPasteOpen(false)} className="p-1 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-muted-foreground">
-                Paste barcodes (one per line or separated by comma):
-              </label>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-semibold text-muted-foreground">
+                  Paste barcodes (one per line, comma, or semicolon):
+                </label>
+                {bulkBarcodeText.trim() && (
+                  <span
+                    className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                      parseBarcodesFromText(bulkBarcodeText).length > 0
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-700 border border-amber-500/30'
+                    }`}
+                  >
+                    ✓ {parseBarcodesFromText(bulkBarcodeText).length} Barcode(s) Detected
+                  </span>
+                )}
+              </div>
               <textarea
-                rows={8}
+                rows={7}
                 value={bulkBarcodeText}
                 onChange={e => setBulkBarcodeText(e.target.value)}
-                placeholder={"WAA-540-001\nWAA-540-002\nWAA-540-003\nWAA-540-004..."}
+                placeholder={"984562315320\n984562315321\n984562315322\n..."}
                 className="w-full p-3 text-xs bg-background border rounded-xl font-mono text-foreground focus:ring-2 focus:ring-solar-500"
               />
+
+              {/* Live Preview Chips */}
+              {parseBarcodesFromText(bulkBarcodeText).length > 0 && (
+                <div className="p-2.5 bg-muted/40 rounded-xl border border-border/60 space-y-1.5">
+                  <div className="text-[10px] font-bold text-muted-foreground flex justify-between items-center">
+                    <span>
+                      Detected Preview (first{' '}
+                      {Math.min(5, parseBarcodesFromText(bulkBarcodeText).length)} of{' '}
+                      {parseBarcodesFromText(bulkBarcodeText).length}):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setBulkBarcodeText('')}
+                      className="text-[10px] text-destructive hover:underline cursor-pointer"
+                    >
+                      Clear Text
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {parseBarcodesFromText(bulkBarcodeText)
+                      .slice(0, 5)
+                      .map((code, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[11px] font-mono bg-card px-2 py-0.5 rounded border border-border text-foreground font-semibold flex items-center space-x-1"
+                        >
+                          <span className="text-muted-foreground font-normal">#{idx + 1}</span>
+                          <span>{code}</span>
+                        </span>
+                      ))}
+                    {parseBarcodesFromText(bulkBarcodeText).length > 5 && (
+                      <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5">
+                        +{parseBarcodesFromText(bulkBarcodeText).length - 5} more...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] text-muted-foreground">
-                Line 1 will be assigned to Panel #1, Line 2 to Panel #2, and so on.
+                Trailing punctuation like dots (.), commas, or spaces are automatically sanitized. Codes are assigned sequentially to Panel #1, #2, etc. and marked as Verified.
               </p>
             </div>
 
@@ -2576,17 +2640,20 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               <button
                 type="button"
                 onClick={() => setIsBulkPasteOpen(false)}
-                className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg"
+                className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleApplyBulkBarcodes}
-                disabled={!bulkBarcodeText.trim()}
-                className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition disabled:opacity-50"
+                disabled={parseBarcodesFromText(bulkBarcodeText).length === 0}
+                className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center space-x-1"
               >
-                Apply Barcodes
+                <Check className="w-3.5 h-3.5" />
+                <span>
+                  Apply {parseBarcodesFromText(bulkBarcodeText).length > 0 ? `(${parseBarcodesFromText(bulkBarcodeText).length}) ` : ''}Barcodes
+                </span>
               </button>
             </div>
           </div>
