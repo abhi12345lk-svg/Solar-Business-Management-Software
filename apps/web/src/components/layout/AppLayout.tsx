@@ -78,9 +78,9 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'EPC Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
-      { to: '/site-photos', label: '1. Site Inspection Photos', icon: Camera },
-      { to: '/equipment-barcodes', label: '2. Equipment & Barcodes', icon: Barcode },
-      { to: '/installation-docs', label: '3. After-Installation Docs', icon: ClipboardCheck },
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
+      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
+      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
       { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -174,9 +174,9 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Hub',
     items: [
       { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
-      { to: '/site-photos', label: '1. Site Inspection Photos', icon: Camera },
-      { to: '/equipment-barcodes', label: '2. Equipment & Barcodes', icon: Barcode },
-      { to: '/installation-docs', label: '3. After-Installation Docs', icon: ClipboardCheck }
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
+      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
+      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck }
     ]
   },
   {
@@ -197,7 +197,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   }
   if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
   if (pathname.startsWith('/equipment-barcodes')) return { section: 'Field Operations', title: 'Equipment & Barcodes' };
-  if (pathname.startsWith('/installation-docs')) return { section: 'Field Operations', title: 'After-Installation Documents' };
+  if (pathname.startsWith('/installation-docs')) return { section: 'Field Operations', title: 'Installation Documents' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
@@ -360,7 +360,7 @@ export const AppLayout: React.FC = () => {
                   : activePanel === PanelType.SALES
                     ? '💼 Sales & CRM Suite'
                     : activePanel === PanelType.INSTALLER
-                      ? '👷 Field Installer Workstation'
+                      ? '👷 Field Installer'
                       : '💳 Accounts & Finance'}
               </span>
               <span className="text-[10px] text-muted-foreground font-medium truncate">

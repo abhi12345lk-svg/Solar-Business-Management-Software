@@ -50,6 +50,7 @@ interface CustomerOption {
   email?: string;
   type?: string;
   status?: string;
+  sanctionedLoadKw?: number;
   installationAddress?: {
     addressLine1?: string;
     city?: string;
@@ -1266,6 +1267,13 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-bold shrink-0">
                     {tplConsumerNumber}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsClientDrawerOpen(true)}
+                    className="text-[11px] font-bold text-solar-600 hover:underline cursor-pointer ml-1 px-2 py-0.5 rounded bg-solar-500/10 border border-solar-500/30"
+                  >
+                    Change Client ▾
+                  </button>
                 </div>
                 <div className="text-xs text-muted-foreground flex items-center space-x-2 mt-0.5 flex-wrap">
                   <span>📍 {tplAddress}, {tplDistrict}</span>
@@ -2308,130 +2316,176 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       </div>
 
       {/* ========================================================================= */}
-      {/* SLIDE-OVER CLIENT SELECTION DRAWER                                        */}
+      {/* CENTERED CLIENT SELECTION MODAL (PROFESSIONAL & CLEAN)                     */}
       {/* ========================================================================= */}
       {isClientDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex animate-fadeIn"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
           style={{ zIndex: 90 }}
           onClick={e => {
             if (e.target === e.currentTarget) setIsClientDrawerOpen(false);
           }}
         >
-          <div className="w-full max-w-sm bg-card h-full shadow-2xl border-r p-4 space-y-3.5 flex flex-col animate-slideRight">
-            <div className="flex items-center justify-between border-b pb-3 shrink-0">
-              <div className="flex items-center space-x-2">
-                <UserCheck className="w-4 h-4 text-solar-600" />
-                <h3 className="font-bold text-sm text-foreground">Select Client for Workstation</h3>
+          <div className="w-full max-w-2xl bg-card rounded-2xl shadow-2xl border border-border p-4 sm:p-6 space-y-4 flex flex-col max-h-[85vh] animate-scaleUp">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-foreground">
+                    Select Active Client for Workstation
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Choose a client to view and update inspection photos, equipment barcodes, and handover docs
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsClientDrawerOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+                className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Search Box */}
-            <div className="relative shrink-0">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search name, phone, code..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/40 border rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500 text-foreground"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground text-xs"
-                >
-                  ✕
-                </button>
-              )}
+            {/* Search Box & Status Filter Bar */}
+            <div className="space-y-2.5 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by customer name, phone, city or code..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-9 py-2.5 text-xs bg-muted/40 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500 text-foreground placeholder:text-muted-foreground"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Pills */}
+              <div className="flex items-center space-x-1.5 overflow-x-auto pb-0.5 text-xs">
+                {(['ALL', 'ACTIVE', 'PENDING', 'COMPLETED'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      statusFilter === tab
+                        ? 'bg-solar-600 text-white font-bold shadow-xs'
+                        : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {tab === 'ALL'
+                      ? 'All Customers'
+                      : tab === 'ACTIVE'
+                        ? 'Active Installations'
+                        : tab === 'PENDING'
+                          ? 'Pending Review'
+                          : 'Completed'}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Status Filter Pills */}
-            <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-[11px] shrink-0">
-              {(['ALL', 'ACTIVE', 'PENDING', 'COMPLETED'] as const).map(tab => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setStatusFilter(tab)}
-                  className={`px-2 py-0.5 rounded-lg font-medium whitespace-nowrap transition cursor-pointer ${
-                    statusFilter === tab
-                      ? 'bg-solar-600 text-white font-bold shadow-2xs'
-                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  {tab === 'ALL' ? 'All' : tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Customer Cards List */}
-            <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
+            {/* Customer Cards 2-Column Grid with Custom Smooth Scroll */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[50vh] scrollbar-thin scrollbar-thumb-muted-foreground/20">
               {loadingCustomers ? (
-                <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-solar-500" />
-                  <p className="text-xs">Loading clients...</p>
+                <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-solar-500" />
+                  <p className="text-xs">Loading customer directory...</p>
                 </div>
               ) : filteredCustomers.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground text-xs bg-muted/20 rounded-xl border border-dashed">
-                  No clients match search.
+                <div className="p-8 text-center text-muted-foreground text-xs bg-muted/20 rounded-xl border border-dashed">
+                  No clients found matching &quot;{searchQuery}&quot;.
                 </div>
               ) : (
-                filteredCustomers.map(cust => {
-                  const isSelected = (selectedCustomer?._id || selectedCustomer?.id) === (cust._id || cust.id);
-                  return (
-                    <div
-                      key={cust._id || cust.id}
-                      onClick={() => {
-                        setSelectedCustomer(cust);
-                        setIsClientDrawerOpen(false);
-                      }}
-                      className={`p-3 rounded-xl border transition cursor-pointer text-xs ${
-                        isSelected
-                          ? 'bg-solar-500/10 border-solar-500/50 shadow-2xs'
-                          : 'bg-card border-border hover:bg-muted/30'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-1.5">
-                        <span className="font-bold text-foreground truncate block">
-                          {cust.name}
-                        </span>
-                        {isSelected && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-solar-500/20 text-solar-700 dark:text-solar-300 shrink-0">
-                            Selected
-                          </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {filteredCustomers.map(cust => {
+                    const isSelected = (selectedCustomer?._id || selectedCustomer?.id) === (cust._id || cust.id);
+                    return (
+                      <div
+                        key={cust._id || cust.id}
+                        onClick={() => {
+                          setSelectedCustomer(cust);
+                          setIsClientDrawerOpen(false);
+                        }}
+                        className={`p-3.5 rounded-xl border transition cursor-pointer text-xs flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-solar-500/10 border-solar-500 shadow-xs ring-1 ring-solar-500/30'
+                            : 'bg-card border-border hover:bg-muted/40 hover:border-solar-500/40'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-1.5 mb-1">
+                            <span className="font-bold text-foreground truncate block text-xs">
+                              {cust.name}
+                            </span>
+                            {isSelected ? (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-solar-500/20 text-solar-700 dark:text-solar-300 shrink-0">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                                {cust.customerCode || 'CUST'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground flex items-center space-x-1.5 flex-wrap">
+                            <span>📍 {cust.installationAddress?.city || 'Raipur'}</span>
+                            {cust.sanctionedLoadKw && (
+                              <>
+                                <span>•</span>
+                                <span>⚡ {cust.sanctionedLoadKw} kWp</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {cust.primaryPhone && (
+                          <div className="text-[10px] text-muted-foreground font-mono mt-2 pt-1 border-t border-border/50 flex items-center space-x-1">
+                            <span>📞</span>
+                            <span>{cust.primaryPhone}</span>
+                          </div>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground flex items-center space-x-1.5 mt-0.5">
-                        <span className="font-mono">{cust.customerCode || 'CUST'}</span>
-                        <span>•</span>
-                        <span>{cust.installationAddress?.city || 'Raipur'}</span>
-                      </div>
-                      {cust.primaryPhone && (
-                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                          📞 {cust.primaryPhone}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            <div className="pt-2 border-t text-center shrink-0">
-              <Link
-                to="/customers"
-                className="text-xs font-semibold text-solar-600 hover:underline inline-flex items-center space-x-1"
-              >
-                <span>Open Full Customer Directory &rarr;</span>
-              </Link>
+            {/* Footer */}
+            <div className="pt-3 border-t border-border flex items-center justify-between text-xs shrink-0">
+              <span className="text-muted-foreground text-[11px]">
+                Showing {filteredCustomers.length} of {customers.length} clients
+              </span>
+              <div className="flex items-center space-x-3">
+                <Link
+                  to="/customers"
+                  onClick={() => setIsClientDrawerOpen(false)}
+                  className="font-bold text-solar-600 hover:underline inline-flex items-center space-x-1"
+                >
+                  <span>Full Customer Directory &rarr;</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsClientDrawerOpen(false)}
+                  className="px-3 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
