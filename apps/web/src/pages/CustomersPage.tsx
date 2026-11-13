@@ -34,10 +34,56 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  FilePlus2
+  FilePlus2,
+  RefreshCw
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
+
+const MANDATORY_SOLAR_SLOTS = [
+  {
+    key: 'ELECTRICITY_BILL',
+    title: 'Electricity Bill',
+    subtitle: 'Consumer No. & Sanctioned Load',
+    icon: Zap,
+    matchCategory: (c: string) => c === 'ELECTRICITY_BILL'
+  },
+  {
+    key: 'AADHAAR_CARD',
+    title: 'Aadhaar Card',
+    subtitle: 'Applicant KYC Identity Proof',
+    icon: UserCheck,
+    matchCategory: (c: string) => c === 'AADHAAR_CARD' || c === 'CUSTOMER_KYC'
+  },
+  {
+    key: 'PAN_CARD',
+    title: 'PAN Card',
+    subtitle: 'Tax & Financial Identity Proof',
+    icon: CreditCard,
+    matchCategory: (c: string) => c === 'PAN_CARD'
+  },
+  {
+    key: 'PROPERTY_TAX_RECEIPT',
+    title: 'Property / House Tax',
+    subtitle: 'Roof Ownership / Municipal Bill',
+    icon: Landmark,
+    matchCategory: (c: string) => c === 'PROPERTY_TAX_RECEIPT' || c === 'PROPERTY_DEED' || c === 'TAX_RECEIPT'
+  },
+  {
+    key: 'BANK_PASSBOOK',
+    title: 'Bank Passbook / Cheque',
+    subtitle: 'PM Surya Ghar DBT Subsidy Account',
+    icon: Building2,
+    matchCategory: (c: string) => c === 'BANK_PASSBOOK'
+  },
+  {
+    key: 'SITE_PHOTOS',
+    title: 'Site & Rooftop Photos',
+    subtitle: 'Rooftop Layout & Meter Box',
+    icon: Camera,
+    matchCategory: (c: string) => c === 'SITE_PHOTOS' || c === 'INSTALLATION_QUALITY'
+  }
+];
 
 export const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<CustomerDto[]>([]);
@@ -78,6 +124,10 @@ export const CustomersPage: React.FC = () => {
 
   // Direct 1-Click Slot Upload State
   const [uploadingSlotKey, setUploadingSlotKey] = useState<string | null>(null);
+
+  // In-App Document Deletion Confirmation State
+  const [deleteModalDoc, setDeleteModalDoc] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingDoc, setIsDeletingDoc] = useState(false);
 
   // GPS Geotag Location State
   const [fetchingLocation, setFetchingLocation] = useState(false);
@@ -231,6 +281,13 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
   const fetchVaultDocuments = async (customerId: string) => {
     setVaultLoading(true);
     setVaultError(null);
@@ -251,8 +308,7 @@ export const CustomersPage: React.FC = () => {
     setVaultSuccess(null);
     setSelectedFile(null);
     setNewDocDisplayName('');
-    setLocationError(null);
-    setCurrentCoords(customer.installationAddress?.geoCoordinates || null);
+    setDeleteModalDoc(null);
     await fetchVaultDocuments(customer.id);
   };
 
@@ -339,58 +395,74 @@ export const CustomersPage: React.FC = () => {
     );
   };
 
-  const handleSaveGeotag = async () => {
-    if (!vaultCustomer || !currentCoords) return;
+  const handleSaveGeotag = async (targetCustomer?: CustomerDto | null) => {
+    const cust = targetCustomer || selectedCustomer || vaultCustomer;
+    if (!cust || !currentCoords) return;
     setSavingLocation(true);
     setLocationError(null);
     try {
-      await apiClient<any>(`/customers/${vaultCustomer.id}/geotag`, {
+      await apiClient<any>(`/customers/${cust.id}/geotag`, {
         method: 'POST',
         body: JSON.stringify({
           latitude: currentCoords.latitude,
           longitude: currentCoords.longitude,
           accuracy: currentCoords.accuracy,
-          locationNotes: `Live GPS site survey coordinates for ${vaultCustomer.name}`
+          locationNotes: `Live GPS site survey coordinates for ${cust.name}`
         })
       });
 
-      setVaultSuccess(`Site coordinates (${currentCoords.latitude.toFixed(5)}°, ${currentCoords.longitude.toFixed(5)}°) saved to customer installation address & document vault!`);
-
-      setVaultCustomer(prev =>
-        prev
-          ? {
-              ...prev,
-              installationAddress: {
-                ...prev.installationAddress,
-                geoCoordinates: {
-                  latitude: currentCoords.latitude,
-                  longitude: currentCoords.longitude
-                }
-              } as any,
-              documentCount: (prev.documentCount || 0) + 1
-            }
-          : null
-      );
+      const updatedCoords = {
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude
+      };
 
       setCustomers(prev =>
         prev.map(c =>
-          c.id === vaultCustomer.id
+          c.id === cust.id
             ? {
                 ...c,
                 installationAddress: {
                   ...c.installationAddress,
-                  geoCoordinates: {
-                    latitude: currentCoords.latitude,
-                    longitude: currentCoords.longitude
-                  }
-                } as any,
-                documentCount: (c.documentCount || 0) + 1
+                  geoCoordinates: updatedCoords
+                } as any
               }
             : c
         )
       );
 
-      await fetchVaultDocuments(vaultCustomer.id);
+      if (selectedCustomer && selectedCustomer.id === cust.id) {
+        setSelectedCustomer(prev =>
+          prev
+            ? {
+                ...prev,
+                installationAddress: {
+                  ...prev.installationAddress,
+                  geoCoordinates: updatedCoords
+                } as any
+              }
+            : null
+        );
+      }
+
+      if (vaultCustomer && vaultCustomer.id === cust.id) {
+        setVaultCustomer(prev =>
+          prev
+            ? {
+                ...prev,
+                installationAddress: {
+                  ...prev.installationAddress,
+                  geoCoordinates: updatedCoords
+                } as any
+              }
+            : null
+        );
+      }
+
+      setStatusNotification({
+        message: `Site coordinates saved for ${cust.name}!`,
+        type: 'success'
+      });
+      setTimeout(() => setStatusNotification(null), 4000);
     } catch (err: any) {
       setLocationError(err?.message || 'Failed to save geotag location.');
     } finally {
@@ -647,17 +719,15 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
-  const handleVaultDelete = async (docId: string, docName: string) => {
-    if (!vaultCustomer) return;
-    if (!window.confirm(`Are you sure you want to remove "${docName}" from this client's vault?`)) {
-      return;
-    }
+  const handleConfirmVaultDelete = async () => {
+    if (!vaultCustomer || !deleteModalDoc) return;
     try {
-      await apiClient(`/customers/${vaultCustomer.id}/documents/${docId}`, {
+      setIsDeletingDoc(true);
+      await apiClient(`/customers/${vaultCustomer.id}/documents/${deleteModalDoc.id}`, {
         method: 'DELETE'
       });
-      setVaultSuccess(`Document "${docName}" removed from vault.`);
-      setVaultDocuments(prev => prev.filter(d => (d._id || d.id) !== docId));
+      setVaultSuccess(`Document "${deleteModalDoc.name}" removed from vault.`);
+      setVaultDocuments(prev => prev.filter(d => (d._id || d.id) !== deleteModalDoc.id));
       setCustomers(prev =>
         prev.map(c =>
           c.id === vaultCustomer.id
@@ -665,8 +735,11 @@ export const CustomersPage: React.FC = () => {
             : c
         )
       );
+      setDeleteModalDoc(null);
     } catch (err: any) {
       setVaultError(err?.message || 'Failed to delete document.');
+    } finally {
+      setIsDeletingDoc(false);
     }
   };
 
@@ -1237,13 +1310,22 @@ export const CustomersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Site Installation Address */}
-              <div className="p-4 bg-muted/30 border rounded-xl space-y-2">
-                <h4 className="font-bold text-foreground flex items-center space-x-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-solar-500" />
-                  <span>Installation Site Address</span>
-                </h4>
-                <div className="space-y-1 text-muted-foreground pt-1">
+              {/* Site Installation Address & GPS Coordinates */}
+              <div className="p-4 bg-muted/30 border rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-foreground flex items-center space-x-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-solar-500" />
+                    <span>Installation Site Address</span>
+                  </h4>
+                  {selectedCustomer.installationAddress?.geoCoordinates?.latitude && (
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                      <Check className="w-2.5 h-2.5" />
+                      <span>GPS Geotagged</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1 text-muted-foreground pt-0.5">
                   <p className="font-semibold text-foreground">
                     {selectedCustomer.installationAddress?.addressLine1 || selectedCustomer.name}
                   </p>
@@ -1256,6 +1338,81 @@ export const CustomersPage: React.FC = () => {
                     {selectedCustomer.installationAddress?.postalCode || '492001'}
                   </p>
                   <p>{selectedCustomer.installationAddress?.country || 'India'}</p>
+                </div>
+
+                {/* GPS Rooftop Coordinates Block */}
+                <div className="pt-2 border-t border-border/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                      <Navigation className="w-3 h-3 text-rose-500" />
+                      <span>Rooftop GPS Location</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleFetchCurrentLocation}
+                      disabled={fetchingLocation}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-2xs disabled:opacity-50 cursor-pointer"
+                    >
+                      {fetchingLocation ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Detecting GPS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Compass className="w-3 h-3" />
+                          <span>📍 Detect Live GPS</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {locationError && (
+                    <div className="text-[11px] text-destructive bg-destructive/10 p-1.5 rounded-md">
+                      {locationError}
+                    </div>
+                  )}
+
+                  {currentCoords ? (
+                    <div className="p-2 bg-background border rounded-lg flex items-center justify-between text-[11px]">
+                      <div className="font-mono">
+                        <span className="text-solar-600 font-bold">{currentCoords.latitude.toFixed(5)}° N</span>,{' '}
+                        <span className="text-solar-600 font-bold">{currentCoords.longitude.toFixed(5)}° E</span>
+                        {currentCoords.accuracy && (
+                          <span className="text-muted-foreground ml-1">(±{currentCoords.accuracy}m)</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveGeotag(selectedCustomer)}
+                        disabled={savingLocation}
+                        className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer"
+                      >
+                        {savingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                        <span>Save to Client</span>
+                      </button>
+                    </div>
+                  ) : selectedCustomer.installationAddress?.geoCoordinates?.latitude ? (
+                    <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground pt-0.5">
+                      <span>
+                        Lat: <span className="text-foreground font-semibold">{selectedCustomer.installationAddress.geoCoordinates.latitude.toFixed(5)}°</span> •{' '}
+                        Long: <span className="text-foreground font-semibold">{selectedCustomer.installationAddress.geoCoordinates.longitude.toFixed(5)}°</span>
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps?q=${selectedCustomer.installationAddress.geoCoordinates.latitude},${selectedCustomer.installationAddress.geoCoordinates.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-solar-600 hover:underline flex items-center gap-0.5 font-sans font-semibold"
+                      >
+                        <span>Satellite Map</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">
+                      No coordinates saved. Click "Detect Live GPS" while on site.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1504,627 +1661,589 @@ export const CustomersPage: React.FC = () => {
       )}
 
       {/* Customer Document Vault Modal */}
-      {vaultCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-card border rounded-2xl w-full max-w-3xl p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-base">
-                  <FolderLock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-lg font-bold text-foreground">
-                      Document Vault: {vaultCustomer.name}
-                    </h3>
-                    <span className="font-mono text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground">
-                      {vaultCustomer.customerCode}
-                    </span>
+      {vaultCustomer && (() => {
+        const uploadedCount = MANDATORY_SOLAR_SLOTS.filter(slot =>
+          vaultDocuments.some(d => slot.matchCategory(d.category))
+        ).length;
+
+        const otherDocuments = vaultDocuments.filter(
+          doc => !MANDATORY_SOLAR_SLOTS.some(slot => slot.matchCategory(doc.category))
+        );
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-card border rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Modal Header (Fixed / Locked) */}
+              <div className="flex items-center justify-between border-b px-5 py-4 shrink-0 bg-card">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0">
+                    <FolderLock className="w-5 h-5 text-solar-600" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Client KYC, Electricity Bills, Rooftop Deeds & DISCOM Sanction Letters
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
+                        Document Vault: {vaultCustomer.name}
+                      </h3>
+                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground shrink-0">
+                        {vaultCustomer.customerCode}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-0.5">
+                      <span className="font-medium">
+                        {uploadedCount}/6 Mandatory Solar Slots Ready
+                      </span>
+                      <span>•</span>
+                      <span>Total Documents: {vaultDocuments.length}</span>
+                      {vaultCustomer.primaryPhone && (
+                        <>
+                          <span>•</span>
+                          <span>{vaultCustomer.primaryPhone}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <Link
+                    to={`/create-document?customerId=${vaultCustomer.id}`}
+                    className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                    title="Generate RTS Agreement or Subsidy Form"
+                  >
+                    <FilePlus2 className="w-3.5 h-3.5" />
+                    <span>+ Create Document</span>
+                  </Link>
+                  <Link
+                    to={`/documents?customerId=${vaultCustomer.id}`}
+                    className="hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                    title="Open Full Central Vault"
+                  >
+                    <span>Central Vault</span>
+                    <ExternalLink className="w-3 h-3 ml-0.5" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => fetchVaultDocuments(vaultCustomer.id)}
+                    disabled={vaultLoading}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer disabled:opacity-50"
+                    title="Reload Vault Documents"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${vaultLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVaultCustomer(null);
+                      setVaultUploadOpen(false);
+                      setDeleteModalDoc(null);
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+                    aria-label="Close Vault"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setVaultCustomer(null);
-                  setVaultUploadOpen(false);
-                }}
-                className="text-muted-foreground hover:text-foreground text-sm font-semibold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            {/* Alert Notifications inside Vault */}
-            {vaultError && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-xs flex items-center justify-between">
-                <span>{vaultError}</span>
-                <button onClick={() => setVaultError(null)} className="ml-2 font-bold cursor-pointer">✕</button>
-              </div>
-            )}
-            {vaultSuccess && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{vaultSuccess}</span>
-                </div>
-                <button onClick={() => setVaultSuccess(null)} className="ml-2 font-bold cursor-pointer">✕</button>
-              </div>
-            )}
-
-            {/* Quick Actions & Header Summary */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/40 p-3 rounded-xl border">
-              <div className="text-xs">
-                <span className="font-bold text-foreground">
-                  Attached Documents: {vaultDocuments.length}
-                </span>
-                <span className="text-muted-foreground ml-2">
-                  • Phone: {vaultCustomer.primaryPhone}
-                </span>
-                {vaultCustomer.installationAddress?.city && (
-                  <span className="text-muted-foreground ml-2">
-                    • Site: {vaultCustomer.installationAddress.city}, {vaultCustomer.installationAddress.state}
-                  </span>
+              {/* Scrollable Modal Content */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                {/* Alert Notifications inside Vault */}
+                {vaultError && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-xs flex items-center justify-between">
+                    <span>{vaultError}</span>
+                    <button onClick={() => setVaultError(null)} className="ml-2 font-bold cursor-pointer">✕</button>
+                  </div>
                 )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Link
-                  to={`/create-document?customerId=${vaultCustomer.id}`}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                  title="Create Document for this Client"
-                >
-                  <FilePlus2 className="w-3.5 h-3.5" />
-                  <span>+ Create Document</span>
-                </Link>
-                <Link
-                  to={`/documents?customerId=${vaultCustomer.id}`}
-                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
-                  title="Open in Full Document Vault"
-                >
-                  <span>Central Vault</span>
-                  <ExternalLink className="w-3 h-3 ml-0.5" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border transition shadow-xs cursor-pointer"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{vaultUploadOpen ? 'Close Custom Form' : '+ Custom Document'}</span>
-                </button>
-              </div>
-            </div>
+                {vaultSuccess && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{vaultSuccess}</span>
+                    </div>
+                    <button onClick={() => setVaultSuccess(null)} className="ml-2 font-bold cursor-pointer">✕</button>
+                  </div>
+                )}
 
-            {/* SECTION 1: DIRECT 1-CLICK SOLAR EPC DOCUMENT SLOTS */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
-                  <FolderLock className="w-3.5 h-3.5 text-solar-500" />
-                  <span>Direct Solar EPC Document Slots (1-Click Upload & Status)</span>
-                </h4>
-                <span className="text-[11px] text-muted-foreground">Direct KYC, Tax, Bill & Subsidy Proofs</span>
-              </div>
+                {/* Mobile action bar for small screens */}
+                <div className="flex sm:hidden items-center justify-between gap-2 bg-muted/40 p-2.5 rounded-xl border">
+                  <Link
+                    to={`/create-document?customerId=${vaultCustomer.id}`}
+                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-solar-600 text-white"
+                  >
+                    <FilePlus2 className="w-3.5 h-3.5" />
+                    <span>Create Doc</span>
+                  </Link>
+                  <Link
+                    to={`/documents?customerId=${vaultCustomer.id}`}
+                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground"
+                  >
+                    <span>Central Vault</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
+                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground border"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload</span>
+                  </button>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {[
-                  {
-                    key: 'ELECTRICITY_BILL',
-                    title: 'Electricity Bill',
-                    subtitle: 'Consumer No. & Sanctioned Load',
-                    icon: Zap
-                  },
-                  {
-                    key: 'AADHAAR_CARD',
-                    title: 'Aadhaar Card',
-                    subtitle: 'Applicant KYC Identity Proof',
-                    icon: UserCheck
-                  },
-                  {
-                    key: 'PAN_CARD',
-                    title: 'PAN Card',
-                    subtitle: 'Tax & Financial Identity Proof',
-                    icon: CreditCard
-                  },
-                  {
-                    key: 'PROPERTY_TAX_RECEIPT',
-                    title: 'Property / House Tax',
-                    subtitle: 'Roof Ownership / Municipal Bill',
-                    icon: Landmark
-                  },
-                  {
-                    key: 'BANK_PASSBOOK',
-                    title: 'Bank Passbook / Cheque',
-                    subtitle: 'PM Surya Ghar DBT Subsidy Account',
-                    icon: Building2
-                  },
-                  {
-                    key: 'SITE_PHOTOS',
-                    title: 'Site & Rooftop Photos',
-                    subtitle: 'Rooftop Layout & Meter Box',
-                    icon: Camera
-                  }
-                ].map(slot => {
-                  const Icon = slot.icon;
-                  const existingDoc = vaultDocuments.find(d =>
-                    d.category === slot.key ||
-                    (slot.key === 'AADHAAR_CARD' && d.category === 'CUSTOMER_KYC') ||
-                    (slot.key === 'PROPERTY_TAX_RECEIPT' && (d.category === 'PROPERTY_DEED' || d.category === 'TAX_RECEIPT')) ||
-                    (slot.key === 'SITE_PHOTOS' && d.category === 'INSTALLATION_QUALITY')
-                  );
-                  const isUploading = uploadingSlotKey === slot.key;
+                {/* Custom Upload Form Collapsible */}
+                {vaultUploadOpen && (
+                  <form
+                    onSubmit={handleVaultFileUpload}
+                    className="p-4 bg-muted/30 border-2 border-solar-500/30 rounded-xl space-y-3.5 animate-in fade-in duration-150"
+                  >
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
+                        <Upload className="w-3.5 h-3.5 text-solar-500" />
+                        <span>Upload Custom Document to Client Vault</span>
+                      </h4>
+                      <span className="text-[11px] text-muted-foreground">PDF, JPG, PNG, WEBP, XLSX, DOCX (Max 25MB)</span>
+                    </div>
 
-                  return (
-                    <div
-                      key={slot.key}
-                      className={`p-3 rounded-xl border transition shadow-xs flex flex-col justify-between ${
-                        existingDoc
-                          ? 'bg-emerald-500/5 border-emerald-500/30'
-                          : 'bg-card border-border hover:border-solar-500/40 hover:bg-muted/20'
-                      }`}
-                    >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                              existingDoc ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-solar-500/10 text-solar-600'
-                            }`}>
-                              <Icon className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="font-bold text-xs text-foreground">{slot.title}</span>
-                          </div>
-                          {existingDoc && (
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
-                              <Check className="w-2.5 h-2.5" />
-                              <span>Uploaded</span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1.5 line-clamp-1">{slot.subtitle}</p>
-                        {existingDoc && (
-                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
-                            {existingDoc.originalFilename}
+                        <label className="block text-muted-foreground font-semibold mb-1">
+                          Solar Document Category *
+                        </label>
+                        <select
+                          value={newDocCategory}
+                          onChange={e => setNewDocCategory(e.target.value)}
+                          className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                        >
+                          <option value="ELECTRICITY_BILL">⚡ Electricity Bill (Consumer Proof)</option>
+                          <option value="AADHAAR_CARD">🪪 Aadhaar Card (Applicant KYC)</option>
+                          <option value="PAN_CARD">💳 PAN Card (Financial / Tax ID)</option>
+                          <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / House Tax Receipt (Roof Ownership)</option>
+                          <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque (PM Surya Ghar DBT Subsidy)</option>
+                          <option value="SITE_PHOTOS">📸 Site & Rooftop Photos (Roof & Meter Box)</option>
+                          <option value="QUOTATION_PROPOSAL">📋 Solar Quotation & Technical Proposal</option>
+                          <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
+                          <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
+                          <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
+                          <option value="OTHER">📄 Other Client Document</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-muted-foreground font-semibold mb-1">
+                          Access Classification
+                        </label>
+                        <select
+                          value={newDocClassification}
+                          onChange={e => setNewDocClassification(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                        >
+                          <option value="CUSTOMER_VISIBLE">Customer Visible (Available on Portal)</option>
+                          <option value="INTERNAL_ONLY">Internal Only (Staff Only)</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-muted-foreground font-semibold mb-1">
+                          Document Title / Safe Display Name *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sanctioned Feasibility Letter or Signed Quotation"
+                          value={newDocDisplayName}
+                          onChange={e => setNewDocDisplayName(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-muted-foreground font-semibold mb-1">
+                          Select File from Device (PDF, Image, Doc)
+                        </label>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                          onChange={e => {
+                            const file = e.target.files?.[0] || null;
+                            setSelectedFile(file);
+                            if (file && !newDocDisplayName) {
+                              setNewDocDisplayName(file.name.replace(/\.[^/.]+$/, ''));
+                            }
+                          }}
+                          className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-solar-500/10 file:text-solar-700 hover:file:bg-solar-500/20 cursor-pointer bg-background border rounded-lg p-1.5"
+                        />
+                        {selectedFile && (
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Selected: <span className="font-semibold text-foreground">{selectedFile.name}</span> ({formatFileSize(selectedFile.size)})
                           </p>
                         )}
                       </div>
+                    </div>
 
-                      <div className="pt-2.5 mt-2 border-t border-border/60 flex items-center justify-between gap-1">
-                        {existingDoc ? (
+                    <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVaultUploadOpen(false);
+                          setSelectedFile(null);
+                        }}
+                        className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isUploadingDoc}
+                        className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        {isUploadingDoc ? (
                           <>
-                            <div className="flex items-center space-x-1.5">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Confirm & Save Document</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* SECTION 1: MANDATORY SOLAR EPC SLOTS (Self-contained, no duplication) */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
+                        <FolderLock className="w-4 h-4 text-solar-500" />
+                        <span>Mandatory Solar EPC Dossier (6 Standard Slots)</span>
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Direct KYC, Consumer Bills, Ownership, Passbook & Rooftop Photos for DISCOM & PM Surya Ghar Subsidy
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
+                      className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border transition shadow-xs cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-solar-600" />
+                      <span>{vaultUploadOpen ? 'Close Form' : '+ Custom Document'}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {MANDATORY_SOLAR_SLOTS.map(slot => {
+                      const Icon = slot.icon;
+                      const existingDoc = vaultDocuments.find(d => slot.matchCategory(d.category));
+                      const isUploading = uploadingSlotKey === slot.key;
+                      const docId = existingDoc ? (existingDoc._id || existingDoc.id) : '';
+
+                      return (
+                        <div
+                          key={slot.key}
+                          className={`p-3.5 rounded-xl border transition-all shadow-xs flex flex-col justify-between ${
+                            existingDoc
+                              ? 'bg-emerald-500/[0.04] border-emerald-500/30'
+                              : 'bg-card border-border hover:border-solar-500/40 hover:bg-muted/10'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center space-x-2.5 min-w-0">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  existingDoc ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-solar-500/10 text-solar-600'
+                                }`}>
+                                  <Icon className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-xs text-foreground block truncate">
+                                    {slot.title}
+                                  </span>
+                                  <p className="text-[10px] text-muted-foreground line-clamp-1">{slot.subtitle}</p>
+                                </div>
+                              </div>
+                              {existingDoc ? (
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1 shrink-0">
+                                  <Check className="w-2.5 h-2.5" />
+                                  <span>Ready</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+
+                            {existingDoc && (
+                              <div className="mt-2.5 pt-2 border-t border-border/50 text-[11px] text-muted-foreground space-y-0.5">
+                                <div className="flex items-center justify-between font-mono text-[10px]">
+                                  <span className="truncate max-w-[170px] text-foreground font-semibold" title={existingDoc.originalFilename}>
+                                    {existingDoc.safeDisplayName || existingDoc.originalFilename}
+                                  </span>
+                                  <span>{formatFileSize(existingDoc.fileSizeBytes)}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-2.5 mt-2 border-t border-border/60 flex items-center justify-between gap-1">
+                            {existingDoc ? (
+                              <>
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewDocument(existingDoc)}
+                                    className="text-[11px] font-bold text-solar-700 dark:text-solar-400 hover:text-solar-800 bg-solar-500/10 hover:bg-solar-500/20 px-2 py-1 rounded-md flex items-center space-x-1 cursor-pointer transition"
+                                    title="View / Inspect Document"
+                                  >
+                                    <Eye className="w-3 h-3 text-solar-600" />
+                                    <span>View</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleVaultDownload(existingDoc)}
+                                    className="text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted px-2 py-1 rounded-md flex items-center space-x-1 cursor-pointer transition"
+                                    title="Download File"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span>Download</span>
+                                  </button>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <label className="text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-1 rounded cursor-pointer font-medium transition" title="Replace File">
+                                    Replace
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                                      onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleDirectSlotUpload(slot.key, slot.title, file);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteModalDoc({
+                                      id: docId,
+                                      name: existingDoc.safeDisplayName || existingDoc.originalFilename
+                                    })}
+                                    className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition cursor-pointer"
+                                    title="Remove Document"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <label className={`w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-semibold cursor-pointer transition flex items-center justify-center space-x-1.5 ${
+                                isUploading
+                                  ? 'bg-muted text-muted-foreground'
+                                  : 'bg-solar-600 hover:bg-solar-700 text-white shadow-xs'
+                              }`}>
+                                {isUploading ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-3.5 h-3.5" />
+                                    <span>+ Direct Upload</span>
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  disabled={isUploading}
+                                  accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
+                                  onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleDirectSlotUpload(slot.key, slot.title, file);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* SECTION 2: ADDITIONAL PROJECT & CUSTOM DOCUMENTS (Only shown if non-slot docs exist) */}
+                {otherDocuments.length > 0 && (
+                  <div className="space-y-2.5 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
+                        <FileText className="w-3.5 h-3.5 text-solar-500" />
+                        <span>Additional Contracts & Custom Documents ({otherDocuments.length})</span>
+                      </h4>
+                      <span className="text-[11px] text-muted-foreground">
+                        Custom proposals, agreements, commission reports & feasibility letters
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-border border rounded-xl overflow-hidden bg-card text-xs">
+                      {otherDocuments.map(doc => {
+                        const meta = getCategoryMeta(doc.category);
+                        const docId = doc._id || doc.id;
+                        const uploadDate = doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '';
+
+                        return (
+                          <div
+                            key={docId}
+                            className="p-3 hover:bg-muted/30 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5"
+                          >
+                            <div className="flex items-start space-x-3 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 mt-0.5">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                  <span className="font-bold text-foreground truncate">
+                                    {doc.safeDisplayName || doc.originalFilename}
+                                  </span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${meta.color}`}>
+                                    {meta.label}
+                                  </span>
+                                  {doc.accessClassification === 'CUSTOMER_VISIBLE' && (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-medium">
+                                      Client Visible
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground flex items-center space-x-2 mt-0.5">
+                                  <span className="font-mono">{doc.documentNumber}</span>
+                                  <span>•</span>
+                                  <span>{doc.originalFilename}</span>
+                                  <span>•</span>
+                                  <span>{formatFileSize(doc.fileSizeBytes)}</span>
+                                  {uploadDate && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{uploadDate}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-1.5 shrink-0 self-end sm:self-center">
                               <button
                                 type="button"
-                                onClick={() => handleViewDocument(existingDoc)}
-                                className="text-[11px] font-bold text-solar-700 hover:text-solar-800 bg-solar-500/10 hover:bg-solar-500/20 px-2 py-0.5 rounded flex items-center space-x-1 cursor-pointer transition"
-                                title="View / Inspect Document"
+                                onClick={() => handleViewDocument(doc)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 transition cursor-pointer"
+                                title="View Document"
                               >
-                                <Eye className="w-3 h-3 text-solar-600" />
+                                <Eye className="w-3.5 h-3.5 text-solar-600" />
                                 <span>View</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleVaultDownload(existingDoc)}
-                                className="text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center space-x-0.5 cursor-pointer"
-                                title="Download Original File"
+                                onClick={() => handleVaultDownload(doc)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                                title="Download Document"
                               >
-                                <Download className="w-3 h-3" />
+                                <Download className="w-3.5 h-3.5" />
                                 <span>Download</span>
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteModalDoc({
+                                  id: docId,
+                                  name: doc.safeDisplayName || doc.originalFilename
+                                })}
+                                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition cursor-pointer"
+                                title="Delete Document"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                            <label className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer underline font-medium">
-                              Replace
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
-                                onChange={e => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleDirectSlotUpload(slot.key, slot.title, file);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                          </>
-                        ) : (
-                          <label className={`w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-semibold cursor-pointer transition flex items-center justify-center space-x-1.5 ${
-                            isUploading
-                              ? 'bg-muted text-muted-foreground'
-                              : 'bg-solar-600 hover:bg-solar-700 text-white shadow-xs'
-                          }`}>
-                            {isUploading ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                <span>Uploading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-3 h-3" />
-                                <span>+ Direct Upload</span>
-                              </>
-                            )}
-                            <input
-                              type="file"
-                              className="hidden"
-                              disabled={isUploading}
-                              accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
-                              onChange={e => {
-                                const file = e.target.files?.[0];
-                                if (file) handleDirectSlotUpload(slot.key, slot.title, file);
-                                e.target.value = '';
-                              }}
-                            />
-                          </label>
-                        )}
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer (Fixed / Locked) */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-t bg-muted/20 shrink-0 text-xs">
+                <span className="text-muted-foreground">
+                  Official PM Surya Ghar & DISCOM compliance repository. Documents are securely archived.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVaultCustomer(null);
+                    setVaultUploadOpen(false);
+                    setDeleteModalDoc(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition cursor-pointer"
+                >
+                  Close Vault
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* In-App Document Deletion Confirmation Dialog */}
+      {deleteModalDoc && (
+        <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-fadeIn">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-foreground text-sm">Delete Document from Vault?</h3>
+                <p className="text-xs text-muted-foreground">This file will be permanently removed.</p>
               </div>
             </div>
 
-            {/* SECTION 2: LIVE GPS SITE GEOTAGGING */}
-            <div className="p-3.5 bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-solar-500/10 border border-rose-500/20 rounded-xl space-y-2.5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0">
-                    <Navigation className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-xs font-bold text-foreground">
-                        Site GPS Geotag Location (Rooftop Verification)
-                      </h4>
-                      {currentCoords && (
-                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
-                          <Check className="w-2.5 h-2.5" />
-                          <span>GPS Ready</span>
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Required by DISCOM & PM Surya Ghar inspector for rooftop solar feasibility.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={handleFetchCurrentLocation}
-                    disabled={fetchingLocation}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
-                  >
-                    {fetchingLocation ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Detecting Satellites...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Compass className="w-3.5 h-3.5" />
-                        <span>📍 Fetch Current Location</span>
-                      </>
-                    )}
-                  </button>
-
-                  {currentCoords && (
-                    <button
-                      type="button"
-                      onClick={handleSaveGeotag}
-                      disabled={savingLocation}
-                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
-                    >
-                      {savingLocation ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Save GPS to Vault</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {locationError && (
-                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg font-medium">
-                  {locationError}
-                </div>
-              )}
-
-              {/* Coordinates Pill / Details */}
-              {currentCoords && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-background/80 p-2.5 rounded-lg border text-xs">
-                  <div className="flex items-center space-x-3 font-mono">
-                    <span className="font-semibold text-foreground">
-                      Lat: <span className="text-solar-600">{currentCoords.latitude.toFixed(6)}°</span>
-                    </span>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="font-semibold text-foreground">
-                      Long: <span className="text-solar-600">{currentCoords.longitude.toFixed(6)}°</span>
-                    </span>
-                    {currentCoords.accuracy && (
-                      <>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="text-muted-foreground">Accuracy: ±{currentCoords.accuracy}m</span>
-                      </>
-                    )}
-                  </div>
-                  <a
-                    href={`https://www.google.com/maps?q=${currentCoords.latitude},${currentCoords.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 text-solar-600 hover:text-solar-700 font-semibold"
-                  >
-                    <span>View on Google Maps Satellite</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+            <div className="p-3 bg-muted/40 rounded-xl border text-xs">
+              <p className="text-muted-foreground">Are you sure you want to delete:</p>
+              <p className="font-semibold text-foreground truncate mt-0.5">"{deleteModalDoc.name}"</p>
             </div>
 
-            {/* Custom Upload Document Panel */}
-            {vaultUploadOpen && (
-              <form
-                onSubmit={handleVaultFileUpload}
-                className="p-4 bg-muted/20 border-2 border-solar-500/30 rounded-xl space-y-3.5 animate-in fade-in duration-150"
-              >
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
-                    <Upload className="w-3.5 h-3.5 text-solar-500" />
-                    <span>Upload Custom Document to Client Vault</span>
-                  </h4>
-                  <span className="text-[11px] text-muted-foreground">PDF, JPG, PNG, WEBP, XLSX, DOCX (Max 25MB)</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  {/* Category */}
-                  <div>
-                    <label className="block text-muted-foreground font-semibold mb-1">
-                      Solar EPC Category *
-                    </label>
-                    <select
-                      value={newDocCategory}
-                      onChange={e => setNewDocCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                    >
-                      <option value="ELECTRICITY_BILL">⚡ Electricity Bill (Consumer Proof)</option>
-                      <option value="AADHAAR_CARD">🪪 Aadhaar Card (Applicant KYC)</option>
-                      <option value="PAN_CARD">💳 PAN Card (Financial / Tax ID)</option>
-                      <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / House Tax Receipt (Roof Ownership)</option>
-                      <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque (PM Surya Ghar DBT Subsidy)</option>
-                      <option value="SITE_PHOTOS">📸 Site & Rooftop Photos (Roof & Meter Box)</option>
-                      <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag Verification</option>
-                      <option value="QUOTATION_PROPOSAL">📋 Solar Quotation & Technical Proposal</option>
-                      <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
-                      <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
-                      <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
-                      <option value="OTHER">📄 Other Client Document</option>
-                    </select>
-                  </div>
-
-                  {/* Access Classification */}
-                  <div>
-                    <label className="block text-muted-foreground font-semibold mb-1">
-                      Access Classification
-                    </label>
-                    <select
-                      value={newDocClassification}
-                      onChange={e => setNewDocClassification(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                    >
-                      <option value="CUSTOMER_VISIBLE">Customer Visible (Available on Portal)</option>
-                      <option value="INTERNAL_ONLY">Internal Only (Rarebox Staff Only)</option>
-                    </select>
-                  </div>
-
-                  {/* Document Display Name */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-muted-foreground font-semibold mb-1">
-                      Document Title / Safe Display Name *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Electricity Bill - Oct 2026 or Aadhaar Card Front & Back"
-                      value={newDocDisplayName}
-                      onChange={e => setNewDocDisplayName(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
-                    />
-                  </div>
-
-                  {/* File Selector */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-muted-foreground font-semibold mb-1">
-                      Select File from Device (PDF, Image, Doc)
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.docx"
-                      onChange={e => {
-                        const file = e.target.files?.[0] || null;
-                        setSelectedFile(file);
-                        if (file && !newDocDisplayName) {
-                          setNewDocDisplayName(file.name.replace(/\.[^/.]+$/, ''));
-                        }
-                      }}
-                      className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-solar-500/10 file:text-solar-700 hover:file:bg-solar-500/20 cursor-pointer bg-background border rounded-lg p-1.5"
-                    />
-                    {selectedFile && (
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Selected: <span className="font-semibold text-foreground">{selectedFile.name}</span> ({(selectedFile.size / 1024).toFixed(1)} KB)
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end space-x-2 pt-2 border-t">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setVaultUploadOpen(false);
-                      setSelectedFile(null);
-                    }}
-                    className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isUploadingDoc}
-                    className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    {isUploadingDoc ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Uploading to Vault...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Confirm & Save Document</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Attached Vault Documents List */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-foreground">Client Vault Documents</h4>
-
-              {vaultLoading ? (
-                <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-solar-500" />
-                  <p className="text-xs">Loading client vault documents...</p>
-                </div>
-              ) : vaultDocuments.length === 0 ? (
-                <div className="p-8 text-center bg-muted/20 border border-dashed rounded-xl space-y-2">
-                  <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto" />
-                  <p className="text-xs font-semibold text-foreground">No Documents in Vault Yet</p>
-                  <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                    Upload electricity bills, consumer KYC proofs, property deeds, or rooftop layout photos for this client.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setVaultUploadOpen(true)}
-                    className="mt-2 inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white transition cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>Upload First Document</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-border border rounded-xl overflow-hidden bg-card text-xs">
-                  {vaultDocuments.map(doc => {
-                    const meta = getCategoryMeta(doc.category);
-                    const docId = doc._id || doc.id;
-                    const sizeKb = doc.fileSizeBytes ? (doc.fileSizeBytes / 1024).toFixed(1) : '—';
-                    const uploadDate = doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '';
-
-                    return (
-                      <div
-                        key={docId}
-                        className="p-3.5 hover:bg-muted/30 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5"
-                      >
-                        <div className="flex items-start space-x-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                              <span className="font-bold text-foreground truncate">
-                                {doc.safeDisplayName || doc.originalFilename}
-                              </span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${meta.color}`}>
-                                {meta.label}
-                              </span>
-                              {doc.accessClassification === 'CUSTOMER_VISIBLE' && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-medium">
-                                  Client Visible
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground flex items-center space-x-2 mt-0.5">
-                              <span className="font-mono">{doc.documentNumber}</span>
-                              <span>•</span>
-                              <span>{doc.originalFilename}</span>
-                              <span>•</span>
-                              <span>{sizeKb} KB</span>
-                              {uploadDate && (
-                                <>
-                                  <span>•</span>
-                                  <span>{uploadDate}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Document Actions */}
-                        <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handleViewDocument(doc)}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 transition cursor-pointer"
-                            title="View / Inspect Document"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-solar-600" />
-                            <span>View</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleVaultDownload(doc)}
-                            className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
-                            title="Download Original File"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Download</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleVaultDelete(docId, doc.safeDisplayName || doc.originalFilename)}
-                            className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition cursor-pointer"
-                            title="Remove Document"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-3 border-t text-xs">
-              <span className="text-muted-foreground">
-                Documents are cryptographically verified and encrypted in Rarebox Vault.
-              </span>
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
               <button
                 type="button"
-                onClick={() => {
-                  setVaultCustomer(null);
-                  setVaultUploadOpen(false);
-                }}
-                className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition cursor-pointer"
+                disabled={isDeletingDoc}
+                onClick={() => setDeleteModalDoc(null)}
+                className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary rounded-lg transition cursor-pointer disabled:opacity-50"
               >
-                Close Vault
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingDoc}
+                onClick={handleConfirmVaultDelete}
+                className="px-4 py-1.5 text-xs font-bold bg-destructive hover:bg-destructive/90 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingDoc ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Document</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
-
       {/* ========================================================================= */}
       {/* In-App Document Viewer / Preview Modal                                    */}
       {/* ========================================================================= */}
