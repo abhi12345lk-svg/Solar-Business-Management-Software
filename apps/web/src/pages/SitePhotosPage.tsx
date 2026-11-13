@@ -325,7 +325,7 @@ export const SitePhotosPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground mb-1">
-                <Link to="/installations" className="hover:text-solar-600 transition">Field Operations</Link>
+                <Link to="/" className="hover:text-solar-600 transition">Field Operations</Link>
                 <ChevronRight className="w-3.5 h-3.5" />
                 <span className="text-foreground font-bold">Site Photos Document</span>
               </div>

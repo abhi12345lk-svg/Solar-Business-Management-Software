@@ -30,8 +30,6 @@ import {
   PanelLeftOpen,
   ChevronRight,
   FolderLock,
-  HardHat,
-  ClipboardList,
   FilePlus2,
   Camera
 } from 'lucide-react';
@@ -80,7 +78,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'EPC Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
-      { to: '/installations', label: 'Installer Field Panel', icon: HardHat },
       { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -175,14 +172,12 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Hub',
     items: [
       { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
-      { to: '/installations', label: 'Assigned Installations', icon: HardHat },
-      { to: '/installations/new', label: 'New Installation Entry', icon: ClipboardList }
+      { to: '/site-photos', label: 'Site Photos Document', icon: Camera }
     ]
   },
   {
     title: 'Site Documents & Compliance',
     items: [
-      { to: '/site-photos', label: 'Site Photos Document', icon: Camera },
       { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
@@ -203,8 +198,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };
   }
-  if (pathname.startsWith('/installations/new')) return { section: 'Field Operations', title: 'New Installation Entry' };
-  if (pathname.startsWith('/installations')) return { section: 'Field Operations', title: 'Assigned Installations' };
   if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Photos Document' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
@@ -236,8 +229,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/employees')) return { section: 'HR', title: 'Employees' };
   if (pathname.startsWith('/teams')) return { section: 'HR', title: 'Field Crews' };
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
-  if (pathname.startsWith('/installations'))
-    return { section: 'Field Operations', title: 'Installation Management' };
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'CRM', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
@@ -428,13 +419,6 @@ export const AppLayout: React.FC = () => {
                 const isActive = (() => {
                   if (item.to === '/') {
                     return location.pathname === '/';
-                  }
-                  if (item.to === '/installations') {
-                    // Exact match: never active on /installations/new
-                    return location.pathname === '/installations';
-                  }
-                  if (item.to === '/installations/new') {
-                    return location.pathname === '/installations/new';
                   }
                   if (item.to === '/site-photos') {
                     return location.pathname === '/site-photos';
