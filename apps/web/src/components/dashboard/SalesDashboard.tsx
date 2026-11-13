@@ -9,7 +9,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Users,
-  Layers,
   Sun,
   FileSpreadsheet,
   ShoppingCart,
@@ -125,10 +124,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     () => leads.filter(l => isWithinDateRange(l.createdAt, dateRange)),
     [leads, dateRange]
   );
-  const filteredSurveys = useMemo(
-    () => surveys.filter(s => isWithinDateRange(s.surveyDate || s.createdAt, dateRange)),
-    [surveys, dateRange]
-  );
   const filteredQuotations = useMemo(
     () => quotations.filter(q => isWithinDateRange(q.createdAt, dateRange)),
     [quotations, dateRange]
@@ -148,9 +143,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
   const dueTodayFollowUps = followUpsData.filter(f => f.isDueToday).length;
   const overdueFollowUps = followUpsData.filter(f => f.isOverdue).length;
 
-  const scheduledSurveys = filteredSurveys.filter(
-    s => s.status === 'SCHEDULED' || s.status === 'PENDING'
-  ).length;
+  const totalDesigns = solarDesigns.length;
 
   const totalQuotes = filteredQuotations.length;
   const quotesAwaitingResponse = filteredQuotations.filter(
@@ -237,13 +230,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           <span>Schedule Follow-Up</span>
         </Link>
         <Link
-          to="/surveys"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <Compass className="w-3.5 h-3.5 text-teal-500" />
-          <span>Book Site Survey</span>
-        </Link>
-        <Link
           to="/solar-designs"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
@@ -327,14 +313,14 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             badge={overdueFollowUps > 0 ? 'Urgent' : 'Clear'}
           />
 
-          {/* 6. Surveys Scheduled */}
+          {/* 6. Solar Designs */}
           <DashboardKpiCard
-            title="Site Surveys"
-            value={scheduledSurveys}
-            subtitle="Roof specs & shade tests"
-            icon={Layers}
-            to="/surveys"
-            color="teal"
+            title="Solar Designs"
+            value={totalDesigns}
+            subtitle="PV sizing & CAD layouts"
+            icon={Sun}
+            to="/solar-designs"
+            color="amber"
           />
 
           {/* 7. Quotations Created */}

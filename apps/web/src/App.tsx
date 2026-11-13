@@ -11,7 +11,6 @@ import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
 import { CustomersPage } from './pages/CustomersPage.js';
 import { FollowUpsPage } from './pages/FollowUpsPage.js';
-import { SurveysPage } from './pages/SurveysPage.js';
 import { SolarDesignPage } from './pages/SolarDesignPage.js';
 import { QuotationsPage } from './pages/QuotationsPage.js';
 import { QuotationDetailPage } from './pages/QuotationDetailPage.js';
@@ -99,14 +98,8 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="surveys"
-            element={
-              <ProtectedRoute>
-                <SurveysPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="surveys" element={<Navigate to="/" replace />} />
+          <Route path="survey" element={<Navigate to="/" replace />} />
           <Route
             path="solar-designs"
             element={
@@ -118,7 +111,6 @@ export const App: React.FC = () => {
           <Route path="solar-design" element={<Navigate to="/solar-designs" replace />} />
           <Route path="customer" element={<Navigate to="/customers" replace />} />
           <Route path="lead" element={<Navigate to="/leads" replace />} />
-          <Route path="survey" element={<Navigate to="/surveys" replace />} />
           <Route path="quotation" element={<Navigate to="/quotations" replace />} />
           <Route path="order" element={<Navigate to="/orders" replace />} />
           <Route path="project" element={<Navigate to="/projects" replace />} />

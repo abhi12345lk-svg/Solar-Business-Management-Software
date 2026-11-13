@@ -11,7 +11,6 @@ import {
   Camera,
   FolderLock,
   UserCheck,
-  Layers,
   ArrowRight,
   MapPin,
   Phone,
@@ -94,7 +93,7 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
       </div>
 
       {/* 2. Key Operational Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Metric 1: Site Photos Compliance */}
         <Link
           to="/site-photos"
@@ -144,23 +143,6 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
           </div>
           <div className="text-2xl font-black text-slate-900">{documentsCount}</div>
           <div className="text-xs text-slate-500 mt-1">Approved &amp; filed documents</div>
-        </Link>
-
-        {/* Metric 4: Site Surveys */}
-        <Link
-          to="/surveys"
-          className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 transition shadow-xs group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
-              <Layers className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-400">Feasibility</span>
-          </div>
-          <div className="text-xl font-black text-slate-900 group-hover:text-emerald-600 transition">
-            Site Surveys
-          </div>
-          <div className="text-xs text-slate-500 mt-1">Rooftop shadow &amp; tilt reports</div>
         </Link>
       </div>
 

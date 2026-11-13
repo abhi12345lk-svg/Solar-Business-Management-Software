@@ -13,7 +13,6 @@ import {
   Plus,
   Sun,
   Loader2,
-  Layers,
   Sparkles,
   XCircle,
   FileText,
@@ -398,11 +397,11 @@ export const LeadDetailPage: React.FC = () => {
           {lead.status === LeadStatus.CONTACTED && (
             <div className="flex items-center space-x-2">
               <Link
-                to={`/surveys?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
                 className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Schedule Site Survey →</span>
+                <Sun className="w-3.5 h-3.5" />
+                <span>Solar PV Sizing &amp; Design →</span>
               </Link>
               <button
                 onClick={() =>
