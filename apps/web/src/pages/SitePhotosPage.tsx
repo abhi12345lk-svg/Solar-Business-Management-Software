@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSearchParams, Link, useLocation } from 'react-router-dom';
 import {
   Camera,
   FolderLock,
@@ -252,7 +252,6 @@ export interface SitePhotosPageProps {
 export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Active Workstation Tab: determine from prop, pathname or searchParams
   const getTabFromLocation = (): 'photos' | 'equipment' | 'documents' => {
@@ -1276,70 +1275,29 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               </div>
             </div>
 
-            {/* Quick Metrics Badges */}
+            {/* Quick Metric Badge for Current Active Module */}
             <div className="flex items-center space-x-2 shrink-0">
-              <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
-                mandatoryUploadedCount === 5 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
-              }`}>
-                <Camera className="w-3.5 h-3.5" />
-                <span>Photos: {mandatoryUploadedCount}/5</span>
-              </span>
-              <span className="text-xs px-2.5 py-1 rounded-lg font-bold border bg-blue-500/10 text-blue-700 border-blue-500/30 flex items-center space-x-1">
-                <Barcode className="w-3.5 h-3.5" />
-                <span>Panels: {verifiedBarcodesCount}/{panelRows.length}</span>
-              </span>
+              {activeTab === 'photos' && (
+                <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
+                  mandatoryUploadedCount === 5 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+                }`}>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Inspection Photos: {mandatoryUploadedCount}/5</span>
+                </span>
+              )}
+              {activeTab === 'equipment' && (
+                <span className="text-xs px-2.5 py-1 rounded-lg font-bold border bg-blue-500/10 text-blue-700 border-blue-500/30 flex items-center space-x-1">
+                  <Barcode className="w-3.5 h-3.5" />
+                  <span>Panels: {verifiedBarcodesCount}/{panelRows.length} Verified</span>
+                </span>
+              )}
+              {activeTab === 'documents' && (
+                <span className="text-xs px-2.5 py-1 rounded-lg font-bold border bg-emerald-500/10 text-emerald-700 border-emerald-500/30 flex items-center space-x-1">
+                  <FolderLock className="w-3.5 h-3.5" />
+                  <span>Vault Documents: {customerVaultDocs.length}</span>
+                </span>
+              )}
             </div>
-          </div>
-
-          {/* WORKSTATION STEPPER & ROUTE NAVIGATION */}
-          <div className="flex items-center space-x-2 border-b border-border pb-1 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('photos');
-                navigate('/site-photos');
-              }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
-                activeTab === 'photos'
-                  ? 'bg-solar-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              <Camera className="w-4 h-4" />
-              <span>1. Site Inspection Photos ({mandatoryUploadedCount}/5{extraPhotos.length > 0 ? ` + ${extraPhotos.length} Extra` : ''})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('equipment');
-                navigate('/equipment-barcodes');
-              }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
-                activeTab === 'equipment'
-                  ? 'bg-solar-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              <Barcode className="w-4 h-4" />
-              <span>2. Equipment &amp; Panel Barcodes ({verifiedBarcodesCount}/{panelRows.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('documents');
-                navigate('/installation-docs');
-              }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
-                activeTab === 'documents'
-                  ? 'bg-solar-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              <ClipboardCheck className="w-4 h-4" />
-              <span>3. After-Installation Documents ({customerVaultDocs.length})</span>
-            </button>
           </div>
 
           {/* =================================================================== */}
