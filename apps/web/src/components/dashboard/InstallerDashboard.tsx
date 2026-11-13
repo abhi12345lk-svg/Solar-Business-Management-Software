@@ -1,7 +1,7 @@
 /**
  * INS Solar ERP — Field Installer Workstation & Dashboard
- * Dedicated operational dashboard for field installers and technical teams.
- * Highlights: Site Photos Compliance Document, Customer Directory, Document Vault, Site Surveys.
+ * Dedicated operational dashboard for field installers and technical crews.
+ * 100% aligned with actual software modules: Customer Directory, Barcode Register, Site Photos, Handover Docs, and Vault.
  */
 
 import React from 'react';
@@ -14,7 +14,9 @@ import {
   ArrowRight,
   MapPin,
   Phone,
-  FilePlus2
+  Barcode,
+  ClipboardCheck,
+  Zap
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
 import { DateFilterRange } from './dashboardUtils.js';
@@ -52,186 +54,226 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
 
   return (
     <div className="space-y-6">
-      {/* 1. Field Operations Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-600 via-solar-600 to-amber-700 p-6 sm:p-8 text-white shadow-lg">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="max-w-2xl space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider">
-              <Camera className="w-3.5 h-3.5 text-amber-200" />
-              <span>Field Operations &amp; Site Compliance Workstation</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Field Execution &amp; Site Documentation Hub
-            </h1>
-            <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
-              Generate PM Surya Ghar &amp; DISCOM rooftop site photo reports with live GPS coordinates, verified company seal, and direct customer vault integration.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/site-photos"
-              className="inline-flex items-center space-x-2 px-5 py-3 rounded-2xl bg-white text-solar-800 font-bold text-sm shadow-md hover:bg-amber-50 transition cursor-pointer"
-            >
-              <Camera className="w-4 h-4 text-solar-600" />
-              <span>Generate Site Photos Doc</span>
-              <ArrowRight className="w-4 h-4 text-solar-600" />
-            </Link>
-            <Link
-              to="/documents"
-              className="inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold text-sm border border-white/20 transition cursor-pointer"
-            >
-              <FolderLock className="w-4 h-4 text-amber-200" />
-              <span>Document Vault</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Decorative backdrop elements */}
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-        <div className="absolute right-40 -top-10 w-48 h-48 rounded-full bg-amber-400/20 blur-xl pointer-events-none" />
-      </div>
-
-      {/* 2. Key Operational Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Metric 1: Site Photos Compliance */}
-        <Link
-          to="/site-photos"
-          className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-solar-400 transition shadow-xs group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-solar-50 text-solar-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
-              <Camera className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Active Module
-            </span>
-          </div>
-          <div className="text-xl font-black text-slate-900 group-hover:text-solar-600 transition">
-            Site Photos Doc
-          </div>
-          <div className="text-xs text-slate-500 mt-1">
-            4-photo PM Surya Ghar compliance format
-          </div>
-        </Link>
-
-        {/* Metric 2: Registered Clients */}
+      {/* 1. Key Operational Metric KPI Cards (4 Cards Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1: Registered Clients */}
         <Link
           to="/customers"
-          className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-blue-400 transition shadow-xs group"
+          className="p-5 bg-card rounded-2xl border border-border hover:border-blue-500/50 hover:shadow-md transition shadow-xs group flex flex-col justify-between space-y-3"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
               <UserCheck className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-slate-400">Database</span>
+            <span className="text-[10px] font-bold text-blue-700 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+              Directory
+            </span>
           </div>
-          <div className="text-2xl font-black text-slate-900">{customers.length}</div>
-          <div className="text-xs text-slate-500 mt-1">Registered solar consumers</div>
+          <div>
+            <div className="text-2xl font-black text-foreground group-hover:text-blue-600 transition">
+              {customers.length}
+            </div>
+            <div className="text-xs font-bold text-foreground mt-0.5">Registered Clients</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Consumer KYC &amp; site addresses</div>
+          </div>
         </Link>
 
-        {/* Metric 3: Vault Documents */}
+        {/* KPI 2: Equipment & Barcodes */}
+        <Link
+          to="/equipment-barcodes"
+          className="p-5 bg-card rounded-2xl border border-border hover:border-solar-500/50 hover:shadow-md transition shadow-xs group flex flex-col justify-between space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
+              <Barcode className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-solar-700 dark:text-solar-400 bg-solar-500/10 px-2 py-0.5 rounded-full border border-solar-500/20">
+              Hardware
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-foreground group-hover:text-solar-600 transition">
+              Barcode Register
+            </div>
+            <div className="text-xs font-bold text-foreground mt-0.5">Inverters &amp; PV Modules</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Live camera scanner &amp; serials</div>
+          </div>
+        </Link>
+
+        {/* KPI 3: Site Inspection Photos */}
+        <Link
+          to="/site-photos"
+          className="p-5 bg-card rounded-2xl border border-border hover:border-orange-500/50 hover:shadow-md transition shadow-xs group flex flex-col justify-between space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
+              <Camera className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">
+              Field Photos
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-foreground group-hover:text-orange-600 transition">
+              5-Point Report
+            </div>
+            <div className="text-xs font-bold text-foreground mt-0.5">Site Inspection Photos</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">PM Surya Ghar GPS geotags &amp; A4 doc</div>
+          </div>
+        </Link>
+
+        {/* KPI 4: Document Vault & JCR */}
         <Link
           to="/documents"
-          className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 transition shadow-xs group"
+          className="p-5 bg-card rounded-2xl border border-border hover:border-emerald-500/50 hover:shadow-md transition shadow-xs group flex flex-col justify-between space-y-3"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-105 transition">
               <FolderLock className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-slate-400">Vault</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              Compliance
+            </span>
           </div>
-          <div className="text-2xl font-black text-slate-900">{documentsCount}</div>
-          <div className="text-xs text-slate-500 mt-1">Approved &amp; filed documents</div>
+          <div>
+            <div className="text-2xl font-black text-foreground group-hover:text-emerald-600 transition">
+              {documentsCount} Filed
+            </div>
+            <div className="text-xs font-bold text-foreground mt-0.5">Document Vault</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">JCR, Handover &amp; DISCOM dossiers</div>
+          </div>
         </Link>
       </div>
 
-      {/* 3. Action Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Card A: Client Site Photos Document Generator */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
-                <Camera className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Client Site Photos Compliance Generator
-                </h3>
-                <p className="text-xs text-slate-500">Document format: SITE PHOTOS AT &lt;CLIENT&gt;</p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Standard 4-photo field documentation format strictly tailored for DISCOM subsidy inspection and technical handover:
+      {/* 2. On-Site Installation Workflow Stages (Chronological Step-by-Step Flow) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center space-x-2">
+              <Zap className="w-4 h-4 text-solar-600" />
+              <span>On-Site Rooftop Installation Workflow</span>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Sequential 3-stage process for complete rooftop commissioning and official DISCOM handover
             </p>
-            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside">
-              <li>1. Solar PV Rooftop Array &amp; Beneficiary View</li>
-              <li>2. Chemical Earthing Pits &amp; Grounding Chambers</li>
-              <li>3. On-Grid Inverter, ACDB &amp; DCDB Distribution Junction</li>
-              <li>4. Lightning Arrester (LA) &amp; Terrace Grounding Earthing</li>
-            </ul>
           </div>
-
-          <Link
-            to="/site-photos"
-            className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
-          >
-            <Camera className="w-4 h-4" />
-            <span>Open Site Photos Document Generator</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Link>
         </div>
 
-        {/* Card B: Create Document Generator */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center">
-                <FilePlus2 className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Stage 1: Equipment & Panel Barcodes */}
+          <div className="bg-card p-5 rounded-2xl border border-border shadow-xs hover:border-solar-500/40 transition flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
+                  <Barcode className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-solar-500/15 text-solar-700 dark:text-solar-400 border border-solar-500/30">
+                  Step 1 • Hardware
+                </span>
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  PM Surya Ghar Compliance Documents
-                </h3>
-                <p className="text-xs text-slate-500">Agreements, WCR &amp; Bank Undertakings</p>
+                <h3 className="text-sm font-bold text-foreground">Equipment &amp; Barcodes Register</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Record on-grid inverter model and scan individual barcodes for every solar PV module using camera scanner.
+                </p>
               </div>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Solar PV Module serial numbers register</li>
+                <li>Inverter brand, model &amp; rated kWp</li>
+                <li>Live camera barcode scanner &amp; CSV export</li>
+              </ul>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Instantly draft and generate official PM Surya Ghar scheme documentation with certified company seal:
-            </p>
-            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside">
-              <li>Annexure 2 — Consumer &amp; Vendor RTS Agreement</li>
-              <li>Annexure A — DCR Undertaking / Self-Declaration</li>
-              <li>Work Completion Report (WCR) &amp; Handover Certificate</li>
-              <li>CSPDCL Grid Connectivity Application (LV Connection)</li>
-            </ul>
+            <Link
+              to="/equipment-barcodes"
+              className="w-full inline-flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            >
+              <Barcode className="w-4 h-4" />
+              <span>Open Barcode Register</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
           </div>
 
-          <Link
-            to="/create-document"
-            className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
-          >
-            <FilePlus2 className="w-4 h-4 text-solar-600" />
-            <span>Open Document Template Generator</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Link>
+          {/* Stage 2: Site Inspection Photos */}
+          <div className="bg-card p-5 rounded-2xl border border-border shadow-xs hover:border-orange-500/40 transition flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30">
+                  Step 2 • Geotags
+                </span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Site Inspection Photos</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Capture 5 mandatory geo-tagged photos with live GPS stamp, company seal, and generate official A4 report.
+                </p>
+              </div>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Array, Inverter, Net Meter, Earthing &amp; LA</li>
+                <li>Live device GPS coordinates &amp; timestamp</li>
+                <li>Printable official A4 compliance PDF report</li>
+              </ul>
+            </div>
+            <Link
+              to="/site-photos"
+              className="w-full inline-flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Open Inspection Photos</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+
+          {/* Stage 3: After-Installation Documents */}
+          <div className="bg-card p-5 rounded-2xl border border-border shadow-xs hover:border-emerald-500/40 transition flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                  <ClipboardCheck className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                  Step 3 • Handover
+                </span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Installation Handover Documents</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Complete technical handover dossiers, DISCOM joint inspection reports, and net meter test verification.
+                </p>
+              </div>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Customer Handover &amp; Work Completion Certificate</li>
+                <li>Joint Commissioning Report (JCR for DISCOM)</li>
+                <li>Net Meter Testing Slip &amp; As-Built SLD</li>
+              </ul>
+            </div>
+            <Link
+              to="/installation-docs"
+              className="w-full inline-flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              <span>Open Handover Docs</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* 4. Registered Solar Consumers Quick Directory */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+      {/* 3. Assigned Solar Clients Quick Workstation Launcher */}
+      <div className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-solar-50 text-solar-700 flex items-center justify-center font-bold text-xs">
-              <UserCheck className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold text-xs">
+              <UserCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Registered Solar Clients Directory
+              <h3 className="text-sm font-bold text-foreground">
+                Assigned Solar Consumer Sites
               </h3>
-              <p className="text-xs text-slate-500">
-                Select a client to autofill and generate their site photo report
+              <p className="text-xs text-muted-foreground">
+                Select any consumer to immediately launch their barcodes, photos, or handover docs
               </p>
             </div>
           </div>
@@ -239,59 +281,94 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
             to="/customers"
             className="text-xs font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1"
           >
-            <span>View All Clients</span>
+            <span>View Full Customer Directory</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {loadingCustomers ? (
-          <div className="p-8 text-center text-xs text-slate-400">Loading registered clients...</div>
+          <div className="p-8 text-center text-xs text-muted-foreground">Loading assigned clients...</div>
         ) : customers.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">No registered clients found.</div>
+          <div className="p-8 text-center text-xs text-muted-foreground">No assigned clients found.</div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {customers.slice(0, 6).map(cust => {
               const custId = cust._id || cust.id;
               const addr = cust.installationAddress || cust.billingAddress || cust.address;
               const city = addr?.city || addr?.district || 'Raipur';
               const state = addr?.state || 'Chhattisgarh';
               const street = addr?.addressLine1 || addr?.street || '';
+              const capacity = cust.sanctionedLoadKw || cust.systemCapacityKw || '3';
 
               return (
                 <div
                   key={custId}
-                  className="p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                  className="p-4 hover:bg-muted/40 transition flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-slate-900 truncate">
+                      <span className="text-xs font-bold text-foreground truncate">
                         {cust.name || cust.companyName}
                       </span>
-                      <span className="font-mono text-[10px] font-bold text-solar-700 bg-solar-50 px-1.5 py-0.5 rounded border border-solar-200 shrink-0">
+                      <span className="font-mono text-[10px] font-bold text-solar-700 bg-solar-500/15 px-2 py-0.5 rounded border border-solar-500/30 shrink-0">
                         {cust.customerCode || 'CUST'}
                       </span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">
+                        ⚡ {capacity} kWp
+                      </span>
                     </div>
-                    <div className="text-[11px] text-slate-500 flex items-center space-x-3 mt-0.5">
+                    <div className="text-[11px] text-muted-foreground flex items-center space-x-3 mt-1 flex-wrap">
                       {cust.primaryPhone && (
-                        <span className="flex items-center text-slate-500">
-                          <Phone className="w-3 h-3 mr-1 text-slate-400" />
+                        <span className="flex items-center text-muted-foreground font-mono">
+                          <Phone className="w-3 h-3 mr-1 text-muted-foreground/70" />
                           {cust.primaryPhone}
                         </span>
                       )}
-                      <span className="flex items-center text-slate-400">
-                        <MapPin className="w-3 h-3 mr-1 text-slate-400" />
+                      <span className="flex items-center text-muted-foreground">
+                        <MapPin className="w-3 h-3 mr-1 text-muted-foreground/70" />
                         {street ? `${street}, ` : ''}{city}, {state}
                       </span>
                     </div>
                   </div>
 
-                  <Link
-                    to={`/site-photos?customerId=${custId}`}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition self-start sm:self-auto cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Create Site Photos</span>
-                  </Link>
+                  {/* 1-Click Launchers for each step */}
+                  <div className="flex items-center space-x-1.5 shrink-0 flex-wrap gap-y-1.5">
+                    <Link
+                      to={`/equipment-barcodes?customerId=${custId}`}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 border border-solar-500/30 text-[11px] font-bold transition cursor-pointer"
+                      title="Open Equipment & Barcodes Register"
+                    >
+                      <Barcode className="w-3 h-3" />
+                      <span>Barcodes</span>
+                    </Link>
+
+                    <Link
+                      to={`/site-photos?customerId=${custId}`}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-500/30 text-[11px] font-bold transition cursor-pointer"
+                      title="Open Site Inspection Photos"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>Photos</span>
+                    </Link>
+
+                    <Link
+                      to={`/installation-docs?customerId=${custId}`}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition cursor-pointer"
+                      title="Open After-Installation Documents"
+                    >
+                      <ClipboardCheck className="w-3 h-3" />
+                      <span>Handover</span>
+                    </Link>
+
+                    <Link
+                      to={`/documents`}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-semibold transition cursor-pointer"
+                      title="Open Document Vault"
+                    >
+                      <FolderLock className="w-3 h-3 text-muted-foreground" />
+                      <span>Vault</span>
+                    </Link>
+                  </div>
                 </div>
               );
             })}
