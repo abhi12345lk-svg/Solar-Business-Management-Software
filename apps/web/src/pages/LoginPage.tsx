@@ -90,7 +90,7 @@ export const LoginPage: React.FC = () => {
       badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
       title: 'Field Installer & Commissioning Workstation',
       description:
-        'Sign in to record rooftop equipment serials, scan barcodes with phone camera, capture live GPS, and upload 10 site photos.',
+        'Sign in to record rooftop equipment serials, capture live GPS geotagged site inspection photos, and generate compliance documents.',
       themeColor: 'from-amber-500 to-orange-500',
       tabActive: 'bg-amber-500 text-slate-950 font-bold shadow-md'
     },
