@@ -13,7 +13,6 @@ import {
   Boxes,
   Building2,
   FileText,
-  PackageCheck,
   Receipt,
   FolderKanban,
   Zap,
@@ -22,7 +21,6 @@ import {
   Menu,
   X,
   Bell,
-  CheckSquare,
   CreditCard,
   TrendingUp,
   PanelLeftClose,
@@ -142,29 +140,19 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
 
 const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Receivables & Billing',
+    title: 'Financial & Billing Hub',
     items: [
       { to: '/', label: 'Accounts Dashboard', icon: LayoutDashboard },
       { to: '/payments', label: 'Payment Collections & Receipts', icon: CreditCard },
-      { to: '/subsidies', label: 'Govt Subsidy Disbursements', icon: Landmark },
-      { to: '/orders', label: 'Confirmed Sales Orders (Billing)', icon: ShoppingCart }
+      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark },
+      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
+      { to: '/expenses', label: 'Expense Vouchers', icon: TrendingUp }
     ]
   },
   {
-    title: 'Accounts Payable & 3-Way Match',
+    title: 'Financial Compliance',
     items: [
-      { to: '/vendor-invoices', label: 'Vendor Invoices & Aging', icon: Receipt },
-      { to: '/purchase-orders', label: 'PO Financial Review', icon: FileText },
-      { to: '/goods-receipts', label: 'GRN 3-Way Verification', icon: PackageCheck },
-      { to: '/vendors', label: 'Vendor Ledgers & Balances', icon: Building2 }
-    ]
-  },
-  {
-    title: 'Costing, Vouchers & Tasks',
-    items: [
-      { to: '/expenses', label: 'Operational Expense Vouchers', icon: TrendingUp },
-      { to: '/documents', label: 'Financial Documents & Invoices', icon: FileText },
-      { to: '/tasks', label: 'Accounts Tasks & Approvals', icon: CheckSquare }
+      { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }
 ];
@@ -207,7 +195,8 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };
   if (pathname.startsWith('/projects')) return { section: 'Operations', title: 'Project Pipeline' };
   if (pathname.startsWith('/net-metering')) return { section: 'Compliance', title: 'Net Metering' };
-  if (pathname.startsWith('/subsidies')) return { section: 'Govt Liaisons', title: 'Subsidies' };
+  if (pathname.startsWith('/subsidies'))
+    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Govt Liaisons', title: 'Govt Subsidy (DBT)' };
   if (pathname.startsWith('/inventory')) return { section: 'Supply Chain', title: 'Inventory' };
   if (pathname.startsWith('/vendors')) return { section: 'Procurement', title: 'Vendors' };
   if (pathname.startsWith('/purchase-orders'))
@@ -215,10 +204,11 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/goods-receipts'))
     return { section: 'Procurement', title: 'Goods Receipts' };
   if (pathname.startsWith('/vendor-invoices'))
-    return { section: 'Procurement', title: 'Vendor Invoices' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Procurement', title: 'Vendor Invoices & Bills' };
   if (pathname.startsWith('/payments'))
-    return { section: 'Accounts', title: 'Payments & Receipts' };
-  if (pathname.startsWith('/expenses')) return { section: 'Accounts', title: 'Project Costing' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Accounts', title: 'Payment Collections & Receipts' };
+  if (pathname.startsWith('/expenses'))
+    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Accounts', title: 'Expense Vouchers' };
   if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
   if (pathname.startsWith('/warranties')) return { section: 'Service', title: 'Asset Warranties' };

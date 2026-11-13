@@ -22,7 +22,6 @@ import {
   Landmark,
   FileText,
   DollarSign,
-  ShieldCheck,
   PackageCheck
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
@@ -87,20 +86,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     }
   });
 
-  // 5. Fetch Purchase Orders
-  const { data: purchaseOrders = [] } = useQuery<any[]>({
-    queryKey: ['accountsPurchaseOrders'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/purchase-orders?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
-  // 6. Fetch Subsidies
+  // 5. Fetch Subsidies
   const { data: subsidies = [] } = useQuery<any[]>({
     queryKey: ['accountsSubsidies'],
     queryFn: async () => {
@@ -407,11 +393,11 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <DashboardKpiCard
             title="Unreconciled Invoices"
             value={unreconciledInvoicesCount}
-            subtitle="Awaiting 3-way match"
+            subtitle="Pending bill audit"
             icon={FileText}
             to="/vendor-invoices"
             color="cyan"
-            badge={unreconciledInvoicesCount > 0 ? 'Match Pending' : 'Reconciled'}
+            badge={unreconciledInvoicesCount > 0 ? 'Audit Pending' : 'Reconciled'}
           />
 
           {/* 10. Gross Realized Margin */}
@@ -576,40 +562,31 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
       </div>
 
       {/* =========================================================================
-          PART 4: 3-WAY MATCHING & OPERATIONAL EXPENSE LEDGER
+          PART 4: VENDOR BILLS AUDIT & OPERATIONAL EXPENSE LEDGER
          ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 3-Way Match & Vendor Payables Health */}
+        {/* Vendor Invoices & Bill Audit Health */}
         <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                3-Way Match Verification (PO vs GRN vs Invoice)
+                <Receipt className="w-4 h-4 text-indigo-600" />
+                Vendor Bills &amp; Payment Audit
               </h2>
               <p className="text-xs text-muted-foreground">
-                Prevents over-billing and verifies physical receipt of solar components before
-                disbursement.
+                Verification of supplier equipment invoices, tax compliance, and payment clearance.
               </p>
             </div>
             <Link
               to="/vendor-invoices"
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 inline-flex items-center shrink-0"
             >
-              <span>Invoices</span>
+              <span>View All Bills</span>
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </div>
 
           <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
-              <div className="flex items-center space-x-2.5">
-                <FileText className="w-4 h-4 text-cyan-500" />
-                <span className="font-medium">Material Purchase Orders</span>
-              </div>
-              <span className="font-bold text-foreground">{purchaseOrders.length} POs</span>
-            </div>
-
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <PackageCheck className="w-4 h-4 text-indigo-500" />
@@ -621,7 +598,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="font-medium">Fully Reconciled & Matched</span>
+                <span className="font-medium">Fully Reconciled &amp; Paid</span>
               </div>
               <span className="font-bold text-emerald-600">
                 {
@@ -635,7 +612,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <Clock className="w-4 h-4 text-amber-500" />
-                <span className="font-medium">Pending Physical GRN Verification</span>
+                <span className="font-medium">Pending Audit &amp; Clearance</span>
               </div>
               <span className="font-bold text-amber-600">{unreconciledInvoicesCount} Invoices</span>
             </div>
