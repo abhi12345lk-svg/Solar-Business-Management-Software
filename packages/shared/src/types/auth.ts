@@ -335,7 +335,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:create',
     'task:update',
     'document:read',
-    'document:upload'
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -348,7 +350,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'quote:create',
     'quote:read',
     'quote:update',
-    'notification:read'
+    'notification:read',
+    'document:read',
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.SURVEYOR]: [
     'survey:create',
@@ -357,7 +363,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'survey:upload_photos',
     'customer:read',
     'lead:read',
-    'notification:read'
+    'notification:read',
+    'document:read',
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.INSTALLATION_CREW]: [
     'project:read',
@@ -382,6 +392,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:update',
     'document:read',
     'document:upload',
+    'document:review',
+    'document:archive',
     'installation:create',
     'installation:read',
     'installation:update',
@@ -426,7 +438,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:update',
     'document:read',
     'document:upload',
-    'document:review'
+    'document:review',
+    'document:archive'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',
@@ -442,7 +455,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:read',
     'task:update',
     'document:read',
-    'document:upload'
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.TECHNICIAN]: [
     'service:ticket_create',
@@ -451,7 +466,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:visit_execute',
     'warranty:read',
     'customer:read',
-    'notification:read'
+    'notification:read',
+    'document:read',
+    'document:upload',
+    'document:review',
+    'document:archive'
   ],
   [UserRole.CUSTOMER]: []
 };

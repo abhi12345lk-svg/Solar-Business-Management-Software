@@ -11,6 +11,7 @@ import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
 import { config } from '../config/env.js';
 import { getStorageAdapter } from '../services/storage/index.js';
+import { DocumentModel } from '../models/DocumentModel.js';
 
 export const documentRouter = Router();
 
@@ -388,7 +389,7 @@ documentRouter.get(
  */
 documentRouter.post(
   '/:id/review',
-  requirePermission('document:review'),
+  requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parseResult = reviewDocumentSchema.safeParse(req.body);
@@ -424,7 +425,7 @@ documentRouter.post(
  */
 documentRouter.post(
   '/:id/new-version',
-  requirePermission('document:upload'),
+  requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parseResult = createDocumentVersionSchema.safeParse(req.body);
@@ -460,7 +461,7 @@ documentRouter.post(
  */
 documentRouter.patch(
   '/:id/archive',
-  requirePermission('document:archive'),
+  requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { reason } = req.body || {};
@@ -480,6 +481,26 @@ documentRouter.patch(
         actorContext
       );
       return sendSuccess(req, res, doc);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
+ * DELETE /api/v1/documents/:id
+ * Delete document from vault.
+ */
+documentRouter.delete(
+  '/:id',
+  requireEmployee,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const doc = await DocumentModel.findByIdAndDelete(req.params.id);
+      if (!doc) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
+      return sendSuccess(req, res, { message: 'Document removed successfully', id: req.params.id });
     } catch (err) {
       return next(err);
     }
