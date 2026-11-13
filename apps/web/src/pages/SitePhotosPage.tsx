@@ -206,6 +206,9 @@ export const SitePhotosPage: React.FC = () => {
   const [tplVendorDesignation] = useState('PROPRIETOR / AUTHORIZED SIGNATORY');
   const [tplVendorPhone] = useState('9630131550');
 
+  // Photo Framing Mode: 'contain' fits entire photo without crop, 'cover' fills frame
+  const [imageFit, setImageFit] = useState<'contain' | 'cover'>('contain');
+
   // 5 Mandatory Photo Slots (Starts clean without demo pictures)
   const [photoSlots, setPhotoSlots] = useState<Record<PhotoSlotId, PhotoSlotData>>(createEmptySlots);
 
@@ -773,6 +776,16 @@ export const SitePhotosPage: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => setImageFit(f => (f === 'contain' ? 'cover' : 'contain'))}
+                className="px-3 py-2 text-xs font-semibold text-foreground bg-muted hover:bg-muted/80 rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
+                title="Toggle between fitting full image without cropping or filling frame"
+              >
+                <Camera className="w-3.5 h-3.5 text-orange-600" />
+                <span>Photo Fit: <strong>{imageFit === 'contain' ? 'Full Image (Fit)' : 'Fill Frame (Crop)'}</strong></span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleOpenPdfPreview}
                 disabled={generatingPdf}
                 className="px-3.5 py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-2xs border border-border cursor-pointer disabled:opacity-50"
@@ -1058,7 +1071,7 @@ export const SitePhotosPage: React.FC = () => {
                           <img
                             src={slot.dataUrl!}
                             alt={cfg.shortTitle}
-                            className="w-full h-44 object-cover"
+                            className={`w-full h-48 ${imageFit === 'contain' ? 'object-contain' : 'object-cover'} bg-slate-950`}
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                             <label className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg cursor-pointer shadow-md hover:bg-slate-100 transition flex items-center space-x-1">
@@ -1248,7 +1261,7 @@ export const SitePhotosPage: React.FC = () => {
                     </div>
 
                     {/* 5 Mandatory Inspection Photos in Symmetrical 2-Column Grid */}
-                    <div className="grid grid-cols-2 gap-3.5 font-sans">
+                    <div className="grid grid-cols-2 gap-4" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                       {PHOTO_SLOT_CONFIGS.map((cfg, index) => {
                         const slot = photoSlots[cfg.id];
                         const hasPhoto = !!slot.dataUrl;
@@ -1258,100 +1271,132 @@ export const SitePhotosPage: React.FC = () => {
                             key={cfg.id}
                             className="border-2 border-slate-300 rounded-lg overflow-hidden bg-white shadow-2xs flex flex-col"
                           >
-                            {/* Card Header */}
-                            <div className="bg-slate-900 text-white px-3 py-1.5 flex items-center justify-between text-[11px] font-bold">
-                              <span className="truncate">{cfg.officialTitle}</span>
-                              <span className="text-[9px] bg-slate-800 text-solar-400 px-1.5 py-0.2 rounded font-mono shrink-0 ml-1">
-                                #{index + 1}
-                              </span>
+                            {/* Card Header: Clean, bold, non-overlapping, standard sans-serif */}
+                            <div
+                              className="bg-slate-900 text-white px-3 py-2 flex items-center justify-between min-h-[38px] border-b border-slate-700"
+                              style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="w-5 h-5 rounded-full bg-solar-500 text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">
+                                  {index + 1}
+                                </span>
+                                <span className="font-bold text-xs uppercase tracking-wide text-white leading-snug">
+                                  {cfg.shortTitle}
+                                </span>
+                              </div>
                             </div>
 
-                            {/* Photo Image or Empty Inspection Frame */}
-                            <div className="relative h-[210px] sm:h-[235px] bg-slate-100 flex items-center justify-center overflow-hidden">
+                            {/* Photo Image or Empty Inspection Frame: Consistent height, object-contain / cover toggle, dark backdrop */}
+                            <div className="relative h-[250px] sm:h-[275px] bg-slate-950 flex items-center justify-center overflow-hidden">
                               {hasPhoto ? (
                                 <>
                                   <img
                                     src={slot.dataUrl!}
                                     alt={cfg.shortTitle}
                                     crossOrigin="anonymous"
-                                    className="w-full h-full object-cover"
+                                    className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
                                   />
-                                  {/* Bottom Geotag Overlay Strip */}
-                                  <div className="absolute inset-x-0 bottom-0 bg-slate-950/85 backdrop-blur-2xs text-white px-2.5 py-1 text-[9px] sm:text-[10px] font-mono flex items-center justify-between border-t border-slate-700">
-                                    <span className="truncate">
-                                      📍 {slot.gps || `Lat: ${slot.latitude?.toFixed(6) || '21.237361'}°, Long: ${slot.longitude?.toFixed(6) || '81.603828'}° • ${tplAgreementDate}`}
-                                    </span>
-                                    <span className="text-emerald-400 font-bold shrink-0 ml-1">
-                                      GEOTAGGED
-                                    </span>
+                                  {/* Bottom Geotag Overlay Strip: 2 structured lines, zero text truncation or collision */}
+                                  <div
+                                    className="absolute inset-x-0 bottom-0 bg-slate-950/90 backdrop-blur-xs text-white px-3 py-1.5 font-mono text-[9.5px] border-t border-slate-700/80"
+                                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                                  >
+                                    <div className="flex items-center justify-between text-amber-300 font-bold leading-tight">
+                                      <span>
+                                        📍 {slot.latitude ? `Lat: ${slot.latitude.toFixed(6)}°, Long: ${slot.longitude?.toFixed(6)}°` : 'Lat: 21.237361°, Long: 81.603828°'}
+                                      </span>
+                                      <span className="text-[8.5px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-bold border border-emerald-500/40 shrink-0 ml-1">
+                                        LIVE GPS
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-slate-300 text-[8.5px] mt-0.5 leading-tight">
+                                      <span>Acc: ±{slot.accuracy || 4}m</span>
+                                      <span>{slot.timestamp || tplAgreementDate}</span>
+                                    </div>
                                   </div>
                                 </>
                               ) : (
-                                <div className="p-4 flex flex-col items-center justify-center text-center space-y-1.5">
-                                  <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-400 flex items-center justify-center text-slate-400">
+                                <div className="p-4 flex flex-col items-center justify-center text-center space-y-2 bg-slate-100 w-full h-full">
+                                  <div className="w-11 h-11 rounded-full border-2 border-dashed border-slate-400 flex items-center justify-center text-slate-400">
                                     <Camera className="w-5 h-5" />
                                   </div>
-                                  <span className="text-xs font-bold text-slate-600">
+                                  <span className="text-xs font-bold text-slate-700">
                                     {cfg.shortTitle}
                                   </span>
-                                  <span className="text-[10px] text-slate-400">
-                                    Photo Pending Upload / Camera Capture
+                                  <span className="text-[10px] text-slate-500">
+                                    Awaiting Site Photo Upload / Camera Capture
                                   </span>
                                 </div>
                               )}
                             </div>
 
-                            {/* Photo Caption Strip */}
-                            <div className="p-2 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-700 italic truncate">
-                              {slot.caption}
+                            {/* Photo Caption Strip: Clean full-width text, NO cutoff */}
+                            <div className="p-2.5 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-800 leading-snug">
+                              <p className="font-semibold">{slot.caption}</p>
                             </div>
                           </div>
                         );
                       })}
 
-                      {/* 6th Symmetrical Box: Field Compliance & Technical Verification Certificate */}
-                      <div className="border-2 border-slate-800 rounded-lg p-3 bg-slate-50 flex flex-col justify-between font-sans text-xs">
-                        <div className="space-y-2">
-                          <div className="border-b border-slate-300 pb-1 flex items-center justify-between">
-                            <span className="font-black text-slate-900 uppercase text-[11px] tracking-wide">
-                              Technical Verification Seal
+                      {/* 6th Symmetrical Box: Field Compliance & Technical Verification Certificate with exact same height & style */}
+                      <div className="border-2 border-slate-800 rounded-lg overflow-hidden bg-white shadow-2xs flex flex-col">
+                        {/* Card Header matching photos */}
+                        <div
+                          className="bg-slate-900 text-white px-3 py-2 flex items-center justify-between min-h-[38px] border-b border-slate-700"
+                          style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">
+                              ✓
                             </span>
-                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-300">
-                              PASS / 100%
+                            <span className="font-bold text-xs uppercase tracking-wide text-white leading-snug">
+                              Technical Inspection Seal
                             </span>
                           </div>
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded border border-emerald-500/40">
+                            PASS / 100%
+                          </span>
+                        </div>
 
-                          <p className="text-[10px] text-slate-600 leading-tight">
-                            Certified on-site photographic inspection verifying PM Surya Ghar guidelines &amp; technical standards:
-                          </p>
+                        {/* Body matching photo height */}
+                        <div className="h-[250px] sm:h-[275px] bg-slate-50 p-3.5 flex flex-col justify-between text-xs">
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-slate-600 leading-tight">
+                              Official PM Surya Ghar &amp; DISCOM Technical Quality &amp; Safety Compliance Audit:
+                            </p>
+                            <div className="space-y-1.5 text-[10.5px] text-slate-800 font-medium">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-emerald-600 font-bold">✔</span>
+                                <span>Solar MMS: Hot-dip galvanized structure &amp; DCR modules</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-emerald-600 font-bold">✔</span>
+                                <span>Inverter: Dual MPPT, IP65 enclosure &amp; SPD protection</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-emerald-600 font-bold">✔</span>
+                                <span>Net Meter: DISCOM synchronized bi-directional meter</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-emerald-600 font-bold">✔</span>
+                                <span>Earthing: Dual chemical pits resistance &lt; 5 Ohms verified</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-emerald-600 font-bold">✔</span>
+                                <span>Lightning Arrester: Air terminal covers 45° terrace cone</span>
+                              </div>
+                            </div>
+                          </div>
 
-                          <div className="space-y-1 text-[10px] text-slate-800 font-medium pt-0.5">
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-emerald-600 font-bold">✔</span>
-                              <span>Elevated MMS structure withstands 150 km/h wind</span>
-                            </div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-emerald-600 font-bold">✔</span>
-                              <span>Inverter with SPD, IP65 enclosure &amp; anti-islanding</span>
-                            </div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-emerald-600 font-bold">✔</span>
-                              <span>DISCOM Net-meter verified &amp; synchronized</span>
-                            </div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-emerald-600 font-bold">✔</span>
-                              <span>Dual chemical earthing pits resistance &lt; 5 Ohms</span>
-                            </div>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-emerald-600 font-bold">✔</span>
-                              <span>Lightning arrester covers 45° terrace cone</span>
-                            </div>
+                          <div className="pt-2 border-t border-slate-300 flex items-center justify-between text-[9.5px] text-slate-600 font-mono">
+                            <span>📍 Live GPS Verified On-Site</span>
+                            <span className="font-bold text-slate-800">CSPDCL / MNRE RTS</span>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-300 mt-2 flex items-center justify-between text-[9px] text-slate-600 font-mono">
-                          <span>📍 Live GPS Verified On-Site</span>
-                          <span className="font-bold text-slate-800">CSPDCL / MNRE RTS</span>
+                        {/* Footer Caption matching photos */}
+                        <div className="p-2.5 bg-slate-100 border-t border-slate-200 text-[11px] text-slate-700 leading-snug font-medium">
+                          Certified Field Quality Audit • Handover Ready
                         </div>
                       </div>
                     </div>
