@@ -34,16 +34,33 @@ import {
 
 interface CustomerOption {
   _id: string;
+  id?: string;
   customerCode?: string;
   name?: string;
   companyName?: string;
   primaryPhone?: string;
   email?: string;
+  installationAddress?: {
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    landmark?: string;
+  };
+  billingAddress?: {
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    landmark?: string;
+  };
   address?: {
     street?: string;
+    addressLine1?: string;
     city?: string;
     state?: string;
     pincode?: string;
+    postalCode?: string;
   };
 }
 
@@ -96,12 +113,23 @@ export const InstallationWorkflowPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  // Step 1: Customer Selection
+  // Step 1: Customer Selection & Quick Client Registration
   const [customerSearch, setCustomerSearch] = useState('');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [customerProjects, setCustomerProjects] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedCustomerError, setSelectedCustomerError] = useState<string | null>(null);
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [quickCustName, setQuickCustName] = useState('');
+  const [quickCustPhone, setQuickCustPhone] = useState('');
+  const [quickCustAddress, setQuickCustAddress] = useState('');
+  const [quickCustCity, setQuickCustCity] = useState('Raipur');
+  const [quickCustState, setQuickCustState] = useState('Chhattisgarh');
+  const [quickCustPincode, setQuickCustPincode] = useState('492001');
+  const [quickCustCapacity, setQuickCustCapacity] = useState(5);
+  const [isCreatingQuickCustomer, setIsCreatingQuickCustomer] = useState(false);
+  const [quickCustSuccess, setQuickCustSuccess] = useState<string | null>(null);
 
   // Step 2: Site & System Meta
   const [siteAddress, setSiteAddress] = useState({
@@ -261,9 +289,20 @@ export const InstallationWorkflowPage: React.FC = () => {
 
   // Load existing customers on mount
   useEffect(() => {
-    apiClient<{ items: CustomerOption[] }>('/customers?limit=50')
+    apiClient<any>('/customers?limit=100')
       .then(res => {
-        if (res?.items) setCustomers(res.items);
+        const list = Array.isArray(res) ? res : (res?.items || res?.data || res?.customers || []);
+        if (list && list.length > 0) {
+          setCustomers(list);
+          const params = new URLSearchParams(window.location.search);
+          const preselectedId = params.get('customerId');
+          if (preselectedId) {
+            const found = list.find((c: any) => c._id === preselectedId || c.id === preselectedId);
+            if (found) {
+              handleSelectCustomer(found);
+            }
+          }
+        }
       })
       .catch(err => console.error('Failed to load customers:', err));
   }, []);
@@ -276,49 +315,131 @@ export const InstallationWorkflowPage: React.FC = () => {
         setInstallationId(inst._id);
         setInstallationNumber(inst.installationNumber);
         setCurrentStep(inst.currentStep || 1);
-        setSelectedCustomer({
-          _id: inst.customerId,
-          customerCode: inst.customerCode,
-          name: inst.customerName,
-          primaryPhone: inst.customerPhone
-        });
-        setSelectedProjectId(inst.projectId || '');
+        
+        const custObj = typeof inst.customerId === 'object' && inst.customerId !== null
+          ? inst.customerId
+          : {
+              _id: inst.customerId,
+              customerCode: inst.customerCode,
+              name: inst.customerName,
+              primaryPhone: inst.customerPhone
+            };
+        setSelectedCustomer(custObj);
+        setSelectedProjectId(inst.projectId?._id || inst.projectId || '');
         setSiteAddress({
           addressLine1: inst.siteAddress?.addressLine1 || '',
           city: inst.siteAddress?.city || '',
           state: inst.siteAddress?.state || 'Chhattisgarh',
-          pincode: inst.siteAddress?.pincode || '',
+          pincode: inst.siteAddress?.postalCode || inst.siteAddress?.pincode || '',
           landmark: inst.siteAddress?.landmark || ''
         });
-        setCapacityKw(inst.capacityKw || 5);
+        setCapacityKw(inst.systemCapacityKw || inst.capacityKw || 5);
         if (inst.installationDate) {
           setInstallationDate(inst.installationDate.split('T')[0]);
         }
-        if (inst.equipment) {
-          if (inst.equipment.earthing) setEarthing(inst.equipment.earthing);
-          if (inst.equipment.structure) setStructure(inst.equipment.structure);
-          if (inst.equipment.lightningProtection) setLightning(inst.equipment.lightningProtection);
-          if (inst.equipment.inverter) setInverter(inst.equipment.inverter);
-          if (inst.equipment.netMeter) setNetMeter(inst.equipment.netMeter);
+        if (inst.earthingSystem) {
+          setEarthing({
+            equipmentName: inst.earthingSystem.name || 'Chemical Earthing Pit & Electrode',
+            equipmentType: 'EARTHING',
+            brand: inst.earthingSystem.brand || '',
+            model: inst.earthingSystem.modelNumber || inst.earthingSystem.model || 'Copper Bonded Rod 3m',
+            serialNumber: inst.earthingSystem.serialNumber || '',
+            barcode: inst.earthingSystem.barcode || '',
+            ratingCapacity: inst.earthingSystem.rating || inst.earthingSystem.ratingCapacity || '< 5 Ohms',
+            remarks: inst.earthingSystem.remarks || ''
+          });
+        }
+        if (inst.solarStructure) {
+          setStructure({
+            equipmentName: inst.solarStructure.name || 'Galvanized Solar Mounting Structure',
+            equipmentType: 'STRUCTURE',
+            brand: inst.solarStructure.brand || '',
+            model: inst.solarStructure.modelNumber || inst.solarStructure.model || 'HDG 80 Micron Elevated',
+            serialNumber: inst.solarStructure.serialNumber || '',
+            barcode: inst.solarStructure.barcode || '',
+            ratingCapacity: inst.solarStructure.rating || inst.solarStructure.ratingCapacity || 'Tilt 21° / South Facing',
+            remarks: inst.solarStructure.remarks || ''
+          });
+        }
+        if (inst.lightningProtection) {
+          setLightning({
+            equipmentName: inst.lightningProtection.name || 'Lightning Protection Rod',
+            equipmentType: 'LIGHTNING_PROTECTION',
+            brand: inst.lightningProtection.brand || '',
+            model: inst.lightningProtection.modelNumber || inst.lightningProtection.model || '',
+            serialNumber: inst.lightningProtection.serialNumber || '',
+            barcode: inst.lightningProtection.barcode || '',
+            ratingCapacity: inst.lightningProtection.rating || inst.lightningProtection.ratingCapacity || '',
+            remarks: inst.lightningProtection.remarks || ''
+          });
+        }
+        if (inst.inverter) {
+          setInverter({
+            equipmentName: inst.inverter.name || 'Solar Inverter',
+            equipmentType: 'INVERTER',
+            brand: inst.inverter.brand || '',
+            model: inst.inverter.modelNumber || inst.inverter.model || '',
+            serialNumber: inst.inverter.serialNumber || '',
+            barcode: inst.inverter.barcode || '',
+            ratingCapacity: inst.inverter.rating || inst.inverter.ratingCapacity || '',
+            remarks: inst.inverter.remarks || ''
+          });
+        }
+        if (inst.netMeter) {
+          setNetMeter({
+            equipmentName: inst.netMeter.name || 'Bi-directional Net Meter',
+            equipmentType: 'NET_METER',
+            brand: inst.netMeter.brand || '',
+            model: inst.netMeter.modelNumber || inst.netMeter.model || '',
+            serialNumber: inst.netMeter.serialNumber || '',
+            barcode: inst.netMeter.barcode || '',
+            ratingCapacity: inst.netMeter.rating || inst.netMeter.ratingCapacity || '',
+            remarks: inst.netMeter.remarks || ''
+          });
         }
         if (inst.panelDetails) {
-          setPanelDetails(inst.panelDetails);
+          setPanelDetails({
+            totalPanels: inst.panelDetails.totalPanels || 0,
+            panelManufacturer: inst.panelDetails.manufacturer || inst.panelDetails.panelManufacturer || '',
+            panelModel: inst.panelDetails.model || inst.panelDetails.panelModel || '',
+            panelWattage: inst.panelDetails.wattagePerPanel || inst.panelDetails.panelWattage || 0,
+            totalCalculatedKw: inst.panelDetails.calculatedTotalCapacityKw || inst.panelDetails.totalCalculatedKw || 0,
+            serialNumbers: inst.panelDetails.panelSerialNumbers || inst.panelDetails.serialNumbers || [],
+            barcodes: inst.panelDetails.panelBarcodes || inst.panelDetails.barcodes || [],
+            remarks: inst.panelDetails.remarks || ''
+          });
         }
-        if (inst.inventory) {
+        if (inst.inventoryItems && inst.inventoryItems.length > 0) {
+          setInventory(inst.inventoryItems.map((item: any, idx: number) => ({
+            sNo: item.itemNumber || idx + 1,
+            equipmentName: item.equipmentName || '',
+            barcode: item.barcode || '',
+            serialNumber: item.serialNumber || '',
+            model: item.model || '',
+            quantity: item.quantity || 1,
+            status: item.status || 'VERIFIED',
+            notes: item.remarks || ''
+          })));
+        } else if (inst.inventory && inst.inventory.length > 0) {
           setInventory(inst.inventory);
         }
         if (inst.photos) {
           setPhotos(inst.photos);
         }
-        if (inst.gpsLocation) {
-          setGpsLocation(inst.gpsLocation);
+        if (inst.location) {
+          setGpsLocation({
+            latitude: inst.location.latitude,
+            longitude: inst.location.longitude,
+            accuracyMeters: inst.location.accuracyMeters,
+            capturedAt: inst.location.capturedAt
+          });
         }
         if (inst.manuals) {
           setManuals(inst.manuals);
         }
       }
     } catch (err: any) {
-      alert(err?.message || 'Failed to load installation details.');
+      console.error('Failed to load installation details:', err);
     } finally {
       setIsLoading(false);
     }
@@ -335,25 +456,28 @@ export const InstallationWorkflowPage: React.FC = () => {
   // Handle customer select
   const handleSelectCustomer = async (cust: CustomerOption) => {
     setSelectedCustomer(cust);
-    if (cust.address) {
+    setSelectedCustomerError(null);
+    const addr = cust.installationAddress || cust.billingAddress || cust.address;
+    if (addr) {
       setSiteAddress({
-        addressLine1: cust.address.street || '',
-        city: cust.address.city || '',
-        state: cust.address.state || 'Chhattisgarh',
-        pincode: cust.address.pincode || '',
-        landmark: ''
+        addressLine1: (addr as any).addressLine1 || (addr as any).street || '',
+        city: addr.city || '',
+        state: addr.state || 'Chhattisgarh',
+        pincode: (addr as any).postalCode || (addr as any).pincode || '',
+        landmark: (addr as any).landmark || ''
       });
     }
 
     // Try to load any linked projects for this customer
     try {
-      const res = await apiClient<{ items: ProjectOption[] }>(`/projects?customerId=${cust._id}`);
-      if (res?.items && res.items.length > 0 && res.items[0]) {
-        const firstProj = res.items[0];
-        setCustomerProjects(res.items);
+      const res = await apiClient<any>(`/projects?customerId=${cust._id}`);
+      const projectList = Array.isArray(res) ? res : (res?.items || res?.projects || []);
+      if (projectList && projectList.length > 0 && projectList[0]) {
+        const firstProj = projectList[0];
+        setCustomerProjects(projectList);
         setSelectedProjectId(firstProj._id);
-        if (firstProj.capacityKw) {
-          setCapacityKw(firstProj.capacityKw);
+        if (firstProj.capacityKw || firstProj.systemCapacityKwp) {
+          setCapacityKw(firstProj.capacityKw || firstProj.systemCapacityKwp);
         }
       } else {
         setCustomerProjects([]);
@@ -364,42 +488,191 @@ export const InstallationWorkflowPage: React.FC = () => {
     }
   };
 
+  // Quick Register New Customer from Installation Wizard
+  const handleQuickAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickCustName.trim() || !quickCustPhone.trim()) {
+      alert('Customer Name and Primary Phone are required.');
+      return;
+    }
+
+    try {
+      setIsCreatingQuickCustomer(true);
+      const newCustomerPayload = {
+        name: quickCustName.trim(),
+        primaryPhone: quickCustPhone.trim(),
+        installationAddress: {
+          type: 'SITE_INSTALLATION',
+          addressLine1: quickCustAddress.trim() || `${quickCustName.trim()} Site`,
+          city: quickCustCity.trim() || 'Raipur',
+          state: quickCustState.trim() || 'Chhattisgarh',
+          postalCode: quickCustPincode.trim() || '492001',
+          country: 'India'
+        },
+        billingAddress: {
+          type: 'BILLING',
+          addressLine1: quickCustAddress.trim() || `${quickCustName.trim()} Site`,
+          city: quickCustCity.trim() || 'Raipur',
+          state: quickCustState.trim() || 'Chhattisgarh',
+          postalCode: quickCustPincode.trim() || '492001',
+          country: 'India'
+        }
+      };
+
+      const res = await apiClient<any>('/customers', {
+        method: 'POST',
+        body: JSON.stringify(newCustomerPayload)
+      });
+
+      const createdCust = res?.data || res;
+      if (createdCust && (createdCust._id || createdCust.id)) {
+        const formatted: CustomerOption = {
+          _id: createdCust._id || createdCust.id,
+          customerCode: createdCust.customerCode,
+          name: createdCust.name,
+          primaryPhone: createdCust.primaryPhone,
+          installationAddress: createdCust.installationAddress,
+          billingAddress: createdCust.billingAddress,
+          address: {
+            street: quickCustAddress.trim(),
+            city: quickCustCity.trim() || 'Raipur',
+            state: quickCustState.trim() || 'Chhattisgarh',
+            pincode: quickCustPincode.trim() || '492001'
+          }
+        };
+
+        setCustomers(prev => [formatted, ...prev]);
+        await handleSelectCustomer(formatted);
+        if (quickCustCapacity) {
+          setCapacityKw(Number(quickCustCapacity));
+        }
+        setShowQuickAddCustomer(false);
+        setQuickCustSuccess(`Client "${formatted.name}" created and linked to this installation!`);
+        setTimeout(() => setQuickCustSuccess(null), 4000);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to create customer.');
+    } finally {
+      setIsCreatingQuickCustomer(false);
+    }
+  };
+
   // Save Draft to Backend
   const saveDraft = async (stepToSet?: number) => {
     if (!selectedCustomer) {
-      alert('Please select a customer first before saving.');
+      setSelectedCustomerError('Please select or register a customer before saving or proceeding.');
       return null;
     }
 
     try {
       setIsSaving(true);
-      const payload = {
+      const nextStepNum = stepToSet !== undefined ? stepToSet : currentStep;
+
+      const payload: any = {
         customerId: selectedCustomer._id,
         projectId: selectedProjectId || undefined,
-        siteAddress,
-        capacityKw,
+        systemCapacityKw: Number(capacityKw) || 5,
         installationDate: installationDate || undefined,
-        currentStep: stepToSet !== undefined ? stepToSet : currentStep,
-        equipment: {
-          earthing,
-          structure,
-          panels: {
-            ...earthing,
-            equipmentName: 'Solar PV Modules',
-            equipmentType: 'PANELS',
-            brand: panelDetails.panelManufacturer,
-            model: panelDetails.panelModel,
-            ratingCapacity: `${panelDetails.totalCalculatedKw} kW`,
-            remarks: panelDetails.remarks
-          },
-          lightningProtection: lightning,
-          inverter,
-          netMeter
+        currentStep: nextStepNum,
+        siteAddress: {
+          addressLine1: siteAddress.addressLine1 || '',
+          city: siteAddress.city || '',
+          state: siteAddress.state || 'Chhattisgarh',
+          postalCode: siteAddress.pincode || '',
+          landmark: siteAddress.landmark || ''
         },
-        panelDetails,
-        inventory,
-        gpsLocation: gpsLocation || undefined
+        earthingSystem: {
+          name: earthing.equipmentName || 'Chemical Earthing Pit & Electrode',
+          equipmentType: 'EARTHING',
+          brand: earthing.brand || '',
+          modelNumber: earthing.model || '',
+          serialNumber: earthing.serialNumber || '',
+          barcode: earthing.barcode || '',
+          rating: earthing.ratingCapacity || '',
+          remarks: earthing.remarks || ''
+        },
+        solarStructure: {
+          name: structure.equipmentName || 'Galvanized Solar Mounting Structure',
+          equipmentType: 'STRUCTURE',
+          brand: structure.brand || '',
+          modelNumber: structure.model || '',
+          serialNumber: structure.serialNumber || '',
+          barcode: structure.barcode || '',
+          rating: structure.ratingCapacity || '',
+          remarks: structure.remarks || ''
+        },
+        solarPanels: {
+          name: 'Solar PV Modules',
+          equipmentType: 'PANELS',
+          brand: panelDetails.panelManufacturer || '',
+          modelNumber: panelDetails.panelModel || '',
+          serialNumber: '',
+          barcode: '',
+          rating: `${panelDetails.totalCalculatedKw || capacityKw} kW`,
+          remarks: panelDetails.remarks || ''
+        },
+        lightningProtection: {
+          name: lightning.equipmentName || 'Lightning Protection Rod',
+          equipmentType: 'LIGHTNING_PROTECTION',
+          brand: lightning.brand || '',
+          modelNumber: lightning.model || '',
+          serialNumber: lightning.serialNumber || '',
+          barcode: lightning.barcode || '',
+          rating: lightning.ratingCapacity || '',
+          remarks: lightning.remarks || ''
+        },
+        inverter: {
+          name: inverter.equipmentName || 'Solar On-Grid Inverter',
+          equipmentType: 'INVERTER',
+          brand: inverter.brand || '',
+          modelNumber: inverter.model || '',
+          serialNumber: inverter.serialNumber || '',
+          barcode: inverter.barcode || '',
+          rating: inverter.ratingCapacity || '',
+          remarks: inverter.remarks || ''
+        },
+        netMeter: {
+          name: netMeter.equipmentName || 'Bi-directional Net Meter',
+          equipmentType: 'NET_METER',
+          brand: netMeter.brand || '',
+          modelNumber: netMeter.model || '',
+          serialNumber: netMeter.serialNumber || '',
+          barcode: netMeter.barcode || '',
+          rating: netMeter.ratingCapacity || '',
+          remarks: netMeter.remarks || ''
+        },
+        panelDetails: {
+          totalPanels: Number(panelDetails.totalPanels) || 0,
+          manufacturer: panelDetails.panelManufacturer || '',
+          model: panelDetails.panelModel || '',
+          wattagePerPanel: Number(panelDetails.panelWattage) || 0,
+          calculatedTotalCapacityKw: Number(panelDetails.totalCalculatedKw) || 0,
+          panelSerialNumbers: [],
+          panelBarcodes: [],
+          remarks: panelDetails.remarks || ''
+        },
+        inventoryItems: inventory.map(item => ({
+          itemNumber: item.sNo || 1,
+          equipmentName: item.equipmentName || 'Component',
+          barcode: item.barcode || '',
+          serialNumber: item.serialNumber || '',
+          model: item.model || '',
+          quantity: Number(item.quantity) || 1,
+          status: 'VERIFIED' as const,
+          remarks: item.notes || ''
+        })),
+        isDraft: true
       };
+
+      if (gpsLocation && gpsLocation.latitude && gpsLocation.longitude) {
+        payload.location = {
+          latitude: gpsLocation.latitude,
+          longitude: gpsLocation.longitude,
+          accuracyMeters: gpsLocation.accuracyMeters || 5,
+          capturedAt: gpsLocation.capturedAt || new Date().toISOString(),
+          isVerified: true
+        };
+      }
 
       let saved: any;
       if (installationId) {
@@ -408,12 +681,24 @@ export const InstallationWorkflowPage: React.FC = () => {
           body: JSON.stringify(payload)
         });
       } else {
-        saved = await apiClient('/installations', {
+        const createPayload = {
+          customerId: selectedCustomer._id,
+          projectId: selectedProjectId || undefined,
+          systemCapacityKw: Number(capacityKw) || 5,
+          installationDate: installationDate || undefined,
+          isDraft: true
+        };
+        const created = await apiClient<any>('/installations', {
           method: 'POST',
+          body: JSON.stringify(createPayload)
+        });
+        setInstallationId(created._id);
+        setInstallationNumber(created.installationNumber);
+
+        saved = await apiClient(`/installations/${created._id}`, {
+          method: 'PATCH',
           body: JSON.stringify(payload)
         });
-        setInstallationId(saved._id);
-        setInstallationNumber(saved.installationNumber);
       }
 
       setSaveSuccessMsg('Installation draft auto-saved');
@@ -421,7 +706,6 @@ export const InstallationWorkflowPage: React.FC = () => {
       return saved;
     } catch (err: any) {
       console.error('Failed to save draft:', err);
-      alert(err?.message || 'Error saving installation draft.');
       return null;
     } finally {
       setIsSaving(false);
@@ -431,9 +715,11 @@ export const InstallationWorkflowPage: React.FC = () => {
   // Step Navigation
   const handleNextStep = async () => {
     if (currentStep === 1 && !selectedCustomer) {
-      alert('Please select an existing customer to proceed.');
+      setSelectedCustomerError('Please select a solar client from the list below or use "+ Quick Register Customer" to proceed.');
+      window.scrollTo({ top: 180, behavior: 'smooth' });
       return;
     }
+    setSelectedCustomerError(null);
 
     const nextStep = currentStep + 1;
     await saveDraft(nextStep);
@@ -751,29 +1037,207 @@ export const InstallationWorkflowPage: React.FC = () => {
 
       {/* Step Container Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
-        {/* STEP 1: SELECT EXISTING CUSTOMER */}
+        {/* STEP 1: SELECT EXISTING CUSTOMER OR QUICK REGISTER */}
         {currentStep === 1 && (
           <div className="space-y-6">
-            <div className="pb-4 border-b border-slate-100">
-              <h2 className="text-base font-bold text-slate-900 flex items-center">
-                <Building className="w-5 h-5 mr-2 text-solar-600" />
-                Step 1: Link Existing Customer & Project
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Search and select an existing solar client from your customer database. All contact details and rooftop site address will be synchronized automatically.
-              </p>
+            <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center">
+                  <Building className="w-5 h-5 mr-2 text-solar-600" />
+                  Step 1: Link Solar Customer &amp; Site
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Select an existing solar client from your database, or quick-register a walk-in client in the field.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowQuickAddCustomer(!showQuickAddCustomer)}
+                className={`inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+                  showQuickAddCustomer
+                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-solar-600 hover:bg-solar-700 text-white'
+                }`}
+              >
+                {showQuickAddCustomer ? (
+                  <>
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    <span>Cancel Quick Register</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    <span>+ Quick Register New Client</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            {/* Customer Search */}
+            {/* Validation Notice / Error Banner */}
+            {selectedCustomerError && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start space-x-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <span className="font-bold block">Selection Required to Proceed:</span>
+                  <span>{selectedCustomerError}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Registration Success Banner */}
+            {quickCustSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-center space-x-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="text-xs font-bold">{quickCustSuccess}</span>
+              </div>
+            )}
+
+            {/* Quick Register New Customer Form Panel */}
+            {showQuickAddCustomer && (
+              <form
+                onSubmit={handleQuickAddCustomer}
+                className="p-5 bg-gradient-to-br from-solar-50/60 to-amber-50/40 rounded-2xl border border-solar-200 space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-solar-200 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Quick Field Registration Form
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Auto-links to this installation</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Full Client / Consumer Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ramesh Chandra Verma"
+                      value={quickCustName}
+                      onChange={e => setQuickCustName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Primary Mobile Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 9876543210"
+                      value={quickCustPhone}
+                      onChange={e => setQuickCustPhone(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      System Planned Capacity (kW)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="100"
+                      placeholder="5"
+                      value={quickCustCapacity}
+                      onChange={e => setQuickCustCapacity(Number(e.target.value) || 5)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Rooftop Site Address / Street
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Plot No. 42, Green Avenue, Behind Govt Hospital"
+                      value={quickCustAddress}
+                      onChange={e => setQuickCustAddress(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">City / District</label>
+                    <input
+                      type="text"
+                      value={quickCustCity}
+                      onChange={e => setQuickCustCity(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">State</label>
+                    <input
+                      type="text"
+                      value={quickCustState}
+                      onChange={e => setQuickCustState(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Postal Pincode</label>
+                    <input
+                      type="text"
+                      value={quickCustPincode}
+                      onChange={e => setQuickCustPincode(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      disabled={isCreatingQuickCustomer}
+                      className="w-full px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                    >
+                      {isCreatingQuickCustomer ? (
+                        <>
+                          <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Save &amp; Link Customer</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Customer Search & Selection */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Search Registered Solar Clients *
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Select Registered Solar Client ({customers.length} available) *
+                </label>
+                {selectedCustomer && (
+                  <span className="text-xs text-emerald-600 font-bold flex items-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Client Selected
+                  </span>
+                )}
+              </div>
+
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Type customer name, mobile number, code, or city..."
+                  placeholder="Type customer name, mobile number, code, or city to filter..."
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"
@@ -781,50 +1245,75 @@ export const InstallationWorkflowPage: React.FC = () => {
               </div>
 
               {/* Matching Customers Dropdown / Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pt-2">
                 {customers
                   .filter(c => {
                     if (!customerSearch.trim()) return true;
                     const q = customerSearch.toLowerCase();
+                    const cCity =
+                      c.installationAddress?.city ||
+                      c.billingAddress?.city ||
+                      c.address?.city ||
+                      '';
                     return (
                       c.name?.toLowerCase().includes(q) ||
                       c.companyName?.toLowerCase().includes(q) ||
                       c.customerCode?.toLowerCase().includes(q) ||
                       c.primaryPhone?.includes(q) ||
-                      c.address?.city?.toLowerCase().includes(q)
+                      cCity.toLowerCase().includes(q)
                     );
                   })
-                  .slice(0, 8)
+                  .slice(0, 16)
                   .map(cust => {
                     const isSelected = selectedCustomer?._id === cust._id;
+                    const custCity =
+                      cust.installationAddress?.city ||
+                      cust.billingAddress?.city ||
+                      cust.address?.city ||
+                      'Raipur';
+                    const custState =
+                      cust.installationAddress?.state ||
+                      cust.billingAddress?.state ||
+                      cust.address?.state ||
+                      'CG';
+                    const custAddress =
+                      cust.installationAddress?.addressLine1 ||
+                      cust.billingAddress?.addressLine1 ||
+                      cust.address?.street ||
+                      '';
+
                     return (
                       <div
                         key={cust._id}
                         onClick={() => handleSelectCustomer(cust)}
-                        className={`p-3 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+                        className={`p-3.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
                           isSelected
-                            ? 'bg-solar-50/80 border-solar-500 ring-2 ring-solar-500/20'
-                            : 'bg-white border-slate-200 hover:border-slate-300'
+                            ? 'bg-solar-50/90 border-solar-500 ring-2 ring-solar-500/30 shadow-xs'
+                            : 'bg-white border-slate-200 hover:border-solar-300 hover:bg-slate-50/50'
                         }`}
                       >
-                        <div>
-                          <div className="text-xs font-bold text-slate-900">
+                        <div className="min-w-0 pr-3">
+                          <div className="text-xs font-bold text-slate-900 truncate">
                             {cust.name || cust.companyName}
                           </div>
-                          <div className="text-[11px] text-slate-500">
-                            {cust.customerCode || 'ID'} • {cust.primaryPhone || 'No phone'}
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            <span className="font-mono text-solar-700 font-semibold">
+                              {cust.customerCode || 'CUST'}
+                            </span>{' '}
+                            • {cust.primaryPhone || 'No phone'}
                           </div>
-                          <div className="text-[10px] text-slate-400">
-                            {cust.address?.city || 'Site'}, {cust.address?.state || 'CG'}
+                          <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                            {custAddress ? `${custAddress}, ` : ''}
+                            {custCity}, {custState}
                           </div>
                         </div>
 
                         {isSelected ? (
-                          <div className="w-6 h-6 rounded-full bg-solar-600 text-white flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-solar-600 text-white flex items-center justify-center shrink-0">
                             <Check className="w-3.5 h-3.5" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full border border-slate-300" />
+                          <div className="w-6 h-6 rounded-full border border-slate-300 shrink-0" />
                         )}
                       </div>
                     );
@@ -834,10 +1323,15 @@ export const InstallationWorkflowPage: React.FC = () => {
 
             {/* Selected Customer Preview */}
             {selectedCustomer && (
-              <div className="p-4 bg-solar-50/50 rounded-xl border border-solar-200 space-y-3">
-                <span className="text-[11px] font-bold text-solar-800 uppercase tracking-wider block">
-                  ✓ Selected Solar Client
-                </span>
+              <div className="p-4 bg-solar-50/60 rounded-xl border border-solar-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-solar-800 uppercase tracking-wider block">
+                    ✓ Selected Solar Client
+                  </span>
+                  <span className="text-[11px] font-mono text-solar-700 font-bold bg-white px-2 py-0.5 rounded border border-solar-200">
+                    {selectedCustomer.customerCode || 'CUST'}
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                   <div>
                     <span className="text-slate-400 block font-semibold">Client Name</span>
@@ -852,9 +1346,17 @@ export const InstallationWorkflowPage: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-semibold">City & State</span>
+                    <span className="text-slate-400 block font-semibold">Site City &amp; State</span>
                     <span className="font-bold text-slate-900">
-                      {selectedCustomer.address?.city || 'Raipur'}, {selectedCustomer.address?.state || 'CG'}
+                      {selectedCustomer.installationAddress?.city ||
+                        selectedCustomer.billingAddress?.city ||
+                        selectedCustomer.address?.city ||
+                        'Raipur'}
+                      ,{' '}
+                      {selectedCustomer.installationAddress?.state ||
+                        selectedCustomer.billingAddress?.state ||
+                        selectedCustomer.address?.state ||
+                        'CG'}
                     </span>
                   </div>
                   <div>

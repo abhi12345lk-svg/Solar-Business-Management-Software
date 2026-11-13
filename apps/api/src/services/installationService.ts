@@ -81,14 +81,19 @@ export class InstallationService {
       }).sort({ createdAt: -1 });
     }
 
+    let targetInstallerId = input.assignedInstallerId;
+    if (!targetInstallerId && actorContext.role === 'INSTALLATION_CREW') {
+      targetInstallerId = actorContext.actorId;
+    }
+
     let installerName: string | undefined;
-    if (input.assignedInstallerId) {
-      if (!Types.ObjectId.isValid(input.assignedInstallerId)) {
-        throw AppError.validation(`Invalid installer ID: ${input.assignedInstallerId}`);
+    if (targetInstallerId) {
+      if (!Types.ObjectId.isValid(targetInstallerId)) {
+        throw AppError.validation(`Invalid installer ID: ${targetInstallerId}`);
       }
-      const installer = await User.findById(input.assignedInstallerId);
+      const installer = await User.findById(targetInstallerId);
       if (installer) {
-        installerName = `${installer.firstName} ${installer.lastName}`.trim() || installer.email;
+        installerName = `${installer.firstName || ''} ${installer.lastName || ''}`.trim() || installer.email;
       }
     }
 
@@ -98,7 +103,7 @@ export class InstallationService {
     );
 
     const siteAddr = customer.installationAddress || customer.billingAddress;
-    const initialStatus = input.assignedInstallerId
+    const initialStatus = targetInstallerId
       ? InstallationStatus.ASSIGNED
       : InstallationStatus.PENDING;
 
@@ -120,8 +125,8 @@ export class InstallationService {
         postalCode: siteAddr?.postalCode || ''
       },
       systemCapacityKw: input.systemCapacityKw || project?.systemCapacityKwp || 0,
-      assignedInstallerId: input.assignedInstallerId
-        ? new Types.ObjectId(input.assignedInstallerId)
+      assignedInstallerId: targetInstallerId
+        ? new Types.ObjectId(targetInstallerId)
         : undefined,
       assignedInstallerName: installerName,
       assignedBy: new Types.ObjectId(actorContext.actorId),
@@ -230,16 +235,25 @@ export class InstallationService {
       throw AppError.notFound(`Installation with ID '${id}' not found.`);
     }
 
-    // Role check: field installers can only edit if assigned to them or if privileged admin
+    // Role check: field installers can only edit if assigned to them, self-created, or if privileged admin
     const isPrivileged = ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD'].includes(
       actorContext.role || ''
     );
     if (
       !isPrivileged &&
       inst.assignedInstallerId &&
-      inst.assignedInstallerId.toString() !== actorContext.actorId
+      inst.assignedInstallerId.toString() !== actorContext.actorId &&
+      inst.assignedBy?.toString() !== actorContext.actorId
     ) {
       throw AppError.forbidden('Access denied: You can only edit installations assigned to you.');
+    }
+
+    // Direct site address update if provided
+    if ((input as any).siteAddress) {
+      inst.siteAddress = {
+        ...inst.siteAddress,
+        ...(input as any).siteAddress
+      };
     }
 
     // Update basic fields if provided
@@ -868,7 +882,7 @@ export class InstallationService {
       throw AppError.notFound(`Installation with ID '${id}' not found.`);
     }
 
-    // Role check: field installers can only view their own installations
+    // Role check: field installers can only view their own installations or ones they initiated
     const isPrivileged = ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD'].includes(
       actorContext.role || ''
     );
@@ -876,7 +890,8 @@ export class InstallationService {
       !isPrivileged &&
       inst.assignedInstallerId &&
       (inst.assignedInstallerId as any)._id?.toString() !== actorContext.actorId &&
-      inst.assignedInstallerId.toString() !== actorContext.actorId
+      inst.assignedInstallerId.toString() !== actorContext.actorId &&
+      inst.assignedBy?.toString() !== actorContext.actorId
     ) {
       throw AppError.forbidden('Access denied: You do not have permission to view this installation.');
     }
@@ -897,43 +912,56 @@ export class InstallationService {
     limit: number;
     totalPages: number;
   }> {
-    const query: any = {};
+    const conditions: any[] = [];
 
-    // Scope check: if installer, only show assigned installations
+    // Scope check: if installer, show assigned, self-created, or open pending installations
     const isPrivileged = ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD'].includes(
       actorContext.role || ''
     );
     if (!isPrivileged) {
-      query.assignedInstallerId = new Types.ObjectId(actorContext.actorId);
+      conditions.push({
+        $or: [
+          { assignedInstallerId: new Types.ObjectId(actorContext.actorId) },
+          { assignedBy: new Types.ObjectId(actorContext.actorId) },
+          { status: InstallationStatus.PENDING }
+        ]
+      });
     } else if (filter.installerId) {
-      query.assignedInstallerId = new Types.ObjectId(filter.installerId);
+      conditions.push({ assignedInstallerId: new Types.ObjectId(filter.installerId) });
     }
 
     if (filter.status) {
-      query.status = filter.status;
+      conditions.push({ status: filter.status });
     }
 
     if (filter.customerId) {
-      query.customerId = new Types.ObjectId(filter.customerId);
+      conditions.push({ customerId: new Types.ObjectId(filter.customerId) });
     }
 
     if (filter.search && filter.search.trim()) {
       const regex = new RegExp(filter.search.trim(), 'i');
-      query.$or = [
-        { installationNumber: regex },
-        { customerName: regex },
-        { customerCode: regex },
-        { projectCode: regex },
-        { 'siteAddress.city': regex },
-        { assignedInstallerName: regex }
-      ];
+      conditions.push({
+        $or: [
+          { installationNumber: regex },
+          { customerName: regex },
+          { customerCode: regex },
+          { projectCode: regex },
+          { customerPhone: regex },
+          { 'siteAddress.city': regex },
+          { 'siteAddress.district': regex },
+          { assignedInstallerName: regex }
+        ]
+      });
     }
 
     if (filter.startDate || filter.endDate) {
-      query.createdAt = {};
-      if (filter.startDate) query.createdAt.$gte = new Date(filter.startDate);
-      if (filter.endDate) query.createdAt.$lte = new Date(filter.endDate);
+      const dateRange: any = {};
+      if (filter.startDate) dateRange.$gte = new Date(filter.startDate);
+      if (filter.endDate) dateRange.$lte = new Date(filter.endDate);
+      conditions.push({ createdAt: dateRange });
     }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     const page = Math.max(1, filter.page || 1);
     const limit = Math.min(100, Math.max(1, filter.limit || 20));
@@ -965,59 +993,65 @@ export class InstallationService {
     actorContext: InstallationActorContext
   ): Promise<{
     totalAssigned: number;
+    assigned: number;
+    total: number;
     pending: number;
     inProgress: number;
     completed: number;
     pendingApproval: number;
+    underReview: number;
     rejected: number;
   }> {
-    const query: any = {};
     const isPrivileged = ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD'].includes(
       actorContext.role || ''
     );
+    const baseConditions: any[] = [];
     if (!isPrivileged) {
-      query.assignedInstallerId = new Types.ObjectId(actorContext.actorId);
+      baseConditions.push({
+        $or: [
+          { assignedInstallerId: new Types.ObjectId(actorContext.actorId) },
+          { assignedBy: new Types.ObjectId(actorContext.actorId) },
+          { status: InstallationStatus.PENDING }
+        ]
+      });
     }
+    const query = baseConditions.length > 0 ? { $and: baseConditions } : {};
 
     const [total, pending, inProgress, approved, completed, submitted, underReview, rejected] =
       await Promise.all([
         InstallationModel.countDocuments(query),
         InstallationModel.countDocuments({
-          ...query,
-          status: { $in: [InstallationStatus.ASSIGNED, InstallationStatus.PENDING] }
+          $and: [query, { status: { $in: [InstallationStatus.ASSIGNED, InstallationStatus.PENDING] } }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.IN_PROGRESS
+          $and: [query, { status: InstallationStatus.IN_PROGRESS }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.APPROVED
+          $and: [query, { status: InstallationStatus.APPROVED }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.COMPLETED
+          $and: [query, { status: InstallationStatus.COMPLETED }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.SUBMITTED
+          $and: [query, { status: InstallationStatus.SUBMITTED }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.UNDER_REVIEW
+          $and: [query, { status: InstallationStatus.UNDER_REVIEW }]
         }),
         InstallationModel.countDocuments({
-          ...query,
-          status: InstallationStatus.REJECTED
+          $and: [query, { status: InstallationStatus.REJECTED }]
         })
       ]);
 
     return {
       totalAssigned: total,
+      assigned: total,
+      total,
       pending,
       inProgress,
       completed: approved + completed,
       pendingApproval: submitted + underReview,
+      underReview: submitted + underReview,
       rejected
     };
   }

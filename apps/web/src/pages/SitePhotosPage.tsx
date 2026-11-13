@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
+import { DocumentCategory, DocumentAccessClassification } from '@ins-solar/shared';
 import { RAREBOX_STAMP_BASE64 } from '../assets/rareboxStampBase64.js';
 import {
   SAMPLE_PHOTO1_BASE64,
@@ -232,67 +233,59 @@ export const SitePhotosPage: React.FC = () => {
       setGeneratingPdf(false);
     }
   };
-
   const handleSaveToVault = async () => {
     if (!documentPrintRef.current) return;
+    if (!selectedCustomer) {
+      alert('Please select an existing customer to save this site photo compliance report into their vault.');
+      return;
+    }
+
     try {
       setIsSavingToVault(true);
       setVaultSaveSuccess(null);
 
-      const cleanName = tplConsumerName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      const filename = `SITE_PHOTOS_${cleanName || 'Consumer'}.pdf`;
+      const cleanName = tplConsumerName.trim() || 'Consumer';
+      const title = `Client Site Photos Compliance Document - ${cleanName}`;
+      const filename = `SITE_PHOTOS_${cleanName.replace(/\s+/g, '_')}.pdf`;
 
+      // 1. Generate PDF Blob
       const { blob } = await generatePdfFromElement(documentPrintRef.current, {
         filename
       });
 
-      const title = `Client Site Photos Compliance – ${tplConsumerName.trim() || 'Beneficiary'}`;
+      const custId = selectedCustomer._id || selectedCustomer.id;
 
-      // Check customer linkage from selected customer or match by consumer number / name
-      let custId = selectedCustomer?._id || selectedCustomer?.id;
-      if (!custId && customers.length > 0) {
-        const match = customers.find(c =>
-          (c.customerCode && tplConsumerNumber && c.customerCode.includes(tplConsumerNumber)) ||
-          (c.name && tplConsumerName && c.name.toLowerCase().trim() === tplConsumerName.toLowerCase().trim())
-        );
-        if (match) {
-          custId = match._id || match.id;
-        }
-      }
-
-      const isValidObjectId = (id?: string) => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
-
-      const payload: any = {
+      // 2. Register Document in DB
+      const docPayload = {
         originalFilename: filename,
         safeDisplayName: title,
-        category: 'SITE_PHOTOS',
-        accessClassification: 'CUSTOMER_VISIBLE',
+        category: DocumentCategory.SITE_PHOTOS,
+        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
         mimeType: 'application/pdf',
         fileSizeBytes: blob.size,
+        customerId: custId,
+        relatedEntityType: 'Customer',
+        relatedEntityId: custId,
         metadata: {
-          templateId: 'SITE_PHOTOS_REPORT',
-          consumerName: tplConsumerName,
+          documentType: 'SITE_PHOTOS_REPORT',
           consumerNumber: tplConsumerNumber,
           capacityKwp: tplCapacityKwp,
+          address: tplAddress,
           district: tplDistrict,
-          generatedDate: tplAgreementDate,
-          generatorSource: 'SitePhotosPage'
+          agreementDate: tplAgreementDate,
+          generatedVia: 'SitePhotosComplianceModule'
         }
       };
 
-      if (isValidObjectId(custId)) {
-        payload.customerId = custId;
-        payload.relatedEntityType = 'Customer';
-        payload.relatedEntityId = custId;
-      }
-
-      const docRes: any = await apiClient<any>('/documents', {
+      const docRes = await apiClient<any>('/documents', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(docPayload)
       });
+
       const docId = docRes?._id || docRes?.id;
       if (!docId) throw new Error('Could not obtain document registration ID.');
 
+      // 3. Upload raw PDF blob
       const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
       const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
       const uploadRes = await fetch(uploadUrl, {
@@ -310,7 +303,7 @@ export const SitePhotosPage: React.FC = () => {
       }
 
       setVaultSaveSuccess(
-        `Document "${title}" (${docRes.documentNumber || 'DOC-REG'}) saved into document vault successfully!`
+        `Site Photos Compliance document "${title}" (${docRes.documentNumber || 'DOC-REG'}) saved into customer vault successfully!`
       );
     } catch (err: any) {
       const errorMsg =
@@ -324,7 +317,6 @@ export const SitePhotosPage: React.FC = () => {
       setIsSavingToVault(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-muted/20 pb-16">
       {/* Clean Top Header */}

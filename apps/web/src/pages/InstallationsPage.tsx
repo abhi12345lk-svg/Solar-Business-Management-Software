@@ -125,13 +125,24 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
     try {
       setIsRefreshing(true);
       const [statsRes, listRes, installersRes] = await Promise.all([
-        apiClient<DashboardStats>('/installations/dashboard-stats'),
-        apiClient<{ items: InstallationSummaryItem[]; total: number }>('/installations?limit=100'),
+        apiClient<any>('/installations/dashboard-stats'),
+        apiClient<any>('/installations?limit=100'),
         apiClient<InstallerOption[]>('/installations/installers/list').catch(() => [])
       ]);
 
-      if (statsRes) setStats(statsRes);
-      if (listRes?.items) setInstallations(listRes.items);
+      if (statsRes) {
+        setStats({
+          total: statsRes.total || statsRes.totalAssigned || 0,
+          assigned: statsRes.assigned ?? statsRes.totalAssigned ?? 0,
+          pending: statsRes.pending ?? 0,
+          inProgress: statsRes.inProgress ?? 0,
+          completed: statsRes.completed ?? 0,
+          underReview: statsRes.underReview ?? statsRes.pendingApproval ?? 0,
+          rejected: statsRes.rejected ?? 0
+        });
+      }
+      const items = listRes?.installations || listRes?.items || (Array.isArray(listRes) ? listRes : []);
+      setInstallations(items);
       if (installersRes) setInstallers(installersRes);
     } catch (err) {
       console.error('Failed to load installations data:', err);
@@ -591,7 +602,7 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
                       <div className="text-xs text-slate-500 flex items-center mt-0.5">
                         <MapPin className="w-3 h-3 mr-1 text-slate-400 shrink-0" />
                         <span className="truncate max-w-[200px]">
-                          {item.siteAddress.city || 'Site'}, {item.siteAddress.state || 'Chhattisgarh'}
+                          {item.siteAddress?.city || 'Site'}, {item.siteAddress?.state || 'Chhattisgarh'}
                         </span>
                       </div>
                       {item.customerPhone && (
@@ -603,7 +614,7 @@ export const InstallationsPage: React.FC<InstallationsPageProps> = ({ embedded =
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div className="font-extrabold text-slate-900 flex items-center">
                         <Sun className="w-3.5 h-3.5 mr-1 text-solar-500" />
-                        {item.capacityKw || item.panelDetails?.totalCalculatedKw || 0} kW
+                        {((item as any).systemCapacityKw || item.capacityKw || item.panelDetails?.totalCalculatedKw || (item.panelDetails as any)?.calculatedTotalCapacityKw || 0)} kW
                       </div>
                       <div className="text-[11px] text-slate-500">
                         {item.panelDetails?.totalPanels || 0} Solar Panels
