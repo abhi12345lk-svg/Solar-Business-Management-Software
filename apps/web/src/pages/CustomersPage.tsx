@@ -614,6 +614,26 @@ export const CustomersPage: React.FC = () => {
     };
   }, [previewModal?.viewUrl]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewModal) {
+          setPreviewModal(null);
+        } else if (deleteModalDoc) {
+          setDeleteModalDoc(null);
+        } else if (vaultUploadOpen) {
+          setVaultUploadOpen(false);
+        } else if (vaultCustomer) {
+          setVaultCustomer(null);
+        } else if (selectedCustomer) {
+          setSelectedCustomer(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewModal, deleteModalDoc, vaultUploadOpen, vaultCustomer, selectedCustomer]);
+
   const handleViewDocument = async (doc: any) => {
     try {
       const docId = doc._id || doc.id;
@@ -2196,7 +2216,13 @@ export const CustomersPage: React.FC = () => {
 
       {/* In-App Document Deletion Confirmation Dialog */}
       {deleteModalDoc && (
-        <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-fadeIn">
+        <div
+          className="fixed inset-0 z-100 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-fadeIn"
+          style={{ zIndex: 110 }}
+          onClick={e => {
+            if (e.target === e.currentTarget && !isDeletingDoc) setDeleteModalDoc(null);
+          }}
+        >
           <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
@@ -2248,7 +2274,13 @@ export const CustomersPage: React.FC = () => {
       {/* In-App Document Viewer / Preview Modal                                    */}
       {/* ========================================================================= */}
       {previewModal && previewModal.isOpen && (
-        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+        <div
+          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fadeIn"
+          style={{ zIndex: 100 }}
+          onClick={e => {
+            if (e.target === e.currentTarget) setPreviewModal(null);
+          }}
+        >
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-border">
             {/* Header */}
             <div className="p-3.5 sm:p-4 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 bg-muted/40">

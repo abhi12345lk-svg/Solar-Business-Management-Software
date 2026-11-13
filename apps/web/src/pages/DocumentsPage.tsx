@@ -1439,7 +1439,13 @@ export const DocumentsPage: React.FC = () => {
       {/* Modal: Document Preview / In-App Viewer                                   */}
       {/* ========================================================================= */}
       {previewDoc && previewDoc.isOpen && (
-        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+        <div
+          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fadeIn"
+          style={{ zIndex: 100 }}
+          onClick={e => {
+            if (e.target === e.currentTarget) setPreviewDoc(null);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-200">
             {/* Header */}
             <div className="p-3.5 sm:p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-gray-50/80">
