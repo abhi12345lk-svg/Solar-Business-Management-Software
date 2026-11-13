@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Camera,
   FolderLock,
@@ -27,7 +27,8 @@ import {
   Boxes,
   FilePlus2,
   Scan,
-  ClipboardList
+  ClipboardList,
+  ClipboardCheck
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
@@ -244,11 +245,30 @@ const createEmptySlots = (): Record<PhotoSlotId, PhotoSlotData> => ({
   }
 });
 
-export const SitePhotosPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+export interface SitePhotosPageProps {
+  initialTab?: 'photos' | 'equipment' | 'documents';
+}
 
-  // Active Workstation Tab: 'photos' | 'equipment' | 'documents'
-  const [activeTab, setActiveTab] = useState<'photos' | 'equipment' | 'documents'>('photos');
+export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Active Workstation Tab: determine from prop, pathname or searchParams
+  const getTabFromLocation = (): 'photos' | 'equipment' | 'documents' => {
+    if (initialTab) return initialTab;
+    if (location.pathname.includes('equipment-barcodes')) return 'equipment';
+    if (location.pathname.includes('installation-docs')) return 'documents';
+    const queryTab = searchParams.get('tab');
+    if (queryTab === 'equipment' || queryTab === 'documents' || queryTab === 'photos') return queryTab;
+    return 'photos';
+  };
+
+  const [activeTab, setActiveTab] = useState<'photos' | 'equipment' | 'documents'>(getTabFromLocation);
+
+  useEffect(() => {
+    setActiveTab(getTabFromLocation());
+  }, [location.pathname, initialTab, searchParams]);
 
   // Customer Directory & Selection
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -365,10 +385,14 @@ export const SitePhotosPage: React.FC = () => {
               : [];
         if (isMounted) {
           setCustomers(list);
-          const preselectedCustomerId = searchParams.get('customerId') || '';
+          const preselectedCustomerId =
+            searchParams.get('customerId') ||
+            localStorage.getItem('solar_installer_active_customer_id') ||
+            '';
           if (preselectedCustomerId) {
             const match = list.find(c => (c._id || c.id) === preselectedCustomerId);
             if (match) setSelectedCustomer(match);
+            else if (list.length > 0 && !selectedCustomer) setSelectedCustomer(list[0] || null);
           } else if (list.length > 0 && !selectedCustomer) {
             setSelectedCustomer(list[0] || null);
           }
@@ -404,6 +428,7 @@ export const SitePhotosPage: React.FC = () => {
     if (!selectedCustomer) return;
     const custId = selectedCustomer._id || selectedCustomer.id;
     if (custId) {
+      localStorage.setItem('solar_installer_active_customer_id', custId);
       fetchCustomerDocuments(custId);
     }
 
@@ -1054,19 +1079,33 @@ export const SitePhotosPage: React.FC = () => {
             <div className="flex items-center space-x-3 flex-wrap gap-y-2">
               <div className="flex items-center space-x-2.5">
                 <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
-                  <Camera className="w-5 h-5" />
+                  {activeTab === 'photos' ? (
+                    <Camera className="w-5 h-5" />
+                  ) : activeTab === 'equipment' ? (
+                    <Barcode className="w-5 h-5" />
+                  ) : (
+                    <ClipboardCheck className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <h1 className="text-sm sm:text-base font-black text-foreground tracking-tight whitespace-nowrap">
-                      Installer Workstation &amp; Site Photos
+                      {activeTab === 'photos'
+                        ? '1. Site Inspection Photos'
+                        : activeTab === 'equipment'
+                          ? '2. Equipment & Panel Barcodes'
+                          : '3. After-Installation Documents'}
                     </h1>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/30">
-                      Field Portal
+                      Step {activeTab === 'photos' ? '1' : activeTab === 'equipment' ? '2' : '3'} of 3
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate">
-                    PM Surya Ghar 5-point inspection &amp; DISCOM net metering compliance
+                    {activeTab === 'photos'
+                      ? 'PM Surya Ghar 5-point inspection & DISCOM net metering compliance'
+                      : activeTab === 'equipment'
+                        ? 'Inverter specifications, solar module serial numbers & live barcode scanner'
+                        : 'Handover certificate, JCR, Net Meter test slip & SLD compliance dossiers'}
                   </p>
                 </div>
               </div>
@@ -1091,38 +1130,99 @@ export const SitePhotosPage: React.FC = () => {
 
             {/* Quick Action Buttons */}
             <div className="flex items-center space-x-2 shrink-0 self-end md:self-center">
-              <button
-                type="button"
-                onClick={handleOpenPdfPreview}
-                disabled={generatingPdf}
-                className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
-                title="Preview PDF Document"
-              >
-                {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5 text-solar-600" />}
-                <span className="hidden sm:inline">Preview PDF</span>
-              </button>
+              {activeTab === 'photos' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleOpenPdfPreview}
+                    disabled={generatingPdf}
+                    className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
+                    title="Preview PDF Document"
+                  >
+                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5 text-solar-600" />}
+                    <span className="hidden sm:inline">Preview PDF</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={generatingPdf}
-                className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                title="Download A4 PDF Report"
-              >
-                {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                <span>Download PDF</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadPdf}
+                    disabled={generatingPdf}
+                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Download A4 PDF Report"
+                  >
+                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>Download PDF</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleSaveToVault}
-                disabled={isSavingToVault}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                title="Save into Customer Document Vault"
-              >
-                {isSavingToVault ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
-                <span>Save to Vault</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveToVault}
+                    disabled={isSavingToVault}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Save into Customer Document Vault"
+                  >
+                    {isSavingToVault ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
+                    <span>Save to Vault</span>
+                  </button>
+                </>
+              )}
+
+              {activeTab === 'equipment' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleAddSinglePanel}
+                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                    title="Add One Solar Panel Row"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Panel</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkPasteOpen(true)}
+                    className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer"
+                    title="Bulk Paste Serial Numbers & Barcodes"
+                  >
+                    <ClipboardList className="w-3.5 h-3.5 text-solar-600" />
+                    <span className="hidden sm:inline">Bulk Paste</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveEquipment}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                    title="Save Equipment Register"
+                  >
+                    <FolderLock className="w-3.5 h-3.5" />
+                    <span>Save Equipment</span>
+                  </button>
+                </>
+              )}
+
+              {activeTab === 'documents' && (
+                <>
+                  {selectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={() => fetchCustomerDocuments(selectedCustomer._id || selectedCustomer.id || '')}
+                      disabled={loadingVaultDocs}
+                      className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
+                      title="Refresh Vault Documents"
+                    >
+                      {loadingVaultDocs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5 text-solar-600" />}
+                      <span>Refresh Documents</span>
+                    </button>
+                  )}
+                  <Link
+                    to="/documents"
+                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                  >
+                    <span>Full Vault &rarr;</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -1191,11 +1291,14 @@ export const SitePhotosPage: React.FC = () => {
             </div>
           </div>
 
-          {/* WORKSTATION TABS */}
+          {/* WORKSTATION STEPPER & ROUTE NAVIGATION */}
           <div className="flex items-center space-x-2 border-b border-border pb-1 overflow-x-auto">
             <button
               type="button"
-              onClick={() => setActiveTab('photos')}
+              onClick={() => {
+                setActiveTab('photos');
+                navigate('/site-photos');
+              }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
                 activeTab === 'photos'
                   ? 'bg-solar-600 text-white shadow-xs'
@@ -1203,32 +1306,38 @@ export const SitePhotosPage: React.FC = () => {
               }`}
             >
               <Camera className="w-4 h-4" />
-              <span>1. Site Inspection Photos ({mandatoryUploadedCount}/5 + {extraPhotos.length} Extra)</span>
+              <span>1. Site Inspection Photos ({mandatoryUploadedCount}/5{extraPhotos.length > 0 ? ` + ${extraPhotos.length} Extra` : ''})</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab('equipment')}
+              onClick={() => {
+                setActiveTab('equipment');
+                navigate('/equipment-barcodes');
+              }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
                 activeTab === 'equipment'
                   ? 'bg-solar-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              <Zap className="w-4 h-4" />
+              <Barcode className="w-4 h-4" />
               <span>2. Equipment &amp; Panel Barcodes ({verifiedBarcodesCount}/{panelRows.length})</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab('documents')}
+              onClick={() => {
+                setActiveTab('documents');
+                navigate('/installation-docs');
+              }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-2 cursor-pointer ${
                 activeTab === 'documents'
                   ? 'bg-solar-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              <FileCheck2 className="w-4 h-4" />
+              <ClipboardCheck className="w-4 h-4" />
               <span>3. After-Installation Documents ({customerVaultDocs.length})</span>
             </button>
           </div>

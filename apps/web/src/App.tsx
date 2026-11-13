@@ -354,7 +354,23 @@ export const App: React.FC = () => {
             path="site-photos"
             element={
               <ProtectedRoute>
-                <SitePhotosPage />
+                <SitePhotosPage initialTab="photos" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="equipment-barcodes"
+            element={
+              <ProtectedRoute>
+                <SitePhotosPage initialTab="equipment" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="installation-docs"
+            element={
+              <ProtectedRoute>
+                <SitePhotosPage initialTab="documents" />
               </ProtectedRoute>
             }
           />

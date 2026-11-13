@@ -30,7 +30,9 @@ import {
   ChevronRight,
   FolderLock,
   FilePlus2,
-  Camera
+  Camera,
+  Barcode,
+  ClipboardCheck
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -76,6 +78,9 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'EPC Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
+      { to: '/site-photos', label: '1. Site Inspection Photos', icon: Camera },
+      { to: '/equipment-barcodes', label: '2. Equipment & Barcodes', icon: Barcode },
+      { to: '/installation-docs', label: '3. After-Installation Docs', icon: ClipboardCheck },
       { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -169,13 +174,14 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Hub',
     items: [
       { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
-      { to: '/site-photos', label: 'Site Photos Document', icon: Camera }
+      { to: '/site-photos', label: '1. Site Inspection Photos', icon: Camera },
+      { to: '/equipment-barcodes', label: '2. Equipment & Barcodes', icon: Barcode },
+      { to: '/installation-docs', label: '3. After-Installation Docs', icon: ClipboardCheck }
     ]
   },
   {
     title: 'Site Documents & Compliance',
     items: [
-      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -189,7 +195,9 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };
   }
-  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Photos Document' };
+  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
+  if (pathname.startsWith('/equipment-barcodes')) return { section: 'Field Operations', title: 'Equipment & Barcodes' };
+  if (pathname.startsWith('/installation-docs')) return { section: 'Field Operations', title: 'After-Installation Documents' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
@@ -412,6 +420,12 @@ export const AppLayout: React.FC = () => {
                   }
                   if (item.to === '/site-photos') {
                     return location.pathname === '/site-photos';
+                  }
+                  if (item.to === '/equipment-barcodes') {
+                    return location.pathname === '/equipment-barcodes';
+                  }
+                  if (item.to === '/installation-docs') {
+                    return location.pathname === '/installation-docs';
                   }
                   if (item.to === '/create-document') {
                     return (
