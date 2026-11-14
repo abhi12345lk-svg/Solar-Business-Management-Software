@@ -140,19 +140,24 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
 
 const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Financial & Billing Hub',
+    title: 'Revenue & Collections (Inflow)',
     items: [
       { to: '/', label: 'Accounts Dashboard', icon: LayoutDashboard },
-      { to: '/payments', label: 'Payment Collections & Receipts', icon: CreditCard },
-      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark },
-      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
-      { to: '/expenses', label: 'Expense Vouchers', icon: TrendingUp }
+      { to: '/payments', label: 'Customer Payments & Receipts', icon: CreditCard },
+      { to: '/subsidies', label: 'Govt Subsidy (DBT Claims)', icon: Landmark }
     ]
   },
   {
-    title: 'Financial Compliance',
+    title: 'Payables & Costing (Outflow)',
     items: [
-      { to: '/documents', label: 'Document Vault', icon: FolderLock }
+      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
+      { to: '/expenses', label: 'Expense Vouchers & Cash', icon: TrendingUp }
+    ]
+  },
+  {
+    title: 'Compliance & Audit',
+    items: [
+      { to: '/documents', label: 'Financial Document Vault', icon: FolderLock }
     ]
   }
 ];

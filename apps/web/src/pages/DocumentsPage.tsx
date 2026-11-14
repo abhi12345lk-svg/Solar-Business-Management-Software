@@ -86,6 +86,9 @@ interface CustomerOption {
 }
 
 const SOLAR_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
+  { value: 'TAX_RECEIPT', label: 'GST Tax Invoice & Bills', icon: '🧾', description: 'Tax invoices, bills of supply & vendor bills' },
+  { value: 'INTERNAL_OPERATIONAL', label: 'Payment Vouchers & Accounts Records', icon: '💳', description: 'Bank transaction receipts, vouchers & audit ledgers' },
+  { value: 'SUBSIDY_DOC', label: 'PM Surya Ghar Subsidy Dossier', icon: '☀️', description: 'National CFA subsidy application & sanction letters' },
   { value: 'ELECTRICITY_BILL', label: 'Electricity Bill', icon: '⚡', description: 'Recent DISCOM power tariff bill' },
   { value: 'AADHAAR_CARD', label: 'Aadhaar Card (KYC)', icon: '🪪', description: 'Applicant identity & address proof' },
   { value: 'PAN_CARD', label: 'PAN Card', icon: '💳', description: 'Income Tax PAN card for billing' },
@@ -96,7 +99,6 @@ const SOLAR_CATEGORIES: { value: string; label: string; icon: string; descriptio
   { value: 'QUOTATION_PROPOSAL', label: 'Solar Quotation / Proposal', icon: '📑', description: 'Techno-commercial proposal & plant sizing' },
   { value: 'SIGNED_CONTRACT', label: 'Signed EPC Contract', icon: '🖋️', description: 'Executed turnkey installation agreement' },
   { value: 'NET_METERING_DOC', label: 'Net Metering Application', icon: '🔌', description: 'DISCOM net meter submission & SLD' },
-  { value: 'SUBSIDY_DOC', label: 'PM Surya Ghar Subsidy', icon: '☀️', description: 'National CFA subsidy application dossier' },
   { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty', icon: '📜', description: 'Solar module, inverter & structure warranties' },
   { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report', icon: '📋', description: 'Plant synchronization & test report' },
   { value: 'CUSTOMER_KYC', label: 'General Customer KYC', icon: '👤', description: 'Customer documentation & identity files' },
@@ -549,7 +551,7 @@ export const DocumentsPage: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block mt-0.5">
-              Centralized repository for solar KYC, DISCOM net metering, site photos, and PM Surya Ghar dossiers
+              Centralized repository for financial compliance, GST invoices, subsidy sanction dossiers, and solar contracts
             </p>
           </div>
         </div>

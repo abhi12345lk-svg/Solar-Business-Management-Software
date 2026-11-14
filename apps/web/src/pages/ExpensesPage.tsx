@@ -103,6 +103,7 @@ export const ExpensesPage: React.FC = () => {
   const [activeExpense, setActiveExpense] = useState<ExpenseRecord | null>(null);
 
   // Form State: Record Expense
+  const [projectsList, setProjectsList] = useState<Array<{ _id: string; projectCode: string; name: string }>>([]);
   const [recordForm, setRecordForm] = useState({
     category: 'INSTALLATION_LABOR',
     description: '',
@@ -160,6 +161,15 @@ export const ExpensesPage: React.FC = () => {
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
+
+  useEffect(() => {
+    apiClient<any>('/projects?limit=100')
+      .then(res => {
+        const list = res?.projects || res?.data || (Array.isArray(res) ? res : []);
+        setProjectsList(list);
+      })
+      .catch(() => {});
+  }, []);
 
   // Aggregate metrics
   const totalAmountPaise = expenses.reduce((sum, e) => sum + (e.totalAmountPaise || 0), 0);
@@ -872,28 +882,33 @@ export const ExpensesPage: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
-                    Project ID (Optional)
+                    Linked Solar Project (Optional)
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Project MongoDB ID"
+                  <select
                     value={recordForm.projectId}
                     onChange={e => setRecordForm({ ...recordForm, projectId: e.target.value })}
-                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono text-xs"
-                  />
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+                  >
+                    <option value="">General Overhead (Company / Office)</option>
+                    {projectsList.map(p => (
+                      <option key={p._id} value={p._id}>
+                        {p.projectCode} • {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">
-                  Evidence File Storage Key (Optional)
+                  Receipt / Voucher Reference (Optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. evidence/expenses/receipt-001.pdf"
+                  placeholder="e.g. VOUCHER-2026-089 or Cash Bill Ref"
                   value={recordForm.evidenceKey}
                   onChange={e => setRecordForm({ ...recordForm, evidenceKey: e.target.value })}
-                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono text-xs"
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
 

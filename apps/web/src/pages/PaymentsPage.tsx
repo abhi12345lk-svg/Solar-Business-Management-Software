@@ -177,6 +177,64 @@ export const PaymentsPage: React.FC = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Customer dropdown list for recording payments
+  const [customersList, setCustomersList] = useState<
+    Array<{ _id: string; name: string; customerCode?: string; primaryPhone?: string; city?: string }>
+  >([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+
+  // Customer orders for allocation
+  const [customerOrders, setCustomerOrders] = useState<
+    Array<{
+      _id: string;
+      orderNumber: string;
+      netTotalPaise?: number;
+      allocatedAmountPaise?: number;
+      systemCapacityKwp?: number;
+    }>
+  >([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  const fetchCustomersList = async () => {
+    try {
+      setLoadingCustomers(true);
+      const res = await apiClient<any>('/customers?limit=150');
+      const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
+      setCustomersList(
+        items.map((c: any) => ({
+          _id: c._id || c.id,
+          name: c.name || 'Unnamed Client',
+          customerCode: c.customerCode || '',
+          primaryPhone: c.primaryPhone || '',
+          city: c.installationAddress?.city || ''
+        }))
+      );
+    } catch (err) {
+      console.warn('Failed to load customers for payment dropdown:', err);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  const fetchCustomerOrders = async (customerId?: string) => {
+    if (!customerId) return;
+    try {
+      setLoadingOrders(true);
+      const res = await apiClient<any>(`/orders?customerId=${customerId}&limit=50`);
+      const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
+      setCustomerOrders(items);
+    } catch (err) {
+      console.warn('Failed to load customer orders:', err);
+      setCustomerOrders([]);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomersList();
+  }, []);
+
   // Fetch payments list
   const fetchPayments = useCallback(async () => {
     try {
@@ -432,8 +490,8 @@ export const PaymentsPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Operational realization, atomic receipt sequences, order allocations, and receivables
-            aging statements.
+            Customer advance intake, milestone receipts, bank realization verification, and
+            receivables aging schedule.
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -711,6 +769,7 @@ export const PaymentsPage: React.FC = () => {
                                   amountRupees: (payment.unallocatedAmountPaise / 100).toFixed(2),
                                   notes: ''
                                 });
+                                fetchCustomerOrders(payment.customerId?._id);
                                 setShowAllocateModal(true);
                               }}
                               className="px-2 py-1 bg-solar-600 hover:bg-solar-700 text-white rounded text-xs font-medium transition-colors"
@@ -813,17 +872,44 @@ export const PaymentsPage: React.FC = () => {
 
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Customer ID / Code <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
-                  value={recordForm.customerId}
-                  onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold">
+                    Select Customer / Client <span className="text-destructive">*</span>
+                  </label>
+                  {loadingCustomers && (
+                    <span className="text-[10px] text-muted-foreground flex items-center">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin mr-1" /> Loading clients...
+                    </span>
+                  )}
+                </div>
+                {customersList.length > 0 ? (
+                  <select
+                    required
+                    value={recordForm.customerId}
+                    onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  >
+                    <option value="">-- Choose Client from Directory --</option>
+                    {customersList.map(c => (
+                      <option key={c._id} value={c._id}>
+                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''} {c.city ? `• ${c.city}` : ''} {c.primaryPhone ? `• 📞 ${c.primaryPhone}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
+                    value={recordForm.customerId}
+                    onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  />
+                )}
+                <div className="flex items-center justify-between mt-1 text-[11px] text-muted-foreground">
+                  <span>Client will be credited and an official receipt generated.</span>
+                  {customersList.length > 0 && <span>{customersList.length} clients available</span>}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1018,19 +1104,45 @@ export const PaymentsPage: React.FC = () => {
 
             <form onSubmit={handleAllocatePayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Sales Order ID <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter Sales Order Code (e.g. SO-2026-00001) or ID"
-                  value={allocateForm.salesOrderId}
-                  onChange={e => setAllocateForm({ ...allocateForm, salesOrderId: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold">
+                    Select Sales Order <span className="text-destructive">*</span>
+                  </label>
+                  {loadingOrders && (
+                    <span className="text-[10px] text-muted-foreground flex items-center">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin mr-1" /> Loading orders...
+                    </span>
+                  )}
+                </div>
+                {customerOrders.length > 0 ? (
+                  <select
+                    required
+                    value={allocateForm.salesOrderId}
+                    onChange={e => setAllocateForm({ ...allocateForm, salesOrderId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  >
+                    <option value="">-- Choose Sales Order --</option>
+                    {customerOrders.map(o => {
+                      const balance = Math.max(0, (o.netTotalPaise || 0) - (o.allocatedAmountPaise || 0));
+                      return (
+                        <option key={o._id} value={o._id}>
+                          {o.orderNumber} • {o.systemCapacityKwp || 0} kWp RTS • Outstanding: ₹{(balance / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter Sales Order Code or ID"
+                    value={allocateForm.salesOrderId}
+                    onChange={e => setAllocateForm({ ...allocateForm, salesOrderId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  />
+                )}
                 <span className="text-[11px] text-muted-foreground mt-1 block">
-                  Must belong to customer: <strong>{selectedPayment.customerId?.name}</strong>
+                  Customer: <strong>{selectedPayment.customerId?.name || 'Client'}</strong>
                 </span>
               </div>
 

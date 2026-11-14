@@ -20,7 +20,9 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -62,6 +64,70 @@ export const SubsidyPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 15;
+
+  // DBT Disbursement Modal State
+  const [isDisburseModalOpen, setIsDisburseModalOpen] = useState(false);
+  const [selectedSubsidy, setSelectedSubsidy] = useState<SubsidyRecord | null>(null);
+  const [disburseForm, setDisburseForm] = useState({
+    amountRupees: '',
+    disbursementReference: '',
+    recipientAccount: '',
+    disbursedAt: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+  const [submittingDisburse, setSubmittingDisburse] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const handleOpenDisburseModal = (sub: SubsidyRecord) => {
+    setSelectedSubsidy(sub);
+    const approved = sub.approvedAmountPaise || sub.requestedAmountPaise || 0;
+    const remaining = Math.max(0, approved - (sub.disbursedAmountPaise || 0));
+    setDisburseForm({
+      amountRupees: remaining > 0 ? (remaining / 100).toFixed(2) : (approved / 100).toFixed(2),
+      disbursementReference: `DBT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+      recipientAccount: `Beneficiary Account • ${sub.customerId?.name || 'Consumer'}`,
+      disbursedAt: new Date().toISOString().split('T')[0],
+      notes: 'PM Surya Ghar DBT subsidy credited directly to consumer bank account.'
+    });
+    setIsDisburseModalOpen(true);
+  };
+
+  const handleSubmitDisbursement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubsidy) return;
+    try {
+      setSubmittingDisburse(true);
+      setError(null);
+      const amountPaise = Math.round(parseFloat(disburseForm.amountRupees) * 100);
+      if (isNaN(amountPaise) || amountPaise <= 0) {
+        alert('Please enter a valid disbursement amount.');
+        return;
+      }
+
+      await apiClient(`/subsidies/${selectedSubsidy._id}/disbursements`, {
+        method: 'POST',
+        body: JSON.stringify({
+          disbursementReference: disburseForm.disbursementReference.trim(),
+          amountPaise,
+          disbursedAt: new Date(disburseForm.disbursedAt || Date.now()),
+          paymentMode: 'DIRECT_BENEFIT_TRANSFER',
+          recipientAccount: disburseForm.recipientAccount.trim(),
+          idempotencyKey: `dbt-${selectedSubsidy._id}-${Date.now()}`,
+          notes: disburseForm.notes.trim() || undefined
+        })
+      });
+
+      setActionSuccess(`DBT Disbursement of ₹${disburseForm.amountRupees} recorded successfully!`);
+      setIsDisburseModalOpen(false);
+      setSelectedSubsidy(null);
+      fetchSubsidies();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err: any) {
+      alert(`Failed to record disbursement: ${err.message || 'Error'}`);
+    } finally {
+      setSubmittingDisburse(false);
+    }
+  };
 
   const fetchSubsidies = useCallback(async () => {
     try {
@@ -133,15 +199,29 @@ export const SubsidyPage: React.FC = () => {
               <Landmark className="w-5 h-5" />
             </span>
             <h1 className="text-xl font-extrabold tracking-tight text-foreground">
-              Government Subsidies
+              Government Subsidies &amp; DBT Registry
             </h1>
+            <span className="text-xs px-2 py-0.5 rounded font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              PM Surya Ghar DBT
+            </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             National Rooftop Solar Portal claims, sanctions, and Direct Benefit Transfer (DBT)
-            disbursement registry
+            disbursement verification.
           </p>
         </div>
       </div>
+
+      {/* Action Success Alert */}
+      {actionSuccess && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs flex items-center justify-between shadow-2xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess(null)} className="font-bold cursor-pointer">✕</button>
+        </div>
+      )}
 
       {/* Financial Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -314,16 +394,29 @@ export const SubsidyPage: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">{getStatusBadge(sub.status)}</td>
                     <td className="py-3 px-4 text-right">
-                      {sub.projectId?._id && (
-                        <Link
-                          to={`/projects/${sub.projectId._id}`}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border transition-colors"
-                          title="Open 10-Stage EPC Project"
-                        >
-                          <span>Open Project</span>
-                          <ExternalLink className="w-3 h-3 text-solar-500" />
-                        </Link>
-                      )}
+                      <div className="flex items-center justify-end space-x-1.5">
+                        {sub.status !== 'FULLY_DISBURSED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDisburseModal(sub)}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                            title="Record Direct Benefit Transfer (DBT) Subsidy Credit"
+                          >
+                            <IndianRupee className="w-3 h-3" />
+                            <span>Record DBT</span>
+                          </button>
+                        )}
+                        {sub.projectId?._id && (
+                          <Link
+                            to={`/projects/${sub.projectId._id}`}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border transition-colors"
+                            title="Open 10-Stage EPC Project"
+                          >
+                            <span>Project</span>
+                            <ExternalLink className="w-3 h-3 text-solar-500" />
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -358,6 +451,147 @@ export const SubsidyPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Record DBT Disbursement Modal */}
+      {isDisburseModalOpen && selectedSubsidy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Record DBT Subsidy Credit</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    PM Surya Ghar Muft Bijli Yojana direct benefit transfer
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDisburseModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Beneficiary Summary */}
+            <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Application #:</span>
+                <span className="font-mono font-bold text-foreground">{selectedSubsidy.applicationNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Beneficiary Client:</span>
+                <span className="font-semibold text-foreground">{selectedSubsidy.customerId?.name || 'Consumer'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Portal Scheme:</span>
+                <span className="font-medium text-foreground">{selectedSubsidy.schemeName.replace(/_/g, ' ')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Approved Amount:</span>
+                <span className="font-mono font-bold text-indigo-600">{formatRupees(selectedSubsidy.approvedAmountPaise)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Already Credited:</span>
+                <span className="font-mono font-bold text-emerald-600">{formatRupees(selectedSubsidy.disbursedAmountPaise)}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitDisbursement} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Disbursed Amount (₹) <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    required
+                    value={disburseForm.amountRupees}
+                    onChange={e => setDisburseForm({ ...disburseForm, amountRupees: e.target.value })}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Disbursement Date <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={disburseForm.disbursedAt}
+                    onChange={e => setDisburseForm({ ...disburseForm, disbursedAt: e.target.value })}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Bank UTR / Transaction Reference <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. UTR-SBI-202611-89104"
+                  value={disburseForm.disbursementReference}
+                  onChange={e => setDisburseForm({ ...disburseForm, disbursementReference: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Recipient Bank Account / Account Details <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. SBI A/c ending 4589"
+                  value={disburseForm.recipientAccount}
+                  onChange={e => setDisburseForm({ ...disburseForm, recipientAccount: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Disbursement Remarks &amp; Audit Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={disburseForm.notes}
+                  onChange={e => setDisburseForm({ ...disburseForm, notes: e.target.value })}
+                  placeholder="e.g. Verified from PM Surya Ghar national portal DBT confirmation sheet"
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2.5 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsDisburseModalOpen(false)}
+                  className="px-4 py-2 text-xs text-muted-foreground hover:bg-muted rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingDisburse}
+                  className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {submittingDisburse ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <IndianRupee className="w-3.5 h-3.5" />}
+                  <span>{submittingDisburse ? 'Recording...' : 'Confirm DBT Credit'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Search, Plus, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import {
+  Receipt,
+  Search,
+  Plus,
+  CheckCircle2,
+  AlertTriangle,
+  Clock
+} from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface VendorInvoiceItem {
@@ -217,27 +224,118 @@ export function VendorInvoicesPage() {
     }
   };
 
+  // Financial aggregates
+  const totalBilledPaise = invoices.reduce((sum, inv) => sum + (inv.totalAmountPaise || 0), 0);
+  const totalPaidPaise = invoices.reduce((sum, inv) => sum + (inv.paidAmountPaise || 0), 0);
+  const totalBalancePayablePaise = invoices.reduce(
+    (sum, inv) => sum + (inv.balancePayablePaise || 0),
+    0
+  );
+  const pendingReconcileCount = invoices.filter(
+    inv => inv.status !== 'RECONCILED' && inv.status !== 'CANCELLED'
+  ).length;
+
+  const formatINR = (paise: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2
+    }).format((paise || 0) / 100);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border rounded-xl p-6 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="w-7 h-7 text-primary" />
-            Vendor Invoices & Payables
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Record supplier tax invoices, perform automated 3-way matching against POs & GRNs, and
-            monitor accounts payable balances.
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-solar-500/10 rounded-lg text-solar-600">
+              <Receipt className="w-6 h-6" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
+              <span>Vendor Invoices & Payables</span>
+              <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+                Accounts Payable
+              </span>
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Record supplier equipment tax invoices, audit rates against purchase orders, and monitor
+            accounts payable clearance.
           </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 shadow-sm transition"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-medium text-sm shadow-sm transition"
         >
           <Plus className="w-4 h-4" />
-          Register Invoice
+          <span>Register Invoice</span>
         </button>
+      </div>
+
+      {/* Financial KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Invoiced Value
+            </span>
+            <div className="p-2 bg-indigo-500/10 text-indigo-600 rounded-lg">
+              <Receipt className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-foreground">{formatINR(totalBilledPaise)}</p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            {invoices.length} supplier invoices logged
+          </span>
+        </div>
+
+        <div className="bg-card border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Paid to Vendors
+            </span>
+            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-foreground">{formatINR(totalPaidPaise)}</p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Disbursed vendor payments
+          </span>
+        </div>
+
+        <div className="bg-card border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Outstanding Payables
+            </span>
+            <div className="p-2 bg-rose-500/10 text-rose-600 rounded-lg">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-rose-600">
+            {formatINR(totalBalancePayablePaise)}
+          </p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Remaining vendor dues to settle
+          </span>
+        </div>
+
+        <div className="bg-card border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Audit Pending
+            </span>
+            <div className="p-2 bg-amber-500/10 text-amber-600 rounded-lg">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-foreground">{pendingReconcileCount}</p>
+          <span className="text-xs text-muted-foreground mt-1 block">
+            Awaiting bill reconciliation
+          </span>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -289,7 +387,7 @@ export function VendorInvoicesPage() {
                 <th className="py-3 px-4">Bill Date</th>
                 <th className="py-3 px-4">Gross Amount</th>
                 <th className="py-3 px-4">Payable Balance</th>
-                <th className="py-3 px-4">3-Way Match Status</th>
+                <th className="py-3 px-4">Audit &amp; Reconciliation Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
