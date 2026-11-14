@@ -21,7 +21,11 @@ import {
   AlertCircle,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  X,
+  RefreshCw,
+  Edit3
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -48,10 +52,16 @@ interface NetMeteringRecord {
   inspectionSchedule?: {
     scheduledDate?: string;
     outcome?: string;
+    officerName?: string;
   };
   meterInstallation?: {
     meterInstalled?: boolean;
     meterNumber?: string;
+    installationDate?: string;
+    initialImportReadingKwh?: number;
+    initialExportReadingKwh?: number;
+    testedBy?: string;
+    notes?: string;
   };
   createdAt: string;
 }
@@ -68,6 +78,64 @@ export const NetMeteringPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 15;
+
+  // Bi-directional Meter (BM) Modal State
+  const [selectedAppForMeter, setSelectedAppForMeter] = useState<NetMeteringRecord | null>(null);
+  const [showMeterModal, setShowMeterModal] = useState(false);
+  const [meterForm, setMeterForm] = useState({
+    meterNumber: '',
+    installationDate: new Date().toISOString().split('T')[0],
+    initialImportReadingKwh: 0,
+    initialExportReadingKwh: 0,
+    testedBy: '',
+    notes: ''
+  });
+  const [submittingMeter, setSubmittingMeter] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const handleOpenMeterModal = (app: NetMeteringRecord) => {
+    setSelectedAppForMeter(app);
+    setMeterForm({
+      meterNumber: app.meterInstallation?.meterNumber || '',
+      installationDate: app.meterInstallation?.installationDate
+        ? new Date(app.meterInstallation.installationDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
+      initialImportReadingKwh: app.meterInstallation?.initialImportReadingKwh ?? 0,
+      initialExportReadingKwh: app.meterInstallation?.initialExportReadingKwh ?? 0,
+      testedBy: app.meterInstallation?.testedBy || '',
+      notes: app.meterInstallation?.notes || ''
+    });
+    setShowMeterModal(true);
+  };
+
+  const handleSaveMeterInstallation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAppForMeter) return;
+    try {
+      setSubmittingMeter(true);
+      setError(null);
+      await apiClient(`/net-metering/${selectedAppForMeter._id}/meter-installation`, {
+        method: 'POST',
+        body: JSON.stringify({
+          meterNumber: meterForm.meterNumber.trim(),
+          installationDate: meterForm.installationDate,
+          initialImportReadingKwh: Number(meterForm.initialImportReadingKwh) || 0,
+          initialExportReadingKwh: Number(meterForm.initialExportReadingKwh) || 0,
+          testedBy: meterForm.testedBy.trim() || undefined,
+          notes: meterForm.notes.trim() || undefined
+        })
+      });
+      setActionSuccess(`Bi-directional Net Meter (BM: ${meterForm.meterNumber.trim()}) successfully recorded!`);
+      setShowMeterModal(false);
+      setSelectedAppForMeter(null);
+      fetchApplications();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err: any) {
+      alert(err?.response?.data?.error?.message || err?.message || 'Failed to record meter installation.');
+    } finally {
+      setSubmittingMeter(false);
+    }
+  };
 
   const fetchApplications = useCallback(async () => {
     try {
@@ -143,6 +211,19 @@ export const NetMeteringPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Action Success Alert */}
+      {actionSuccess && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs flex items-center justify-between shadow-2xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess(null)} className="font-bold ml-2">
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border rounded-xl p-4 shadow-sm space-y-1">
@@ -176,13 +257,13 @@ export const NetMeteringPage: React.FC = () => {
 
         <div className="bg-card border rounded-xl p-4 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold">Meters Installed</span>
+            <span className="text-xs font-semibold">BM Meters Active</span>
             <Gauge className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-emerald-700 tracking-tight">
             {meterInstalledCount}
           </p>
-          <span className="text-[11px] text-muted-foreground">Synchronized to grid</span>
+          <span className="text-[11px] text-muted-foreground">Bi-directional grid synchronized</span>
         </div>
       </div>
 
@@ -197,7 +278,7 @@ export const NetMeteringPage: React.FC = () => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by application #, consumer number, or DISCOM..."
+            placeholder="Search by consumer #, BP number, BM meter no., or DISCOM..."
             className="w-full pl-9 pr-3 py-2 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500/20"
           />
         </div>
@@ -267,11 +348,11 @@ export const NetMeteringPage: React.FC = () => {
                   <th className="py-3 px-4">Application #</th>
                   <th className="py-3 px-4">Project & Customer</th>
                   <th className="py-3 px-4">DISCOM & Division</th>
-                  <th className="py-3 px-4">Consumer #</th>
+                  <th className="py-3 px-4">Consumer / BP #</th>
                   <th className="py-3 px-4">Capacity</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Inspection</th>
-                  <th className="py-3 px-4">Net Meter</th>
+                  <th className="py-3 px-4">Bi-directional Meter (BM No.)</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -334,12 +415,37 @@ export const NetMeteringPage: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       {app.meterInstallation?.meterInstalled ? (
-                        <span className="text-emerald-600 font-semibold flex items-center text-[11px]">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Installed
-                        </span>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="inline-flex items-center text-emerald-700 dark:text-emerald-400 font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+                              <CheckCircle2 className="w-3 h-3 mr-1 shrink-0 text-emerald-600" />
+                              BM: {app.meterInstallation.meterNumber}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenMeterModal(app)}
+                              className="text-muted-foreground hover:text-solar-600 p-0.5 cursor-pointer"
+                              title="Edit BM Details"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            Imp: {app.meterInstallation.initialImportReadingKwh ?? 0} | Exp: {app.meterInstallation.initialExportReadingKwh ?? 0} kWh
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-muted-foreground text-[11px]">Pending</span>
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-muted-foreground block">Pending Net Meter</span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenMeterModal(app)}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/30 transition cursor-pointer"
+                            title="Record DISCOM Bi-directional Meter (BM Number)"
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Record BM No.
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -388,6 +494,170 @@ export const NetMeteringPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Record / Update Bi-directional Net Meter (BM) Modal */}
+      {showMeterModal && selectedAppForMeter && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between p-5 border-b">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-600">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-foreground">
+                    Record Bi-directional Meter (BM Number)
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Consumer / BP: <strong className="font-mono text-foreground">{selectedAppForMeter.consumerNumber}</strong> • {selectedAppForMeter.discomName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMeterModal(false);
+                  setSelectedAppForMeter(null);
+                }}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-muted/40 border-b text-[11px] text-muted-foreground space-y-1">
+              <div className="flex items-center text-foreground font-semibold">
+                <Zap className="w-3.5 h-3.5 text-solar-500 mr-1 shrink-0" />
+                <span>DISCOM Net-Metering Synchronization</span>
+              </div>
+              <p>
+                Bi-directional Net Meter (BM) is physically installed by DISCOM / utility line staff after solar plant installation is completed and field inspection passes. It records bidirectional grid power flow (Import &amp; Export kWh).
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveMeterInstallation} className="p-5 space-y-4 text-xs overflow-y-auto">
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground block">
+                  BM Number (Bi-directional / Net Meter Serial No.) <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={meterForm.meterNumber}
+                  onChange={e => setMeterForm({ ...meterForm, meterNumber: e.target.value })}
+                  placeholder="e.g. L&T-BM-981240 or SECURE-BM-0198"
+                  className="w-full px-3 py-2 bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+                <span className="text-[10px] text-muted-foreground">
+                  Unique barcode or serial number stamped on newly installed physical net meter.
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground block">
+                  Meter Installation Date <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={meterForm.installationDate}
+                  onChange={e => setMeterForm({ ...meterForm, installationDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-foreground block">
+                    Initial Import Reading (kWh)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={meterForm.initialImportReadingKwh}
+                    onChange={e =>
+                      setMeterForm({
+                        ...meterForm,
+                        initialImportReadingKwh: Number(e.target.value)
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono text-foreground focus:ring-2 focus:ring-solar-500"
+                  />
+                  <span className="text-[10px] text-muted-foreground">Power drawn from grid at start</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-foreground block">
+                    Initial Export Reading (kWh)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={meterForm.initialExportReadingKwh}
+                    onChange={e =>
+                      setMeterForm({
+                        ...meterForm,
+                        initialExportReadingKwh: Number(e.target.value)
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono text-foreground focus:ring-2 focus:ring-solar-500"
+                  />
+                  <span className="text-[10px] text-muted-foreground">Solar power sent to grid (0.0)</span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground block">
+                  DISCOM Testing Officer / Commissioning Engineer
+                </label>
+                <input
+                  type="text"
+                  value={meterForm.testedBy}
+                  onChange={e => setMeterForm({ ...meterForm, testedBy: e.target.value })}
+                  placeholder="e.g. Er. Rajesh Verma (JE CSPDCL Raipur)"
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground block">
+                  Commissioning Remarks &amp; Meter Seal Details
+                </label>
+                <textarea
+                  rows={2}
+                  value={meterForm.notes}
+                  onChange={e => setMeterForm({ ...meterForm, notes: e.target.value })}
+                  placeholder="e.g. Polycarbonate meter seal #771239 applied by DISCOM AE."
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMeterModal(false);
+                    setSelectedAppForMeter(null);
+                  }}
+                  className="px-4 py-2 border rounded-xl text-foreground hover:bg-muted font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingMeter}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {submittingMeter ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Gauge className="w-3.5 h-3.5" />}
+                  <span>{submittingMeter ? 'Saving BM Meter...' : 'Save BM Meter Record'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

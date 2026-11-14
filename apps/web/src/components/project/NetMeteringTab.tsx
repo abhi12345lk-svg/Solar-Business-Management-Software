@@ -137,6 +137,31 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     fileSize: 1024 * 300
   });
 
+  const handleOpenMeterModal = () => {
+    if (selectedApp?.meterInstallation) {
+      setMeterForm({
+        meterNumber: selectedApp.meterInstallation.meterNumber || '',
+        installationDate: selectedApp.meterInstallation.installationDate
+          ? new Date(selectedApp.meterInstallation.installationDate).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
+        initialImportReadingKwh: selectedApp.meterInstallation.initialImportReadingKwh ?? 0,
+        initialExportReadingKwh: selectedApp.meterInstallation.initialExportReadingKwh ?? 0,
+        testedBy: (selectedApp.meterInstallation as any).testedBy || '',
+        notes: (selectedApp.meterInstallation as any).notes || ''
+      });
+    } else {
+      setMeterForm({
+        meterNumber: '',
+        installationDate: new Date().toISOString().split('T')[0],
+        initialImportReadingKwh: 0,
+        initialExportReadingKwh: 0,
+        testedBy: '',
+        notes: ''
+      });
+    }
+    setShowMeterModal(true);
+  };
+
   const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
@@ -452,14 +477,15 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                       Record Inspection Outcome
                     </button>
                   )}
-                  {selectedApp.status === 'APPROVED' &&
+                  {(selectedApp.status === 'APPROVED' || selectedApp.inspectionSchedule?.outcome === 'PASSED') &&
                     !selectedApp.meterInstallation?.meterInstalled && (
                       <button
-                        onClick={() => setShowMeterModal(true)}
-                        className="px-3 py-1.5 rounded-lg bg-solar-600 text-white text-xs font-semibold hover:bg-solar-700 transition-colors flex items-center"
+                        type="button"
+                        onClick={handleOpenMeterModal}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center shadow-xs cursor-pointer"
                       >
                         <Gauge className="w-3.5 h-3.5 mr-1" />
-                        Install Net Meter
+                        Record BM Number (Net Meter)
                       </button>
                     )}
                 </div>
@@ -489,9 +515,9 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                   <span className="text-muted-foreground">Net Meter Status</span>
                   <p className="font-bold text-foreground text-sm">
                     {selectedApp.meterInstallation?.meterInstalled ? (
-                      <span className="text-emerald-600 flex items-center">
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                        Installed ({selectedApp.meterInstallation.meterNumber})
+                      <span className="text-emerald-600 flex items-center font-semibold">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                        BM: {selectedApp.meterInstallation.meterNumber}
                       </span>
                     ) : (
                       <span className="text-amber-600">Pending Installation</span>
@@ -499,6 +525,38 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* Dedicated Bi-directional Net Meter (BM) Card */}
+              {selectedApp.meterInstallation?.meterInstalled && (
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <Gauge className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-bold text-foreground">Bi-directional Net Meter (BM) Synchronized</span>
+                      <span className="px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs">
+                        BM: {selectedApp.meterInstallation.meterNumber}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-[11px]">
+                      Installed: <strong>{selectedApp.meterInstallation.installationDate ? new Date(selectedApp.meterInstallation.installationDate).toLocaleDateString('en-IN') : 'Recent'}</strong>
+                      {' • '}Initial Import: <strong className="font-mono">{selectedApp.meterInstallation.initialImportReadingKwh ?? 0} kWh</strong>
+                      {' • '}Initial Export: <strong className="font-mono">{selectedApp.meterInstallation.initialExportReadingKwh ?? 0} kWh</strong>
+                      {(selectedApp.meterInstallation as any).testedBy && (
+                        <> • Testing Eng: <strong>{(selectedApp.meterInstallation as any).testedBy}</strong></>
+                      )}
+                    </p>
+                  </div>
+                  {!isTerminal && (
+                    <button
+                      type="button"
+                      onClick={handleOpenMeterModal}
+                      className="px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold shrink-0 cursor-pointer"
+                    >
+                      Update BM Details
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Inspection Outcome Alert if Present */}
               {selectedApp.inspectionSchedule?.scheduledDate && (
@@ -905,44 +963,57 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
           <div className="bg-card border rounded-2xl w-full max-w-md shadow-xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-5 border-b">
-              <h3 className="font-bold text-sm text-foreground">Record Bi-Directional Net Meter</h3>
+              <div>
+                <h3 className="font-bold text-sm text-foreground">Record Bi-directional Meter (BM Number)</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Consumer / BP: <strong className="font-mono text-foreground">{selectedApp?.consumerNumber || 'N/A'}</strong> • {selectedApp?.discomName || 'DISCOM'}
+                </p>
+              </div>
               <button
                 onClick={() => setShowMeterModal(false)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleRecordMeter} className="p-5 space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Meter Serial Number</label>
+                <label className="font-semibold text-foreground block">
+                  BM Number (Bi-directional / Net Meter Serial No.) <span className="text-destructive">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={meterForm.meterNumber}
                   onChange={e => setMeterForm({ ...meterForm, meterNumber: e.target.value })}
-                  placeholder="e.g. MTR-L&T-2026-99"
-                  className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
+                  placeholder="e.g. L&T-BM-981240 or SECURE-BM-0198"
+                  className="w-full px-3 py-2 bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
                 />
+                <span className="text-[10px] text-muted-foreground">
+                  Unique barcode or serial number stamped on newly installed physical net meter.
+                </span>
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Installation Date</label>
+                <label className="font-semibold text-foreground block">
+                  Installation Date <span className="text-destructive">*</span>
+                </label>
                 <input
                   type="date"
                   required
                   value={meterForm.installationDate}
                   onChange={e => setMeterForm({ ...meterForm, installationDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-background border rounded-lg"
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">
+                  <label className="font-semibold text-foreground block">
                     Initial Import Reading (kWh)
                   </label>
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
                     value={meterForm.initialImportReadingKwh}
                     onChange={e =>
                       setMeterForm({
@@ -950,16 +1021,18 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                         initialImportReadingKwh: Number(e.target.value)
                       })
                     }
-                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
+                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono text-foreground focus:ring-2 focus:ring-solar-500"
                   />
+                  <span className="text-[10px] text-muted-foreground">Grid power drawn at start</span>
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-foreground">
+                  <label className="font-semibold text-foreground block">
                     Initial Export Reading (kWh)
                   </label>
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
                     value={meterForm.initialExportReadingKwh}
                     onChange={e =>
                       setMeterForm({
@@ -967,35 +1040,48 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                         initialExportReadingKwh: Number(e.target.value)
                       })
                     }
-                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono"
+                    className="w-full px-3 py-2 bg-background border rounded-lg font-mono text-foreground focus:ring-2 focus:ring-solar-500"
                   />
+                  <span className="text-[10px] text-muted-foreground">Solar power sent to grid (0.0)</span>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">
+                <label className="font-semibold text-foreground block">
                   Commissioning Engineer / Tested By
                 </label>
                 <input
                   type="text"
                   value={meterForm.testedBy}
                   onChange={e => setMeterForm({ ...meterForm, testedBy: e.target.value })}
-                  placeholder="Name of installer or DISCOM technician"
-                  className="w-full px-3 py-2 bg-background border rounded-lg"
+                  placeholder="e.g. Er. Rajesh Verma (JE CSPDCL Raipur)"
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground block">
+                  Commissioning Remarks &amp; Meter Seal Details
+                </label>
+                <textarea
+                  rows={2}
+                  value={meterForm.notes}
+                  onChange={e => setMeterForm({ ...meterForm, notes: e.target.value })}
+                  placeholder="e.g. Polycarbonate meter seal #771239 applied by DISCOM AE."
+                  className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
                 />
               </div>
               <div className="flex justify-end space-x-2 pt-2 border-t">
                 <button
                   type="button"
                   onClick={() => setShowMeterModal(false)}
-                  className="px-4 py-2 border rounded-lg text-foreground hover:bg-muted"
+                  className="px-4 py-2 border rounded-lg text-foreground hover:bg-muted cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-solar-600 text-white rounded-lg hover:bg-solar-700 font-semibold"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold cursor-pointer shadow-xs transition"
                 >
-                  Save Meter Installation
+                  Save BM Meter Record
                 </button>
               </div>
             </form>
