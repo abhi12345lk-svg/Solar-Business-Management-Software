@@ -30,7 +30,8 @@ import {
   FilePlus2,
   Camera,
   Barcode,
-  ClipboardCheck
+  ClipboardCheck,
+  PackageCheck
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -152,6 +153,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     title: 'Payables & Costing (Outflow)',
     items: [
       { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
+      { to: '/purchase-orders', label: 'Approved Purchase Orders', icon: PackageCheck },
       { to: '/expenses', label: 'Expense Vouchers & Cash', icon: TrendingUp }
     ]
   },

@@ -119,3 +119,32 @@ vendorInvoiceRouter.post(
     }
   }
 );
+
+/**
+ * POST /api/v1/vendor-invoices/:id/payments
+ * Record payment disbursement against a vendor invoice.
+ */
+vendorInvoiceRouter.post(
+  '/:id/payments',
+  requirePermission('vendor_invoice:update'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      const invoice = await VendorInvoiceService.recordPayment(
+        req.params.id as string,
+        req.body,
+        user,
+        context
+      );
+      return sendSuccess(req, res, invoice);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);

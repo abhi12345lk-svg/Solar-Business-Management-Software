@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Receipt,
   Search,
@@ -26,7 +27,8 @@ import {
   IndianRupee,
   Clock,
   ShieldCheck,
-  Ban
+  Ban,
+  ExternalLink
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -139,17 +141,13 @@ export const ExpensesPage: React.FC = () => {
       if (selectedStatus) params.append('status', selectedStatus);
       if (selectedPaymentStatus) params.append('paymentStatus', selectedPaymentStatus);
 
-      const res = await apiClient<{
-        data: ExpenseRecord[];
-        total: number;
-        page: number;
-        totalPages: number;
-      }>(`/expenses?${params.toString()}`);
+      const res = await apiClient<any>(`/expenses?${params.toString()}`);
 
       if (res) {
-        setExpenses(res.data || []);
-        setTotalPages(res.totalPages || 1);
-        setTotalCount(res.total || 0);
+        const list = Array.isArray(res) ? res : res?.data?.data || res?.data || res?.items || [];
+        setExpenses(Array.isArray(list) ? list : []);
+        setTotalPages(res.totalPages || res?.data?.totalPages || 1);
+        setTotalCount(res.total ?? res?.data?.total ?? list.length);
       }
     } catch (err: any) {
       setError(err?.response?.data?.error?.message || err?.message || 'Failed to load expenses.');
@@ -165,8 +163,8 @@ export const ExpensesPage: React.FC = () => {
   useEffect(() => {
     apiClient<any>('/projects?limit=100')
       .then(res => {
-        const list = res?.projects || res?.data || (Array.isArray(res) ? res : []);
-        setProjectsList(list);
+        const list = res?.projects || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
+        setProjectsList(Array.isArray(list) ? list : []);
       })
       .catch(() => {});
   }, []);
@@ -657,10 +655,15 @@ export const ExpensesPage: React.FC = () => {
                     <td className="py-3 px-4">
                       {exp.projectId ? (
                         <div className="text-xs">
-                          <span className="font-mono font-semibold text-foreground">
-                            {exp.projectId.projectCode}
-                          </span>
-                          <span className="block text-muted-foreground truncate max-w-[120px]">
+                          <Link
+                            to={`/projects/${(exp.projectId as any)._id || exp.projectId}?tab=costing`}
+                            className="font-mono font-semibold text-solar-600 hover:text-solar-700 hover:underline inline-flex items-center gap-1"
+                            title="Open Project Costing & Profitability Tab"
+                          >
+                            <span>{exp.projectId.projectCode}</span>
+                            <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                          </Link>
+                          <span className="block text-muted-foreground truncate max-w-[140px]">
                             {exp.projectId.name}
                           </span>
                         </div>

@@ -217,4 +217,58 @@ export class VendorInvoiceService {
     }
     return invoice;
   }
+
+  /**
+   * Record payment disbursement against a vendor invoice.
+   */
+  public static async recordPayment(
+    id: string,
+    input: { amountPaise: number; paymentMethod?: string; paymentReference?: string; notes?: string },
+    user: { userId: string; role: UserRole },
+    context: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ): Promise<IVendorInvoiceDocument> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw AppError.validation('Invalid Vendor Invoice ID.');
+    }
+    const invoice = await VendorInvoice.findById(id);
+    if (!invoice) {
+      throw AppError.notFound('Vendor Invoice not found.');
+    }
+
+    const payAmt = Math.min(input.amountPaise, invoice.balancePayablePaise);
+    if (payAmt <= 0) {
+      throw AppError.validation('Invoice has no outstanding balance payable.');
+    }
+
+    invoice.paidAmountPaise += payAmt;
+    invoice.balancePayablePaise = Math.max(0, invoice.totalAmountPaise - invoice.paidAmountPaise);
+    if (invoice.balancePayablePaise === 0 && invoice.status !== VendorInvoiceStatus.DISPUTED) {
+      invoice.status = VendorInvoiceStatus.RECONCILED;
+    }
+    const payNote = `Payment of ₹${(payAmt / 100).toFixed(2)} disbursed (${input.paymentMethod || 'Bank Transfer'}${input.paymentReference ? ` Ref: ${input.paymentReference}` : ''}).`;
+    invoice.reconciliationNotes = invoice.reconciliationNotes
+      ? `${invoice.reconciliationNotes} | ${payNote}`
+      : payNote;
+
+    await invoice.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.PAYMENT_RECORDED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      correlationId: context.correlationId || 'vinv-pay',
+      details: {
+        vendorInvoiceId: invoice._id.toString(),
+        vendorInvoiceNumber: invoice.vendorInvoiceNumber,
+        paidAmountPaise: payAmt,
+        paymentReference: input.paymentReference,
+        newBalancePayablePaise: invoice.balancePayablePaise
+      }
+    });
+
+    return invoice;
+  }
 }

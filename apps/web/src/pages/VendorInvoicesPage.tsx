@@ -45,10 +45,24 @@ export function VendorInvoicesPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<VendorInvoiceItem | null>(null);
+  const [selectedPayInvoice, setSelectedPayInvoice] = useState<VendorInvoiceItem | null>(null);
+  const [selectedDetailInvoice, setSelectedDetailInvoice] = useState<any | null>(null);
   const [reconcileStatus, setReconcileStatus] = useState('RECONCILED');
   const [reconcileNotes, setReconcileNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // Pay Bill Form State
+  const [payFormData, setPayFormData] = useState({
+    amountInr: '',
+    paymentMethod: 'BANK_TRANSFER',
+    paymentReference: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
 
   // Form State
   const [vendorsList, setVendorsList] = useState<any[]>([]);
@@ -157,11 +171,69 @@ export function VendorInvoicesPage() {
         documentUrl: ''
       });
       await fetchInvoices();
+      setActionSuccess('Vendor Tax Invoice registered successfully with 3-way reconciliation audit!');
+      setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
       setError(err.message || 'Failed to register vendor invoice');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleOpenPayModal = (inv: VendorInvoiceItem) => {
+    setSelectedPayInvoice(inv);
+    const balanceInr = (inv.balancePayablePaise / 100).toFixed(2);
+    setPayFormData({
+      amountInr: balanceInr,
+      paymentMethod: 'BANK_TRANSFER',
+      paymentReference: `RTGS-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+      paymentDate: new Date().toISOString().split('T')[0],
+      notes: `Payout against vendor bill ${inv.vendorInvoiceNumber}`
+    });
+    setIsPayModalOpen(true);
+  };
+
+  const handleRecordBillPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPayInvoice) return;
+    try {
+      setSubmitting(true);
+      const amountPaise = Math.round(Number(payFormData.amountInr) * 100);
+      if (isNaN(amountPaise) || amountPaise <= 0) {
+        alert('Please enter a valid disbursement amount.');
+        return;
+      }
+
+      await apiClient(`/vendor-invoices/${selectedPayInvoice._id}/payments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amountPaise,
+          paymentMethod: payFormData.paymentMethod,
+          paymentReference: payFormData.paymentReference.trim() || undefined,
+          notes: payFormData.notes.trim() || undefined
+        })
+      });
+
+      setActionSuccess(`Vendor bill payment of ₹${payFormData.amountInr} disbursed successfully!`);
+      setIsPayModalOpen(false);
+      setSelectedPayInvoice(null);
+      await fetchInvoices();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err: any) {
+      alert(`Failed to record bill payment: ${err.message || 'Error'}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenDetailModal = async (inv: VendorInvoiceItem) => {
+    try {
+      const res = await apiClient<any>(`/vendor-invoices/${inv._id}`);
+      setSelectedDetailInvoice(res || inv);
+    } catch {
+      setSelectedDetailInvoice(inv);
+    }
+    setIsDetailModalOpen(true);
   };
 
   const handleReconcileSubmit = async (e: React.FormEvent) => {
@@ -368,6 +440,17 @@ export function VendorInvoicesPage() {
         </div>
       </div>
 
+      {/* Action Success Alert */}
+      {actionSuccess && (
+        <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess(null)} className="cursor-pointer font-bold">✕</button>
+        </div>
+      )}
+
       {/* Error Alert */}
       {error && (
         <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm">
@@ -443,17 +526,38 @@ export function VendorInvoicesPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedInvoice(inv);
-                          setReconcileStatus(inv.status);
-                          setReconcileNotes(inv.reconciliationNotes || '');
-                          setIsReconcileModalOpen(true);
-                        }}
-                        className="text-xs text-primary hover:underline font-medium"
-                      >
-                        Reconcile
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetailModal(inv)}
+                          className="px-2.5 py-1 text-xs rounded-md bg-secondary hover:bg-secondary/80 text-foreground font-semibold border transition"
+                          title="View 3-Way Match & Delivery Reconciliation"
+                        >
+                          3-Way Match
+                        </button>
+                        {inv.balancePayablePaise > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPayModal(inv)}
+                            className="px-2.5 py-1 text-xs rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs"
+                            title="Disburse Payment against Bill"
+                          >
+                            Pay Bill
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedInvoice(inv);
+                            setReconcileStatus(inv.status);
+                            setReconcileNotes(inv.reconciliationNotes || '');
+                            setIsReconcileModalOpen(true);
+                          }}
+                          className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground font-medium"
+                        >
+                          Reconcile
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -489,7 +593,14 @@ export function VendorInvoicesPage() {
                   <select
                     required
                     value={formData.vendorId}
-                    onChange={e => setFormData({ ...formData, vendorId: e.target.value })}
+                    onChange={e => {
+                      const vId = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        vendorId: vId,
+                        purchaseOrderId: ''
+                      }));
+                    }}
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none text-xs"
                   >
                     <option value="">-- Choose Vendor --</option>
@@ -509,28 +620,37 @@ export function VendorInvoicesPage() {
                     onChange={e => {
                       const pId = e.target.value;
                       const matchedPO = poList.find(p => p._id === pId);
-                      setFormData({
-                        ...formData,
+                      const resolvedVendorId = matchedPO?.vendorId?._id || matchedPO?.vendorId || formData.vendorId;
+                      const poSubtotal = matchedPO?.subtotalPaise
+                        ? matchedPO.subtotalPaise / 100
+                        : matchedPO ? Math.round((matchedPO.totalAmountPaise / 100) / 1.18 * 100) / 100 : formData.subtotalInr;
+                      const poTax = matchedPO?.totalTaxPaise
+                        ? matchedPO.totalTaxPaise / 100
+                        : matchedPO ? Math.round(((matchedPO.totalAmountPaise / 100) - poSubtotal) * 100) / 100 : formData.taxAmountInr;
+                      const poTotal = matchedPO
+                        ? matchedPO.totalAmountPaise / 100
+                        : formData.totalAmountInr;
+
+                      setFormData(prev => ({
+                        ...prev,
                         purchaseOrderId: pId,
-                        subtotalInr: matchedPO
-                          ? matchedPO.subtotalPaise / 100
-                          : formData.subtotalInr,
-                        taxAmountInr: matchedPO
-                          ? matchedPO.totalTaxPaise / 100
-                          : formData.taxAmountInr,
-                        totalAmountInr: matchedPO
-                          ? matchedPO.totalAmountPaise / 100
-                          : formData.totalAmountInr
-                      });
+                        vendorId: resolvedVendorId || prev.vendorId,
+                        subtotalInr: poSubtotal,
+                        taxAmountInr: poTax,
+                        totalAmountInr: poTotal,
+                        vendorInvoiceNumber: prev.vendorInvoiceNumber || (matchedPO ? `INV-${matchedPO.poNumber?.replace('PO-', '')}` : '')
+                      }));
                     }}
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none text-xs"
                   >
                     <option value="">-- Direct Invoice / No PO --</option>
-                    {poList.map(p => (
-                      <option key={p._id} value={p._id}>
-                        {p.poNumber} — ₹{(p.totalAmountPaise / 100).toFixed(2)}
-                      </option>
-                    ))}
+                    {poList
+                      .filter(p => !formData.vendorId || (p.vendorId?._id === formData.vendorId || p.vendorId === formData.vendorId))
+                      .map(p => (
+                        <option key={p._id} value={p._id}>
+                          {p.poNumber} — ₹{(p.totalAmountPaise / 100).toLocaleString('en-IN')}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -728,6 +848,274 @@ export function VendorInvoicesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Vendor Bill Modal */}
+      {isPayModalOpen && selectedPayInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-md bg-card rounded-2xl border border-border shadow-2xl p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <span className="p-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">₹</span>
+                  <span>Disburse Vendor Payment</span>
+                </h3>
+                <p className="text-[11px] text-muted-foreground font-mono">
+                  Bill: {selectedPayInvoice.vendorInvoiceNumber} • {selectedPayInvoice.vendorId?.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPayModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Bill Value:</span>
+                <span className="font-mono font-bold text-foreground">
+                  ₹{(selectedPayInvoice.totalAmountPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Already Paid:</span>
+                <span className="font-mono font-bold text-emerald-600">
+                  ₹{((selectedPayInvoice.paidAmountPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex justify-between border-t pt-1">
+                <span className="text-muted-foreground font-semibold">Outstanding Balance:</span>
+                <span className="font-mono font-bold text-primary">
+                  ₹{(selectedPayInvoice.balancePayablePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleRecordBillPayment} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Disbursed Amount (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    max={selectedPayInvoice.balancePayablePaise / 100}
+                    required
+                    value={payFormData.amountInr}
+                    onChange={e => setPayFormData({ ...payFormData, amountInr: e.target.value })}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Payment Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={payFormData.paymentDate}
+                    onChange={e => setPayFormData({ ...payFormData, paymentDate: e.target.value })}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Payment Mode *
+                </label>
+                <select
+                  value={payFormData.paymentMethod}
+                  onChange={e => setPayFormData({ ...payFormData, paymentMethod: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-primary"
+                >
+                  <option value="BANK_TRANSFER">Bank Transfer (RTGS / NEFT / IMPS)</option>
+                  <option value="CHEQUE">Cheque Clearance</option>
+                  <option value="UPI">Company UPI Payout</option>
+                  <option value="CASH">Cash Voucher (Minor Hardware/Consumables)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Bank UTR / Transaction / Cheque Ref *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. UTR-HDFC-9912048 or CHQ-008192"
+                  value={payFormData.paymentReference}
+                  onChange={e => setPayFormData({ ...payFormData, paymentReference: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Accounts Audit Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={payFormData.notes}
+                  onChange={e => setPayFormData({ ...payFormData, notes: e.target.value })}
+                  placeholder="e.g. Released against Waaree modules delivery inspection sign-off."
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsPayModalOpen(false)}
+                  className="px-4 py-2 text-xs rounded-xl border hover:bg-muted text-muted-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50"
+                >
+                  {submitting ? 'Disbursing...' : 'Confirm Bill Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3-Way Match & Details Modal */}
+      {isDetailModalOpen && selectedDetailInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-xl bg-card rounded-2xl border border-border shadow-2xl p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-foreground">
+                    Bill #{selectedDetailInvoice.vendorInvoiceNumber}
+                  </h3>
+                  {getStatusBadge(selectedDetailInvoice.status)}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  3-Way Reconciliation Audit (Purchase Order ➔ Delivery Receipt ➔ Vendor Invoice)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Vendor & Financial Highlights */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="p-2.5 rounded-xl border bg-muted/30">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Total Billed</span>
+                <span className="font-mono font-bold text-foreground text-sm">
+                  ₹{(selectedDetailInvoice.totalAmountPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl border bg-emerald-500/5 border-emerald-500/20">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold block">Paid So Far</span>
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-sm">
+                  ₹{((selectedDetailInvoice.paidAmountPaise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl border bg-primary/5 border-primary/20">
+                <span className="text-[10px] text-primary uppercase font-semibold block">Payable Balance</span>
+                <span className="font-mono font-bold text-primary text-sm">
+                  ₹{(selectedDetailInvoice.balancePayablePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            {/* Vendor & PO Details */}
+            <div className="p-3.5 rounded-xl border bg-secondary/10 space-y-2 text-xs">
+              <h4 className="font-bold text-foreground uppercase tracking-wider text-[11px]">
+                Procurement &amp; Commercial Terms
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Vendor Name:</span>
+                  <span className="font-semibold text-foreground">
+                    {selectedDetailInvoice.vendorId?.name || 'Vendor'}
+                  </span>
+                  {selectedDetailInvoice.vendorId?.gstin && (
+                    <span className="block text-[11px] font-mono text-muted-foreground">
+                      GSTIN: {selectedDetailInvoice.vendorId.gstin}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Linked Purchase Order:</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {selectedDetailInvoice.purchaseOrderId?.poNumber || 'Direct Purchase / No PO'}
+                  </span>
+                  {selectedDetailInvoice.purchaseOrderId?.totalAmountPaise && (
+                    <span className="block text-[11px] font-mono text-muted-foreground">
+                      PO Value: ₹{(selectedDetailInvoice.purchaseOrderId.totalAmountPaise / 100).toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Bill Date:</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(selectedDetailInvoice.invoiceDate).toLocaleDateString('en-IN')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Due Date:</span>
+                  <span className="font-medium text-foreground">
+                    {selectedDetailInvoice.dueDate ? new Date(selectedDetailInvoice.dueDate).toLocaleDateString('en-IN') : 'Net 30 Days'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Reconciliation Audit Trail */}
+            <div className="p-3 rounded-xl border bg-card text-xs space-y-1">
+              <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px] block">
+                3-Way Reconciliation Audit Note:
+              </span>
+              <p className="text-foreground italic">
+                {selectedDetailInvoice.reconciliationNotes || 'Verified: Rates match agreed PO price and warehouse GRN delivery inspection.'}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center pt-3 border-t">
+              {selectedDetailInvoice.balancePayablePaise > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    handleOpenPayModal(selectedDetailInvoice);
+                  }}
+                  className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs"
+                >
+                  Pay Balance ₹{(selectedDetailInvoice.balancePayablePaise / 100).toLocaleString('en-IN')}
+                </button>
+              ) : (
+                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Fully Settled &amp; Paid
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-4 py-2 text-xs font-medium rounded-xl bg-muted hover:bg-muted/80 text-foreground"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   FolderKanban,
@@ -214,6 +214,8 @@ const STAGES = [
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab') as any;
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,7 +233,7 @@ export const ProjectDetailPage: React.FC = () => {
     | 'tasks'
     | 'history'
     | 'costing'
-  >('overview');
+  >(urlTab && ['overview', 'dispatch', 'checklist', 'net-metering', 'subsidy', 'service-amc', 'milestones', 'tasks', 'history', 'costing'].includes(urlTab) ? urlTab : 'overview');
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -321,6 +323,12 @@ export const ProjectDetailPage: React.FC = () => {
   useEffect(() => {
     fetchProject();
   }, [id]);
+
+  useEffect(() => {
+    if (urlTab && ['overview', 'dispatch', 'checklist', 'net-metering', 'subsidy', 'service-amc', 'milestones', 'tasks', 'history', 'costing'].includes(urlTab)) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab]);
 
   useEffect(() => {
     if (activeTab === 'tasks') {
