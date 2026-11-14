@@ -73,13 +73,13 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'EPC Project Execution',
+    title: 'Operations & Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
       { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
-      { to: '/net-metering', label: 'Net Metering Compliance', icon: Zap },
+      { to: '/net-metering', label: 'Net Metering & BM Sync', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
   },
@@ -167,15 +167,16 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Hub',
     items: [
       { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
-      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck }
+      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
+      { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap }
     ]
   },
   {
     title: 'Site Documents & Compliance',
     items: [
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }

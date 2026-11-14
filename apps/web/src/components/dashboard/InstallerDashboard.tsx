@@ -151,15 +151,15 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
           <div>
             <h2 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center space-x-2">
               <Zap className="w-4 h-4 text-solar-600" />
-              <span>On-Site Rooftop Installation Workflow</span>
+              <span>Official Solar EPC Installation Workflow</span>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Sequential 3-stage process for complete rooftop commissioning and official DISCOM handover
+              Sequential 4-stage process: Equipment Barcodes ➔ Geotagged Photos ➔ Handover Dossiers ➔ DISCOM Net Meter (BM) Sync
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Stage 1: Equipment & Panel Barcodes */}
           <div className="bg-card p-5 rounded-2xl border border-border shadow-xs hover:border-solar-500/40 transition flex flex-col justify-between space-y-4">
             <div className="space-y-3">
@@ -172,7 +172,7 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
                 </span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Equipment &amp; Barcodes Register</h3>
+                <h3 className="text-sm font-bold text-foreground">Equipment &amp; Barcodes</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Record on-grid inverter model and scan individual barcodes for every solar PV module using camera scanner.
                 </p>
@@ -238,7 +238,7 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
                 </span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Installation Handover Documents</h3>
+                <h3 className="text-sm font-bold text-foreground">Handover Documents</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Complete technical handover dossiers, DISCOM joint inspection reports, and net meter test verification.
                 </p>
@@ -255,6 +255,39 @@ export const InstallerDashboard: React.FC<InstallerDashboardProps> = () => {
             >
               <ClipboardCheck className="w-4 h-4" />
               <span>Open Handover Docs</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+
+          {/* Stage 4: Net Metering & BM Installation */}
+          <div className="bg-card p-5 rounded-2xl border border-border shadow-xs hover:border-cyan-500/40 transition flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30">
+                  Step 4 • BM Sync
+                </span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Net Metering &amp; BM Sync</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Record official Bi-directional Net Meter (BM Number), initial 0000 import/export readings &amp; DISCOM JE inspection.
+                </p>
+              </div>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Bi-directional Meter (BM) Serial Number</li>
+                <li>Initial 0000 kWh import &amp; export readings</li>
+                <li>DISCOM JE test slip &amp; meter handover</li>
+              </ul>
+            </div>
+            <Link
+              to="/net-metering"
+              className="w-full inline-flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Open Net Meter Register</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>

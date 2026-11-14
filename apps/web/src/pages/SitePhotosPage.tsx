@@ -27,7 +27,8 @@ import {
   FilePlus2,
   Scan,
   ClipboardList,
-  ClipboardCheck
+  ClipboardCheck,
+  ArrowRight
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
@@ -2254,6 +2255,33 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Stage 4 Next-Step Bridge: DISCOM Net Metering & BM Register */}
+                <div className="p-4 bg-gradient-to-r from-solar-500/10 via-cyan-500/10 to-emerald-500/10 border border-solar-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 rounded-xl bg-solar-500/20 text-solar-600 shrink-0">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-foreground flex items-center space-x-2">
+                        <span>Official EPC Next Step: DISCOM Net Metering &amp; BM Number</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-solar-500/20 text-solar-700 dark:text-solar-300">
+                          Step 4
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Physical solar installation complete. Proceed to record Bi-directional Net Meter (BM) number, initial 0000 readings &amp; DISCOM JE testing.
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    to="/net-metering"
+                    className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white rounded-xl text-xs font-bold shrink-0 flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <span>Open Net Meter Register</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
               </div>
             </div>
