@@ -174,6 +174,39 @@ paymentRouter.patch(
 );
 
 /**
+ * PATCH /api/v1/payments/:id
+ * Update editable metadata on an existing payment (payment method, ref, notes, date).
+ */
+paymentRouter.patch(
+  '/:id',
+  requirePermission('payment:create'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const paymentId = String(req.params.id || '');
+      const payment = await PaymentService.updatePayment(
+        paymentId,
+        {
+          paymentMethod: req.body.paymentMethod,
+          transactionReference: req.body.transactionReference,
+          notes: req.body.notes,
+          internalNotes: req.body.internalNotes,
+          paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : undefined
+        },
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role,
+          department: req.session.user?.department
+        }
+      );
+
+      return sendSuccess(req, res, payment);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * POST /api/v1/payments/:id/allocate
  * Allocate verified payment funds to an eligible Sales Order of the same customer.
  */

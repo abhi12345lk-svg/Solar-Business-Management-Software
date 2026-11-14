@@ -26,7 +26,10 @@ import {
   Split,
   Hash,
   ShieldAlert,
-  ArrowUpRight
+  ArrowUpRight,
+  Clock,
+  Edit3,
+  Calculator
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -145,6 +148,70 @@ export const PaymentsPage: React.FC = () => {
   const [statementData, setStatementData] = useState<ReceivablesStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
 
+  // Edit Payment Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPaymentForm, setEditPaymentForm] = useState({
+    id: '',
+    receiptNumber: '',
+    amountRupees: '',
+    customerName: '',
+    paymentMethod: 'BANK_TRANSFER',
+    transactionReference: '',
+    paymentDate: '',
+    notes: '',
+    internalNotes: ''
+  });
+
+  // 3-Stage Milestone Payment Calculator State
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [milestoneCustomerId, setMilestoneCustomerId] = useState('');
+  const [milestoneOrderId, setMilestoneOrderId] = useState('');
+  const [milestoneOrders, setMilestoneOrders] = useState<any[]>([]);
+  const [loadingMilestoneOrders, setLoadingMilestoneOrders] = useState(false);
+  const [milestoneContractTotalRupees, setMilestoneContractTotalRupees] = useState<number>(385260);
+  const [isEditingMilestones, setIsEditingMilestones] = useState(false);
+  const [milestoneStages, setMilestoneStages] = useState([
+    {
+      id: 'm1',
+      name: 'Booking Advance',
+      percentage: 20,
+      description: 'Upon confirmation of order / token advance',
+      amountRupees: 77052,
+      paidRupees: 77052,
+      paymentMethod: 'CHEQUE',
+      paymentRef: 'CHQ-SBI-881920',
+      bankName: 'State Bank of India',
+      status: 'PAID',
+      notes: 'Received token advance along with signed proposal'
+    },
+    {
+      id: 'm2',
+      name: 'Pre-Dispatch',
+      percentage: 70,
+      description: 'Prior to material dispatch from warehouse',
+      amountRupees: 269682,
+      paidRupees: 200000,
+      paymentMethod: 'BANK_TRANSFER',
+      paymentRef: 'UTR-HDFC-9912048',
+      bankName: 'HDFC Bank RTGS',
+      status: 'PARTIALLY_PAID',
+      notes: 'Initial dispatch tranche received, balance on delivery'
+    },
+    {
+      id: 'm3',
+      name: 'Commissioning',
+      percentage: 10,
+      description: 'Post physical installation and net-meter testing',
+      amountRupees: 38526,
+      paidRupees: 0,
+      paymentMethod: 'CASH',
+      paymentRef: 'Cash Voucher #102',
+      bankName: '',
+      status: 'PENDING',
+      notes: 'Retention amount payable on JCR & net-meter synchronization'
+    }
+  ]);
+
   // Form states
   const [recordForm, setRecordForm] = useState({
     customerId: '',
@@ -154,7 +221,12 @@ export const PaymentsPage: React.FC = () => {
     transactionReference: '',
     notes: '',
     internalNotes: '',
-    autoVerify: false
+    autoVerify: false,
+    milestoneStage: 'NONE',
+    chequeNumber: '',
+    bankName: '',
+    chequeDate: new Date().toISOString().split('T')[0],
+    cashVoucherRef: ''
   });
 
   const [verifyForm, setVerifyForm] = useState({
@@ -231,6 +303,130 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
+  const handleContractTotalChange = (newTotal: number) => {
+    setMilestoneContractTotalRupees(newTotal);
+    setMilestoneStages(prev =>
+      prev.map(stage => {
+        const amt = Math.round((newTotal * stage.percentage) / 100);
+        return {
+          ...stage,
+          amountRupees: amt,
+          status: stage.paidRupees >= amt ? 'PAID' : stage.paidRupees > 0 ? 'PARTIALLY_PAID' : 'PENDING'
+        };
+      })
+    );
+  };
+
+  const handleUpdateMilestoneStage = (index: number, field: string, val: any) => {
+    setMilestoneStages(prev => {
+      const next = [...prev];
+      const target = { ...next[index]! };
+      if (field === 'percentage') {
+        const pct = Math.max(0, Math.min(100, Number(val) || 0));
+        target.percentage = pct;
+        target.amountRupees = Math.round((milestoneContractTotalRupees * pct) / 100);
+      } else if (field === 'amountRupees') {
+        const amt = Math.max(0, Number(val) || 0);
+        target.amountRupees = amt;
+        target.percentage = milestoneContractTotalRupees > 0 ? Math.round((amt / milestoneContractTotalRupees) * 100) : 0;
+      } else if (field === 'paidRupees') {
+        target.paidRupees = Math.max(0, Number(val) || 0);
+      } else {
+        (target as any)[field] = val;
+      }
+      target.status = target.paidRupees >= target.amountRupees ? 'PAID' : target.paidRupees > 0 ? 'PARTIALLY_PAID' : 'PENDING';
+      next[index] = target;
+      return next;
+    });
+  };
+
+  const handleMilestoneCustomerChange = async (cId: string) => {
+    setMilestoneCustomerId(cId);
+    setMilestoneOrderId('');
+    if (!cId) {
+      setMilestoneOrders([]);
+      return;
+    }
+    try {
+      setLoadingMilestoneOrders(true);
+      const res = await apiClient<any>(`/orders?customerId=${cId}&limit=20`);
+      const list = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
+      setMilestoneOrders(list);
+      if (list.length > 0) {
+        const firstOrder = list[0];
+        setMilestoneOrderId(firstOrder._id);
+        const orderTotal = Math.round((firstOrder.netTotalPaise || 0) / 100);
+        if (orderTotal > 0) {
+          handleContractTotalChange(orderTotal);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load milestone orders:', err);
+    } finally {
+      setLoadingMilestoneOrders(false);
+    }
+  };
+
+  const handleQuickRecordMilestone = (stage: (typeof milestoneStages)[0], index: number) => {
+    const remainingDue = Math.max(0, stage.amountRupees - stage.paidRupees);
+    setRecordForm({
+      customerId: milestoneCustomerId || (customersList[0]?._id || ''),
+      amountRupees: remainingDue > 0 ? remainingDue.toString() : stage.amountRupees.toString(),
+      paymentDate: new Date().toISOString().split('T')[0],
+      paymentMethod: stage.paymentMethod,
+      transactionReference: stage.paymentRef || (stage.paymentMethod === 'CHEQUE' ? 'CHQ-' : stage.paymentMethod === 'CASH' ? 'CASH-REC-' : 'UTR-'),
+      notes: `Milestone ${index + 1}: ${stage.name} (${stage.percentage}%) - ${stage.description}`,
+      internalNotes: `Auto-generated from 3-Stage Milestone Payment Calculator. Bank/Ref: ${stage.bankName || stage.paymentRef}`,
+      autoVerify: true,
+      milestoneStage: `MILESTONE_${index + 1}`,
+      chequeNumber: stage.paymentMethod === 'CHEQUE' ? stage.paymentRef : '',
+      bankName: stage.bankName || '',
+      chequeDate: new Date().toISOString().split('T')[0],
+      cashVoucherRef: stage.paymentMethod === 'CASH' ? stage.paymentRef : ''
+    });
+    setShowMilestoneModal(false);
+    setShowRecordModal(true);
+  };
+
+  const handleOpenEditPayment = (p: CustomerPaymentRecord) => {
+    setEditPaymentForm({
+      id: p._id,
+      receiptNumber: p.receiptNumber,
+      amountRupees: (p.amountPaise / 100).toFixed(2),
+      customerName: p.customerId?.name || 'Client',
+      paymentMethod: p.paymentMethod || 'BANK_TRANSFER',
+      transactionReference: p.transactionReference || '',
+      paymentDate: p.paymentDate ? (new Date(p.paymentDate).toISOString().split('T')[0] ?? '') : '',
+      notes: p.notes || '',
+      internalNotes: p.internalNotes || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPaymentForm.id) return;
+    try {
+      setSubmitting(true);
+      await apiClient(`/payments/${editPaymentForm.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          paymentMethod: editPaymentForm.paymentMethod,
+          transactionReference: editPaymentForm.transactionReference.trim() || undefined,
+          paymentDate: editPaymentForm.paymentDate ? new Date(editPaymentForm.paymentDate) : undefined,
+          notes: editPaymentForm.notes.trim() || undefined,
+          internalNotes: editPaymentForm.internalNotes.trim() || undefined
+        })
+      });
+      setShowEditModal(false);
+      fetchPayments();
+    } catch (err: any) {
+      alert(`Failed to update payment: ${err.message || 'Error'}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     fetchCustomersList();
   }, []);
@@ -274,6 +470,15 @@ export const PaymentsPage: React.FC = () => {
         return;
       }
 
+      let resolvedRef = recordForm.transactionReference.trim();
+      if (!resolvedRef) {
+        if (recordForm.paymentMethod === 'CHEQUE' && recordForm.chequeNumber.trim()) {
+          resolvedRef = `CHQ: ${recordForm.chequeNumber.trim()}${recordForm.bankName.trim() ? ` (${recordForm.bankName.trim()})` : ''}`;
+        } else if (recordForm.paymentMethod === 'CASH' && recordForm.cashVoucherRef.trim()) {
+          resolvedRef = `CASH: ${recordForm.cashVoucherRef.trim()}`;
+        }
+      }
+
       await apiClient('/payments', {
         method: 'POST',
         body: JSON.stringify({
@@ -281,7 +486,7 @@ export const PaymentsPage: React.FC = () => {
           amountPaise,
           paymentDate: recordForm.paymentDate ? new Date(recordForm.paymentDate) : new Date(),
           paymentMethod: recordForm.paymentMethod,
-          transactionReference: recordForm.transactionReference.trim() || undefined,
+          transactionReference: resolvedRef || undefined,
           notes: recordForm.notes.trim() || undefined,
           internalNotes: recordForm.internalNotes.trim() || undefined,
           autoVerify: recordForm.autoVerify
@@ -297,7 +502,12 @@ export const PaymentsPage: React.FC = () => {
         transactionReference: '',
         notes: '',
         internalNotes: '',
-        autoVerify: false
+        autoVerify: false,
+        milestoneStage: 'NONE',
+        chequeNumber: '',
+        bankName: '',
+        chequeDate: new Date().toISOString().split('T')[0],
+        cashVoucherRef: ''
       });
       fetchPayments();
     } catch (err: any) {
@@ -494,10 +704,18 @@ export const PaymentsPage: React.FC = () => {
             receivables aging schedule.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
+          <button
+            onClick={() => setShowMilestoneModal(true)}
+            className="flex items-center space-x-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border px-3.5 py-2 rounded-lg font-semibold text-xs shadow-2xs transition-colors cursor-pointer"
+            title="Calculate and reconcile 3-stage milestone payments (Booking Advance, Pre-Dispatch, Commissioning)"
+          >
+            <Clock className="w-3.5 h-3.5 text-solar-500" />
+            <span>3-Stage Milestone Calculator</span>
+          </button>
           <button
             onClick={() => setShowRecordModal(true)}
-            className="flex items-center space-x-2 bg-solar-600 hover:bg-solar-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors"
+            className="flex items-center space-x-1.5 bg-solar-600 hover:bg-solar-700 text-white px-3.5 py-2 rounded-lg font-semibold text-xs shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Record Payment</span>
@@ -696,11 +914,22 @@ export const PaymentsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col">
-                          <span>{new Date(payment.paymentDate).toLocaleDateString('en-IN')}</span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {payment.paymentMethod}
+                        <div className="flex flex-col space-y-0.5">
+                          <span className="font-medium text-foreground">{new Date(payment.paymentDate).toLocaleDateString('en-IN')}</span>
+                          <span className="text-[11px] font-semibold text-foreground px-1.5 py-0.5 rounded bg-muted/60 w-fit">
+                            {payment.paymentMethod === 'CHEQUE'
+                              ? '🏦 Cheque'
+                              : payment.paymentMethod === 'CASH'
+                                ? '💵 Cash'
+                                : payment.paymentMethod === 'UPI'
+                                  ? '📱 UPI'
+                                  : '🏛️ ' + payment.paymentMethod.replace(/_/g, ' ')}
                           </span>
+                          {payment.notes && (payment.notes.includes('Milestone') || payment.notes.includes('Advance') || payment.notes.includes('Dispatch') || payment.notes.includes('Commissioning')) && (
+                            <span className="text-[10px] text-solar-700 dark:text-solar-400 font-semibold truncate max-w-[170px]" title={payment.notes}>
+                              {payment.notes}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">
@@ -739,11 +968,23 @@ export const PaymentsPage: React.FC = () => {
                           {/* Receipt view */}
                           <button
                             onClick={() => openReceiptModal(payment._id)}
-                            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
                             title="Print / View Receipt"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
+
+                          {/* Edit payment metadata */}
+                          {!isReversed && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditPayment(payment)}
+                              className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-solar-600 cursor-pointer"
+                              title="Edit Payment Details (Method, Ref, Date, Notes)"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Verify Button (if RECORDED) */}
                           {isRecorded && (
@@ -912,6 +1153,94 @@ export const PaymentsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Payment Milestone Quick Selector */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 flex items-center justify-between">
+                  <span>Solar Project Milestone Stage</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Auto-sets amount & stage note</span>
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const m1 = milestoneStages[0];
+                      const rem = m1 ? Math.max(0, m1.amountRupees - m1.paidRupees) : 0;
+                      setRecordForm({
+                        ...recordForm,
+                        milestoneStage: 'MILESTONE_1',
+                        amountRupees: rem > 0 ? rem.toString() : m1 ? m1.amountRupees.toString() : recordForm.amountRupees,
+                        notes: 'Milestone 1: Booking Advance (20%) - Order confirmation'
+                      });
+                    }}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                      recordForm.milestoneStage === 'MILESTONE_1'
+                        ? 'bg-solar-500/10 border-solar-500 text-solar-700 dark:text-solar-300 ring-2 ring-solar-500/20'
+                        : 'bg-background hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider">Stage 1 (20%)</div>
+                    <div className="text-xs font-semibold text-foreground truncate">Booking Advance</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const m2 = milestoneStages[1];
+                      const rem = m2 ? Math.max(0, m2.amountRupees - m2.paidRupees) : 0;
+                      setRecordForm({
+                        ...recordForm,
+                        milestoneStage: 'MILESTONE_2',
+                        amountRupees: rem > 0 ? rem.toString() : m2 ? m2.amountRupees.toString() : recordForm.amountRupees,
+                        notes: 'Milestone 2: Pre-Dispatch (70%) - Prior to warehouse dispatch'
+                      });
+                    }}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                      recordForm.milestoneStage === 'MILESTONE_2'
+                        ? 'bg-solar-500/10 border-solar-500 text-solar-700 dark:text-solar-300 ring-2 ring-solar-500/20'
+                        : 'bg-background hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider">Stage 2 (70%)</div>
+                    <div className="text-xs font-semibold text-foreground truncate">Pre-Dispatch</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const m3 = milestoneStages[2];
+                      const rem = m3 ? Math.max(0, m3.amountRupees - m3.paidRupees) : 0;
+                      setRecordForm({
+                        ...recordForm,
+                        milestoneStage: 'MILESTONE_3',
+                        amountRupees: rem > 0 ? rem.toString() : m3 ? m3.amountRupees.toString() : recordForm.amountRupees,
+                        notes: 'Milestone 3: Commissioning (10%) - Post net-meter testing'
+                      });
+                    }}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                      recordForm.milestoneStage === 'MILESTONE_3'
+                        ? 'bg-solar-500/10 border-solar-500 text-solar-700 dark:text-solar-300 ring-2 ring-solar-500/20'
+                        : 'bg-background hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider">Stage 3 (10%)</div>
+                    <div className="text-xs font-semibold text-foreground truncate">Commissioning</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRecordForm({ ...recordForm, milestoneStage: 'NONE' })}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                      recordForm.milestoneStage === 'NONE'
+                        ? 'bg-solar-500/10 border-solar-500 text-solar-700 dark:text-solar-300 ring-2 ring-solar-500/20'
+                        : 'bg-background hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider">Ad-hoc</div>
+                    <div className="text-xs font-semibold text-foreground truncate">Other / Lump-sum</div>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1">
@@ -960,19 +1289,70 @@ export const PaymentsPage: React.FC = () => {
                     <option value="DEMAND_DRAFT">Demand Draft</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold mb-1">Transaction Ref / UTR</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. UTR20261025..."
-                    value={recordForm.transactionReference}
-                    onChange={e =>
-                      setRecordForm({ ...recordForm, transactionReference: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
-                  />
-                </div>
+
+                {recordForm.paymentMethod === 'CHEQUE' ? (
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Cheque Number <span className="text-destructive">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 881920"
+                      value={recordForm.chequeNumber}
+                      onChange={e => setRecordForm({ ...recordForm, chequeNumber: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+                ) : recordForm.paymentMethod === 'CASH' ? (
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Cash Receipt / Voucher Ref</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CASH-VOUCHER-102"
+                      value={recordForm.cashVoucherRef}
+                      onChange={e => setRecordForm({ ...recordForm, cashVoucherRef: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Transaction Ref / UTR</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. UTR20261025..."
+                      value={recordForm.transactionReference}
+                      onChange={e =>
+                        setRecordForm({ ...recordForm, transactionReference: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Conditional Cheque Bank & Date fields */}
+              {recordForm.paymentMethod === 'CHEQUE' && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 border border-border/80 rounded-lg">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Drawee Bank Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. State Bank of India, HDFC"
+                      value={recordForm.bankName}
+                      onChange={e => setRecordForm({ ...recordForm, bankName: e.target.value })}
+                      className="w-full px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Cheque Issue Date</label>
+                    <input
+                      type="date"
+                      value={recordForm.chequeDate}
+                      onChange={e => setRecordForm({ ...recordForm, chequeDate: e.target.value })}
+                      className="w-full px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold mb-1">
@@ -1671,11 +2051,506 @@ export const PaymentsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowStatementModal(false)}
-                className="px-4 py-2 border rounded-lg text-sm hover:bg-muted font-medium"
+                className="px-4 py-2 border rounded-lg text-sm hover:bg-muted font-medium cursor-pointer"
               >
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 8: 3-Stage Milestone Payment Calculator & Reconciliation */}
+      {/* ------------------------------------------------------------- */}
+      {showMilestoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-start pb-4 border-b">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-lg bg-solar-500/10 text-solar-600">
+                    <Calculator className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    PAYMENT MILESTONES & COMMERCIAL CONDITIONS
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 ml-9">
+                  Standard Solar EPC 3-stage billing: 20% Booking Advance, 70% Pre-Dispatch, 10% Handover / Commissioning with live multi-mode calculation (Cheque / Cash / Bank Transfer).
+                </p>
+              </div>
+              <button
+                onClick={() => setShowMilestoneModal(false)}
+                className="text-muted-foreground hover:text-foreground text-base p-1.5 rounded-md hover:bg-muted font-medium cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6 mt-5">
+              {/* Client & Contract Value Selector Bar */}
+              <div className="p-4 bg-muted/40 border rounded-xl grid grid-cols-1 md:grid-cols-3 gap-3.5 items-end">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-foreground">
+                    Select Client / Project
+                  </label>
+                  <select
+                    value={milestoneCustomerId}
+                    onChange={e => handleMilestoneCustomerChange(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-xs bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  >
+                    <option value="">-- Choose Client --</option>
+                    {customersList.map(c => (
+                      <option key={c._id} value={c._id}>
+                        {c.name} {c.customerCode ? `(${c.customerCode})` : ''} {c.city ? `• ${c.city}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-foreground">
+                    Sales Order / Proposal
+                  </label>
+                  <select
+                    value={milestoneOrderId}
+                    onChange={e => {
+                      const oId = e.target.value;
+                      setMilestoneOrderId(oId);
+                      const sel = milestoneOrders.find(o => o._id === oId);
+                      if (sel && sel.netTotalPaise) {
+                        handleContractTotalChange(Math.round(sel.netTotalPaise / 100));
+                      }
+                    }}
+                    disabled={!milestoneCustomerId || loadingMilestoneOrders}
+                    className="w-full px-3 py-2 border rounded-lg text-xs bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20 disabled:opacity-50"
+                  >
+                    <option value="">
+                      {loadingMilestoneOrders ? 'Loading client orders...' : milestoneOrders.length === 0 ? '-- No order linked (Using Default) --' : '-- Select Order --'}
+                    </option>
+                    {milestoneOrders.map(o => (
+                      <option key={o._id} value={o._id}>
+                        {o.orderNumber} • {o.systemCapacityKwp || 0} kWp • ₹{Math.round((o.netTotalPaise || 0) / 100).toLocaleString('en-IN')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-foreground">
+                      Total Contract Value (₹)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMilestones(!isEditingMilestones)}
+                      className="text-[11px] text-solar-600 hover:text-solar-700 font-semibold cursor-pointer"
+                    >
+                      {isEditingMilestones ? '🔒 Lock Standard' : '✏️ Custom Percentages'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-xs font-semibold text-muted-foreground">₹</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={milestoneContractTotalRupees}
+                      onChange={e => handleContractTotalChange(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm bg-background font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                      placeholder="e.g. 385260"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Milestone Cards - Matching User Screenshot */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {milestoneStages.map((stage, idx) => {
+                  const balanceDue = Math.max(0, stage.amountRupees - stage.paidRupees);
+                  const isPaid = stage.paidRupees >= stage.amountRupees && stage.amountRupees > 0;
+                  const isPartial = stage.paidRupees > 0 && !isPaid;
+
+                  return (
+                    <div
+                      key={stage.id}
+                      className={`border rounded-xl p-4 flex flex-col justify-between transition-all shadow-2xs ${
+                        isPaid
+                          ? 'bg-emerald-500/5 border-emerald-500/30'
+                          : isPartial
+                            ? 'bg-amber-500/5 border-amber-500/30'
+                            : 'bg-card border-border/80'
+                      }`}
+                    >
+                      <div>
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-sm text-foreground">{stage.name}</h3>
+                          {isEditingMilestones ? (
+                            <div className="flex items-center space-x-1">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={stage.percentage}
+                                onChange={e => handleUpdateMilestoneStage(idx, 'percentage', e.target.value)}
+                                className="w-12 px-1 py-0.5 text-center text-xs border rounded bg-background font-bold"
+                              />
+                              <span className="text-xs font-bold text-solar-600">%</span>
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 text-xs font-bold text-solar-700 dark:text-solar-300 bg-solar-500/10 rounded-full border border-solar-500/20">
+                              {stage.percentage}%
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-muted-foreground mt-1 min-h-[32px]">{stage.description}</p>
+
+                        {/* Amount Due */}
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Milestone Target Amount
+                          </div>
+                          {isEditingMilestones ? (
+                            <div className="flex items-center mt-1">
+                              <span className="text-xs font-bold mr-1">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={stage.amountRupees}
+                                onChange={e => handleUpdateMilestoneStage(idx, 'amountRupees', e.target.value)}
+                                className="w-full px-2 py-1 text-sm border rounded bg-background font-bold"
+                              />
+                            </div>
+                          ) : (
+                            <div className="text-xl font-extrabold text-foreground mt-0.5">
+                              ₹{stage.amountRupees.toLocaleString('en-IN')}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment Method & Paid Inputs */}
+                        <div className="mt-3.5 space-y-2.5 pt-3 border-t bg-muted/20 p-2.5 rounded-lg border border-border/50 text-xs">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                              Payment Method
+                            </label>
+                            <select
+                              value={stage.paymentMethod}
+                              onChange={e => handleUpdateMilestoneStage(idx, 'paymentMethod', e.target.value)}
+                              className="w-full px-2 py-1.5 border rounded bg-background text-xs font-medium focus:outline-none focus:ring-1 focus:ring-solar-500"
+                            >
+                              <option value="CHEQUE">🏦 Cheque</option>
+                              <option value="BANK_TRANSFER">🏛️ Bank Transfer / RTGS</option>
+                              <option value="UPI">📱 UPI / QR</option>
+                              <option value="CASH">💵 Cash Voucher</option>
+                              <option value="DEMAND_DRAFT">📄 Demand Draft</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                              {stage.paymentMethod === 'CHEQUE'
+                                ? 'Cheque No. & Bank'
+                                : stage.paymentMethod === 'CASH'
+                                  ? 'Cash Receipt / Voucher #'
+                                  : 'UTR / Txn Reference'}
+                            </label>
+                            <input
+                              type="text"
+                              value={stage.paymentRef}
+                              onChange={e => handleUpdateMilestoneStage(idx, 'paymentRef', e.target.value)}
+                              placeholder={
+                                stage.paymentMethod === 'CHEQUE'
+                                  ? 'e.g. CHQ-881920 (SBI)'
+                                  : stage.paymentMethod === 'CASH'
+                                    ? 'e.g. CASH-VOUCHER-042'
+                                    : 'e.g. UTR-HDFC-9912048'
+                              }
+                              className="w-full px-2 py-1 border rounded bg-background font-mono text-xs focus:outline-none focus:ring-1 focus:ring-solar-500"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Realized / Paid (₹)
+                              </label>
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                Bal: ₹{balanceDue.toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-1.5 text-xs font-semibold text-muted-foreground">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={stage.paidRupees}
+                                onChange={e => handleUpdateMilestoneStage(idx, 'paidRupees', e.target.value)}
+                                className="w-full pl-6 pr-2 py-1 border rounded bg-background font-bold text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-solar-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Footer / Status & Action */}
+                      <div className="mt-4 pt-3 border-t">
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Stage Status
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              isPaid
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                : isPartial
+                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                  : 'bg-muted text-muted-foreground border border-border'
+                            }`}
+                          >
+                            {isPaid ? '✓ Paid' : isPartial ? '⚡ Partially Paid' : '⏳ Pending'}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleQuickRecordMilestone(stage, idx)}
+                          className="w-full py-1.5 px-3 bg-solar-600 hover:bg-solar-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-2xs transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Record Receipt Entry</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Total Project Reconciliation Summary Bar */}
+              {(() => {
+                const totalTarget = milestoneStages.reduce((sum, s) => sum + s.amountRupees, 0);
+                const totalPaid = milestoneStages.reduce((sum, s) => sum + s.paidRupees, 0);
+                const totalBalance = Math.max(0, totalTarget - totalPaid);
+                const progressPct = totalTarget > 0 ? Math.min(100, Math.round((totalPaid / totalTarget) * 100)) : 0;
+
+                return (
+                  <div className="p-4 bg-muted/30 border rounded-xl space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center sm:text-left">
+                      <div className="border-r border-border/50 pr-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Contract Value
+                        </span>
+                        <div className="text-base font-extrabold text-foreground mt-0.5">
+                          ₹{totalTarget.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                      <div className="border-r border-border/50 pr-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Total Realized (Paid)
+                        </span>
+                        <div className="text-base font-extrabold text-emerald-600 mt-0.5">
+                          ₹{totalPaid.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                      <div className="border-r border-border/50 pr-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Pending Receivable
+                        </span>
+                        <div className="text-base font-extrabold text-destructive mt-0.5">
+                          ₹{totalBalance.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Recovery Progress
+                        </span>
+                        <div className="text-base font-extrabold text-solar-600 mt-0.5">
+                          {progressPct}% Realized
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-solar-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Commercial Terms Footer matching User Screenshot */}
+              <div className="p-4 bg-card border rounded-xl space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center space-x-1.5">
+                  <Clock className="w-3.5 h-3.5 text-solar-600" />
+                  <span>Commercial Terms & Solar EPC Conditions:</span>
+                </h4>
+                <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+                  <li>Prices are valid for 30 days from proposal generation.</li>
+                  <li>Statutory net metering approvals and CEIG clearance subject to local DISCOM norms.</li>
+                  <li>
+                    <strong className="text-foreground">Pre-Dispatch Milestone (70%):</strong> Material dispatch release from warehouse is strictly subject to clearance of 70% pre-dispatch payment.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Commissioning Retention (10%):</strong> Retention balance payable post physical structure mounting, inverter sync, Bi-directional Net Meter (BM) installation, and Joint Commissioning Report (JCR).
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end space-x-3 pt-5 border-t mt-6">
+              <button
+                type="button"
+                onClick={() => setShowMilestoneModal(false)}
+                className="px-4 py-2 border rounded-lg text-sm hover:bg-muted font-medium cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMilestoneModal(false);
+                  setShowRecordModal(true);
+                }}
+                className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors cursor-pointer"
+              >
+                Record Payment with Milestone
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 9: Edit Payment Details */}
+      {/* ------------------------------------------------------------- */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-lg bg-solar-500/10 text-solar-600">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Edit Payment Details</h2>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Receipt: {editPaymentForm.receiptNumber} • Client: {editPaymentForm.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-medium cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditPayment} className="space-y-4">
+              <div className="p-3 bg-muted/40 rounded-lg border flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Receipt Amount
+                  </span>
+                  <div className="text-lg font-extrabold text-foreground mt-0.5">
+                    ₹{Number(editPaymentForm.amountRupees).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <span className="text-[11px] text-muted-foreground text-right max-w-[200px]">
+                  Accounting lock: Base amount is protected for audit compliance.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Payment Method</label>
+                  <select
+                    value={editPaymentForm.paymentMethod}
+                    onChange={e => setEditPaymentForm({ ...editPaymentForm, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  >
+                    <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
+                    <option value="UPI">UPI</option>
+                    <option value="CHEQUE">Cheque</option>
+                    <option value="NEFT_RTGS">Direct RTGS</option>
+                    <option value="IMPS">IMPS</option>
+                    <option value="CASH">Cash</option>
+                    <option value="PAYMENT_GATEWAY">Payment Gateway</option>
+                    <option value="DEMAND_DRAFT">Demand Draft</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Payment Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={editPaymentForm.paymentDate}
+                    onChange={e => setEditPaymentForm({ ...editPaymentForm, paymentDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">
+                  Transaction Ref / Cheque No / Cash Voucher
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. CHQ: 881920 (SBI) or UTR20261025..."
+                  value={editPaymentForm.transactionReference}
+                  onChange={e => setEditPaymentForm({ ...editPaymentForm, transactionReference: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Public Notes (Receipt Visible)</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Milestone 1: Booking Advance (20%)"
+                  value={editPaymentForm.notes}
+                  onChange={e => setEditPaymentForm({ ...editPaymentForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Confidential Internal Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Internal audit notes, bank account matching details..."
+                  value={editPaymentForm.internalNotes}
+                  onChange={e => setEditPaymentForm({ ...editPaymentForm, internalNotes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border rounded-lg text-sm hover:bg-muted font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors cursor-pointer"
+                >
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

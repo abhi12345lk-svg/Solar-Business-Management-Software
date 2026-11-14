@@ -220,6 +220,44 @@ export class PaymentService {
   }
 
   /**
+   * Updates an existing customer payment's metadata (method, transaction ref, notes, date).
+   */
+  public static async updatePayment(
+    paymentId: string,
+    input: {
+      paymentMethod?: PaymentMethod;
+      transactionReference?: string;
+      notes?: string;
+      internalNotes?: string;
+      paymentDate?: Date;
+    },
+    _actor: UserContext
+  ): Promise<ICustomerPaymentDocument> {
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+      throw AppError.validation(`Invalid payment ID '${paymentId}'.`);
+    }
+
+    const payment = await CustomerPayment.findById(paymentId);
+    if (!payment) {
+      throw AppError.notFound(`Payment '${paymentId}' not found.`);
+    }
+
+    if (payment.status === CustomerPaymentStatus.REVERSED) {
+      throw AppError.businessRule('Cannot edit a reversed payment record.');
+    }
+
+    if (input.paymentMethod) payment.paymentMethod = input.paymentMethod;
+    if (input.transactionReference !== undefined) payment.transactionReference = input.transactionReference.trim();
+    if (input.notes !== undefined) payment.notes = input.notes.trim();
+    if (input.internalNotes !== undefined) payment.internalNotes = input.internalNotes.trim();
+    if (input.paymentDate && !isNaN(input.paymentDate.getTime())) payment.paymentDate = input.paymentDate;
+
+    await payment.save();
+
+    return payment;
+  }
+
+  /**
    * Allocates an available portion of a verified payment to an eligible sales order.
    * Enforces non-cross-customer bounds, payment quota, and order collectible ceiling.
    */
