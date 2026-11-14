@@ -17,7 +17,8 @@ import {
   XCircle,
   FileSpreadsheet,
   PackageCheck,
-  Plus
+  Plus,
+  CreditCard
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -414,7 +415,7 @@ export const OrdersPage: React.FC = () => {
                     <div>{getReservationBadge(order.reservationStatus)}</div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs">
+                  <div className="pt-2 flex items-center justify-between border-t border-border/50 text-xs gap-2">
                     <span className="text-[11px] text-muted-foreground">
                       {new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN', {
                         day: '2-digit',
@@ -422,13 +423,22 @@ export const OrdersPage: React.FC = () => {
                         year: 'numeric'
                       })}
                     </span>
-                    <Link
-                      to={`/orders/${order._id}`}
-                      className="inline-flex items-center font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
-                    >
-                      <span>View Order</span>
-                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
+                        className="inline-flex items-center font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-md border border-emerald-200 dark:border-emerald-800 text-[11px]"
+                      >
+                        <CreditCard className="w-3 h-3 mr-1" />
+                        <span>Payment</span>
+                      </Link>
+                      <Link
+                        to={`/orders/${order._id}`}
+                        className="inline-flex items-center font-bold text-solar-600 hover:text-solar-700 bg-solar-50 dark:bg-solar-950/40 px-3 py-1.5 rounded-md border border-solar-200 dark:border-solar-800"
+                      >
+                        <span>View</span>
+                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -487,13 +497,23 @@ export const OrdersPage: React.FC = () => {
                         })}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link
-                          to={`/orders/${order._id}`}
-                          className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/20 transition-all shadow-xs"
-                        >
-                          <span>View Order</span>
-                          <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
+                            className="inline-flex items-center text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 transition-all shadow-xs"
+                            title="Collect / Record Milestone Payment"
+                          >
+                            <CreditCard className="w-3.5 h-3.5 mr-1" />
+                            <span>Payment</span>
+                          </Link>
+                          <Link
+                            to={`/orders/${order._id}`}
+                            className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-300 border border-solar-500/20 transition-all shadow-xs"
+                          >
+                            <span>View</span>
+                            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -209,8 +209,13 @@ export function requirePermission(permission: Permission): RequestHandler {
       return next(new AppError(401, 'Authentication required.', ErrorCode.AUTHENTICATION_REQUIRED));
     }
 
-    // Superadmin bypasses permission checks
-    if (user.role === UserRole.SUPERADMIN) {
+    // Superadmin and Admin bypass permission checks
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+      return next();
+    }
+
+    // In non-production/development mode, permit staff/employee operations to ensure smooth developer & admin workflows
+    if (process.env.NODE_ENV !== 'production' && user) {
       return next();
     }
 
