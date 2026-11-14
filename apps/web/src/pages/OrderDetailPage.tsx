@@ -18,7 +18,8 @@ import {
   Warehouse as WarehouseIcon,
   Ban,
   FolderKanban,
-  User
+  User,
+  CreditCard
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -111,6 +112,25 @@ export const OrderDetailPage: React.FC = () => {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  // Live Receivables & Payment Reconciliation State
+  const [receivables, setReceivables] = useState<{
+    orderTotalPaise: number;
+    allocatedAmountPaise: number;
+    outstandingBalancePaise: number;
+    paymentStatus: string;
+    activeAllocations: any[];
+  } | null>(null);
+
+  const fetchReceivables = async () => {
+    if (!id) return;
+    try {
+      const res = await apiClient<any>(`/payments/receivables/orders/${id}`);
+      setReceivables(res);
+    } catch (err) {
+      console.warn('Failed to fetch order receivables:', err);
+    }
+  };
+
   const fetchOrderDetail = async () => {
     if (!id) return;
     setLoading(true);
@@ -118,6 +138,7 @@ export const OrderDetailPage: React.FC = () => {
     try {
       const data = await apiClient(`/orders/${id}`);
       setOrder(data);
+      fetchReceivables();
     } catch (err: any) {
       setError(err.message || 'Failed to load order details.');
     } finally {
@@ -127,6 +148,7 @@ export const OrderDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchOrderDetail();
+    fetchReceivables();
   }, [id]);
 
   // Check if an EPC project has already been launched for this order
@@ -341,11 +363,35 @@ export const OrderDetailPage: React.FC = () => {
             >
               Stock: {order.reservationStatus}
             </span>
+
+            {/* Live Payment Status Badge */}
+            {receivables && (
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  receivables.paymentStatus === 'PAID'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                    : receivables.paymentStatus === 'PARTIALLY_PAID'
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                      : 'bg-muted text-muted-foreground border border-border'
+                }`}
+              >
+                Payment: {receivables.paymentStatus.replace(/_/g, ' ')}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Collect / Reconcile Payment in Accounts */}
+          <Link
+            to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
+            className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs"
+            title="Record payment or view 3-stage milestone reconciliation in Accounts"
+          >
+            <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+            <span>Record Payment / Milestones</span>
+          </Link>
           {order.status !== 'CANCELLED' &&
             (linkedProject ? (
               <Link
@@ -673,35 +719,127 @@ export const OrderDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Agreed Payment Milestones Card */}
+          {/* Agreed Payment Milestones & Live Collection Status */}
           <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
-            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2">
-              <Clock className="w-3.5 h-3.5 text-solar-500" />
-              Payment Milestones & Commercial Conditions
-            </h2>
+            <div className="flex items-center justify-between border-b border-border/70 pb-2">
+              <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-solar-500" />
+                <span>Payment Milestones &amp; Commercial Conditions</span>
+              </h2>
+              <Link
+                to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
+                className="text-[11px] font-bold text-solar-600 hover:text-solar-700 flex items-center gap-1"
+              >
+                <span>Reconcile in Accounts ➔</span>
+              </Link>
+            </div>
+
+            {/* Total Payment Collection Progress Bar */}
+            {receivables && (
+              <div className="p-3 bg-muted/40 rounded-lg border border-border/60 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-foreground">Payment Collection Progress:</span>
+                  <span className="font-mono text-emerald-600 font-bold">
+                    ₹{((receivables.allocatedAmountPaise || 0) / 100).toLocaleString('en-IN')} / ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')} (
+                    {order.netTotalPaise > 0 ? Math.round(((receivables.allocatedAmountPaise || 0) / order.netTotalPaise) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-solar-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${order.netTotalPaise > 0 ? Math.min(100, Math.round(((receivables.allocatedAmountPaise || 0) / order.netTotalPaise) * 100)) : 0}%`
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Balance Outstanding: <strong className="text-destructive font-mono">₹{((receivables.outstandingBalancePaise || 0) / 100).toLocaleString('en-IN')}</strong></span>
+                  <span>Ledger Status: <strong className="text-foreground">{receivables.paymentStatus.replace(/_/g, ' ')}</strong></span>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {(order.paymentMilestones || []).map((m, idx) => (
-                <div
-                  key={idx}
-                  className="p-2.5 bg-secondary/30 rounded-lg border border-border text-xs"
-                >
-                  <div className="font-semibold text-foreground flex items-center justify-between">
-                    <span>{m.name || `Milestone ${idx + 1}`}</span>
-                    <span className="text-solar-600 dark:text-solar-400 font-bold">{m.percentage}%</span>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
-                    {m.description || '—'}
-                  </div>
-                  <div className="text-[11px] font-mono font-bold text-foreground mt-1.5 pt-1 border-t border-border/50">
-                    ₹{(((order.netTotalPaise * m.percentage) / 100 / 100) | 0).toLocaleString('en-IN')}
-                  </div>
-                </div>
-              ))}
+              {(() => {
+                let accumulatedAllocated = (receivables?.allocatedAmountPaise || 0) / 100;
+                const milestones = order.paymentMilestones && order.paymentMilestones.length > 0
+                  ? order.paymentMilestones
+                  : [
+                      { name: 'Booking Advance', percentage: 20, description: 'Upon confirmation of order' },
+                      { name: 'Pre-Dispatch', percentage: 70, description: 'Prior to material dispatch from warehouse' },
+                      { name: 'Commissioning', percentage: 10, description: 'Post physical installation and net-meter testing' }
+                    ];
+
+                return milestones.map((m, idx) => {
+                  const targetRupees = Math.round((order.netTotalPaise * m.percentage) / 100 / 100);
+                  const paidRupees = Math.min(targetRupees, Math.max(0, accumulatedAllocated));
+                  accumulatedAllocated -= paidRupees;
+                  const balanceRupees = Math.max(0, targetRupees - paidRupees);
+                  const isPaid = paidRupees >= targetRupees && targetRupees > 0;
+                  const isPartial = paidRupees > 0 && !isPaid;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border text-xs flex flex-col justify-between transition shadow-2xs ${
+                        isPaid
+                          ? 'bg-emerald-500/5 border-emerald-500/30'
+                          : isPartial
+                            ? 'bg-amber-500/5 border-amber-500/30'
+                            : 'bg-secondary/30 border-border'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-foreground flex items-center justify-between">
+                          <span>{m.name || `Milestone ${idx + 1}`}</span>
+                          <span className="text-solar-600 dark:text-solar-400 font-extrabold">{m.percentage}%</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                          {m.description || '—'}
+                        </div>
+                        <div className="text-sm font-mono font-black text-foreground mt-2 pt-1 border-t border-border/50">
+                          ₹{targetRupees.toLocaleString('en-IN')}
+                        </div>
+
+                        {/* Real-time Status */}
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground uppercase font-semibold">Realized:</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            isPaid
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                              : isPartial
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {isPaid ? '✓ Paid' : isPartial ? `⚡ Paid: ₹${paidRupees.toLocaleString('en-IN')}` : '⏳ Pending'}
+                          </span>
+                        </div>
+
+                        {balanceRupees > 0 && (
+                          <div className="text-[10px] text-destructive font-semibold mt-1">
+                            Pending: ₹{balanceRupees.toLocaleString('en-IN')}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action button if pending */}
+                      {!isPaid && (
+                        <Link
+                          to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}&milestone=${idx + 1}`}
+                          className="mt-3 w-full py-1.5 px-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-semibold text-[11px] text-center flex items-center justify-center gap-1 shadow-2xs"
+                        >
+                          <CreditCard className="w-3 h-3" />
+                          <span>Record Receipt</span>
+                        </Link>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
 
             {(order.termsAndConditions || []).length > 0 && (
-              <div className="pt-1.5 text-[11px] space-y-1 text-muted-foreground">
+              <div className="pt-2 text-[11px] space-y-1 text-muted-foreground border-t border-border/50">
                 <span className="font-semibold text-foreground text-xs block">Commercial Terms:</span>
                 {(order.termsAndConditions || []).map((term, i) => (
                   <div key={i}>• {term}</div>
@@ -709,6 +847,67 @@ export const OrderDetailPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Payment Receipts & Allocations Ledger */}
+          {receivables?.activeAllocations && receivables.activeAllocations.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-border/70 pb-2">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Realized Payment Receipts ({receivables.activeAllocations.length})</span>
+                </h3>
+                <span className="text-xs font-mono font-bold text-emerald-600">
+                  Total Credited: ₹{((receivables.allocatedAmountPaise || 0) / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto text-xs">
+                <table className="w-full">
+                  <thead className="bg-muted/40 border-b text-muted-foreground">
+                    <tr>
+                      <th className="py-2 px-3 text-left">Receipt #</th>
+                      <th className="py-2 px-3 text-left">Date</th>
+                      <th className="py-2 px-3 text-left">Method</th>
+                      <th className="py-2 px-3 text-left">Reference / Notes</th>
+                      <th className="py-2 px-3 text-right">Amount Allocated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {receivables.activeAllocations.map((alloc: any) => {
+                      const pay = alloc.paymentId;
+                      return (
+                        <tr key={alloc._id} className="hover:bg-muted/30">
+                          <td className="py-2.5 px-3 font-mono font-bold text-foreground">
+                            {pay?.receiptNumber || alloc.allocationNumber || 'REC'}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {pay?.paymentDate ? new Date(pay.paymentDate).toLocaleDateString('en-IN') : '—'}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted">
+                              {pay?.paymentMethod === 'CHEQUE'
+                                ? '🏦 Cheque'
+                                : pay?.paymentMethod === 'CASH'
+                                  ? '💵 Cash'
+                                  : pay?.paymentMethod === 'UPI'
+                                    ? '📱 UPI'
+                                    : '🏛️ ' + (pay?.paymentMethod || 'Bank Transfer')}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground truncate max-w-[200px]">
+                            {pay?.transactionReference || alloc.notes || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600">
+                            ₹{((alloc.allocatedAmountPaise || 0) / 100).toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column (5 cols): Commercial Financial Summary + Operations Fulfillment Status */}

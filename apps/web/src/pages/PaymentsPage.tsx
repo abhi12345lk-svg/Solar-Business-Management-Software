@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Banknote,
   Search,
@@ -148,6 +149,11 @@ export const PaymentsPage: React.FC = () => {
   const [statementData, setStatementData] = useState<ReceivablesStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
 
+  const [searchParams] = useSearchParams();
+  const paramOrderId = searchParams.get('orderId');
+  const paramCustomerId = searchParams.get('customerId');
+  const paramMilestone = searchParams.get('milestone');
+
   // Edit Payment Modal State
   const [showEditModal, setShowEditModal] = useState(false);
   const [editPaymentForm, setEditPaymentForm] = useState({
@@ -177,12 +183,12 @@ export const PaymentsPage: React.FC = () => {
       percentage: 20,
       description: 'Upon confirmation of order / token advance',
       amountRupees: 77052,
-      paidRupees: 77052,
+      paidRupees: 0,
       paymentMethod: 'CHEQUE',
-      paymentRef: 'CHQ-SBI-881920',
-      bankName: 'State Bank of India',
-      status: 'PAID',
-      notes: 'Received token advance along with signed proposal'
+      paymentRef: '',
+      bankName: '',
+      status: 'PENDING',
+      notes: ''
     },
     {
       id: 'm2',
@@ -190,12 +196,12 @@ export const PaymentsPage: React.FC = () => {
       percentage: 70,
       description: 'Prior to material dispatch from warehouse',
       amountRupees: 269682,
-      paidRupees: 200000,
+      paidRupees: 0,
       paymentMethod: 'BANK_TRANSFER',
-      paymentRef: 'UTR-HDFC-9912048',
-      bankName: 'HDFC Bank RTGS',
-      status: 'PARTIALLY_PAID',
-      notes: 'Initial dispatch tranche received, balance on delivery'
+      paymentRef: '',
+      bankName: '',
+      status: 'PENDING',
+      notes: ''
     },
     {
       id: 'm3',
@@ -205,23 +211,24 @@ export const PaymentsPage: React.FC = () => {
       amountRupees: 38526,
       paidRupees: 0,
       paymentMethod: 'CASH',
-      paymentRef: 'Cash Voucher #102',
+      paymentRef: '',
       bankName: '',
       status: 'PENDING',
-      notes: 'Retention amount payable on JCR & net-meter synchronization'
+      notes: ''
     }
   ]);
 
   // Form states
   const [recordForm, setRecordForm] = useState({
     customerId: '',
+    salesOrderId: '',
     amountRupees: '',
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'BANK_TRANSFER',
     transactionReference: '',
     notes: '',
     internalNotes: '',
-    autoVerify: false,
+    autoVerify: true,
     milestoneStage: 'NONE',
     chequeNumber: '',
     bankName: '',
@@ -340,6 +347,61 @@ export const PaymentsPage: React.FC = () => {
     });
   };
 
+  const syncMilestonesWithOrder = async (orderId: string) => {
+    if (!orderId) return;
+    try {
+      setLoadingMilestoneOrders(true);
+      const res = await apiClient<any>(`/payments/receivables/orders/${orderId}`);
+      if (!res) return;
+
+      const order = res.order;
+      const orderTotalRupees = Math.round((res.orderTotalPaise || order?.netTotalPaise || 0) / 100);
+      const totalAllocatedRupees = Math.round((res.allocatedAmountPaise || 0) / 100);
+      const activeAllocations = res.activeAllocations || [];
+
+      setMilestoneContractTotalRupees(orderTotalRupees);
+
+      const milestones = (order?.paymentMilestones && order.paymentMilestones.length > 0)
+        ? order.paymentMilestones
+        : [
+            { name: 'Booking Advance', percentage: 20, description: 'Upon confirmation of order / token advance' },
+            { name: 'Pre-Dispatch', percentage: 70, description: 'Prior to material dispatch from warehouse' },
+            { name: 'Commissioning', percentage: 10, description: 'Post physical installation and net-meter testing' }
+          ];
+
+      let remainingAllocated = totalAllocatedRupees;
+
+      const syncedStages = milestones.map((m: any, idx: number) => {
+        const targetAmt = Math.round((orderTotalRupees * m.percentage) / 100);
+        const paidForThisStage = Math.min(targetAmt, Math.max(0, remainingAllocated));
+        remainingAllocated -= paidForThisStage;
+
+        const alloc = activeAllocations[idx];
+        const paymentRec = alloc?.paymentId;
+
+        return {
+          id: `m${idx + 1}`,
+          name: m.name || `Milestone ${idx + 1}`,
+          percentage: m.percentage,
+          description: m.description || '',
+          amountRupees: targetAmt,
+          paidRupees: paidForThisStage,
+          paymentMethod: paymentRec?.paymentMethod || (idx === 0 ? 'CHEQUE' : idx === 1 ? 'BANK_TRANSFER' : 'CASH'),
+          paymentRef: paymentRec?.transactionReference || (paymentRec?.receiptNumber ? `REC: ${paymentRec.receiptNumber}` : ''),
+          bankName: '',
+          status: paidForThisStage >= targetAmt && targetAmt > 0 ? 'PAID' : paidForThisStage > 0 ? 'PARTIALLY_PAID' : 'PENDING',
+          notes: ''
+        };
+      });
+
+      setMilestoneStages(syncedStages);
+    } catch (err) {
+      console.warn('Failed to sync milestones with order:', err);
+    } finally {
+      setLoadingMilestoneOrders(false);
+    }
+  };
+
   const handleMilestoneCustomerChange = async (cId: string) => {
     setMilestoneCustomerId(cId);
     setMilestoneOrderId('');
@@ -355,10 +417,15 @@ export const PaymentsPage: React.FC = () => {
       if (list.length > 0) {
         const firstOrder = list[0];
         setMilestoneOrderId(firstOrder._id);
-        const orderTotal = Math.round((firstOrder.netTotalPaise || 0) / 100);
-        if (orderTotal > 0) {
-          handleContractTotalChange(orderTotal);
-        }
+        await syncMilestonesWithOrder(firstOrder._id);
+      } else {
+        setMilestoneStages(prev =>
+          prev.map(s => ({
+            ...s,
+            paidRupees: 0,
+            status: 'PENDING'
+          }))
+        );
       }
     } catch (err) {
       console.warn('Failed to load milestone orders:', err);
@@ -371,6 +438,7 @@ export const PaymentsPage: React.FC = () => {
     const remainingDue = Math.max(0, stage.amountRupees - stage.paidRupees);
     setRecordForm({
       customerId: milestoneCustomerId || (customersList[0]?._id || ''),
+      salesOrderId: milestoneOrderId || '',
       amountRupees: remainingDue > 0 ? remainingDue.toString() : stage.amountRupees.toString(),
       paymentDate: new Date().toISOString().split('T')[0],
       paymentMethod: stage.paymentMethod,
@@ -431,6 +499,38 @@ export const PaymentsPage: React.FC = () => {
     fetchCustomersList();
   }, []);
 
+  // Handle URL navigation params (orderId, customerId from Sales Order / Admin)
+  useEffect(() => {
+    if (paramCustomerId) {
+      setMilestoneCustomerId(paramCustomerId);
+      fetchCustomerOrders(paramCustomerId);
+      apiClient<any>(`/orders?customerId=${paramCustomerId}&limit=20`)
+        .then(res => {
+          const list = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
+          setMilestoneOrders(list);
+          const targetOrderId = paramOrderId || list[0]?._id;
+          if (targetOrderId) {
+            setMilestoneOrderId(targetOrderId);
+            syncMilestonesWithOrder(targetOrderId);
+          }
+          if (paramMilestone) {
+            const mIdx = Math.max(0, parseInt(paramMilestone, 10) - 1);
+            const stage = milestoneStages[mIdx] || milestoneStages[0];
+            if (stage) {
+              setTimeout(() => handleQuickRecordMilestone(stage, mIdx), 200);
+            }
+          } else {
+            setShowMilestoneModal(true);
+          }
+        })
+        .catch(console.warn);
+    } else if (paramOrderId) {
+      setMilestoneOrderId(paramOrderId);
+      syncMilestonesWithOrder(paramOrderId);
+      setShowMilestoneModal(true);
+    }
+  }, [paramCustomerId, paramOrderId, paramMilestone]);
+
   // Fetch payments list
   const fetchPayments = useCallback(async () => {
     try {
@@ -479,7 +579,7 @@ export const PaymentsPage: React.FC = () => {
         }
       }
 
-      await apiClient('/payments', {
+      const createdRes: any = await apiClient('/payments', {
         method: 'POST',
         body: JSON.stringify({
           customerId: recordForm.customerId.trim(),
@@ -493,16 +593,39 @@ export const PaymentsPage: React.FC = () => {
         })
       });
 
+      const pData = createdRes?.data || createdRes;
+
+      // Automatically allocate to the linked Sales Order!
+      if (pData?._id && recordForm.salesOrderId && recordForm.autoVerify) {
+        try {
+          await apiClient(`/payments/${pData._id}/allocate`, {
+            method: 'POST',
+            body: JSON.stringify({
+              salesOrderId: recordForm.salesOrderId,
+              allocatedAmountPaise: amountPaise,
+              notes: recordForm.notes || 'Milestone payment allocation'
+            })
+          });
+        } catch (allocErr) {
+          console.warn('Auto-allocation to order skipped:', allocErr);
+        }
+      }
+
+      if (recordForm.salesOrderId) {
+        syncMilestonesWithOrder(recordForm.salesOrderId);
+      }
+
       setShowRecordModal(false);
       setRecordForm({
         customerId: '',
+        salesOrderId: '',
         amountRupees: '',
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'BANK_TRANSFER',
         transactionReference: '',
         notes: '',
         internalNotes: '',
-        autoVerify: false,
+        autoVerify: true,
         milestoneStage: 'NONE',
         chequeNumber: '',
         bankName: '',
@@ -1127,7 +1250,11 @@ export const PaymentsPage: React.FC = () => {
                   <select
                     required
                     value={recordForm.customerId}
-                    onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
+                    onChange={e => {
+                      const cId = e.target.value;
+                      setRecordForm({ ...recordForm, customerId: cId });
+                      if (cId) fetchCustomerOrders(cId);
+                    }}
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20"
                   >
                     <option value="">-- Choose Client from Directory --</option>
@@ -1143,7 +1270,11 @@ export const PaymentsPage: React.FC = () => {
                     required
                     placeholder="Enter Customer Code (e.g. CUST-2026-00001) or ID"
                     value={recordForm.customerId}
-                    onChange={e => setRecordForm({ ...recordForm, customerId: e.target.value })}
+                    onChange={e => {
+                      const cId = e.target.value;
+                      setRecordForm({ ...recordForm, customerId: cId });
+                      if (cId) fetchCustomerOrders(cId);
+                    }}
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-background font-mono focus:outline-none focus:ring-2 focus:ring-solar-500/20"
                   />
                 )}
@@ -1151,6 +1282,29 @@ export const PaymentsPage: React.FC = () => {
                   <span>Client will be credited and an official receipt generated.</span>
                   {customersList.length > 0 && <span>{customersList.length} clients available</span>}
                 </div>
+              </div>
+
+              {/* Sales Order Selection */}
+              <div>
+                <label className="block text-xs font-semibold mb-1">
+                  Link to Sales Order <span className="text-muted-foreground font-normal">(Instant ledger credit)</span>
+                </label>
+                <select
+                  value={recordForm.salesOrderId}
+                  onChange={e => {
+                    const oId = e.target.value;
+                    setRecordForm({ ...recordForm, salesOrderId: oId });
+                    if (oId) syncMilestonesWithOrder(oId);
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-solar-500/20"
+                >
+                  <option value="">-- No Order Linked (Unallocated Credit) --</option>
+                  {(customerOrders.length > 0 ? customerOrders : milestoneOrders).map(o => (
+                    <option key={o._id} value={o._id}>
+                      {o.orderNumber} • {o.systemCapacityKwp || 0} kWp RTS
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Payment Milestone Quick Selector */}
@@ -2065,9 +2219,9 @@ export const PaymentsPage: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {showMilestoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
-          <div className="bg-card border rounded-2xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div className="bg-card border rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl max-h-[92vh] flex flex-col">
             {/* Header */}
-            <div className="flex justify-between items-start pb-4 border-b">
+            <div className="flex justify-between items-start pb-3 border-b shrink-0">
               <div>
                 <div className="flex items-center space-x-2">
                   <div className="p-2 rounded-lg bg-solar-500/10 text-solar-600">
@@ -2089,7 +2243,7 @@ export const PaymentsPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-6 mt-5">
+            <div className="space-y-5 mt-4 overflow-y-auto pr-1 flex-1">
               {/* Client & Contract Value Selector Bar */}
               <div className="p-4 bg-muted/40 border rounded-xl grid grid-cols-1 md:grid-cols-3 gap-3.5 items-end">
                 <div>
@@ -2119,9 +2273,8 @@ export const PaymentsPage: React.FC = () => {
                     onChange={e => {
                       const oId = e.target.value;
                       setMilestoneOrderId(oId);
-                      const sel = milestoneOrders.find(o => o._id === oId);
-                      if (sel && sel.netTotalPaise) {
-                        handleContractTotalChange(Math.round(sel.netTotalPaise / 100));
+                      if (oId) {
+                        syncMilestonesWithOrder(oId);
                       }
                     }}
                     disabled={!milestoneCustomerId || loadingMilestoneOrders}
@@ -2404,8 +2557,8 @@ export const PaymentsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex justify-end space-x-3 pt-5 border-t mt-6">
+            {/* Modal Actions (Always Visible Sticky Footer) */}
+            <div className="flex justify-end space-x-3 pt-3 border-t mt-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowMilestoneModal(false)}

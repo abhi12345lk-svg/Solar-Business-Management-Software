@@ -144,6 +144,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/', label: 'Accounts Dashboard', icon: LayoutDashboard },
       { to: '/payments', label: 'Customer Payments & Receipts', icon: CreditCard },
+      { to: '/orders', label: 'Confirmed Sales Orders (Billing)', icon: ShoppingCart },
       { to: '/subsidies', label: 'Govt Subsidy (DBT Claims)', icon: Landmark }
     ]
   },
