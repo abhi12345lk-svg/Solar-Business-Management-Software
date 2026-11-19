@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
   Search,
@@ -26,8 +26,7 @@ import {
   FilePlus2,
   Trash2,
   Lock,
-  Camera,
-  MapPin
+  Camera
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -142,6 +141,7 @@ export const DocumentsPage: React.FC = () => {
     ? getDefaultPanelForRole(user.role, user.department)
     : PanelType.ADMIN;
   const isInstaller = activePanel === PanelType.INSTALLER;
+  const navigate = useNavigate();
 
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -269,6 +269,14 @@ export const DocumentsPage: React.FC = () => {
 
               // If categoryFilter is applied and is not SITE_PHOTOS, skip
               if (categoryFilter && categoryFilter !== 'SITE_PHOTOS') continue;
+
+              // If keyword search is present, check match against title and client
+              if (search.trim()) {
+                const q = search.toLowerCase().trim();
+                const titleStr = `site inspection photos dossier (${validPhotosCount} photos) - ${clientName}`.toLowerCase();
+                const matchClient = clientName.toLowerCase().includes(q) || clientCode.toLowerCase().includes(q);
+                if (!titleStr.includes(q) && !matchClient) continue;
+              }
 
               localSyncedDocs.push({
                 _id: `local_photos_${custId}`,
@@ -436,12 +444,30 @@ export const DocumentsPage: React.FC = () => {
     if (!deleteModalDoc) return;
     try {
       setIsDeleting(true);
+
+      // Handle virtual local photos dossier stored in browser cache
+      if (deleteModalDoc._id.startsWith('local_photos_')) {
+        const custId =
+          deleteModalDoc.customerId?._id ||
+          deleteModalDoc.storageKey?.replace('local_photos_', '') ||
+          deleteModalDoc._id.replace('local_photos_', '');
+
+        if (custId) {
+          localStorage.removeItem(`solar_photos_${custId}`);
+        }
+        setActionSuccess(`Site inspection photos dossier for "${deleteModalDoc.customerId?.name || 'Client'}" removed successfully.`);
+        setDeleteModalDoc(null);
+        fetchDocuments();
+        return;
+      }
+
       await apiClient(`/documents/${deleteModalDoc._id}`, { method: 'DELETE' });
       setActionSuccess(`Document "${deleteModalDoc.safeDisplayName}" (${deleteModalDoc.documentNumber}) deleted successfully.`);
       setDeleteModalDoc(null);
       fetchDocuments();
     } catch (err: any) {
-      alert(err?.message || 'Failed to delete document.');
+      setError(err?.message || 'Failed to delete document.');
+      setDeleteModalDoc(null);
     } finally {
       setIsDeleting(false);
     }
@@ -577,7 +603,7 @@ export const DocumentsPage: React.FC = () => {
   const handleViewDocument = async (doc: DocumentItem) => {
     if (doc._id.startsWith('local_photos_')) {
       const custId = doc.customerId?._id || '';
-      window.location.href = `/site-photos?customerId=${custId}`;
+      navigate(`/site-photos?customerId=${custId}`);
       return;
     }
     try {
@@ -612,7 +638,7 @@ export const DocumentsPage: React.FC = () => {
   const handleDownloadSigned = async (doc: DocumentItem) => {
     if (doc._id.startsWith('local_photos_')) {
       const custId = doc.customerId?._id || '';
-      window.location.href = `/site-photos?customerId=${custId}`;
+      navigate(`/site-photos?customerId=${custId}`);
       return;
     }
     try {
@@ -640,11 +666,6 @@ export const DocumentsPage: React.FC = () => {
     d => d.reviewStatus === 'REJECTED' || d.reviewStatus === 'RESUBMISSION_REQUIRED'
   ).length;
 
-  // Installer-specific counters
-  const sitePhotosCount = documents.filter(d => d.category === 'SITE_PHOTOS').length;
-  const geotagCount = documents.filter(d => d.category === 'SITE_GEOTAG_LOCATION').length;
-  const commissioningCount = documents.filter(d => d.category === 'COMMISSIONING_REPORT').length;
-
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
       {/* Top Banner / Breadcrumb & Header */}
@@ -670,16 +691,35 @@ export const DocumentsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Buttons: Installer gets direct Site Photos link; non-installer gets Generate Document & Upload to Vault */}
+        {/* Action Buttons: Installer gets Upload Document & Capture Site Photos */}
         <div className="flex items-center space-x-2.5 shrink-0">
           {isInstaller ? (
-            <Link
-              to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Capture Site Photos &rarr;</span>
-            </Link>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormError(null);
+                  setSelectedFile(null);
+                  setUploadFilename('');
+                  setUploadDisplayName('');
+                  setUploadCustomerId(customerFilter || '');
+                  setUploadCategory('SITE_PHOTOS');
+                  setUploadModalOpen(true);
+                }}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4 text-solar-600" />
+                <span>Upload Document</span>
+              </button>
+
+              <Link
+                to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Capture Site Photos &rarr;</span>
+              </Link>
+            </>
           ) : (
             <>
               <Link
@@ -733,169 +773,86 @@ export const DocumentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Interactive Stat Cards (Clickable Quick Filters) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {isInstaller ? (
-          <>
-            {/* Installer Card 1: Total Site Dossiers */}
-            <div
-              onClick={() => {
-                setCategoryFilter('');
-                setReviewFilter('');
-              }}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                !categoryFilter && !reviewFilter
-                  ? 'border-solar-500 ring-2 ring-solar-500/20'
-                  : 'border-border hover:border-solar-300'
-              }`}
-              title="Click to show all site documents"
-            >
-              <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0">
-                <Camera className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
-                <div className="text-xs font-semibold text-muted-foreground truncate">Total Site Files</div>
-              </div>
+      {/* Interactive Stat Cards (Only for non-installer CRM & Compliance) */}
+      {!isInstaller && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Total Documents */}
+          <div
+            onClick={() => setReviewFilter('')}
+            className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+              !reviewFilter
+                ? 'border-solar-500 ring-2 ring-solar-500/20'
+                : 'border-border hover:border-solar-300'
+            }`}
+            title="Click to show all documents"
+          >
+            <div className="w-10 h-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5" />
             </div>
+            <div className="min-w-0">
+              <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
+              <div className="text-xs font-semibold text-muted-foreground truncate">Total Vault Files</div>
+            </div>
+          </div>
 
-            {/* Installer Card 2: Site Photos Reports */}
-            <div
-              onClick={() => setCategoryFilter(categoryFilter === 'SITE_PHOTOS' ? '' : 'SITE_PHOTOS')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                categoryFilter === 'SITE_PHOTOS'
-                  ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
-                  : 'border-border hover:border-amber-300'
-              }`}
-              title="Click to filter 4-Point Site Inspection Photos"
-            >
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                <Camera className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-amber-600">{sitePhotosCount}</div>
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Site Photos Reports</div>
-              </div>
+          {/* Pending Review */}
+          <div
+            onClick={() => setReviewFilter(reviewFilter === 'PENDING_REVIEW' ? '' : 'PENDING_REVIEW')}
+            className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+              reviewFilter === 'PENDING_REVIEW'
+                ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
+                : 'border-border hover:border-amber-300'
+            }`}
+            title="Click to filter Pending Review"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
             </div>
+            <div className="min-w-0">
+              <div className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount}</div>
+              <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Pending Review / QA</div>
+            </div>
+          </div>
 
-            {/* Installer Card 3: GPS Geotags */}
-            <div
-              onClick={() => setCategoryFilter(categoryFilter === 'SITE_GEOTAG_LOCATION' ? '' : 'SITE_GEOTAG_LOCATION')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                categoryFilter === 'SITE_GEOTAG_LOCATION'
-                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
-                  : 'border-border hover:border-emerald-300'
-              }`}
-              title="Click to filter GPS Site Geotags"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-emerald-600">{geotagCount}</div>
-                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">GPS Site Geotags</div>
-              </div>
+          {/* Accepted & Verified */}
+          <div
+            onClick={() => setReviewFilter(reviewFilter === 'ACCEPTED' ? '' : 'ACCEPTED')}
+            className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+              reviewFilter === 'ACCEPTED'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
+                : 'border-border hover:border-emerald-300'
+            }`}
+            title="Click to filter Accepted & Verified"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
+            <div className="min-w-0">
+              <div className="text-xl sm:text-2xl font-black text-emerald-600">{acceptedCount}</div>
+              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">Accepted &amp; Verified</div>
+            </div>
+          </div>
 
-            {/* Installer Card 4: Joint Commissioning */}
-            <div
-              onClick={() => setCategoryFilter(categoryFilter === 'COMMISSIONING_REPORT' ? '' : 'COMMISSIONING_REPORT')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                categoryFilter === 'COMMISSIONING_REPORT'
-                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-500/5'
-                  : 'border-border hover:border-blue-300'
-              }`}
-              title="Click to filter Joint Commissioning Reports"
-            >
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-blue-600">{commissioningCount}</div>
-                <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 truncate">Commissioning Dossiers</div>
-              </div>
+          {/* Rejected / Resubmission Required */}
+          <div
+            onClick={() => setReviewFilter(reviewFilter === 'REJECTED' ? '' : 'REJECTED')}
+            className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+              reviewFilter === 'REJECTED'
+                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5'
+                : 'border-border hover:border-rose-300'
+            }`}
+            title="Click to filter Rejected Documents"
+          >
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
             </div>
-          </>
-        ) : (
-          <>
-            {/* Total Documents */}
-            <div
-              onClick={() => setReviewFilter('')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                !reviewFilter
-                  ? 'border-solar-500 ring-2 ring-solar-500/20'
-                  : 'border-border hover:border-solar-300'
-              }`}
-              title="Click to show all documents"
-            >
-              <div className="w-10 h-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
-                <div className="text-xs font-semibold text-muted-foreground truncate">Total Vault Files</div>
-              </div>
+            <div className="min-w-0">
+              <div className="text-xl sm:text-2xl font-black text-rose-600">{rejectedCount}</div>
+              <div className="text-xs font-semibold text-rose-700 dark:text-rose-400 truncate">Rejected / Resubmit</div>
             </div>
-
-            {/* Pending Review */}
-            <div
-              onClick={() => setReviewFilter(reviewFilter === 'PENDING_REVIEW' ? '' : 'PENDING_REVIEW')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                reviewFilter === 'PENDING_REVIEW'
-                  ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
-                  : 'border-border hover:border-amber-300'
-              }`}
-              title="Click to filter Pending Review"
-            >
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount}</div>
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Pending Review / QA</div>
-              </div>
-            </div>
-
-            {/* Accepted & Verified */}
-            <div
-              onClick={() => setReviewFilter(reviewFilter === 'ACCEPTED' ? '' : 'ACCEPTED')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                reviewFilter === 'ACCEPTED'
-                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
-                  : 'border-border hover:border-emerald-300'
-              }`}
-              title="Click to filter Accepted & Verified"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-emerald-600">{acceptedCount}</div>
-                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">Accepted &amp; Verified</div>
-              </div>
-            </div>
-
-            {/* Rejected / Resubmission Required */}
-            <div
-              onClick={() => setReviewFilter(reviewFilter === 'REJECTED' ? '' : 'REJECTED')}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-                reviewFilter === 'REJECTED'
-                  ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5'
-                  : 'border-border hover:border-rose-300'
-              }`}
-              title="Click to filter Rejected Documents"
-            >
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
-                <XCircle className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-rose-600">{rejectedCount}</div>
-                <div className="text-xs font-semibold text-rose-700 dark:text-rose-400 truncate">Rejected / Resubmit</div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Query Control Bar */}
       <div className="bg-card p-3 sm:p-3.5 rounded-xl border border-border shadow-2xs">
@@ -1058,11 +1015,22 @@ export const DocumentsPage: React.FC = () => {
             <table className="w-full table-fixed text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-bold text-[11px] uppercase tracking-wider">
-                  <th className="py-2.5 px-3 w-[30%]">Document Details</th>
-                  <th className="py-2.5 px-3 w-[18%]">{isInstaller ? 'Document Category' : 'Category & Access'}</th>
-                  <th className="py-2.5 px-3 w-[18%]">{isInstaller ? 'Site / Client' : 'Linked Client'}</th>
-                  <th className="py-2.5 px-3 w-[14%]">{isInstaller ? 'Verification Status' : 'Status & Date'}</th>
-                  <th className="py-2.5 px-3 w-[20%] text-right">Actions</th>
+                  {isInstaller ? (
+                    <>
+                      <th className="py-2.5 px-3 w-[45%]">Site Document &amp; File</th>
+                      <th className="py-2.5 px-3 w-[25%]">Rooftop Site / Client</th>
+                      <th className="py-2.5 px-3 w-[15%]">Saved Date</th>
+                      <th className="py-2.5 px-3 w-[15%] text-right">Actions</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="py-2.5 px-3 w-[30%]">Document Details</th>
+                      <th className="py-2.5 px-3 w-[18%]">Category &amp; Access</th>
+                      <th className="py-2.5 px-3 w-[18%]">Linked Client</th>
+                      <th className="py-2.5 px-3 w-[14%]">Status &amp; Date</th>
+                      <th className="py-2.5 px-3 w-[20%] text-right">Actions</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -1089,7 +1057,122 @@ export const DocumentsPage: React.FC = () => {
 
                   return (
                     <tr key={doc._id} className="hover:bg-muted/30 transition">
-                      {/* 1. Document Details & File Metadata */}
+                      {isInstaller ? (
+                        <>
+                          {/* 1. Site Document & File Details */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-start space-x-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 mt-0.5">
+                                {doc.category === 'SITE_PHOTOS' ? (
+                                  <Camera className="w-4 h-4" />
+                                ) : (
+                                  <FileText className="w-4 h-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  onClick={() => handleViewDocument(doc)}
+                                  className="font-bold text-foreground text-xs hover:text-solar-600 transition cursor-pointer truncate"
+                                  title={doc.safeDisplayName}
+                                >
+                                  {doc.safeDisplayName}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground flex items-center space-x-1.5 mt-0.5 font-mono truncate">
+                                  <span className="font-semibold text-foreground/80">{doc.documentNumber}</span>
+                                  <span>•</span>
+                                  <span className="truncate" title={doc.originalFilename}>
+                                    {doc.originalFilename}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="shrink-0">{formatFileSize(doc.fileSizeBytes)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Rooftop Site / Client */}
+                          <td className="py-3 px-3">
+                            {doc.customerId ? (
+                              <div className="min-w-0">
+                                <div className="font-bold text-foreground text-xs truncate" title={clientName || 'Rooftop Client'}>
+                                  {clientName || 'Rooftop Client'}
+                                </div>
+                                <div className="text-[11px] font-mono text-solar-600 dark:text-solar-400 font-bold truncate">
+                                  {doc.customerId.customerCode}
+                                </div>
+                                {doc.customerId.primaryPhone && (
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {doc.customerId.primaryPhone}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Site Record</span>
+                            )}
+                          </td>
+
+                          {/* 3. Saved Date */}
+                          <td className="py-3 px-3">
+                            <div className="text-xs font-semibold text-foreground whitespace-nowrap">
+                              {formattedDate}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {doc.createdAt
+                                ? new Date(doc.createdAt).toLocaleTimeString('en-IN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                : ''}
+                            </div>
+                          </td>
+
+                          {/* 4. Actions */}
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end space-x-1.5">
+                              {doc._id.startsWith('local_photos_') ? (
+                                <Link
+                                  to={`/site-photos?customerId=${doc.customerId?._id || ''}`}
+                                  className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-white bg-solar-600 hover:bg-solar-700 rounded-lg transition shadow-2xs shrink-0"
+                                  title="Open Photos Workstation"
+                                >
+                                  <Camera className="w-3.5 h-3.5" />
+                                  <span>Open Photos</span>
+                                </Link>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewDocument(doc)}
+                                    className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold text-solar-700 dark:text-solar-300 bg-solar-500/10 hover:bg-solar-500/20 border border-solar-500/20 rounded-lg transition cursor-pointer shrink-0"
+                                    title="View Document"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-solar-600" />
+                                    <span>View</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadSigned(doc)}
+                                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition cursor-pointer shrink-0 border border-transparent hover:border-border"
+                                    title="Download File"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setDeleteModalDoc(doc)}
+                                className="p-1.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition cursor-pointer shrink-0"
+                                title="Delete Document"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          {/* 1. Document Details & File Metadata */}
                       <td className="py-3 px-3">
                         <div className="flex items-center space-x-1.5">
                           <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border shrink-0">
@@ -1312,7 +1395,9 @@ export const DocumentsPage: React.FC = () => {
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </>
+                  )}
+                </tr>
                   );
                 })}
               </tbody>
@@ -1670,8 +1755,14 @@ export const DocumentsPage: React.FC = () => {
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-foreground">Delete Document</h3>
-                <p className="text-xs text-muted-foreground">Permanent deletion from vault and customer dossier</p>
+                <h3 className="text-base font-bold text-foreground">
+                  {deleteModalDoc._id.startsWith('local_photos_') ? 'Delete Site Photos Dossier' : 'Delete Document'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {deleteModalDoc._id.startsWith('local_photos_')
+                    ? 'Remove saved inspection photos from site dossier cache'
+                    : 'Permanent deletion from vault and customer dossier'}
+                </p>
               </div>
             </div>
 
@@ -1711,7 +1802,7 @@ export const DocumentsPage: React.FC = () => {
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Document</span>
+                    <span>{deleteModalDoc._id.startsWith('local_photos_') ? 'Delete Dossier' : 'Delete Document'}</span>
                   </>
                 )}
               </button>
