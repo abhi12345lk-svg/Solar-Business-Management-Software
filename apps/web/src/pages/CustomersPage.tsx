@@ -38,7 +38,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
-import { CustomerDto, CustomerType, CustomerStatus } from '@ins-solar/shared';
+import { useAuth } from '../context/AuthContext.js';
+import { CustomerDto, CustomerType, CustomerStatus, PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 
 const MANDATORY_SOLAR_SLOTS = [
   {
@@ -86,6 +87,12 @@ const MANDATORY_SOLAR_SLOTS = [
 ];
 
 export const CustomersPage: React.FC = () => {
+  const { user } = useAuth();
+  const activePanel: PanelType = user?.role
+    ? getDefaultPanelForRole(user.role, user.department)
+    : PanelType.ADMIN;
+  const isInstaller = activePanel === PanelType.INSTALLER;
+
   const [customers, setCustomers] = useState<CustomerDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -857,20 +864,33 @@ export const CustomersPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <Link
-            to="/create-document"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-card border border-border hover:bg-muted text-foreground shadow-2xs transition"
-          >
-            <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
-            <span>Create Document</span>
-          </Link>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Register New Customer</span>
-          </button>
+          {isInstaller ? (
+            <Link
+              to="/site-photos"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
+              title="Open Site Inspection Photos Workstation"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Open Site Photos Workstation &rarr;</span>
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/create-document"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-card border border-border hover:bg-muted text-foreground shadow-2xs transition"
+              >
+                <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
+                <span>Create Document</span>
+              </Link>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Register New Customer</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1012,11 +1032,20 @@ export const CustomersPage: React.FC = () => {
               <thead>
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-semibold">
                   <th className="py-3 px-4">Customer ID</th>
-                  <th className="py-3 px-4">Customer Name & Type</th>
+                  <th className="py-3 px-4">Customer Name &amp; Type</th>
                   <th className="py-3 px-4">Contact Details</th>
                   <th className="py-3 px-4">Installation Site</th>
-                  <th className="py-3 px-4 text-center">Document Vault</th>
-                  <th className="py-3 px-4 text-center">Status / Client Stage</th>
+                  {isInstaller ? (
+                    <>
+                      <th className="py-3 px-4 text-center">Inspection Status</th>
+                      <th className="py-3 px-4 text-center">Site Inspection Action</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="py-3 px-4 text-center">Document Vault</th>
+                      <th className="py-3 px-4 text-center">Status / Client Stage</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -1122,48 +1151,80 @@ export const CustomersPage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Document Vault Column */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => openCustomerVault(customer)}
-                          className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition shadow-xs cursor-pointer group/btn ${
-                            (customer.documentCount || 0) > 0
-                              ? 'bg-blue-500/10 text-blue-700 border-blue-500/30 hover:bg-blue-500/20 dark:text-blue-400'
-                              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                          }`}
-                          title={`Open ${customer.name}'s Document Vault`}
-                        >
-                          <FolderLock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover/btn:scale-110 transition-transform" />
-                          <span>Vault ({(customer.documentCount || 0)})</span>
-                          <span className="text-[10px] opacity-75 font-normal ml-0.5">+ Upload</span>
-                        </button>
-                      </td>
-
-                      {/* Status / Client Stage with Interactive Dropdown */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="relative inline-block text-left">
-                          <select
-                            value={customer.status || CustomerStatus.ACTIVE}
-                            disabled={updatingId === customer.id}
-                            onChange={e => handleStatusChange(customer.id, e.target.value)}
-                            className={`appearance-none cursor-pointer pl-3 pr-7 py-1 rounded-full text-xs font-semibold border transition shadow-xs focus:outline-none focus:ring-2 focus:ring-solar-500 disabled:opacity-50 ${getStatusBadgeConfig(customer.status).className}`}
-                          >
-                            <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
-                            <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
-                            <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
-                            <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
-                            <option value={CustomerStatus.INACTIVE}>Inactive</option>
-                          </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                            {updatingId === customer.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                      {isInstaller ? (
+                        <>
+                          {/* Inspection Status Column for Installer */}
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            {localStorage.getItem(`solar_photos_${customer.id}`) ? (
+                              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Photos Completed</span>
+                              </span>
                             ) : (
-                              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+                                <span>Inspection Pending</span>
+                              </span>
                             )}
-                          </div>
-                        </div>
-                      </td>
+                          </td>
+
+                          {/* Site Inspection Direct Action Column */}
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <Link
+                              to={`/site-photos?customerId=${customer.id}`}
+                              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                              title={`Open 4-point site inspection photos for ${customer.name}`}
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>Site Photos &rarr;</span>
+                            </Link>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          {/* Document Vault Column */}
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => openCustomerVault(customer)}
+                              className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition shadow-xs cursor-pointer group/btn ${
+                                (customer.documentCount || 0) > 0
+                                  ? 'bg-blue-500/10 text-blue-700 border-blue-500/30 hover:bg-blue-500/20 dark:text-blue-400'
+                                  : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                              }`}
+                              title={`Open ${customer.name}'s Document Vault`}
+                            >
+                              <FolderLock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover/btn:scale-110 transition-transform" />
+                              <span>Vault ({(customer.documentCount || 0)})</span>
+                              <span className="text-[10px] opacity-75 font-normal ml-0.5">+ Upload</span>
+                            </button>
+                          </td>
+
+                          {/* Status / Client Stage with Interactive Dropdown */}
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <div className="relative inline-block text-left">
+                              <select
+                                value={customer.status || CustomerStatus.ACTIVE}
+                                disabled={updatingId === customer.id}
+                                onChange={e => handleStatusChange(customer.id, e.target.value)}
+                                className={`appearance-none cursor-pointer pl-3 pr-7 py-1 rounded-full text-xs font-semibold border transition shadow-xs focus:outline-none focus:ring-2 focus:ring-solar-500 disabled:opacity-50 ${getStatusBadgeConfig(customer.status).className}`}
+                              >
+                                <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
+                                <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
+                                <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
+                                <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
+                                <option value={CustomerStatus.INACTIVE}>Inactive</option>
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                {updatingId === customer.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
@@ -1211,73 +1272,109 @@ export const CustomersPage: React.FC = () => {
             </div>
 
             {/* Direct Workflow Launch Hub */}
-            <div className="p-3.5 bg-gradient-to-r from-solar-500/10 via-solar-500/5 to-emerald-500/10 border rounded-xl space-y-2">
-              <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                <span>Direct Workflow Launch:</span>
-                <span className="text-[11px] text-muted-foreground font-normal">Pre-filled with customer details</span>
+            {isInstaller ? (
+              <div className="p-3.5 bg-solar-500/10 border border-solar-500/20 rounded-xl space-y-2">
+                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Field Installation Operations:</span>
+                  <span className="text-[11px] text-muted-foreground font-normal">Site Photos &amp; Verified Geotag</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Link
+                    to={`/site-photos?customerId=${selectedCustomer.id}`}
+                    className="p-3 bg-card hover:bg-muted/50 border border-solar-500/30 rounded-xl transition shadow-xs flex items-center space-x-3 group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-solar-500/20 text-solar-600 flex items-center justify-center shrink-0">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs text-foreground block group-hover:text-solar-600">Site Inspection Photos</span>
+                      <span className="text-[10px] text-muted-foreground">Capture 4 mandatory rooftop photos &amp; GPS</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to={`/documents?customerId=${selectedCustomer.id}`}
+                    className="p-3 bg-card hover:bg-muted/50 border border-border rounded-xl transition shadow-xs flex items-center space-x-3 group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                      <FolderLock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs text-foreground block group-hover:text-blue-600">Customer Document Vault</span>
+                      <span className="text-[10px] text-muted-foreground">View archived site photo reports &amp; compliance PDFs</span>
+                    </div>
+                  </Link>
+                </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                <Link
-                  to={`/solar-designs?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
-                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
-                >
-                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
-                    <Sun className="w-3.5 h-3.5" />
-                    <span>1. Solar CAD</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">PV sizing simulation</span>
-                </Link>
+            ) : (
+              <div className="p-3.5 bg-gradient-to-r from-solar-500/10 via-solar-500/5 to-emerald-500/10 border rounded-xl space-y-2">
+                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Direct Workflow Launch:</span>
+                  <span className="text-[11px] text-muted-foreground font-normal">Pre-filled with customer details</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <Link
+                    to={`/solar-designs?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
+                    className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
+                  >
+                    <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                      <Sun className="w-3.5 h-3.5" />
+                      <span>1. Solar CAD</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">PV sizing simulation</span>
+                  </Link>
 
-                <Link
-                  to={`/quotations?customerId=${selectedCustomer.id}`}
-                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
-                >
-                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>2. Quotation</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Draft proposal & BOM</span>
-                </Link>
+                  <Link
+                    to={`/quotations?customerId=${selectedCustomer.id}`}
+                    className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
+                  >
+                    <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>2. Quotation</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Draft proposal & BOM</span>
+                  </Link>
 
-                <Link
-                  to={`/orders?customerId=${selectedCustomer.id}`}
-                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
-                >
-                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>3. Sales Order</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Billing & payments</span>
-                </Link>
+                  <Link
+                    to={`/orders?customerId=${selectedCustomer.id}`}
+                    className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
+                  >
+                    <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      <span>3. Sales Order</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Billing & payments</span>
+                  </Link>
 
-                <Link
-                  to={`/projects?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
-                  className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
-                >
-                  <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
-                    <FolderKanban className="w-3.5 h-3.5" />
-                    <span>4. 10-Stage EPC</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Installation tracker</span>
-                </Link>
+                  <Link
+                    to={`/projects?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
+                    className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
+                  >
+                    <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
+                      <FolderKanban className="w-3.5 h-3.5" />
+                      <span>4. 10-Stage EPC</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Installation tracker</span>
+                  </Link>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const cust = selectedCustomer;
-                    setSelectedCustomer(null);
-                    openCustomerVault(cust);
-                  }}
-                  className="p-2.5 bg-card hover:bg-muted/50 border border-blue-500/20 rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group text-left cursor-pointer"
-                >
-                  <div className="flex items-center space-x-1.5 text-blue-600 font-semibold text-xs">
-                    <FolderLock className="w-3.5 h-3.5" />
-                    <span>5. Document Vault</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">KYC, Bills & Proofs</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cust = selectedCustomer;
+                      setSelectedCustomer(null);
+                      openCustomerVault(cust);
+                    }}
+                    className="p-2.5 bg-card hover:bg-muted/50 border border-blue-500/20 rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group text-left cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-1.5 text-blue-600 font-semibold text-xs">
+                      <FolderLock className="w-3.5 h-3.5" />
+                      <span>5. Document Vault</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">KYC, Bills & Proofs</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
