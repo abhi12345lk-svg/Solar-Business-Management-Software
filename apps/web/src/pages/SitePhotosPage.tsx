@@ -238,8 +238,17 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
 
   const activeTab = 'photos';
 
-  // Customer Directory & Selection
-  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  // Customer Directory & Selection with Instant Local Cache
+  const [customers, setCustomers] = useState<CustomerOption[]>(() => {
+    try {
+      const cached = localStorage.getItem('solar_cached_customers');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
 
@@ -433,7 +442,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
     let isMounted = true;
     const fetchDirectory = async () => {
       try {
-        setLoadingCustomers(true);
+        if (customers.length === 0) setLoadingCustomers(true);
         const [custRes, instRes]: [any, any] = await Promise.all([
           apiClient<any>('/customers?limit=100').catch(() => []),
           apiClient<any>('/installations?limit=100').catch(() => [])
@@ -460,7 +469,12 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                   : [];
 
         if (isMounted) {
-          setCustomers(custList);
+          if (custList.length > 0) {
+            setCustomers(custList);
+            try {
+              localStorage.setItem('solar_cached_customers', JSON.stringify(custList));
+            } catch {}
+          }
           setInstallations(instList);
 
           const preselectedCustomerId =
@@ -1988,7 +2002,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
 
             {/* Customer Cards 2-Column Grid with Custom Smooth Scroll */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[50vh] scrollbar-thin scrollbar-thumb-muted-foreground/20">
-              {loadingCustomers ? (
+              {loadingCustomers && customers.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
                   <Loader2 className="w-6 h-6 animate-spin text-solar-500" />
                   <p className="text-xs">Loading customer directory...</p>

@@ -58,25 +58,35 @@ export async function apiClient<T = any>(endpoint: string, options: RequestInit 
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    method,
-    headers,
-    credentials: 'include' // Always transmit and accept HttpOnly session cookies
-  });
+  // Safe 8-second timeout controller so API calls never hang indefinitely
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const signal = options.signal || controller.signal;
 
-  const isJson = response.headers.get('content-type')?.includes('application/json');
-  const body = isJson ? await response.json() : null;
+  try {
+    const response = await fetch(url, {
+      ...options,
+      method,
+      headers,
+      signal,
+      credentials: 'include' // Always transmit and accept HttpOnly session cookies
+    });
 
-  if (!response.ok) {
-    const errorData = body?.error || {};
-    throw new ApiError(
-      response.status,
-      errorData.code || 'UNKNOWN_ERROR',
-      errorData.message || response.statusText || 'Request failed',
-      errorData.details || []
-    );
+    const isJson = response.headers.get('content-type')?.includes('application/json');
+    const body = isJson ? await response.json() : null;
+
+    if (!response.ok) {
+      const errorData = body?.error || {};
+      throw new ApiError(
+        response.status,
+        errorData.code || 'UNKNOWN_ERROR',
+        errorData.message || response.statusText || 'Request failed',
+        errorData.details || []
+      );
+    }
+
+    return (body?.data ?? body) as T;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return (body?.data ?? body) as T;
 }
