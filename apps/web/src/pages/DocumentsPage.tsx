@@ -112,10 +112,10 @@ const SOLAR_CATEGORIES: { value: string; label: string; icon: string; descriptio
 const INSTALLER_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
   { value: 'SITE_PHOTOS', label: 'Site & Rooftop Photos', icon: '📸', description: 'Rooftop layout, 4-point structure & meter photos' },
   { value: 'SITE_GEOTAG_LOCATION', label: 'GPS Site Geotag', icon: '📍', description: 'Verified latitude/longitude installation coordinates' },
-  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report', icon: '📋', description: 'Plant synchronization & test report' },
-  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty', icon: '📜', description: 'Solar module, inverter & structure warranties' },
-  { value: 'SIGNED_CONTRACT', label: 'Signed EPC Contract', icon: '🖋️', description: 'Executed turnkey installation agreement' },
-  { value: 'OTHER', label: 'Other Field Documents', icon: '📁', description: 'Supplementary fieldwork & site records' },
+  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report (JCR)', icon: '📋', description: 'Plant synchronization & DISCOM inspection report' },
+  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty & Serials', icon: '📜', description: 'Solar module, inverter barcodes & warranty cards' },
+  { value: 'CUSTOMER_KYC', label: 'Work Completion & Handover Slip', icon: '✍️', description: 'Customer signed rooftop installation handover' },
+  { value: 'OTHER', label: 'Other Field Records', icon: '📁', description: 'Supplementary fieldwork & test records' },
 ];
 
 const formatFileSize = (bytes: number): string => {
@@ -954,19 +954,33 @@ export const DocumentsPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Review Status Filter & Reset */}
+          {/* Review / Verification Status Filter & Reset */}
           <div className="lg:col-span-2 flex items-center gap-1.5">
-            <select
-              value={reviewFilter}
-              onChange={e => setReviewFilter(e.target.value)}
-              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING_REVIEW">⏳ Pending Review</option>
-              <option value="ACCEPTED">✅ Accepted</option>
-              <option value="REJECTED">❌ Rejected</option>
-              <option value="RESUBMISSION_REQUIRED">🔄 Resubmission</option>
-            </select>
+            {isInstaller ? (
+              <select
+                value={reviewFilter}
+                onChange={e => setReviewFilter(e.target.value)}
+                className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
+              >
+                <option value="">All Statuses</option>
+                <option value="PENDING_REVIEW">⏳ Pending Verification</option>
+                <option value="ACCEPTED">✅ Verified / Approved</option>
+                <option value="REJECTED">❌ Rejected / Action Required</option>
+                <option value="RESUBMISSION_REQUIRED">🔄 Resubmission Required</option>
+              </select>
+            ) : (
+              <select
+                value={reviewFilter}
+                onChange={e => setReviewFilter(e.target.value)}
+                className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
+              >
+                <option value="">All Statuses</option>
+                <option value="PENDING_REVIEW">⏳ Pending Review</option>
+                <option value="ACCEPTED">✅ Accepted</option>
+                <option value="REJECTED">❌ Rejected</option>
+                <option value="RESUBMISSION_REQUIRED">🔄 Resubmission</option>
+              </select>
+            )}
 
             {(search || customerFilter || categoryFilter || reviewFilter) && (
               <button
@@ -1040,9 +1054,9 @@ export const DocumentsPage: React.FC = () => {
               <thead>
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-bold text-[11px] uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-[30%]">Document Details</th>
-                  <th className="py-2.5 px-3 w-[18%]">Category &amp; Access</th>
-                  <th className="py-2.5 px-3 w-[18%]">Linked Client</th>
-                  <th className="py-2.5 px-3 w-[14%]">Status &amp; Date</th>
+                  <th className="py-2.5 px-3 w-[18%]">{isInstaller ? 'Document Category' : 'Category & Access'}</th>
+                  <th className="py-2.5 px-3 w-[18%]">{isInstaller ? 'Site / Client' : 'Linked Client'}</th>
+                  <th className="py-2.5 px-3 w-[14%]">{isInstaller ? 'Verification Status' : 'Status & Date'}</th>
                   <th className="py-2.5 px-3 w-[20%] text-right">Actions</th>
                 </tr>
               </thead>
@@ -1128,31 +1142,33 @@ export const DocumentsPage: React.FC = () => {
                             </span>
                           </div>
 
-                          {/* Access Visibility Pill */}
-                          <div>
-                            <span
-                              className={`inline-flex items-center space-x-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                doc.accessClassification === 'CUSTOMER_VISIBLE'
-                                  ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
-                                  : doc.accessClassification === 'RESTRICTED'
-                                    ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
-                                    : 'bg-muted text-muted-foreground border border-border'
-                              }`}
-                            >
-                              {doc.accessClassification === 'CUSTOMER_VISIBLE' ? (
-                                <Eye className="w-2.5 h-2.5 shrink-0" />
-                              ) : (
-                                <Lock className="w-2.5 h-2.5 shrink-0" />
-                              )}
-                              <span className="truncate">
-                                {doc.accessClassification === 'CUSTOMER_VISIBLE'
-                                  ? 'Customer'
-                                  : doc.accessClassification === 'INTERNAL_ONLY'
-                                    ? 'Internal'
-                                    : 'Restricted'}
+                          {/* Access Visibility Pill (Hidden for Field Installer) */}
+                          {!isInstaller && (
+                            <div>
+                              <span
+                                className={`inline-flex items-center space-x-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                  doc.accessClassification === 'CUSTOMER_VISIBLE'
+                                    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20'
+                                    : doc.accessClassification === 'RESTRICTED'
+                                      ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+                                      : 'bg-muted text-muted-foreground border border-border'
+                                }`}
+                              >
+                                {doc.accessClassification === 'CUSTOMER_VISIBLE' ? (
+                                  <Eye className="w-2.5 h-2.5 shrink-0" />
+                                ) : (
+                                  <Lock className="w-2.5 h-2.5 shrink-0" />
+                                )}
+                                <span className="truncate">
+                                  {doc.accessClassification === 'CUSTOMER_VISIBLE'
+                                    ? 'Customer'
+                                    : doc.accessClassification === 'INTERNAL_ONLY'
+                                      ? 'Internal'
+                                      : 'Restricted'}
+                                </span>
                               </span>
-                            </span>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -1256,27 +1272,29 @@ export const DocumentsPage: React.FC = () => {
                             <Download className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 3. Review Action */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedDoc(doc);
-                              setNextReviewStatus('ACCEPTED');
-                              setReviewNotes('');
-                              setRejectionReason('');
-                              setFormError(null);
-                              setReviewModalOpen(true);
-                            }}
-                            className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold rounded-lg transition cursor-pointer border shrink-0 ${
-                              isPending
-                                ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                                : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
-                            }`}
-                            title={isPending ? 'Pending QA Review - Click to Review' : 'Update Review Decision'}
-                          >
-                            <FileCheck2 className={`w-3.5 h-3.5 ${isPending ? 'text-amber-600' : 'text-muted-foreground'}`} />
-                            <span>Review</span>
-                          </button>
+                          {/* 3. Review Action (QA / Management only; Hidden for Field Installer) */}
+                          {!isInstaller && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDoc(doc);
+                                setNextReviewStatus('ACCEPTED');
+                                setReviewNotes('');
+                                setRejectionReason('');
+                                setFormError(null);
+                                setReviewModalOpen(true);
+                              }}
+                              className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold rounded-lg transition cursor-pointer border shrink-0 ${
+                                isPending
+                                  ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                                  : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+                              }`}
+                              title={isPending ? 'Pending QA Review - Click to Review' : 'Update Review Decision'}
+                            >
+                              <FileCheck2 className={`w-3.5 h-3.5 ${isPending ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                              <span>Review</span>
+                            </button>
+                          )}
 
                           {/* 4. Delete Action */}
                           <button
@@ -1451,39 +1469,58 @@ export const DocumentsPage: React.FC = () => {
               </div>
 
               {/* Category & Access Level */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {isInstaller ? (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Solar Compliance Category *
+                    Site Document Category *
                   </label>
                   <select
                     value={uploadCategory}
                     onChange={e => setUploadCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
                   >
-                    {(isInstaller ? INSTALLER_CATEGORIES : SOLAR_CATEGORIES).map(cat => (
+                    {INSTALLER_CATEGORIES.map(cat => (
                       <option key={cat.value} value={cat.value}>
                         {cat.icon} {cat.label}
                       </option>
                     ))}
                   </select>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Solar Compliance Category *
+                    </label>
+                    <select
+                      value={uploadCategory}
+                      onChange={e => setUploadCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+                    >
+                      {SOLAR_CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.icon} {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Portal Access Visibility
-                  </label>
-                  <select
-                    value={uploadClassification}
-                    onChange={e => setUploadClassification(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
-                  >
-                    <option value="CUSTOMER_VISIBLE">👁️ Customer Visible (Portal)</option>
-                    <option value="INTERNAL_ONLY">🔒 Internal Only (Staff)</option>
-                    <option value="RESTRICTED">🛡️ Restricted Confidential</option>
-                  </select>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Portal Access Visibility
+                    </label>
+                    <select
+                      value={uploadClassification}
+                      onChange={e => setUploadClassification(e.target.value as any)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
+                    >
+                      <option value="CUSTOMER_VISIBLE">👁️ Customer Visible (Portal)</option>
+                      <option value="INTERNAL_ONLY">🔒 Internal Only (Staff)</option>
+                      <option value="RESTRICTED">🛡️ Restricted Confidential</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button

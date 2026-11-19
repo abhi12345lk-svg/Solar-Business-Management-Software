@@ -243,7 +243,7 @@ export interface SitePhotosPageProps {
 }
 
 export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
   // Active Workstation Tab: determine from prop, pathname or searchParams
@@ -1682,6 +1682,48 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 )}
                 <span className="text-[10px] text-muted-foreground font-semibold">Switch ▾</span>
               </button>
+
+              {/* Sub-Tab Switcher: 4-Point Photos vs Equipment Barcodes */}
+              <div className="inline-flex rounded-xl bg-muted/60 p-0.5 border border-border text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('photos');
+                    setSearchParams(prev => {
+                      const n = new URLSearchParams(prev);
+                      n.delete('tab');
+                      return n;
+                    });
+                  }}
+                  className={`px-3 py-1 rounded-lg font-bold flex items-center space-x-1.5 transition cursor-pointer ${
+                    activeTab === 'photos'
+                      ? 'bg-solar-600 text-white shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Site Photos</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('equipment');
+                    setSearchParams(prev => {
+                      const n = new URLSearchParams(prev);
+                      n.set('tab', 'equipment');
+                      return n;
+                    });
+                  }}
+                  className={`px-3 py-1 rounded-lg font-bold flex items-center space-x-1.5 transition cursor-pointer ${
+                    activeTab === 'equipment'
+                      ? 'bg-solar-600 text-white shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Barcode className="w-3.5 h-3.5" />
+                  <span>Equipment Barcodes</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Action Buttons */}

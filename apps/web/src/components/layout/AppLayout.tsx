@@ -459,42 +459,44 @@ export const AppLayout: React.FC = () => {
         ))}
       </nav>
 
-      {/* Sidebar Footer */}
-      <div
-        className={`p-3 border-t border-border/70 shrink-0 bg-card/50 space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
-      >
-        <NavLink
-          to="/health"
-          title="Health Status"
-          className={({ isActive }) =>
-            `flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-1.5'} rounded-lg text-xs font-medium transition-colors ${
-              isActive
-                ? 'bg-solar-500/15 text-solar-700 font-semibold'
-                : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
-            }`
-          }
+      {/* Sidebar Footer (Hidden in Installer Panel to eliminate developer jargon) */}
+      {activePanel !== PanelType.INSTALLER && (
+        <div
+          className={`p-3 border-t border-border/70 shrink-0 bg-card/50 space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
         >
-          <div className="flex items-center space-x-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            {!isCollapsed && <span>Health Status</span>}
-          </div>
-          {!isCollapsed && (
-            <span className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-              Live
-            </span>
-          )}
-        </NavLink>
+          <NavLink
+            to="/health"
+            title="Health Status"
+            className={({ isActive }) =>
+              `flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-1.5'} rounded-lg text-xs font-medium transition-colors ${
+                isActive
+                  ? 'bg-solar-500/15 text-solar-700 font-semibold'
+                  : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
+              }`
+            }
+          >
+            <div className="flex items-center space-x-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              {!isCollapsed && <span>Health Status</span>}
+            </div>
+            {!isCollapsed && (
+              <span className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                Live
+              </span>
+            )}
+          </NavLink>
 
-        {!isCollapsed && (
-          <div className="px-3 text-[10px] text-muted-foreground/60 flex items-center justify-between">
-            <span>Enterprise v1.2</span>
-            <span>Prod Ready</span>
-          </div>
-        )}
-      </div>
+          {!isCollapsed && (
+            <div className="px-3 text-[10px] text-muted-foreground/60 flex items-center justify-between">
+              <span>Enterprise v1.2</span>
+              <span>Prod Ready</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -577,16 +579,18 @@ export const AppLayout: React.FC = () => {
 
           {/* Right: User Profile, Tasks Alert & Sign Out */}
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            {/* Operational Tasks & Alerts Quick Link */}
-            <Link
-              to="/tasks"
-              className="p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors relative"
-              title="Operational Tasks & Approvals"
-              aria-label="Operational Tasks and Approvals"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            </Link>
+            {/* Operational Tasks & Alerts Quick Link (Admin / Sales / Accounts only) */}
+            {activePanel !== PanelType.INSTALLER && (
+              <Link
+                to="/tasks"
+                className="p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors relative"
+                title="Operational Tasks & Approvals"
+                aria-label="Operational Tasks and Approvals"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              </Link>
+            )}
 
             {/* Authenticated User Badge & Logout */}
             {isAuthenticated && user ? (
@@ -606,14 +610,17 @@ export const AppLayout: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  to="/mfa-setup"
-                  className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-border"
-                  title="Security & 2FA Setup"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-solar-500" />
-                  <span className="hidden md:inline">2FA</span>
-                </Link>
+                {/* 2FA Setup Link (Hidden for Field Installer) */}
+                {activePanel !== PanelType.INSTALLER && (
+                  <Link
+                    to="/mfa-setup"
+                    className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-border"
+                    title="Security & 2FA Setup"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-solar-500" />
+                    <span className="hidden md:inline">2FA</span>
+                  </Link>
+                )}
 
                 <button
                   type="button"

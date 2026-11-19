@@ -165,7 +165,9 @@ export const CustomersPage: React.FC = () => {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+      if (statusFilter !== 'ALL' && !statusFilter.startsWith('INSPECTION_')) {
+        params.set('status', statusFilter);
+      }
       if (search.trim()) params.set('search', search.trim());
       params.set('limit', '100');
 
@@ -828,13 +830,43 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
-  // Filtered by type in client
+  const getCustomerInspectionStatus = (custId: string): 'DONE' | 'IN_PROGRESS' | 'PENDING' => {
+    const photoCache = localStorage.getItem(`solar_photos_${custId}`);
+    if (photoCache) {
+      try {
+        const parsed = JSON.parse(photoCache);
+        const uploaded = Object.values(parsed.photoSlots || {}).filter((s: any) => !!s?.dataUrl).length;
+        if (uploaded >= 4) return 'DONE';
+        if (uploaded > 0) return 'IN_PROGRESS';
+      } catch {}
+    }
+    return 'PENDING';
+  };
+
+  // Filtered by type and inspection/site status in client
   const filteredCustomers = customers.filter(c => {
     if (typeFilter !== 'ALL') {
       if (typeFilter === CustomerType.COMMERCIAL) {
         if (c.type !== CustomerType.COMMERCIAL && c.type !== CustomerType.INDUSTRIAL) return false;
       } else if (c.type !== typeFilter) {
         return false;
+      }
+    }
+    if (isInstaller) {
+      if (statusFilter === 'INSPECTION_PENDING') {
+        return getCustomerInspectionStatus(c.id) === 'PENDING';
+      }
+      if (statusFilter === 'INSPECTION_IN_PROGRESS') {
+        return getCustomerInspectionStatus(c.id) === 'IN_PROGRESS';
+      }
+      if (statusFilter === 'INSPECTION_DONE') {
+        return getCustomerInspectionStatus(c.id) === 'DONE';
+      }
+      if (statusFilter === CustomerStatus.SITE_WORK_IN_PROGRESS) {
+        return c.status === CustomerStatus.SITE_WORK_IN_PROGRESS;
+      }
+      if (statusFilter === CustomerStatus.ACTIVE) {
+        return c.status === CustomerStatus.ACTIVE;
       }
     }
     return true;
@@ -911,7 +943,7 @@ export const CustomersPage: React.FC = () => {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            All Clients ({totalCount})
+            {isInstaller ? `All Sites (${totalCount})` : `All Clients (${totalCount})`}
           </button>
           <button
             type="button"
@@ -949,18 +981,33 @@ export const CustomersPage: React.FC = () => {
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
-            <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
-            <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
-            <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
-            <option value={CustomerStatus.INACTIVE}>Inactive</option>
-          </select>
+          {isInstaller ? (
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-foreground font-semibold cursor-pointer"
+            >
+              <option value="ALL">All Inspection Statuses</option>
+              <option value="INSPECTION_PENDING">⏳ Inspection Pending</option>
+              <option value="INSPECTION_IN_PROGRESS">📸 In Progress (1-3 Photos)</option>
+              <option value="INSPECTION_DONE">✅ 4/4 Photos Done</option>
+              <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>⚡ Site Work in Progress</option>
+              <option value={CustomerStatus.ACTIVE}>☀️ Completed / Active</option>
+            </select>
+          ) : (
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-muted-foreground"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value={CustomerStatus.QUOTATION_SHARED}>Quotation Shared (Ask to Client)</option>
+              <option value={CustomerStatus.ORDER_CONFIRMED}>Order Confirmed</option>
+              <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>Site Work in Progress</option>
+              <option value={CustomerStatus.ACTIVE}>Completed / Active</option>
+              <option value={CustomerStatus.INACTIVE}>Inactive</option>
+            </select>
+          )}
         </form>
       </div>
 
@@ -1160,26 +1207,20 @@ export const CustomersPage: React.FC = () => {
                           {/* Inspection Status Column for Installer */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
                             {(() => {
-                              const photoCache = localStorage.getItem(`solar_photos_${customer.id}`);
-                              if (photoCache) {
-                                try {
-                                  const parsed = JSON.parse(photoCache);
-                                  const uploaded = Object.values(parsed.photoSlots || {}).filter((s: any) => !!s?.dataUrl).length;
-                                  if (uploaded >= 4) {
-                                    return (
-                                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                        <span>4/4 Photos Done</span>
-                                      </span>
-                                    );
-                                  } else if (uploaded > 0) {
-                                    return (
-                                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
-                                        <span>In Progress ({uploaded}/4)</span>
-                                      </span>
-                                    );
-                                  }
-                                } catch {}
+                              const inspStatus = getCustomerInspectionStatus(customer.id);
+                              if (inspStatus === 'DONE') {
+                                return (
+                                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>4/4 Photos Done</span>
+                                  </span>
+                                );
+                              } else if (inspStatus === 'IN_PROGRESS') {
+                                return (
+                                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
+                                    <span>In Progress</span>
+                                  </span>
+                                );
                               }
                               return (
                                 <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
