@@ -18,7 +18,6 @@ import {
   Search,
   Barcode,
   Zap,
-  Building2,
   Upload,
   FileText,
   Check,
@@ -270,10 +269,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   // Real Database & Installation Integration State
   const [installations, setInstallations] = useState<any[]>([]);
   const [activeInstallation, setActiveInstallation] = useState<any | null>(null);
-  const [loadingInstallation, setLoadingInstallation] = useState(false);
   const [isSavingInstallation, setIsSavingInstallation] = useState(false);
-  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
-  const [isReviewingApproval, setIsReviewingApproval] = useState(false);
   const [dbNotification, setDbNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   // Left Sidebar State
@@ -360,14 +356,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [pdfPreviewModalOpen, setPdfPreviewModalOpen] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-  const [isSavingToVault, setIsSavingToVault] = useState(false);
-  const [vaultSaveSuccess, setVaultSaveSuccess] = useState<string | null>(null);
   const [saveEquipmentSuccess, setSaveEquipmentSuccess] = useState<string | null>(null);
 
   // Load detailed installation record directly from MongoDB
   const loadInstallationDetails = async (instId: string) => {
     try {
-      setLoadingInstallation(true);
       const res: any = await apiClient<any>(`/installations/${instId}`);
       const fullInst = res?.data || res;
       if (fullInst && (fullInst._id || fullInst.id)) {
@@ -469,8 +462,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       }
     } catch (err) {
       console.warn('Could not load installation record from MongoDB:', err);
-    } finally {
-      setLoadingInstallation(false);
     }
   };
 
@@ -586,89 +577,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   };
 
   // 1-Click Initialize Installation Record in MongoDB
-  const handleInitializeInstallation = async () => {
-    if (!selectedCustomer) {
-      alert('Please select a customer first.');
-      return;
-    }
-    try {
-      setIsSavingInstallation(true);
-      const custId = selectedCustomer._id || selectedCustomer.id;
-      const res: any = await apiClient<any>('/installations', {
-        method: 'POST',
-        body: JSON.stringify({
-          customerId: custId,
-          systemCapacityKw: selectedCustomer.sanctionedLoadKw || Number(tplCapacityKwp) || 3.3,
-          notes: `Initialized from Field Operations Workstation for ${tplConsumerName}`,
-          isDraft: false
-        })
-      });
-      const created = res?.data || res;
-      setActiveInstallation(created);
-      setInstallations(prev => [created, ...prev]);
-      setDbNotification({
-        type: 'success',
-        message: `Inspection dossier ${created.installationNumber || 'INST'} created successfully!`
-      });
-      setTimeout(() => setDbNotification(null), 5000);
-    } catch (err: any) {
-      alert('Failed to initialize inspection record: ' + (err?.message || 'Server error'));
-    } finally {
-      setIsSavingInstallation(false);
-    }
-  };
-
-  // Submit Installation for Admin QA clearance
-  const handleSubmitForQaApproval = async () => {
-    if (!activeInstallation) return;
-    try {
-      setIsSubmittingApproval(true);
-      const instId = activeInstallation._id || activeInstallation.id;
-      const res: any = await apiClient<any>(`/installations/${instId}/submit`, {
-        method: 'POST',
-        body: JSON.stringify({ notes: '5-Point Site Inspection Photos and Inverter/PV Module Barcodes verified.' })
-      });
-      const updated = res?.data || res;
-      if (updated) setActiveInstallation(updated);
-      setDbNotification({
-        type: 'success',
-        message: `Installation ${activeInstallation.installationNumber} submitted for Admin QA approval!`
-      });
-      setTimeout(() => setDbNotification(null), 5000);
-    } catch (err: any) {
-      alert('Failed to submit for approval: ' + (err?.message || 'Error'));
-    } finally {
-      setIsSubmittingApproval(false);
-    }
-  };
-
-  // Admin Approve Installation
-  const handleApproveInstallation = async () => {
-    if (!activeInstallation) return;
-    try {
-      setIsReviewingApproval(true);
-      const instId = activeInstallation._id || activeInstallation.id;
-      const res: any = await apiClient<any>(`/installations/${instId}/review`, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'APPROVE',
-          adminRemarks: 'Field inspection photos, GPS coordinates and serial numbers verified compliant with DISCOM norms.'
-        })
-      });
-      const updated = res?.data || res;
-      if (updated) setActiveInstallation(updated);
-      setDbNotification({
-        type: 'success',
-        message: `Installation ${activeInstallation.installationNumber} approved & commissioned!`
-      });
-      setTimeout(() => setDbNotification(null), 5000);
-    } catch (err: any) {
-      alert('Failed to approve installation: ' + (err?.message || 'Error'));
-    } finally {
-      setIsReviewingApproval(false);
-    }
-  };
-
   // Autofill customer data when customer selected
   useEffect(() => {
     if (!selectedCustomer) return;
@@ -1299,10 +1207,8 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       if (updated) setActiveInstallation(updated);
 
       const msg = `All ${photosList.length} inspection photos & verified GPS saved successfully!`;
-      setVaultSaveSuccess(msg);
       setDbNotification({ type: 'success', message: msg });
       setTimeout(() => {
-        setVaultSaveSuccess(null);
         setDbNotification(null);
       }, 5000);
     } catch (err: any) {
@@ -1408,83 +1314,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     }
   };
 
-  const handleSaveToVault = async () => {
-    if (!documentPrintRef.current) return;
-    if (!selectedCustomer) {
-      alert('Please select an existing customer to save this site photo compliance report into their vault.');
-      return;
-    }
-
-    try {
-      setIsSavingToVault(true);
-      setVaultSaveSuccess(null);
-
-      const cleanName = tplConsumerName.trim() || 'Consumer';
-      const title = `Client Site Photos Compliance Document - ${cleanName}`;
-      const filename = `SITE_PHOTOS_${cleanName.replace(/\s+/g, '_')}.pdf`;
-
-      const { blob } = await generatePdfFromElement(documentPrintRef.current, {
-        filename
-      });
-
-      const custId = selectedCustomer._id || selectedCustomer.id;
-
-      const docPayload: any = {
-        originalFilename: filename,
-        safeDisplayName: title,
-        category: DocumentCategory.SITE_PHOTOS,
-        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
-        mimeType: 'application/pdf',
-        fileSizeBytes: Math.max(blob.size, 1024),
-        metadata: {
-          documentType: 'SITE_PHOTOS_REPORT',
-          consumerNumber: tplConsumerNumber,
-          capacityKwp: tplCapacityKwp,
-          address: tplAddress,
-          district: tplDistrict,
-          agreementDate: tplAgreementDate,
-          generatedVia: 'SitePhotosComplianceModule',
-          extraPhotosCount: extraPhotos.length
-        }
-      };
-
-      if (custId && /^[0-9a-fA-F]{24}$/.test(custId)) {
-        docPayload.customerId = custId;
-        docPayload.relatedEntityType = 'Customer';
-        docPayload.relatedEntityId = custId;
-      }
-
-      const docRes = await apiClient<any>('/documents', {
-        method: 'POST',
-        body: JSON.stringify(docPayload)
-      });
-
-      const docId = docRes?._id || docRes?.id;
-      if (!docId) throw new Error('Could not obtain document registration ID.');
-
-      const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
-      const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/pdf',
-          ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
-        },
-        body: blob
-      });
-
-      setVaultSaveSuccess(
-        `Site Photos Compliance document "${title}" saved into customer vault successfully!`
-      );
-      if (custId) fetchCustomerDocuments(custId);
-    } catch (err: any) {
-      alert('Failed to save document in vault: ' + (err?.message || 'Error'));
-    } finally {
-      setIsSavingToVault(false);
-    }
-  };
-
   // Filtered customer list for Left Sidebar
   const filteredCustomers = customers.filter(c => {
     const q = searchQuery.toLowerCase().trim();
@@ -1530,7 +1359,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h1 className="text-sm sm:text-base font-black text-foreground tracking-tight whitespace-nowrap">
+                    <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight whitespace-nowrap">
                       {activeTab === 'photos'
                         ? 'Site Inspection Photos'
                         : activeTab === 'equipment'
@@ -1539,7 +1368,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     </h1>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/30">
                       {activeTab === 'photos'
-                        ? '5-Point Inspection'
+                        ? `${mandatoryUploadedCount}/4 Photos Ready`
                         : activeTab === 'equipment'
                           ? 'Hardware Compliance'
                           : 'Handover Dossiers'}
@@ -1547,7 +1376,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate">
                     {activeTab === 'photos'
-                      ? 'PM Surya Ghar 5-point inspection & DISCOM net metering compliance'
+                      ? 'PM Surya Ghar 4-point inspection & DISCOM net metering compliance'
                       : activeTab === 'equipment'
                         ? 'Inverter specifications, solar module serial numbers & live barcode scanner'
                         : 'Handover certificate, JCR, Net Meter test slip & SLD compliance dossiers'}
@@ -1566,10 +1395,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <span className="font-bold truncate max-w-[150px] sm:max-w-[200px]">
                   {tplConsumerName}
                 </span>
-                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-solar-500/20 font-bold">
-                  {tplConsumerNumber}
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-solar-500/20 font-bold">
+                  BP: {tplConsumerNumber}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-semibold">Switch Client ▾</span>
+                <span className="text-[10px] text-muted-foreground font-semibold">Switch ▾</span>
               </button>
             </div>
 
@@ -1579,32 +1408,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <>
                   <button
                     type="button"
-                    onClick={handleOpenPdfPreview}
-                    disabled={generatingPdf}
-                    className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
-                    title="Preview PDF Document"
-                  >
-                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5 text-solar-600" />}
-                    <span className="hidden sm:inline">Preview PDF</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadPdf}
-                    disabled={generatingPdf}
-                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Download A4 PDF Report"
-                  >
-                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    <span>Download PDF</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={handleSavePhotosToDb}
                     disabled={isSavingInstallation}
                     className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Save inspection photos and GPS geotags"
+                    title="Save inspection photos"
                   >
                     {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
                     <span>Save Photos</span>
@@ -1612,13 +1419,13 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
                   <button
                     type="button"
-                    onClick={handleSaveToVault}
-                    disabled={isSavingToVault}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Save into Customer Document Vault"
+                    onClick={handleDownloadPdf}
+                    disabled={generatingPdf}
+                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Download 1-Page A4 PDF Report"
                   >
-                    {isSavingToVault ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
-                    <span>Save to Vault</span>
+                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>Download PDF</span>
                   </button>
                 </>
               )}
@@ -1674,15 +1481,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
           </div>
 
           {/* Success Alerts */}
-          {vaultSaveSuccess && (
-            <div className="mt-2.5 p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{vaultSaveSuccess}</span>
-              </div>
-              <button onClick={() => setVaultSaveSuccess(null)} className="ml-2 font-bold cursor-pointer">✕</button>
-            </div>
-          )}
           {saveEquipmentSuccess && (
             <div className="mt-2.5 p-2 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-xs flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -1700,132 +1498,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       {/* ========================================================================= */}
       <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-5 flex-1">
         <div className="w-full space-y-4">
-          {/* Consolidated Client & Inspection Dossier Ribbon */}
-          <div className="bg-card border rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Beneficiary & Site Summary */}
-            <div className="flex items-center space-x-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 font-bold">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center space-x-2 flex-wrap">
-                  <h2 className="text-base font-bold text-foreground truncate">
-                    {tplConsumerName}
-                  </h2>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-bold shrink-0">
-                    BP: {tplConsumerNumber}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsClientDrawerOpen(true)}
-                    className="text-[11px] font-bold text-solar-600 hover:underline cursor-pointer px-2 py-0.5 rounded bg-solar-500/10 border border-solar-500/30 transition"
-                  >
-                    Switch Client ▾
-                  </button>
-                </div>
-                <div className="text-xs text-muted-foreground flex items-center space-x-2 mt-0.5 flex-wrap">
-                  <span>📍 {tplAddress}, {tplDistrict}</span>
-                  <span>•</span>
-                  <span>⚡ {tplCapacityKwp} kWp Sanctioned</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Dossier Status & Action Buttons */}
-            <div className="flex items-center space-x-3 flex-wrap gap-y-2 shrink-0">
-              {/* Dossier Identifier Badge */}
-              <div className="flex items-center space-x-1.5 text-xs">
-                <span className="font-semibold text-muted-foreground">Dossier:</span>
-                {loadingInstallation ? (
-                  <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-muted text-muted-foreground flex items-center space-x-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-solar-500" />
-                    <span>Loading...</span>
-                  </span>
-                ) : activeInstallation ? (
-                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-solar-500/15 text-solar-700 dark:text-solar-400 border border-solar-500/30 flex items-center space-x-1.5 shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{activeInstallation.installationNumber}</span>
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/25">
-                    Pending Creation
-                  </span>
-                )}
-              </div>
-
-              {/* Stage Badge */}
-              {activeInstallation && (
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                  activeInstallation.status === 'APPROVED'
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                    : activeInstallation.status === 'SUBMITTED'
-                      ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30'
-                      : activeInstallation.status === 'IN_PROGRESS'
-                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
-                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                }`}>
-                  {activeInstallation.status === 'APPROVED'
-                    ? '✓ QA Approved & Commissioned'
-                    : activeInstallation.status === 'SUBMITTED'
-                      ? '⏳ Under Admin QA Review'
-                      : activeInstallation.status === 'IN_PROGRESS'
-                        ? '⚡ In Progress'
-                        : '👷 Crew Assigned'}
-                </span>
-              )}
-
-              {/* Photos Count Badge */}
-              <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
-                mandatoryUploadedCount === PHOTO_SLOT_CONFIGS.length ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
-              }`}>
-                <Camera className="w-3.5 h-3.5" />
-                <span>Photos: {mandatoryUploadedCount}/{PHOTO_SLOT_CONFIGS.length}</span>
-              </span>
-
-              {/* Lifecycle Actions */}
-              {!activeInstallation ? (
-                <button
-                  type="button"
-                  onClick={handleInitializeInstallation}
-                  disabled={isSavingInstallation}
-                  className="px-3.5 py-1.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                  title="Create an inspection dossier for this beneficiary"
-                >
-                  {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  <span>+ Start Inspection Record</span>
-                </button>
-              ) : (
-                <>
-                  {(activeInstallation.status === 'ASSIGNED' || activeInstallation.status === 'IN_PROGRESS') && (
-                    <button
-                      type="button"
-                      onClick={handleSubmitForQaApproval}
-                      disabled={isSubmittingApproval}
-                      className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                      title="Submit completed rooftop installation and photos for Admin QA review"
-                    >
-                      {isSubmittingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
-                      <span>Submit for QA</span>
-                    </button>
-                  )}
-
-                  {activeInstallation.status === 'SUBMITTED' && (
-                    <button
-                      type="button"
-                      onClick={handleApproveInstallation}
-                      disabled={isReviewingApproval}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                      title="Approve installation report and certify commissioning"
-                    >
-                      {isReviewingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      <span>Approve Installation</span>
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
           {/* Sync Status Alert */}
           {dbNotification && (
             <div className={`p-3 rounded-xl text-xs flex items-center justify-between border shadow-2xs ${
