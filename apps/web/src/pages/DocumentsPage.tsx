@@ -705,7 +705,7 @@ export const DocumentsPage: React.FC = () => {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight whitespace-nowrap">
-                {isInstaller ? 'Site Inspection & Installation Vault' : 'Document Vault & Compliance'}
+                {isInstaller ? 'Site Documents' : 'Document Vault & Compliance'}
               </h1>
               <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-full bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-200 dark:border-solar-800">
                 {totalCount} Total
@@ -713,7 +713,7 @@ export const DocumentsPage: React.FC = () => {
             </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block mt-0.5">
               {isInstaller
-                ? 'Field Installation & Rooftop Site Inspection Vault - Archived 4-point site inspection photos, GPS geotags, and commissioning dossiers'
+                ? 'Archived 4-point site inspection photos, verified GPS geotags, and DISCOM commissioning reports'
                 : 'Centralized repository for financial compliance, GST invoices, subsidy sanction dossiers, and solar contracts'}
             </p>
           </div>

@@ -110,12 +110,12 @@ export const InstallerWorkflowNav: React.FC<InstallerWorkflowNavProps> = ({
               2
             </span>
             <Camera className="w-3.5 h-3.5" />
-            <span>4-Point Site Photos</span>
+            <span>Site Photos</span>
           </Link>
 
           <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
 
-          {/* Step 3: Document Vault */}
+          {/* Step 3: Site Documents */}
           <Link
             to={`/documents${customerQuery}`}
             className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
@@ -130,7 +130,7 @@ export const InstallerWorkflowNav: React.FC<InstallerWorkflowNavProps> = ({
               3
             </span>
             <FolderLock className="w-3.5 h-3.5" />
-            <span>Installation Vault</span>
+            <span>Site Documents</span>
           </Link>
         </div>
 

@@ -1639,7 +1639,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   <div className="flex items-center space-x-2">
                     <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight whitespace-nowrap">
                       {activeTab === 'photos'
-                        ? 'Site Inspection Photos'
+                        ? 'Site Photos'
                         : activeTab === 'equipment'
                           ? 'Equipment & Barcode Register'
                           : 'Installation Compliance Documents'}
@@ -1859,10 +1859,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <Link
                   to={`/documents?customerId=${selectedCustomer?._id || selectedCustomer?.id || ''}`}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
-                  title="Open full Document Vault to view all files"
+                  title="Open full Site Documents vault to view all files"
                 >
                   <FolderLock className="w-3.5 h-3.5" />
-                  <span>Document Vault &rarr;</span>
+                  <span>Site Documents &rarr;</span>
                 </Link>
               </div>
             </div>

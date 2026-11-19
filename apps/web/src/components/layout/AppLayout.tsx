@@ -166,8 +166,8 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Workflow',
     items: [
       { to: '/customers', label: 'Site List', icon: UserCheck },
-      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/documents', label: 'Document Vault', icon: FolderLock }
+      { to: '/site-photos', label: 'Site Photos', icon: Camera },
+      { to: '/documents', label: 'Site Documents', icon: FolderLock }
     ]
   }
 ];
@@ -179,7 +179,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };
   }
-  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
+  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Photos' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
@@ -216,8 +216,10 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'CRM', title: 'Create Document' };
-  if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault'))
+  if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents' };
     return { section: 'CRM', title: 'Document Vault' };
+  }
   if (pathname.startsWith('/customer-portal'))
     return { section: 'Customer', title: 'Client Portal' };
   if (pathname.startsWith('/mfa')) return { section: 'Security', title: 'MFA Security' };

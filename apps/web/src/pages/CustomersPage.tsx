@@ -877,18 +877,18 @@ export const CustomersPage: React.FC = () => {
               <Link
                 to="/site-photos"
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
-                title="Open 4-Point Site Inspection Photos Workstation"
+                title="Open 4-Point Site Photos Workstation"
               >
                 <Camera className="w-3.5 h-3.5" />
-                <span>Site Photos Workstation &rarr;</span>
+                <span>Site Photos &rarr;</span>
               </Link>
               <Link
                 to="/documents"
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-card hover:bg-muted text-foreground border border-border shadow-2xs transition"
-                title="Open Installation Document Vault"
+                title="Open Site Documents"
               >
                 <FolderLock className="w-3.5 h-3.5 text-solar-600" />
-                <span>Document Vault &rarr;</span>
+                <span>Site Documents &rarr;</span>
               </Link>
             </div>
           ) : (
@@ -1219,10 +1219,10 @@ export const CustomersPage: React.FC = () => {
                                 to={`/documents?customerId=${customer.id}`}
                                 onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
                                 className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border shadow-2xs transition cursor-pointer"
-                                title={`Open compliance document vault for ${customer.name}`}
+                                title={`Open compliance site documents for ${customer.name}`}
                               >
                                 <FolderLock className="w-3.5 h-3.5 text-solar-600" />
-                                <span>Vault &rarr;</span>
+                                <span>Documents &rarr;</span>
                               </Link>
                             </div>
                           </td>
