@@ -276,16 +276,25 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
 
+  // Real Database & Installation Integration State
+  const [installations, setInstallations] = useState<any[]>([]);
+  const [activeInstallation, setActiveInstallation] = useState<any | null>(null);
+  const [loadingInstallation, setLoadingInstallation] = useState(false);
+  const [isSavingInstallation, setIsSavingInstallation] = useState(false);
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+  const [isReviewingApproval, setIsReviewingApproval] = useState(false);
+  const [dbNotification, setDbNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
   // Left Sidebar State
   const [isClientDrawerOpen, setIsClientDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'COMPLETED'>('ALL');
 
   // Customer & Site Template Information
-  const [tplConsumerName, setTplConsumerName] = useState('SHRI GYAN CHAND JAISWAL');
-  const [tplConsumerNumber, setTplConsumerNumber] = useState('1001750390');
-  const [tplCapacityKwp] = useState('3');
-  const [tplAddress, setTplAddress] = useState('SHANTI VIHAR COLONY, DANGANIA');
+  const [tplConsumerName, setTplConsumerName] = useState('Select Customer');
+  const [tplConsumerNumber, setTplConsumerNumber] = useState('');
+  const [tplCapacityKwp, setTplCapacityKwp] = useState('3.3');
+  const [tplAddress, setTplAddress] = useState('Site Address');
   const [tplDistrict, setTplDistrict] = useState('Raipur');
   const [tplAgreementDate] = useState(() => {
     const today = new Date();
@@ -370,41 +379,179 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const [vaultSaveSuccess, setVaultSaveSuccess] = useState<string | null>(null);
   const [saveEquipmentSuccess, setSaveEquipmentSuccess] = useState<string | null>(null);
 
-  // Load customer directory
+  // Load detailed installation record directly from MongoDB
+  const loadInstallationDetails = async (instId: string) => {
+    try {
+      setLoadingInstallation(true);
+      const res: any = await apiClient<any>(`/installations/${instId}`);
+      const fullInst = res?.data || res;
+      if (fullInst && (fullInst._id || fullInst.id)) {
+        setActiveInstallation(fullInst);
+
+        if (fullInst.customerName) setTplConsumerName(fullInst.customerName.toUpperCase());
+        if (fullInst.customerCode) setTplConsumerNumber(fullInst.customerCode);
+        if (fullInst.systemCapacityKw) setTplCapacityKwp(String(fullInst.systemCapacityKw));
+        if (fullInst.siteAddress?.addressLine1) setTplAddress(fullInst.siteAddress.addressLine1.toUpperCase());
+        if (fullInst.siteAddress?.city || fullInst.siteAddress?.district) {
+          setTplDistrict(fullInst.siteAddress.district || fullInst.siteAddress.city);
+        }
+
+        // Autofill Inverter from MongoDB
+        if (fullInst.inverter?.brand) setInverterBrand(fullInst.inverter.brand);
+        if (fullInst.inverter?.modelNumber) setInverterModel(fullInst.inverter.modelNumber);
+        if (fullInst.inverter?.serialNumber) setInverterSerial(fullInst.inverter.serialNumber);
+        if (fullInst.inverter?.rating) setInverterCapacity(fullInst.inverter.rating);
+
+        // Autofill Solar Panels from MongoDB
+        if (fullInst.panelDetails?.manufacturer) setPanelManufacturer(fullInst.panelDetails.manufacturer);
+        if (fullInst.panelDetails?.model) setPanelModel(fullInst.panelDetails.model);
+        if (fullInst.panelDetails?.wattagePerPanel) setPanelWattage(fullInst.panelDetails.wattagePerPanel);
+
+        // Autofill Barcode Items from MongoDB
+        if (Array.isArray(fullInst.inventoryItems) && fullInst.inventoryItems.length > 0) {
+          setPanelRows(fullInst.inventoryItems.map((item: any, idx: number) => ({
+            id: item._id || `p-${idx + 1}`,
+            itemNumber: item.itemNumber || idx + 1,
+            description: item.equipmentName || `Solar PV Module ${fullInst.panelDetails?.wattagePerPanel || 540}W`,
+            serialNumber: item.serialNumber || '',
+            barcode: item.barcode || '',
+            status: item.status || 'VERIFIED'
+          })));
+          setQuickPanelCountInput(fullInst.inventoryItems.length);
+        } else if (Array.isArray(fullInst.panelDetails?.panelBarcodes) && fullInst.panelDetails.panelBarcodes.length > 0) {
+          setPanelRows(fullInst.panelDetails.panelBarcodes.map((bc: string, idx: number) => ({
+            id: `p-${idx + 1}`,
+            itemNumber: idx + 1,
+            description: `Solar PV Module ${fullInst.panelDetails?.wattagePerPanel || 540}W`,
+            serialNumber: fullInst.panelDetails?.panelSerialNumbers?.[idx] || `WAA-${idx + 1}`,
+            barcode: bc,
+            status: 'VERIFIED'
+          })));
+          setQuickPanelCountInput(fullInst.panelDetails.panelBarcodes.length);
+        }
+
+        // Autofill Photos from MongoDB
+        if (Array.isArray(fullInst.photos) && fullInst.photos.length > 0) {
+          setPhotoSlots(prev => {
+            const next = { ...prev };
+            fullInst.photos.forEach((photo: any) => {
+              let slotKey: PhotoSlotId | null = null;
+              if (photo.category === 'SOLAR_STRUCTURE' || photo.category === 'STRUCTURE') slotKey = 'structure';
+              else if (photo.category === 'INVERTER_INSTALLATION' || photo.category === 'INVERTER') slotKey = 'inverter';
+              else if (photo.category === 'METER_INSTALLATION' || photo.category === 'NET_METER') slotKey = 'meter';
+              else if (photo.category === 'EARTHING_INSTALLATION' || photo.category === 'EARTHING') slotKey = 'earthing';
+              else if (photo.category === 'LIGHTNING_PROTECTION' || photo.category === 'LIGHTNING') slotKey = 'lightning';
+
+              if (slotKey) {
+                next[slotKey] = {
+                  dataUrl: photo.fileUrl || null,
+                  caption: photo.remarks || photo.title || next[slotKey].caption,
+                  gps: photo.gpsLocation?.latitude
+                    ? `Lat: ${photo.gpsLocation.latitude.toFixed(6)}°, Long: ${photo.gpsLocation.longitude.toFixed(6)}° • Acc: ±${photo.gpsLocation.accuracyMeters || 4}m`
+                    : next[slotKey].gps,
+                  latitude: photo.gpsLocation?.latitude || null,
+                  longitude: photo.gpsLocation?.longitude || null,
+                  accuracy: photo.gpsLocation?.accuracyMeters || null,
+                  timestamp: photo.timestamp ? new Date(photo.timestamp).toLocaleDateString('en-IN') : null
+                };
+              }
+            });
+            return next;
+          });
+        }
+
+        // Autofill Verified GPS from MongoDB
+        if (fullInst.location?.latitude && fullInst.location?.longitude) {
+          const lat = fullInst.location.latitude;
+          const lng = fullInst.location.longitude;
+          const formatted = `Lat: ${lat.toFixed(6)}°, Long: ${lng.toFixed(6)}° • Acc: ±${fullInst.location.accuracyMeters || 4}m`;
+          setPhotoSlots(prev => {
+            const next = { ...prev };
+            (Object.keys(next) as PhotoSlotId[]).forEach(k => {
+              if (!next[k].latitude) {
+                next[k] = {
+                  ...next[k],
+                  latitude: lat,
+                  longitude: lng,
+                  accuracy: fullInst.location.accuracyMeters || 4,
+                  gps: formatted
+                };
+              }
+            });
+            return next;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load installation record from MongoDB:', err);
+    } finally {
+      setLoadingInstallation(false);
+    }
+  };
+
+  // Load customer directory & live installations from MongoDB
   useEffect(() => {
     let isMounted = true;
-    const fetchCustomers = async () => {
+    const fetchDirectory = async () => {
       try {
         setLoadingCustomers(true);
-        const res: any = await apiClient<any>('/customers?limit=100');
-        const list: CustomerOption[] = Array.isArray(res)
-          ? res
-          : Array.isArray(res?.data)
-            ? res.data
-            : Array.isArray(res?.customers)
-              ? res.customers
+        const [custRes, instRes]: [any, any] = await Promise.all([
+          apiClient<any>('/customers?limit=100').catch(() => []),
+          apiClient<any>('/installations?limit=100').catch(() => [])
+        ]);
+
+        const custList: CustomerOption[] = Array.isArray(custRes)
+          ? custRes
+          : Array.isArray(custRes?.data)
+            ? custRes.data
+            : Array.isArray(custRes?.customers)
+              ? custRes.customers
               : [];
+
+        const instList: any[] = Array.isArray(instRes)
+          ? instRes
+          : Array.isArray(instRes?.data)
+            ? instRes.data
+            : Array.isArray(instRes?.items)
+              ? instRes.items
+              : [];
+
         if (isMounted) {
-          setCustomers(list);
+          setCustomers(custList);
+          setInstallations(instList);
+
           const preselectedCustomerId =
             searchParams.get('customerId') ||
             localStorage.getItem('solar_installer_active_customer_id') ||
             '';
+
+          let targetCustomer: CustomerOption | null = null;
           if (preselectedCustomerId) {
-            const match = list.find(c => (c._id || c.id) === preselectedCustomerId);
-            if (match) setSelectedCustomer(match);
-            else if (list.length > 0 && !selectedCustomer) setSelectedCustomer(list[0] || null);
-          } else if (list.length > 0 && !selectedCustomer) {
-            setSelectedCustomer(list[0] || null);
+            targetCustomer = custList.find(c => (c._id || c.id) === preselectedCustomerId) || null;
+          }
+          if (!targetCustomer && custList.length > 0) {
+            targetCustomer = custList[0] || null;
+          }
+
+          if (targetCustomer) {
+            setSelectedCustomer(targetCustomer);
+            const custId = targetCustomer._id || targetCustomer.id;
+            const foundInst = instList.find(i =>
+              (i.customerId && (i.customerId === custId || i.customerId._id === custId)) ||
+              (i.customerCode && targetCustomer?.customerCode && i.customerCode === targetCustomer.customerCode)
+            );
+            if (foundInst) {
+              loadInstallationDetails(foundInst._id || foundInst.id);
+            }
           }
         }
       } catch (err) {
-        console.warn('Customer list load error:', err);
+        console.warn('Customer & installations load error:', err);
       } finally {
         if (isMounted) setLoadingCustomers(false);
       }
     };
-    fetchCustomers();
+    fetchDirectory();
     return () => {
       isMounted = false;
     };
@@ -424,6 +571,119 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     }
   };
 
+  // Switch customer selection & auto-link installation
+  const handleSelectCustomer = (cust: CustomerOption) => {
+    setSelectedCustomer(cust);
+    setIsClientDrawerOpen(false);
+    const custId = cust._id || cust.id;
+    if (custId) {
+      localStorage.setItem('solar_installer_active_customer_id', custId);
+      fetchCustomerDocuments(custId);
+
+      const foundInst = installations.find(i =>
+        (i.customerId && (i.customerId === custId || i.customerId._id === custId)) ||
+        (i.customerCode && cust.customerCode && i.customerCode === cust.customerCode)
+      );
+
+      if (foundInst) {
+        loadInstallationDetails(foundInst._id || foundInst.id);
+      } else {
+        setActiveInstallation(null);
+        if (cust.name) setTplConsumerName(cust.name.toUpperCase());
+        if (cust.customerCode) setTplConsumerNumber(cust.customerCode);
+        if (cust.sanctionedLoadKw) setTplCapacityKwp(String(cust.sanctionedLoadKw));
+        if (cust.installationAddress?.addressLine1) setTplAddress(cust.installationAddress.addressLine1.toUpperCase());
+        if (cust.installationAddress?.city || cust.installationAddress?.district) {
+          setTplDistrict(cust.installationAddress.district || cust.installationAddress.city || 'Raipur');
+        }
+      }
+    }
+  };
+
+  // 1-Click Initialize Installation Record in MongoDB
+  const handleInitializeInstallation = async () => {
+    if (!selectedCustomer) {
+      alert('Please select a customer first.');
+      return;
+    }
+    try {
+      setIsSavingInstallation(true);
+      const custId = selectedCustomer._id || selectedCustomer.id;
+      const res: any = await apiClient<any>('/installations', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: custId,
+          systemCapacityKw: selectedCustomer.sanctionedLoadKw || Number(tplCapacityKwp) || 3.3,
+          notes: `Initialized from Field Operations Workstation for ${tplConsumerName}`,
+          isDraft: false
+        })
+      });
+      const created = res?.data || res;
+      setActiveInstallation(created);
+      setInstallations(prev => [created, ...prev]);
+      setDbNotification({
+        type: 'success',
+        message: `Installation record ${created.installationNumber || 'INST'} created in MongoDB database!`
+      });
+      setTimeout(() => setDbNotification(null), 5000);
+    } catch (err: any) {
+      alert('Failed to initialize installation in database: ' + (err?.message || 'Server error'));
+    } finally {
+      setIsSavingInstallation(false);
+    }
+  };
+
+  // Submit Installation for Admin QA clearance
+  const handleSubmitForQaApproval = async () => {
+    if (!activeInstallation) return;
+    try {
+      setIsSubmittingApproval(true);
+      const instId = activeInstallation._id || activeInstallation.id;
+      const res: any = await apiClient<any>(`/installations/${instId}/submit`, {
+        method: 'POST',
+        body: JSON.stringify({ notes: '5-Point Site Inspection Photos and Inverter/PV Module Barcodes verified.' })
+      });
+      const updated = res?.data || res;
+      if (updated) setActiveInstallation(updated);
+      setDbNotification({
+        type: 'success',
+        message: `Installation ${activeInstallation.installationNumber} submitted for Admin QA approval!`
+      });
+      setTimeout(() => setDbNotification(null), 5000);
+    } catch (err: any) {
+      alert('Failed to submit for approval: ' + (err?.message || 'Error'));
+    } finally {
+      setIsSubmittingApproval(false);
+    }
+  };
+
+  // Admin Approve Installation
+  const handleApproveInstallation = async () => {
+    if (!activeInstallation) return;
+    try {
+      setIsReviewingApproval(true);
+      const instId = activeInstallation._id || activeInstallation.id;
+      const res: any = await apiClient<any>(`/installations/${instId}/review`, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'APPROVE',
+          adminRemarks: 'Field inspection photos, GPS coordinates and serial numbers verified compliant with DISCOM norms.'
+        })
+      });
+      const updated = res?.data || res;
+      if (updated) setActiveInstallation(updated);
+      setDbNotification({
+        type: 'success',
+        message: `Installation ${activeInstallation.installationNumber} approved & commissioned!`
+      });
+      setTimeout(() => setDbNotification(null), 5000);
+    } catch (err: any) {
+      alert('Failed to approve installation: ' + (err?.message || 'Error'));
+    } finally {
+      setIsReviewingApproval(false);
+    }
+  };
+
   // Autofill customer data when customer selected
   useEffect(() => {
     if (!selectedCustomer) return;
@@ -438,6 +698,9 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     }
     if (selectedCustomer.customerCode) {
       setTplConsumerNumber(selectedCustomer.customerCode.replace(/\D/g, '') || selectedCustomer.customerCode);
+    }
+    if (selectedCustomer.sanctionedLoadKw) {
+      setTplCapacityKwp(String(selectedCustomer.sanctionedLoadKw));
     }
     if (selectedCustomer.installationAddress) {
       const addr = selectedCustomer.installationAddress;
@@ -853,12 +1116,73 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     URL.revokeObjectURL(url);
   };
 
+  // Persist hardware equipment & barcodes to MongoDB Database
   const handleSaveEquipment = async () => {
     try {
+      setIsSavingInstallation(true);
       setSaveEquipmentSuccess(null);
-      // Persist in local storage for field technician convenience
+
+      let targetInstId = activeInstallation?._id || activeInstallation?.id;
+
+      // Auto-create installation in MongoDB if none exists yet
+      if (!targetInstId && selectedCustomer) {
+        const custId = selectedCustomer._id || selectedCustomer.id;
+        const res: any = await apiClient<any>('/installations', {
+          method: 'POST',
+          body: JSON.stringify({
+            customerId: custId,
+            systemCapacityKw: selectedCustomer.sanctionedLoadKw || Number(tplCapacityKwp) || 3.3,
+            notes: `Auto-initialized during hardware barcode registration for ${tplConsumerName}`,
+            isDraft: false
+          })
+        });
+        const created = res?.data || res;
+        setActiveInstallation(created);
+        setInstallations(prev => [created, ...prev]);
+        targetInstId = created._id || created.id;
+      }
+
+      if (targetInstId) {
+        const patchPayload: any = {
+          inverter: {
+            name: 'Solar Grid Inverter',
+            brand: inverterBrand,
+            modelNumber: inverterModel,
+            serialNumber: inverterSerial,
+            barcode: inverterSerial,
+            rating: inverterCapacity
+          },
+          panelDetails: {
+            manufacturer: panelManufacturer,
+            model: panelModel,
+            wattagePerPanel: Number(panelWattage) || 540,
+            totalPanels: panelRows.length,
+            panelSerialNumbers: panelRows.map(r => r.serialNumber),
+            panelBarcodes: panelRows.map(r => r.barcode)
+          },
+          inventoryItems: panelRows.map((r, i) => ({
+            itemNumber: i + 1,
+            equipmentName: r.description,
+            barcode: r.barcode,
+            serialNumber: r.serialNumber,
+            model: panelModel,
+            quantity: 1,
+            status: r.status || 'VERIFIED'
+          }))
+        };
+
+        const updatedRes: any = await apiClient<any>(`/installations/${targetInstId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patchPayload)
+        });
+        const updatedInst = updatedRes?.data || updatedRes;
+        if (updatedInst) setActiveInstallation(updatedInst);
+      }
+
+      // Local storage backup
       const equipmentData = {
         customerId: selectedCustomer?._id || selectedCustomer?.id,
+        installationId: targetInstId,
         inverter: {
           brand: inverterBrand,
           model: inverterModel,
@@ -881,12 +1205,125 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         localStorage.setItem(key, JSON.stringify(equipmentData));
       }
 
-      setSaveEquipmentSuccess(
-        `Equipment & Barcodes for ${panelRows.length} panels verified and saved successfully!`
-      );
-      setTimeout(() => setSaveEquipmentSuccess(null), 5000);
+      const msg = `Equipment & ${panelRows.length} barcodes saved directly to MongoDB database!`;
+      setSaveEquipmentSuccess(msg);
+      setDbNotification({ type: 'success', message: msg });
+      setTimeout(() => {
+        setSaveEquipmentSuccess(null);
+        setDbNotification(null);
+      }, 5000);
     } catch (err: any) {
-      alert('Error saving equipment data: ' + err.message);
+      alert('Error saving equipment data to database: ' + (err?.message || 'Server error'));
+    } finally {
+      setIsSavingInstallation(false);
+    }
+  };
+
+  // Persist all 5 Mandatory Site Photos & GPS Location to MongoDB Database
+  const handleSavePhotosToDb = async () => {
+    try {
+      setIsSavingInstallation(true);
+      let targetInstId = activeInstallation?._id || activeInstallation?.id;
+
+      // Auto-create installation in MongoDB if none exists yet
+      if (!targetInstId && selectedCustomer) {
+        const custId = selectedCustomer._id || selectedCustomer.id;
+        const res: any = await apiClient<any>('/installations', {
+          method: 'POST',
+          body: JSON.stringify({
+            customerId: custId,
+            systemCapacityKw: selectedCustomer.sanctionedLoadKw || Number(tplCapacityKwp) || 3.3,
+            notes: `Auto-initialized during site photo upload for ${tplConsumerName}`,
+            isDraft: false
+          })
+        });
+        const created = res?.data || res;
+        setActiveInstallation(created);
+        setInstallations(prev => [created, ...prev]);
+        targetInstId = created._id || created.id;
+      }
+
+      if (!targetInstId) {
+        alert('Please select a customer first.');
+        return;
+      }
+
+      const photosList: any[] = [];
+      const slotMappings: Array<{ slot: PhotoSlotId; category: string; title: string }> = [
+        { slot: 'structure', category: 'SOLAR_STRUCTURE', title: 'Solar PV Mounting Structure & Rooftop Array' },
+        { slot: 'inverter', category: 'INVERTER_INSTALLATION', title: 'On-Grid Inverter & ACDB/DCDB' },
+        { slot: 'meter', category: 'METER_INSTALLATION', title: 'Net Meter & Generation Check Meter' },
+        { slot: 'earthing', category: 'EARTHING_INSTALLATION', title: 'Chemical Earthing Pits & Electrode Chambers' },
+        { slot: 'lightning', category: 'LIGHTNING_PROTECTION', title: 'Lightning Arrester & Down Conductor Strip' }
+      ];
+
+      slotMappings.forEach(m => {
+        const d = photoSlots[m.slot];
+        if (d.dataUrl) {
+          photosList.push({
+            category: m.category,
+            title: m.title,
+            fileUrl: d.dataUrl,
+            originalFilename: `${m.slot}_photo.jpg`,
+            mimeType: 'image/jpeg',
+            timestamp: new Date(),
+            gpsLocation: d.latitude ? {
+              latitude: d.latitude,
+              longitude: d.longitude,
+              accuracyMeters: d.accuracy || 4
+            } : undefined,
+            remarks: d.caption
+          });
+        }
+      });
+
+      extraPhotos.forEach((p, idx) => {
+        if (p.dataUrl) {
+          photosList.push({
+            category: 'FINAL_INSTALLATION',
+            title: p.title || `Additional Site Photo #${idx + 1}`,
+            fileUrl: p.dataUrl,
+            originalFilename: `extra_${p.id}.jpg`,
+            mimeType: 'image/jpeg',
+            timestamp: new Date(),
+            gpsLocation: p.latitude ? {
+              latitude: p.latitude,
+              longitude: p.longitude,
+              accuracyMeters: p.accuracy || 4
+            } : undefined,
+            remarks: p.caption
+          });
+        }
+      });
+
+      const patchPayload: any = { photos: photosList };
+      if (photoSlots.structure.latitude && photoSlots.structure.longitude) {
+        patchPayload.location = {
+          latitude: photoSlots.structure.latitude,
+          longitude: photoSlots.structure.longitude,
+          accuracyMeters: photoSlots.structure.accuracy || 4,
+          capturedAt: new Date()
+        };
+      }
+
+      const res: any = await apiClient<any>(`/installations/${targetInstId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patchPayload)
+      });
+      const updated = res?.data || res;
+      if (updated) setActiveInstallation(updated);
+
+      const msg = `All ${photosList.length} inspection photos & verified GPS saved to MongoDB (${activeInstallation?.installationNumber || 'Database'})!`;
+      setVaultSaveSuccess(msg);
+      setDbNotification({ type: 'success', message: msg });
+      setTimeout(() => {
+        setVaultSaveSuccess(null);
+        setDbNotification(null);
+      }, 5000);
+    } catch (err: any) {
+      alert('Failed to save photos to database: ' + (err?.message || 'Server error'));
+    } finally {
+      setIsSavingInstallation(false);
     }
   };
 
@@ -1179,6 +1616,17 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
                   <button
                     type="button"
+                    onClick={handleSavePhotosToDb}
+                    disabled={isSavingInstallation}
+                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Persist photos and GPS coordinates directly into MongoDB"
+                  >
+                    {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                    <span>Save Photos to DB</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleSaveToVault}
                     disabled={isSavingToVault}
                     className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
@@ -1205,11 +1653,12 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   <button
                     type="button"
                     onClick={handleSaveEquipment}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
-                    title="Save Equipment Register to Customer Vault"
+                    disabled={isSavingInstallation}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Save Inverter & PV module barcodes to MongoDB database"
                   >
-                    <FolderLock className="w-3.5 h-3.5" />
-                    <span>Save to Vault</span>
+                    {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
+                    <span>Save to Database</span>
                   </button>
                 </>
               )}
@@ -1317,6 +1766,123 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   <FolderLock className="w-3.5 h-3.5" />
                   <span>Vault Documents: {customerVaultDocs.length}</span>
                 </span>
+              )}
+            </div>
+          </div>
+
+          {/* Global DB Sync Alert */}
+          {dbNotification && (
+            <div className={`p-3 rounded-xl text-xs flex items-center justify-between border shadow-2xs ${
+              dbNotification.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                : dbNotification.type === 'error'
+                  ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400'
+                  : 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400'
+            }`}>
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span className="font-semibold">{dbNotification.message}</span>
+              </div>
+              <button onClick={() => setDbNotification(null)} className="ml-2 font-bold cursor-pointer hover:opacity-80">✕</button>
+            </div>
+          )}
+
+          {/* Installation Lifecycle & DB Sync Ribbon */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center space-x-3 flex-wrap gap-y-2">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">MongoDB Record:</span>
+                {loadingInstallation ? (
+                  <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-muted text-muted-foreground flex items-center space-x-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-solar-500" />
+                    <span>Loading...</span>
+                  </span>
+                ) : activeInstallation ? (
+                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-solar-500/15 text-solar-700 dark:text-solar-400 border border-solar-500/30 flex items-center space-x-1.5 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{activeInstallation.installationNumber}</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/25">
+                    No Installation Record in DB
+                  </span>
+                )}
+              </div>
+
+              {activeInstallation && (
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-semibold text-muted-foreground">Stage:</span>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                    activeInstallation.status === 'APPROVED'
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                      : activeInstallation.status === 'SUBMITTED'
+                        ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30'
+                        : activeInstallation.status === 'IN_PROGRESS'
+                          ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
+                          : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                  }`}>
+                    {activeInstallation.status === 'APPROVED'
+                      ? '✓ QA Approved & Commissioned'
+                      : activeInstallation.status === 'SUBMITTED'
+                        ? '⏳ Under Admin QA Review'
+                        : activeInstallation.status === 'IN_PROGRESS'
+                          ? '⚡ Installation In Progress'
+                          : '👷 Crew Assigned'}
+                  </span>
+                </div>
+              )}
+
+              {activeInstallation?.projectId && (
+                <Link
+                  to={`/projects/${activeInstallation.projectId}?tab=installation`}
+                  className="text-xs font-bold text-solar-600 hover:text-solar-700 hover:underline flex items-center space-x-1 bg-solar-500/10 px-2 py-1 rounded-lg border border-solar-500/25 transition"
+                >
+                  <span>10-Stage EPC #{activeInstallation.projectCode || ''}</span>
+                  <ArrowRight className="w-3 h-3 ml-0.5" />
+                </Link>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0 flex-wrap gap-y-2">
+              {!activeInstallation ? (
+                <button
+                  type="button"
+                  onClick={handleInitializeInstallation}
+                  disabled={isSavingInstallation}
+                  className="px-3.5 py-1.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                  title="Initialize a new installation record in MongoDB database for this customer"
+                >
+                  {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  <span>Initialize Installation in DB</span>
+                </button>
+              ) : (
+                <>
+                  {(activeInstallation.status === 'ASSIGNED' || activeInstallation.status === 'IN_PROGRESS') && (
+                    <button
+                      type="button"
+                      onClick={handleSubmitForQaApproval}
+                      disabled={isSubmittingApproval}
+                      className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                      title="Submit completed rooftop installation and photos for Admin QA review"
+                    >
+                      {isSubmittingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
+                      <span>Submit for Admin QA</span>
+                    </button>
+                  )}
+
+                  {activeInstallation.status === 'SUBMITTED' && (
+                    <button
+                      type="button"
+                      onClick={handleApproveInstallation}
+                      disabled={isReviewingApproval}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                      title="Approve installation report and certify commissioning"
+                    >
+                      {isReviewingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <span>Approve Installation (Admin QA)</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -2388,13 +2954,14 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {filteredCustomers.map(cust => {
                     const isSelected = (selectedCustomer?._id || selectedCustomer?.id) === (cust._id || cust.id);
+                    const linkedInst = installations.find(i =>
+                      (i.customerId && (i.customerId === (cust._id || cust.id) || i.customerId._id === (cust._id || cust.id))) ||
+                      (i.customerCode && cust.customerCode && i.customerCode === cust.customerCode)
+                    );
                     return (
                       <div
                         key={cust._id || cust.id}
-                        onClick={() => {
-                          setSelectedCustomer(cust);
-                          setIsClientDrawerOpen(false);
-                        }}
+                        onClick={() => handleSelectCustomer(cust)}
                         className={`p-3.5 rounded-xl border transition cursor-pointer text-xs flex flex-col justify-between ${
                           isSelected
                             ? 'bg-solar-500/10 border-solar-500 shadow-xs ring-1 ring-solar-500/30'
@@ -2408,7 +2975,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                             </span>
                             {isSelected ? (
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-solar-500/20 text-solar-700 dark:text-solar-300 shrink-0">
-                                Active
+                                Selected
                               </span>
                             ) : (
                               <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
@@ -2426,10 +2993,28 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                             )}
                           </div>
                         </div>
-                        {cust.primaryPhone && (
-                          <div className="text-[10px] text-muted-foreground font-mono mt-2 pt-1 border-t border-border/50 flex items-center space-x-1">
-                            <span>📞</span>
-                            <span>{cust.primaryPhone}</span>
+
+                        {linkedInst ? (
+                          <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-between">
+                            <span className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                              ⚡ {linkedInst.installationNumber}
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                              linkedInst.status === 'APPROVED'
+                                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                                : linkedInst.status === 'SUBMITTED'
+                                  ? 'bg-purple-500/15 text-purple-700 border-purple-500/30'
+                                  : linkedInst.status === 'IN_PROGRESS'
+                                    ? 'bg-blue-500/15 text-blue-700 border-blue-500/30'
+                                    : 'bg-amber-500/15 text-amber-700 border-amber-500/30'
+                            }`}>
+                              {linkedInst.status}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>No Installation in DB</span>
+                            <span className="text-solar-600 font-semibold">+ Ready to Init</span>
                           </div>
                         )}
                       </div>
