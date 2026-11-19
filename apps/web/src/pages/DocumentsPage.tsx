@@ -25,9 +25,13 @@ import {
   Loader2,
   FilePlus2,
   Trash2,
-  Lock
+  Lock,
+  Camera,
+  MapPin
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
+import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 
 interface DocumentItem {
   _id: string;
@@ -105,6 +109,15 @@ const SOLAR_CATEGORIES: { value: string; label: string; icon: string; descriptio
   { value: 'OTHER', label: 'Other Documents', icon: '📁', description: 'Supplementary paperwork & general records' },
 ];
 
+const INSTALLER_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
+  { value: 'SITE_PHOTOS', label: 'Site & Rooftop Photos', icon: '📸', description: 'Rooftop layout, 4-point structure & meter photos' },
+  { value: 'SITE_GEOTAG_LOCATION', label: 'GPS Site Geotag', icon: '📍', description: 'Verified latitude/longitude installation coordinates' },
+  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report', icon: '📋', description: 'Plant synchronization & test report' },
+  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty', icon: '📜', description: 'Solar module, inverter & structure warranties' },
+  { value: 'SIGNED_CONTRACT', label: 'Signed EPC Contract', icon: '🖋️', description: 'Executed turnkey installation agreement' },
+  { value: 'OTHER', label: 'Other Field Documents', icon: '📁', description: 'Supplementary fieldwork & site records' },
+];
+
 const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes === 0) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
@@ -124,6 +137,12 @@ const getCategoryMeta = (categoryVal: string) => {
 };
 
 export const DocumentsPage: React.FC = () => {
+  const { user } = useAuth();
+  const activePanel: PanelType = user?.role
+    ? getDefaultPanelForRole(user.role, user.department)
+    : PanelType.ADMIN;
+  const isInstaller = activePanel === PanelType.INSTALLER;
+
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +176,7 @@ export const DocumentsPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadFilename, setUploadFilename] = useState('');
   const [uploadDisplayName, setUploadDisplayName] = useState('');
-  const [uploadCategory, setUploadCategory] = useState('ELECTRICITY_BILL');
+  const [uploadCategory, setUploadCategory] = useState(isInstaller ? 'SITE_PHOTOS' : 'ELECTRICITY_BILL');
   const [uploadClassification, setUploadClassification] = useState<
     'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE' | 'RESTRICTED'
   >('CUSTOMER_VISIBLE');
@@ -208,7 +227,85 @@ export const DocumentsPage: React.FC = () => {
       if (customerFilter) queryParams.set('customerId', customerFilter);
 
       const res = await apiClient<any>(`/documents?${queryParams.toString()}`);
-      setDocuments(Array.isArray(res) ? res : res?.items || res?.documents || []);
+      let list: DocumentItem[] = Array.isArray(res) ? res : res?.items || res?.documents || [];
+
+      // Sync with Site Photos Workstation (from localStorage & offline/cache backup)
+      try {
+        const localSyncedDocs: DocumentItem[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('solar_photos_')) {
+            const custId = key.replace('solar_photos_', '');
+            if (customerFilter && customerFilter !== custId) continue;
+
+            const storedRaw = localStorage.getItem(key);
+            if (!storedRaw) continue;
+            let stored: any;
+            try {
+              stored = JSON.parse(storedRaw);
+            } catch {
+              continue;
+            }
+
+            const validPhotosCount =
+              Object.values(stored?.photoSlots || {}).filter((p: any) => (p as any)?.dataUrl).length +
+              (Array.isArray(stored?.extraPhotos) ? stored.extraPhotos.filter((p: any) => (p as any)?.dataUrl).length : 0);
+
+            if (validPhotosCount === 0) continue;
+
+            // Check if this customer already has a SITE_PHOTOS document in list
+            const existingDoc = list.find(d => {
+              const dCustId = d.customerId?._id || (d.customerId as any);
+              return (
+                (dCustId === custId || (dCustId && dCustId.toString() === custId.toString())) &&
+                (d.category === 'SITE_PHOTOS' || d.safeDisplayName?.toLowerCase().includes('site inspection'))
+              );
+            });
+
+            if (!existingDoc) {
+              const matchedCust = customers.find(c => (c._id || c.id) === custId);
+              const clientName = stored.customerName || matchedCust?.name || matchedCust?.legalName || matchedCust?.companyName || 'Solar Client';
+              const clientCode = matchedCust?.customerCode || 'RAREBOX';
+
+              // If categoryFilter is applied and is not SITE_PHOTOS, skip
+              if (categoryFilter && categoryFilter !== 'SITE_PHOTOS') continue;
+
+              localSyncedDocs.push({
+                _id: `local_photos_${custId}`,
+                documentNumber: `SP-${clientCode.slice(-4) || 'SITE'}`,
+                originalFilename: `SITE_PHOTOS_${clientName.replace(/\s+/g, '_')}.pdf`,
+                safeDisplayName: `Site Inspection Photos Dossier (${validPhotosCount} Photos) - ${clientName}`,
+                category: 'SITE_PHOTOS',
+                accessClassification: 'CUSTOMER_VISIBLE',
+                reviewStatus: 'ACCEPTED',
+                storageKey: `local_photos_${custId}`,
+                storageStatus: 'READY',
+                mimeType: 'application/pdf',
+                fileSizeBytes: validPhotosCount * 450000,
+                version: 1,
+                isLatestVersion: true,
+                isArchived: false,
+                createdAt: stored.savedAt || new Date().toISOString(),
+                customerId: {
+                  _id: custId,
+                  customerCode: clientCode,
+                  name: clientName,
+                  fullName: clientName
+                },
+                reviewNotes: `Auto-synced from Site Photos Workstation (${validPhotosCount} photos geotagged)`
+              });
+            }
+          }
+        }
+
+        if (localSyncedDocs.length > 0) {
+          list = [...localSyncedDocs, ...list];
+        }
+      } catch (localErr) {
+        console.warn('Could not scan local site photos for vault sync:', localErr);
+      }
+
+      setDocuments(list);
     } catch (err: any) {
       setError(err?.message || 'Failed to load document vault records.');
     } finally {
@@ -478,6 +575,11 @@ export const DocumentsPage: React.FC = () => {
   };
 
   const handleViewDocument = async (doc: DocumentItem) => {
+    if (doc._id.startsWith('local_photos_')) {
+      const custId = doc.customerId?._id || '';
+      window.location.href = `/site-photos?customerId=${custId}`;
+      return;
+    }
     try {
       const res = await apiClient<{ downloadUrl: string; viewUrl?: string; mimeType?: string }>(
         `/documents/${doc._id}/access-url`
@@ -508,6 +610,11 @@ export const DocumentsPage: React.FC = () => {
   };
 
   const handleDownloadSigned = async (doc: DocumentItem) => {
+    if (doc._id.startsWith('local_photos_')) {
+      const custId = doc.customerId?._id || '';
+      window.location.href = `/site-photos?customerId=${custId}`;
+      return;
+    }
     try {
       const res = await apiClient<{ downloadUrl: string }>(`/documents/${doc._id}/access-url`);
       if (res?.downloadUrl) {
@@ -533,38 +640,55 @@ export const DocumentsPage: React.FC = () => {
     d => d.reviewStatus === 'REJECTED' || d.reviewStatus === 'RESUBMISSION_REQUIRED'
   ).length;
 
+  // Installer-specific counters
+  const sitePhotosCount = documents.filter(d => d.category === 'SITE_PHOTOS').length;
+  const geotagCount = documents.filter(d => d.category === 'SITE_GEOTAG_LOCATION').length;
+  const commissioningCount = documents.filter(d => d.category === 'COMMISSIONING_REPORT').length;
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
       {/* Top Banner / Breadcrumb & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center space-x-3 shrink-0">
           <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
-            <FolderLock className="w-5 h-5" />
+            {isInstaller ? <Camera className="w-5 h-5" /> : <FolderLock className="w-5 h-5" />}
           </div>
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight whitespace-nowrap">
-                Document Vault &amp; Compliance
+                {isInstaller ? 'Site Inspection & Installation Vault' : 'Document Vault & Compliance'}
               </h1>
               <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-full bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-200 dark:border-solar-800">
                 {totalCount} Total
               </span>
             </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block mt-0.5">
-              Centralized repository for financial compliance, GST invoices, subsidy sanction dossiers, and solar contracts
+              {isInstaller
+                ? 'Field Installation & Rooftop Site Inspection Vault - Archived 4-point site inspection photos, GPS geotags, and commissioning dossiers'
+                : 'Centralized repository for financial compliance, GST invoices, subsidy sanction dossiers, and solar contracts'}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons: Generate Agreement & Upload File */}
+        {/* Action Buttons: Installer gets direct Site Photos link; non-installer gets Generate Document */}
         <div className="flex items-center space-x-2.5 shrink-0">
-          <Link
-            to="/documents/create"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
-          >
-            <FilePlus2 className="w-4 h-4 text-solar-600" />
-            <span>Generate Document</span>
-          </Link>
+          {isInstaller ? (
+            <Link
+              to="/site-photos"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Capture / View Site Photos</span>
+            </Link>
+          ) : (
+            <Link
+              to="/documents/create"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
+            >
+              <FilePlus2 className="w-4 h-4 text-solar-600" />
+              <span>Generate Document</span>
+            </Link>
+          )}
 
           <button
             onClick={() => {
@@ -573,12 +697,13 @@ export const DocumentsPage: React.FC = () => {
               setUploadFilename('');
               setUploadDisplayName('');
               setUploadCustomerId(customerFilter || '');
+              if (isInstaller) setUploadCategory('SITE_PHOTOS');
               setUploadModalOpen(true);
             }}
             className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
           >
             <UploadCloud className="w-4 h-4" />
-            <span>Upload to Vault</span>
+            <span>{isInstaller ? 'Upload Site Document' : 'Upload to Vault'}</span>
           </button>
         </div>
       </div>
@@ -609,81 +734,166 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Interactive Stat Cards (Clickable Quick Filters) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Documents */}
-        <div
-          onClick={() => setReviewFilter('')}
-          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-            !reviewFilter
-              ? 'border-solar-500 ring-2 ring-solar-500/20'
-              : 'border-border hover:border-solar-300'
-          }`}
-          title="Click to show all documents"
-        >
-          <div className="w-10 h-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
-            <div className="text-xs font-semibold text-muted-foreground truncate">Total Vault Files</div>
-          </div>
-        </div>
+        {isInstaller ? (
+          <>
+            {/* Installer Card 1: Total Site Dossiers */}
+            <div
+              onClick={() => {
+                setCategoryFilter('');
+                setReviewFilter('');
+              }}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                !categoryFilter && !reviewFilter
+                  ? 'border-solar-500 ring-2 ring-solar-500/20'
+                  : 'border-border hover:border-solar-300'
+              }`}
+              title="Click to show all site documents"
+            >
+              <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
+                <div className="text-xs font-semibold text-muted-foreground truncate">Total Site Files</div>
+              </div>
+            </div>
 
-        {/* Pending Review */}
-        <div
-          onClick={() => setReviewFilter(reviewFilter === 'PENDING_REVIEW' ? '' : 'PENDING_REVIEW')}
-          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-            reviewFilter === 'PENDING_REVIEW'
-              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
-              : 'border-border hover:border-amber-300'
-          }`}
-          title="Click to filter Pending Review"
-        >
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount}</div>
-            <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Pending Review / QA</div>
-          </div>
-        </div>
+            {/* Installer Card 2: Site Photos Reports */}
+            <div
+              onClick={() => setCategoryFilter(categoryFilter === 'SITE_PHOTOS' ? '' : 'SITE_PHOTOS')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                categoryFilter === 'SITE_PHOTOS'
+                  ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
+                  : 'border-border hover:border-amber-300'
+              }`}
+              title="Click to filter 4-Point Site Inspection Photos"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-amber-600">{sitePhotosCount}</div>
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Site Photos Reports</div>
+              </div>
+            </div>
 
-        {/* Accepted & Verified */}
-        <div
-          onClick={() => setReviewFilter(reviewFilter === 'ACCEPTED' ? '' : 'ACCEPTED')}
-          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-            reviewFilter === 'ACCEPTED'
-              ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
-              : 'border-border hover:border-emerald-300'
-          }`}
-          title="Click to filter Accepted & Verified"
-        >
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-emerald-600">{acceptedCount}</div>
-            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">Accepted &amp; Verified</div>
-          </div>
-        </div>
+            {/* Installer Card 3: GPS Geotags */}
+            <div
+              onClick={() => setCategoryFilter(categoryFilter === 'SITE_GEOTAG_LOCATION' ? '' : 'SITE_GEOTAG_LOCATION')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                categoryFilter === 'SITE_GEOTAG_LOCATION'
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
+                  : 'border-border hover:border-emerald-300'
+              }`}
+              title="Click to filter GPS Site Geotags"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-emerald-600">{geotagCount}</div>
+                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">GPS Site Geotags</div>
+              </div>
+            </div>
 
-        {/* Rejected / Resubmission Required */}
-        <div
-          onClick={() => setReviewFilter(reviewFilter === 'REJECTED' ? '' : 'REJECTED')}
-          className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
-            reviewFilter === 'REJECTED'
-              ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5'
-              : 'border-border hover:border-rose-300'
-          }`}
-          title="Click to filter Rejected Documents"
-        >
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
-            <XCircle className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-rose-600">{rejectedCount}</div>
-            <div className="text-xs font-semibold text-rose-700 dark:text-rose-400 truncate">Rejected / Resubmit</div>
-          </div>
-        </div>
+            {/* Installer Card 4: Joint Commissioning */}
+            <div
+              onClick={() => setCategoryFilter(categoryFilter === 'COMMISSIONING_REPORT' ? '' : 'COMMISSIONING_REPORT')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                categoryFilter === 'COMMISSIONING_REPORT'
+                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-500/5'
+                  : 'border-border hover:border-blue-300'
+              }`}
+              title="Click to filter Joint Commissioning Reports"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-blue-600">{commissioningCount}</div>
+                <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 truncate">Commissioning Dossiers</div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Total Documents */}
+            <div
+              onClick={() => setReviewFilter('')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                !reviewFilter
+                  ? 'border-solar-500 ring-2 ring-solar-500/20'
+                  : 'border-border hover:border-solar-300'
+              }`}
+              title="Click to show all documents"
+            >
+              <div className="w-10 h-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-foreground">{totalCount}</div>
+                <div className="text-xs font-semibold text-muted-foreground truncate">Total Vault Files</div>
+              </div>
+            </div>
+
+            {/* Pending Review */}
+            <div
+              onClick={() => setReviewFilter(reviewFilter === 'PENDING_REVIEW' ? '' : 'PENDING_REVIEW')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                reviewFilter === 'PENDING_REVIEW'
+                  ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5'
+                  : 'border-border hover:border-amber-300'
+              }`}
+              title="Click to filter Pending Review"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount}</div>
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">Pending Review / QA</div>
+              </div>
+            </div>
+
+            {/* Accepted & Verified */}
+            <div
+              onClick={() => setReviewFilter(reviewFilter === 'ACCEPTED' ? '' : 'ACCEPTED')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                reviewFilter === 'ACCEPTED'
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5'
+                  : 'border-border hover:border-emerald-300'
+              }`}
+              title="Click to filter Accepted & Verified"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-emerald-600">{acceptedCount}</div>
+                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">Accepted &amp; Verified</div>
+              </div>
+            </div>
+
+            {/* Rejected / Resubmission Required */}
+            <div
+              onClick={() => setReviewFilter(reviewFilter === 'REJECTED' ? '' : 'REJECTED')}
+              className={`p-3.5 sm:p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5 cursor-pointer transition ${
+                reviewFilter === 'REJECTED'
+                  ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5'
+                  : 'border-border hover:border-rose-300'
+              }`}
+              title="Click to filter Rejected Documents"
+            >
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+                <XCircle className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-rose-600">{rejectedCount}</div>
+                <div className="text-xs font-semibold text-rose-700 dark:text-rose-400 truncate">Rejected / Resubmit</div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Filter and Query Control Bar - 1 Balanced Professional Row */}
@@ -735,8 +945,8 @@ export const DocumentsPage: React.FC = () => {
               onChange={e => setCategoryFilter(e.target.value)}
               className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer"
             >
-              <option value="">All Document Categories</option>
-              {SOLAR_CATEGORIES.map(cat => (
+              <option value="">{isInstaller ? 'All Site Categories' : 'All Document Categories'}</option>
+              {(isInstaller ? INSTALLER_CATEGORIES : SOLAR_CATEGORIES).map(cat => (
                 <option key={cat.value} value={cat.value}>
                   {cat.icon} {cat.label}
                 </option>
@@ -789,24 +999,40 @@ export const DocumentsPage: React.FC = () => {
         ) : documents.length === 0 ? (
           <div className="p-16 text-center text-muted-foreground space-y-3">
             <div className="w-14 h-14 mx-auto rounded-full bg-solar-500/10 text-solar-600 flex items-center justify-center">
-              <FolderLock className="w-7 h-7" />
+              {isInstaller ? <Camera className="w-7 h-7" /> : <FolderLock className="w-7 h-7" />}
             </div>
-            <p className="font-bold text-foreground text-base">No documents found in vault.</p>
+            <p className="font-bold text-foreground text-base">
+              {isInstaller ? 'No site inspection documents found.' : 'No documents found in vault.'}
+            </p>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {customerFilter
+              {isInstaller
+                ? 'Capture 4-point site photos in the Site Photos Workstation or upload field reports to save them here.'
+                : customerFilter
                 ? 'No documents found for this selected client. Click "Upload to Vault" or "Generate Document" to add files.'
                 : 'No files match your current filter criteria.'}
             </p>
-            <button
-              onClick={() => {
-                setUploadModalOpen(true);
-                setUploadCustomerId(customerFilter || '');
-              }}
-              className="mt-2 inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>Upload First Document</span>
-            </button>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              {isInstaller && (
+                <Link
+                  to="/site-photos"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Open Site Photos Workstation</span>
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  setUploadModalOpen(true);
+                  setUploadCustomerId(customerFilter || '');
+                  if (isInstaller) setUploadCategory('SITE_PHOTOS');
+                }}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>{isInstaller ? 'Upload Site Document' : 'Upload First Document'}</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="w-full">
@@ -997,6 +1223,18 @@ export const DocumentsPage: React.FC = () => {
                       {/* 5. Actions - Aligned Right & Fully Visible with 0 Scroll */}
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end space-x-1">
+                          {/* Site Photos Shortcut Action */}
+                          {(doc.category === 'SITE_PHOTOS' || isInstaller) && (doc.customerId?._id || (doc.customerId as any)) && (
+                            <Link
+                              to={`/site-photos?customerId=${doc.customerId?._id || doc.customerId}`}
+                              className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition shrink-0"
+                              title="Open in Site Photos Workstation"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-amber-600" />
+                              <span className="hidden sm:inline">Photos</span>
+                            </Link>
+                          )}
+
                           {/* 1. In-App View / Preview Action */}
                           <button
                             type="button"
@@ -1073,10 +1311,12 @@ export const DocumentsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-gray-900">
-                    Upload Document to Vault
+                    {isInstaller ? 'Upload Site Inspection & Field Document' : 'Upload Document to Vault'}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Add customer KYC, net metering SLD, site photos, or subsidy files to compliance archive.
+                    {isInstaller
+                      ? 'Add verified site photos, equipment warranties, commissioning sign-offs, or structural records.'
+                      : 'Add customer KYC, net metering SLD, site photos, or subsidy files to compliance archive.'}
                   </p>
                 </div>
               </div>
@@ -1221,7 +1461,7 @@ export const DocumentsPage: React.FC = () => {
                     onChange={e => setUploadCategory(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
                   >
-                    {SOLAR_CATEGORIES.map(cat => (
+                    {(isInstaller ? INSTALLER_CATEGORIES : SOLAR_CATEGORIES).map(cat => (
                       <option key={cat.value} value={cat.value}>
                         {cat.icon} {cat.label}
                       </option>
