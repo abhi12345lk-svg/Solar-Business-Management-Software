@@ -169,16 +169,16 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Field Installation Hub',
     items: [
-      { to: '/', label: 'Installer Dashboard', icon: LayoutDashboard },
-      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
+      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
       { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap }
     ]
   },
   {
-    title: 'Site Documents & Compliance',
+    title: 'Projects & Compliance',
     items: [
+      { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -187,7 +187,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Installer Dashboard' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Inspection Photos' };
     if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Dashboard' };
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };
@@ -277,7 +277,10 @@ export const AppLayout: React.FC = () => {
       <div
         className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} border-b border-border/70 shrink-0 bg-card`}
       >
-        <Link to="/" className="flex items-center space-x-2.5 group min-w-0">
+        <Link
+          to={activePanel === PanelType.INSTALLER ? '/site-photos' : '/'}
+          className="flex items-center space-x-2.5 group min-w-0"
+        >
           <div className="w-9 h-9 rounded-xl bg-solar-500/15 border border-solar-500/30 flex items-center justify-center text-solar-600 group-hover:bg-solar-500/25 transition-all shadow-xs shrink-0">
             <Sun className="w-5 h-5 text-solar-500" />
           </div>

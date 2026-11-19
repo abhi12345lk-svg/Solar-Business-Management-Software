@@ -21,7 +21,7 @@ import { useAuth } from '../context/AuthContext.js';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
   type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'INSTALLER' | 'CUSTOMER';
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
@@ -107,12 +107,16 @@ export const LoginPage: React.FC = () => {
 
   const currentConfig = portalConfig[selectedPortal];
 
-  // If already authenticated, redirect to target or dashboard
+  // If already authenticated, redirect to target or field operations/dashboard
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      const destination =
+        (from === '/' || !from) && (user?.role === 'INSTALLATION_CREW' || user?.department === 'OPERATIONS')
+          ? '/site-photos'
+          : from;
+      navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, navigate, from, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +133,10 @@ export const LoginPage: React.FC = () => {
       if (result.requiresMfa) {
         navigate('/mfa-challenge');
       } else {
-        const destination = from;
+        const destination =
+          (from === '/' || !from) && selectedPortal === 'INSTALLER'
+            ? '/site-photos'
+            : from;
         navigate(destination, { replace: true });
       }
     } catch (err: any) {
