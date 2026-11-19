@@ -38,7 +38,6 @@ import { TasksPage } from './pages/TasksPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
 import { SitePhotosPage } from './pages/SitePhotosPage.js';
-import { EquipmentBarcodesPage } from './pages/EquipmentBarcodesPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -361,11 +360,7 @@ export const App: React.FC = () => {
           />
           <Route
             path="equipment-barcodes"
-            element={
-              <ProtectedRoute>
-                <EquipmentBarcodesPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/site-photos" replace />}
           />
           <Route
             path="installation-docs"

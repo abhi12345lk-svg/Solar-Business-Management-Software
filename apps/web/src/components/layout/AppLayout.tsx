@@ -29,7 +29,6 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  Barcode,
   PackageCheck
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
@@ -76,7 +75,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'Operations & Project Execution',
     items: [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
-      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/net-metering', label: 'Net Metering & BM Sync', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
@@ -168,7 +166,6 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Installation Hub',
     items: [
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap }
     ]
   },
@@ -190,8 +187,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Executive', title: 'Admin Dashboard' };
   }
   if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
-  if (pathname.startsWith('/equipment-barcodes')) return { section: 'Field Operations', title: 'Equipment & Barcodes' };
-  if (pathname.startsWith('/installation-docs')) return { section: 'Field Operations', title: 'Installation Documents' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
@@ -419,12 +414,6 @@ export const AppLayout: React.FC = () => {
                   }
                   if (item.to === '/site-photos') {
                     return location.pathname === '/site-photos';
-                  }
-                  if (item.to === '/equipment-barcodes') {
-                    return location.pathname === '/equipment-barcodes';
-                  }
-                  if (item.to === '/installation-docs') {
-                    return location.pathname === '/installation-docs';
                   }
                   if (item.to === '/create-document') {
                     return (
