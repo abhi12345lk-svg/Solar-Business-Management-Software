@@ -13,6 +13,7 @@ import {
   MapPin,
   UploadCloud,
   Trash2,
+  RotateCw,
   Navigation,
   Plus,
   Search,
@@ -689,41 +690,92 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     });
   };
 
-  // Upload Photo for Mandatory Slot
+  // Upload Photo for Mandatory Slot with Smart Orientation
   const handlePhotoUpload = async (slotId: PhotoSlotId, file: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
+      const rawDataUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = async () => {
+        let finalDataUrl = rawDataUrl;
+
+        // Smart Orientation: If vertical/portrait (naturalHeight > naturalWidth),
+        // automatically rotate 90° clockwise into landscape format so it fills
+        // the horizontal report slot cleanly (matching DISCOM / NoteCam landscape standard)
+        if (img.naturalHeight > img.naturalWidth) {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalHeight;
+          canvas.height = img.naturalWidth;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((90 * Math.PI) / 180);
+            ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+            finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          }
+        }
+
+        setPhotoSlots(prev => ({
+          ...prev,
+          [slotId]: {
+            ...prev[slotId],
+            dataUrl: finalDataUrl
+          }
+        }));
+
+        const currentSlot = photoSlots[slotId];
+        if (!currentSlot?.latitude) {
+          try {
+            const loc = await captureDeviceLocation();
+            setPhotoSlots(prev => ({
+              ...prev,
+              [slotId]: {
+                ...prev[slotId],
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                accuracy: loc.accuracy,
+                timestamp: loc.timestamp,
+                gps: loc.formatted
+              }
+            }));
+          } catch {
+            // Handled in captureDeviceLocation
+          }
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 1-Click 90° Clockwise Rotation for Any Slot
+  const handleRotateSlot = (slotId: PhotoSlotId) => {
+    const slot = photoSlots[slotId];
+    if (!slot?.dataUrl) return;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      const rotated = canvas.toDataURL('image/jpeg', 0.95);
+
       setPhotoSlots(prev => ({
         ...prev,
         [slotId]: {
           ...prev[slotId],
-          dataUrl
+          dataUrl: rotated
         }
       }));
-
-      const currentSlot = photoSlots[slotId];
-      if (!currentSlot?.latitude) {
-        try {
-          const loc = await captureDeviceLocation();
-          setPhotoSlots(prev => ({
-            ...prev,
-            [slotId]: {
-              ...prev[slotId],
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              accuracy: loc.accuracy,
-              timestamp: loc.timestamp,
-              gps: loc.formatted
-            }
-          }));
-        } catch {
-          // Handled in captureDeviceLocation
-        }
-      }
     };
-    reader.readAsDataURL(file);
+    img.src = slot.dataUrl;
   };
 
   // Geotag Single Slot
@@ -801,26 +853,65 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      handleUpdateExtraPhoto(id, { dataUrl });
-
-      const item = extraPhotos.find(p => p.id === id);
-      if (!item?.latitude) {
-        try {
-          const loc = await captureDeviceLocation();
-          handleUpdateExtraPhoto(id, {
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            accuracy: loc.accuracy,
-            timestamp: loc.timestamp,
-            gps: loc.formatted
-          });
-        } catch {
-          // handled
+      const rawDataUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = async () => {
+        let finalDataUrl = rawDataUrl;
+        if (img.naturalHeight > img.naturalWidth) {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalHeight;
+          canvas.height = img.naturalWidth;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((90 * Math.PI) / 180);
+            ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+            finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          }
         }
-      }
+        handleUpdateExtraPhoto(id, { dataUrl: finalDataUrl });
+
+        const item = extraPhotos.find(p => p.id === id);
+        if (!item?.latitude) {
+          try {
+            const loc = await captureDeviceLocation();
+            handleUpdateExtraPhoto(id, {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracy: loc.accuracy,
+              timestamp: loc.timestamp,
+              gps: loc.formatted
+            });
+          } catch {
+            // handled
+          }
+        }
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRotateExtraPhoto = (id: string) => {
+    const photo = extraPhotos.find(p => p.id === id);
+    if (!photo?.dataUrl) return;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      const rotated = canvas.toDataURL('image/jpeg', 0.95);
+
+      setExtraPhotos(prev => prev.map(p => (p.id === id ? { ...p, dataUrl: rotated } : p)));
+    };
+    img.src = photo.dataUrl;
   };
 
   const handleCaptureGpsForExtra = async (id: string) => {
@@ -1577,32 +1668,54 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                             </h4>
                           </div>
 
-                          {hasPhoto && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPhotoSlots(prev => ({
-                                  ...prev,
-                                  [cfg.id]: { ...prev[cfg.id], dataUrl: null }
-                                }));
-                              }}
-                              className="p-1 text-muted-foreground hover:text-rose-600 rounded transition cursor-pointer"
-                              title="Remove photo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <div className="flex items-center space-x-1.5">
+                            {hasPhoto && (
+                              <button
+                                type="button"
+                                onClick={() => handleRotateSlot(cfg.id)}
+                                className="px-2 py-1 text-[11px] font-bold text-solar-700 dark:text-solar-400 bg-solar-500/10 hover:bg-solar-500/20 rounded-lg border border-solar-500/30 flex items-center space-x-1 cursor-pointer transition"
+                                title="Rotate photo 90° clockwise"
+                              >
+                                <RotateCw className="w-3.5 h-3.5" />
+                                <span>Rotate 90°</span>
+                              </button>
+                            )}
+                            {hasPhoto && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPhotoSlots(prev => ({
+                                    ...prev,
+                                    [cfg.id]: { ...prev[cfg.id], dataUrl: null }
+                                  }));
+                                }}
+                                className="p-1 text-muted-foreground hover:text-rose-600 rounded transition cursor-pointer"
+                                title="Remove photo"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Upload / Photo Container */}
                         {hasPhoto ? (
-                          <div className="relative group rounded-xl overflow-hidden border bg-slate-950 flex items-center justify-center">
+                          <div className="relative group rounded-xl overflow-hidden border bg-slate-900 flex items-center justify-center">
                             <img
                               src={slot.dataUrl!}
                               alt={cfg.shortTitle}
-                              className={`w-full h-44 ${imageFit === 'contain' ? 'object-contain' : 'object-cover'} bg-slate-950`}
+                              className={`w-full h-44 ${imageFit === 'contain' ? 'object-contain' : 'object-cover'} bg-slate-900`}
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRotateSlot(cfg.id)}
+                                className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg cursor-pointer shadow-md hover:bg-slate-100 transition flex items-center space-x-1"
+                                title="Rotate 90° Clockwise"
+                              >
+                                <RotateCw className="w-3.5 h-3.5" />
+                                <span>Rotate 90°</span>
+                              </button>
                               <label className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg cursor-pointer shadow-md hover:bg-slate-100 transition flex items-center space-x-1">
                                 <Camera className="w-3.5 h-3.5" />
                                 <span>Replace</span>
@@ -1733,14 +1846,27 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                                 />
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveExtraPhoto(extra.id)}
-                                className="p-1 text-muted-foreground hover:text-destructive rounded transition cursor-pointer"
-                                title="Remove photo"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center space-x-1.5">
+                                {hasPhoto && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateExtraPhoto(extra.id)}
+                                    className="px-2 py-1 text-[11px] font-bold text-solar-700 bg-solar-500/10 hover:bg-solar-500/20 rounded-lg border border-solar-500/30 flex items-center space-x-1 cursor-pointer transition"
+                                    title="Rotate photo 90° clockwise"
+                                  >
+                                    <RotateCw className="w-3.5 h-3.5" />
+                                    <span>Rotate 90°</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExtraPhoto(extra.id)}
+                                  className="p-1 text-muted-foreground hover:text-destructive rounded transition cursor-pointer"
+                                  title="Remove photo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
 
                             {/* Category selector */}
@@ -1765,6 +1891,15 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                                   className="w-full h-44 object-contain bg-slate-950"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateExtraPhoto(extra.id)}
+                                    className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg cursor-pointer shadow-md hover:bg-slate-100 transition flex items-center space-x-1"
+                                    title="Rotate 90° Clockwise"
+                                  >
+                                    <RotateCw className="w-3.5 h-3.5" />
+                                    <span>Rotate 90°</span>
+                                  </button>
                                   <label className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg cursor-pointer shadow-md hover:bg-slate-100 transition flex items-center space-x-1">
                                     <Camera className="w-3.5 h-3.5" />
                                     <span>Replace</span>
@@ -1891,22 +2026,34 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                               return (
                                 <div
                                   key={cfg.id}
-                                  className="relative w-full h-[228px] bg-slate-900 overflow-hidden border border-slate-300 rounded-sm"
+                                  className="group relative w-full h-[228px] bg-slate-50 overflow-hidden border border-slate-300 rounded-sm flex items-center justify-center"
                                 >
                                   {slot.dataUrl ? (
                                     <img
                                       src={slot.dataUrl}
                                       alt={cfg.shortTitle}
-                                      className={`w-full h-full ${imageFit === 'contain' ? 'object-contain bg-black' : 'object-cover'}`}
+                                      className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
                                     />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 text-xs italic font-sans">
                                       <span>[Photo #{idx + 1}: {cfg.shortTitle} Pending]</span>
                                     </div>
                                   )}
+                                  {/* Quick Rotate Button on Document Preview */}
+                                  {slot.dataUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRotateSlot(cfg.id)}
+                                      className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition px-2 py-1 bg-black/75 hover:bg-black text-white text-[10px] font-bold rounded flex items-center space-x-1 shadow cursor-pointer z-10"
+                                      title="Rotate 90° Clockwise"
+                                    >
+                                      <RotateCw className="w-3 h-3" />
+                                      <span>Rotate 90°</span>
+                                    </button>
+                                  )}
                                   {/* Geotag Stamp Watermark in Bottom-Left (NoteCam style) */}
                                   {(slot.latitude && slot.longitude) ? (
-                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-xs text-white text-[9px] font-mono px-2 py-1 rounded shadow-sm leading-tight text-left">
+                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-xs text-white text-[9px] font-mono px-2 py-1 rounded shadow-sm leading-tight text-left z-10">
                                       <div>Latitude: {slot.latitude.toFixed(6)}°</div>
                                       <div>Longitude: {slot.longitude.toFixed(6)}°</div>
                                       {slot.accuracy ? <div>Accuracy: ±{Math.round(slot.accuracy)}m</div> : null}
@@ -1915,7 +2062,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                                       ) : null}
                                     </div>
                                   ) : slot.gps ? (
-                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow-sm">
+                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow-sm z-10">
                                       📍 {slot.gps}
                                     </div>
                                   ) : null}
