@@ -40,6 +40,7 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { CustomerDto, CustomerType, CustomerStatus, PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
+import { InstallerWorkflowNav } from '../components/installer/InstallerWorkflowNav.js';
 
 const MANDATORY_SOLAR_SLOTS = [
   {
@@ -849,30 +850,47 @@ export const CustomersPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Field Installer Workflow Stepper (Step 1 -> Step 2 -> Step 3) */}
+      {isInstaller && <InstallerWorkflowNav activeStep="customers" />}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center space-x-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Customer Directory</h1>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              {isInstaller ? 'Rooftop Site Directory' : 'Customer Directory'}
+            </h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              {totalCount} Active Clients
+              {totalCount} Active {isInstaller ? 'Sites' : 'Clients'}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Registered solar clients, rooftop site installation profiles, and ongoing projects.
+            {isInstaller
+              ? 'Select an assigned client site to capture 4-point geotagged inspection photos & manage installation dossiers.'
+              : 'Registered solar clients, rooftop site installation profiles, and ongoing projects.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {isInstaller ? (
-            <Link
-              to="/site-photos"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
-              title="Open Site Inspection Photos Workstation"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Open Site Photos Workstation &rarr;</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/site-photos"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
+                title="Open 4-Point Site Inspection Photos Workstation"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Site Photos Workstation &rarr;</span>
+              </Link>
+              <Link
+                to="/documents"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-card hover:bg-muted text-foreground border border-border shadow-2xs transition"
+                title="Open Installation Document Vault"
+              >
+                <FolderLock className="w-3.5 h-3.5 text-solar-600" />
+                <span>Document Vault &rarr;</span>
+              </Link>
+            </div>
           ) : (
             <>
               <Link
@@ -1038,7 +1056,7 @@ export const CustomersPage: React.FC = () => {
                   {isInstaller ? (
                     <>
                       <th className="py-3 px-4 text-center">Inspection Status</th>
-                      <th className="py-3 px-4 text-center">Site Inspection Action</th>
+                      <th className="py-3 px-4 text-center">Field Workflow Actions</th>
                     </>
                   ) : (
                     <>
@@ -1155,28 +1173,58 @@ export const CustomersPage: React.FC = () => {
                         <>
                           {/* Inspection Status Column for Installer */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            {localStorage.getItem(`solar_photos_${customer.id}`) ? (
-                              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Photos Completed</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
-                                <span>Inspection Pending</span>
-                              </span>
-                            )}
+                            {(() => {
+                              const photoCache = localStorage.getItem(`solar_photos_${customer.id}`);
+                              if (photoCache) {
+                                try {
+                                  const parsed = JSON.parse(photoCache);
+                                  const uploaded = Object.values(parsed.photoSlots || {}).filter((s: any) => !!s?.dataUrl).length;
+                                  if (uploaded >= 4) {
+                                    return (
+                                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        <span>4/4 Photos Done</span>
+                                      </span>
+                                    );
+                                  } else if (uploaded > 0) {
+                                    return (
+                                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
+                                        <span>In Progress ({uploaded}/4)</span>
+                                      </span>
+                                    );
+                                  }
+                                } catch {}
+                              }
+                              return (
+                                <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+                                  <span>Inspection Pending</span>
+                                </span>
+                              );
+                            })()}
                           </td>
 
-                          {/* Site Inspection Direct Action Column */}
+                          {/* Field Operations Direct Actions Column */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            <Link
-                              to={`/site-photos?customerId=${customer.id}`}
-                              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                              title={`Open 4-point site inspection photos for ${customer.name}`}
-                            >
-                              <Camera className="w-3.5 h-3.5" />
-                              <span>Site Photos &rarr;</span>
-                            </Link>
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <Link
+                                to={`/site-photos?customerId=${customer.id}`}
+                                onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                                title={`Capture 4-point site inspection photos for ${customer.name}`}
+                              >
+                                <Camera className="w-3.5 h-3.5" />
+                                <span>Site Photos &rarr;</span>
+                              </Link>
+                              <Link
+                                to={`/documents?customerId=${customer.id}`}
+                                onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border shadow-2xs transition cursor-pointer"
+                                title={`Open compliance document vault for ${customer.name}`}
+                              >
+                                <FolderLock className="w-3.5 h-3.5 text-solar-600" />
+                                <span>Vault &rarr;</span>
+                              </Link>
+                            </div>
                           </td>
                         </>
                       ) : (

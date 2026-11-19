@@ -33,6 +33,7 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
 import { DocumentCategory, DocumentAccessClassification } from '@ins-solar/shared';
+import { InstallerWorkflowNav } from '../components/installer/InstallerWorkflowNav.js';
 
 interface CustomerOption {
   _id?: string;
@@ -1780,6 +1781,15 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       {/* ========================================================================= */}
       <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-5 flex-1">
         <div className="w-full space-y-4">
+          {/* Field Installer Workflow Stepper (Step 1 -> Step 2 -> Step 3) */}
+          <InstallerWorkflowNav
+            activeStep="photos"
+            customerId={selectedCustomer?._id || selectedCustomer?.id}
+            customerName={tplConsumerName !== 'Select Customer' ? tplConsumerName : undefined}
+            customerCode={tplConsumerNumber}
+            district={tplDistrict}
+          />
+
           {/* Sync Status Alert */}
           {dbNotification && (
             <div className={`p-3 rounded-xl text-xs flex items-center justify-between border shadow-2xs ${
@@ -1820,6 +1830,14 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               </div>
 
               <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                <Link
+                  to="/customers"
+                  className="px-3 py-1.5 bg-card hover:bg-muted text-foreground text-xs font-bold rounded-xl border border-border shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
+                  title="Return to Site Customer Directory"
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-solar-600" />
+                  <span>Site Directory</span>
+                </Link>
                 <button
                   type="button"
                   onClick={handleOpenPdfPreview}
@@ -1827,7 +1845,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   title="View fullscreen PDF report"
                 >
                   <Eye className="w-3.5 h-3.5 text-solar-600" />
-                  <span>Preview Report</span>
+                  <span>Preview</span>
                 </button>
                 <button
                   type="button"
@@ -1844,7 +1862,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   title="Open full Document Vault to view all files"
                 >
                   <FolderLock className="w-3.5 h-3.5" />
-                  <span>Open Document Vault &rarr;</span>
+                  <span>Document Vault &rarr;</span>
                 </Link>
               </div>
             </div>

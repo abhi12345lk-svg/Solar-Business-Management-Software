@@ -27,11 +27,13 @@ import {
   Trash2,
   Lock,
   Camera,
-  MapPin
+  MapPin,
+  UserCheck
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
+import { InstallerWorkflowNav } from '../components/installer/InstallerWorkflowNav.js';
 
 interface DocumentItem {
   _id: string;
@@ -647,6 +649,53 @@ export const DocumentsPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
+      {/* Field Installer Workflow Stepper (Step 1 -> Step 2 -> Step 3) */}
+      {isInstaller && <InstallerWorkflowNav activeStep="documents" customerId={customerFilter} />}
+
+      {/* Active Customer Focus Banner for Installer */}
+      {isInstaller && customerFilter && (
+        <div className="bg-solar-500/10 border border-solar-500/25 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-solar-500/20 text-solar-600 flex items-center justify-center font-bold shrink-0">
+              <Camera className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-foreground block truncate">
+                Customer Site Dossier: {customers.find(c => (c._id || c.id) === customerFilter)?.name || 'Filtered Site'}
+              </span>
+              <p className="text-[11px] text-muted-foreground truncate">
+                All 4-point rooftop photos, geotag reports, and commissioning dossiers for this customer.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <Link
+              to={`/site-photos?customerId=${customerFilter}`}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Open in Site Photos</span>
+            </Link>
+            <Link
+              to="/customers"
+              className="px-3 py-1.5 bg-card hover:bg-muted text-foreground text-xs font-bold rounded-xl border border-border shadow-2xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-solar-600" />
+              <span>Site Directory</span>
+            </Link>
+            <button
+              onClick={() => {
+                setCustomerFilter('');
+                setSearchParams({});
+              }}
+              className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground font-semibold cursor-pointer"
+            >
+              Show All ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner / Breadcrumb & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center space-x-3 shrink-0">
@@ -673,13 +722,22 @@ export const DocumentsPage: React.FC = () => {
         {/* Action Buttons: Installer gets direct Site Photos link; non-installer gets Generate Document */}
         <div className="flex items-center space-x-2.5 shrink-0">
           {isInstaller ? (
-            <Link
-              to="/site-photos"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Capture / View Site Photos</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link
+                to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Open Site Photos</span>
+              </Link>
+              <Link
+                to="/customers"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl border border-border shadow-2xs transition cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4 text-solar-600" />
+                <span>Site Directory</span>
+              </Link>
+            </div>
           ) : (
             <Link
               to="/documents/create"
