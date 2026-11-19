@@ -163,10 +163,10 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Field Installation & Operations',
+    title: 'Field Installation Workflow',
     items: [
-      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }
@@ -174,7 +174,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Inspection Photos' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Customer Directory' };
     if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Dashboard' };
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };

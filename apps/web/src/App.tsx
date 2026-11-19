@@ -164,7 +164,7 @@ export const App: React.FC = () => {
           />
           <Route path="installations/*" element={<Navigate to="/site-photos" replace />} />
           <Route path="installations" element={<Navigate to="/site-photos" replace />} />
-          <Route path="installer" element={<Navigate to="/site-photos" replace />} />
+          <Route path="installer" element={<Navigate to="/customers" replace />} />
           <Route path="installation" element={<Navigate to="/site-photos" replace />} />
           <Route
             path="net-metering"
