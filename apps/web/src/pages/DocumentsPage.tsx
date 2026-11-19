@@ -681,7 +681,7 @@ export const DocumentsPage: React.FC = () => {
               className="px-3 py-1.5 bg-card hover:bg-muted text-foreground text-xs font-bold rounded-xl border border-border shadow-2xs transition flex items-center space-x-1.5 cursor-pointer"
             >
               <UserCheck className="w-3.5 h-3.5 text-solar-600" />
-              <span>Site Directory</span>
+              <span>Site List</span>
             </Link>
             <button
               onClick={() => {
@@ -735,7 +735,7 @@ export const DocumentsPage: React.FC = () => {
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl border border-border shadow-2xs transition cursor-pointer"
               >
                 <UserCheck className="w-4 h-4 text-solar-600" />
-                <span>Site Directory</span>
+                <span>Site List</span>
               </Link>
             </div>
           ) : (

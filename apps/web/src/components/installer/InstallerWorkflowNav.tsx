@@ -90,7 +90,7 @@ export const InstallerWorkflowNav: React.FC<InstallerWorkflowNavProps> = ({
               1
             </span>
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Site Directory</span>
+            <span>Site List</span>
           </Link>
 
           <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
@@ -167,7 +167,7 @@ export const InstallerWorkflowNav: React.FC<InstallerWorkflowNavProps> = ({
           ) : (
             <div className="text-[11px] text-muted-foreground flex items-center space-x-1.5">
               <MapPin className="w-3.5 h-3.5 text-solar-600 shrink-0" />
-              <span>Select any customer to start 4-point site inspection &amp; sync dossiers</span>
+              <span>Select any customer from the site list to start 4-point site inspection &amp; sync dossiers</span>
             </div>
           )}
         </div>

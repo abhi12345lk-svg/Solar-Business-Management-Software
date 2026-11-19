@@ -858,7 +858,7 @@ export const CustomersPage: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2.5">
             <h1 className="text-xl font-bold tracking-tight text-foreground">
-              {isInstaller ? 'Rooftop Site Directory' : 'Customer Directory'}
+              {isInstaller ? 'Site List' : 'Customer Directory'}
             </h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
               {totalCount} Active {isInstaller ? 'Sites' : 'Clients'}

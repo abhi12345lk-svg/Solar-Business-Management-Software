@@ -1836,7 +1836,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   title="Return to Site Customer Directory"
                 >
                   <UserCheck className="w-3.5 h-3.5 text-solar-600" />
-                  <span>Site Directory</span>
+                  <span>Site List</span>
                 </Link>
                 <button
                   type="button"

@@ -165,7 +165,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Field Installation Workflow',
     items: [
-      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/customers', label: 'Site List', icon: UserCheck },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
@@ -174,14 +174,17 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Customer Directory' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
     if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Dashboard' };
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
     return { section: 'Executive', title: 'Admin Dashboard' };
   }
   if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
   if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
-  if (pathname.startsWith('/customers')) return { section: 'CRM', title: 'Customer Directory' };
+  if (pathname.startsWith('/customers')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
+    return { section: 'CRM', title: 'Customer Directory' };
+  }
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
   if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'PV Sizing' };
   if (pathname.startsWith('/quotations'))
