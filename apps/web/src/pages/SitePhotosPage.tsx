@@ -142,19 +142,11 @@ export const PHOTO_SLOT_CONFIGS: PhotoSlotConfig[] = [
     infoGuideline:
       'Photo showing dedicated maintenance-free chemical earthing pits, grounding electrode chambers, green earthing strips, and consumer beside the pit.',
     checklist: ['Earthing pit chamber visible', 'Proper ground strip routing', 'Consumer standing next to pit']
-  },
-  {
-    id: 'lightning',
-    shortTitle: 'Lightning Arrester with Consumer',
-    officialTitle: '5. Lightning Arrester (LA) Terminal with Consumer',
-    badge: 'Lightning Arrester',
-    infoGuideline:
-      'Photo showing rooftop lightning arrester (LA) air terminal mounted at the highest rooftop elevation, down conductor strip, and consumer on terrace.',
-    checklist: ['LA terminal at highest roof point', 'Proper copper/GI down conductor', 'Consumer visible on rooftop']
   }
 ];
 
 export const EXTRA_PHOTO_CATEGORIES = [
+  { value: 'LIGHTNING_ARRESTER', label: '⚡ Lightning Arrester (LA) Terminal with Consumer' },
   { value: 'CABLE_TRAY', label: '🔌 Cable Tray & Conduit Routing' },
   { value: 'ACDB_DCDB_INTERNAL', label: '⚡ ACDB / DCDB Internal Wiring & SPD' },
   { value: 'EARTH_RESISTANCE', label: '🧪 Earth Pit Resistance Meter (Megger)' },
@@ -1791,10 +1783,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
               {/* Photos Count Badge */}
               <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
-                mandatoryUploadedCount === 5 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+                mandatoryUploadedCount === PHOTO_SLOT_CONFIGS.length ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
               }`}>
                 <Camera className="w-3.5 h-3.5" />
-                <span>Photos: {mandatoryUploadedCount}/5</span>
+                <span>Photos: {mandatoryUploadedCount}/{PHOTO_SLOT_CONFIGS.length}</span>
               </span>
 
               {/* Lifecycle Actions */}
@@ -1865,12 +1857,12 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column: 5 Mandatory Photo Slots + Extra Photos (5 cols) */}
               <div className="lg:col-span-5 space-y-4">
-                {/* 5 Mandatory PM Surya Ghar Photos Header */}
+                {/* 4 Mandatory PM Surya Ghar Photos Header */}
                 <div className="flex items-center justify-between px-1">
                   <div>
                     <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center space-x-1.5">
                       <Camera className="w-4 h-4 text-solar-600" />
-                      <span>5 Mandatory Inspection Photos</span>
+                      <span>4 Mandatory Inspection Photos</span>
                     </h3>
                     <p className="text-[10px] text-muted-foreground">PM Surya Ghar &amp; DISCOM compliance report</p>
                   </div>
@@ -1881,7 +1873,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       onClick={handleGeotagAllSlots}
                       disabled={isLocatingAll}
                       className="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs cursor-pointer disabled:opacity-50"
-                      title="Hook live GPS into all 5 slots"
+                      title="Hook live GPS into all 4 slots"
                     >
                       {isLocatingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
                       <span>📍 Geotag All</span>
@@ -2203,21 +2195,20 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     </div>
                   </div>
 
-                  {/* Two Discrete A4 Sheets Container (Matches user's DOCX & Eliminates Cutoff) */}
-                  <div className="bg-slate-200 dark:bg-slate-900/90 p-2 sm:p-5 rounded-xl overflow-x-auto">
-                    <div ref={documentPrintRef} className="space-y-6">
-                      {/* ================= PAGE 1: HEADER & PHOTOS 1-4 ================= */}
+                  {/* Single A4 Sheet Container (100% Matches sitepic.docx - Exactly 1 Page) */}
+                  <div className="bg-slate-300 dark:bg-slate-900/90 p-2 sm:p-5 rounded-xl overflow-x-auto">
+                    <div ref={documentPrintRef}>
                       <div
                         data-pdf-page="1"
-                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1130px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
+                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1050px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
                         style={{
                           fontFamily: '"Times New Roman", Times, serif',
                           color: '#0f172a'
                         }}
                       >
                         <div>
-                          {/* Page 1 Document Header */}
-                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-5 space-y-1">
+                          {/* Document Header (Times New Roman, Bold, Underlined, Centered - Same to Same as sitepic.docx) */}
+                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-4 space-y-1">
                             <h2 className="text-base sm:text-xl font-black tracking-wide uppercase text-slate-950 underline decoration-2 underline-offset-4">
                               SITE PHOTOS AT {tplConsumerName || 'BENEFICIARY CONSUMER'}
                             </h2>
@@ -2232,9 +2223,9 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                             </div>
                           </div>
 
-                          {/* 4 Photos (1 to 4) 2-Col Grid */}
+                          {/* 4 Inspection Photos in a 2x2 Grid (Structure, Inverter, Net Meter, Earthing) */}
                           <div className="grid grid-cols-2 gap-4">
-                            {PHOTO_SLOT_CONFIGS.slice(0, 4).map((cfg) => {
+                            {PHOTO_SLOT_CONFIGS.map((cfg) => {
                               const slot = photoSlots[cfg.id];
                               return (
                                 <div
@@ -2269,183 +2260,26 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </div>
                         </div>
 
-                        {/* Page 1 Footer */}
-                        <div className="pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-sans">
-                          <span>PM Surya Ghar Muft Bijli Yojana • Rooftop Solar Inspection Dossier</span>
-                          <span>Page 1 of 2</span>
-                        </div>
-                      </div>
-
-                      {/* ================= PAGE 2: PHOTO 5, HIGHLIGHTS, DECLARATION & SIGNATURES ================= */}
-                      <div
-                        data-pdf-page="2"
-                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1130px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
-                        style={{
-                          fontFamily: '"Times New Roman", Times, serif',
-                          color: '#0f172a'
-                        }}
-                      >
-                        <div>
-                          {/* Page 2 Document Header */}
-                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-5 space-y-1">
-                            <h2 className="text-base sm:text-xl font-black tracking-wide uppercase text-slate-950 underline decoration-2 underline-offset-4">
-                              SITE PHOTOS AT {tplConsumerName || 'BENEFICIARY CONSUMER'}
-                            </h2>
-                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-700 font-semibold pt-1">
-                              <span><strong>Consumer No / BP:</strong> {tplConsumerNumber}</span>
-                              <span>•</span>
-                              <span><strong>Plant Capacity:</strong> {tplCapacityKwp} kWp RTS</span>
-                              <span>•</span>
-                              <span><strong>Page:</strong> 2 of 2 (Protection &amp; Signatures)</span>
+                        {/* Consumer & Vendor Signatures Footer */}
+                        <div className="mt-6 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end">
+                          <div className="space-y-1.5">
+                            <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CONSUMER / BENEFICIARY</p>
+                            <p className="text-[11px] text-slate-600">I verify that the above solar plant photos are from my premises.</p>
+                            <div className="pt-2 text-xs font-semibold text-slate-900 space-y-1">
+                              <p><strong>Name:</strong> {tplConsumerName}</p>
+                              <p className="pt-2"><strong>Signature:</strong> ____________________________</p>
                             </div>
                           </div>
 
-                          {/* Photo 5 & Highlights / Extra Photo in 2-Col Grid */}
-                          <div className="grid grid-cols-2 gap-4">
-                            {/* Photo 5: Lightning Arrester */}
-                            {(() => {
-                              const cfg = PHOTO_SLOT_CONFIGS[4]; // lightning
-                              if (!cfg) return null;
-                              const slot = photoSlots[cfg.id];
-                              return (
-                                <div
-                                  key={cfg.id}
-                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
-                                >
-                                  <div className="p-1.5 bg-slate-900 text-white font-bold text-[11px] truncate">
-                                    {cfg.officialTitle}
-                                  </div>
-                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                    {slot.dataUrl ? (
-                                      <img
-                                        src={slot.dataUrl}
-                                        alt={cfg.shortTitle}
-                                        className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-                                      />
-                                    ) : (
-                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                    )}
-                                    {slot.gps && (
-                                      <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
-                                        📍 {slot.gps}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                    {slot.caption}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* Column 2: Extra photo or Technical Highlights Card */}
-                            {extraPhotos.length > 0 && extraPhotos[0] ? (
-                              (() => {
-                                const firstExtra = extraPhotos[0];
-                                return (
-                                  <div className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between">
-                                    <div className="p-1.5 bg-slate-800 text-white font-bold text-[11px] truncate">
-                                      6. {firstExtra.title}
-                                    </div>
-                                    <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                      {firstExtra.dataUrl ? (
-                                        <img
-                                          src={firstExtra.dataUrl}
-                                          alt={firstExtra.title}
-                                          className="w-full h-full object-contain"
-                                        />
-                                      ) : (
-                                        <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                      )}
-                                      {firstExtra.gps && (
-                                        <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
-                                          📍 {firstExtra.gps}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                      {firstExtra.caption || firstExtra.title}
-                                    </div>
-                                  </div>
-                                );
-                              })()
-                            ) : (
-                              <div className="border border-slate-300 rounded-lg p-4 bg-slate-50 flex flex-col justify-between text-xs">
-                                <div>
-                                  <h4 className="font-bold text-slate-900 uppercase text-[11px] mb-2 border-b pb-1">
-                                    Technical Installation Specifications
-                                  </h4>
-                                  <div className="space-y-1.5 text-[11px] text-slate-700">
-                                    <p>• <strong>PV Modules:</strong> High-efficiency ALMM/DCR Mono PERC / TOPCon</p>
-                                    <p>• <strong>Mounting Structure:</strong> Hot-Dip Galvanized / Aluminum Wind Load Compliant</p>
-                                    <p>• <strong>Earthing &amp; LA:</strong> Dual dedicated chemical earthing pits with copper bonded electrode</p>
-                                    <p>• <strong>Inverter &amp; Protection:</strong> MNRE approved on-grid inverter with Type II SPD &amp; ACDB/DCDB</p>
-                                  </div>
-                                </div>
-                                <div className="mt-3 p-2 bg-emerald-50 border border-emerald-200 rounded text-[10px] text-emerald-800 font-medium">
-                                  ✓ Physical installation verified in compliance with PM Surya Ghar &amp; DISCOM standards.
-                                </div>
-                              </div>
-                            )}
+                          <div className="space-y-1 text-right">
+                            <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CERTIFIED SOLAR VENDOR</p>
+                            <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
+                            <div className="flex justify-end py-1">
+                              <img src={RAREBOX_STAMP_BASE64} alt="Seal" className="w-20 h-20 object-contain" />
+                            </div>
+                            <p className="text-xs font-semibold text-slate-900">{tplVendorSignatory} ({tplVendorDesignation})</p>
+                            <p className="text-[10px] text-slate-600">Ph: {tplVendorPhone}</p>
                           </div>
-
-                          {/* Extra photos row 2 if user uploaded more */}
-                          {extraPhotos.length > 1 && (
-                            <div className="grid grid-cols-2 gap-4 mt-4">
-                              {extraPhotos.slice(1, 3).map((extra, idx) => (
-                                <div
-                                  key={extra.id}
-                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
-                                >
-                                  <div className="p-1.5 bg-slate-800 text-white font-bold text-[11px] truncate">
-                                    {idx + 7}. {extra.title}
-                                  </div>
-                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                    {extra.dataUrl ? (
-                                      <img
-                                        src={extra.dataUrl}
-                                        alt={extra.title}
-                                        className="w-full h-full object-contain"
-                                      />
-                                    ) : (
-                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                    )}
-                                  </div>
-                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                    {extra.caption || extra.title}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Consumer & Vendor Signatures Footer (Identical to User DOCX) */}
-                          <div className="mt-8 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end">
-                            <div className="space-y-1.5">
-                              <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CONSUMER / BENEFICIARY</p>
-                              <p className="text-[11px] text-slate-600">I verify that the above solar plant photos are from my premises.</p>
-                              <div className="pt-2 text-xs font-semibold text-slate-900 space-y-1">
-                                <p><strong>Name:</strong> {tplConsumerName}</p>
-                                <p className="pt-2"><strong>Signature:</strong> ____________________________</p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1 text-right">
-                              <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CERTIFIED SOLAR VENDOR</p>
-                              <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
-                              <div className="flex justify-end py-1">
-                                <img src={RAREBOX_STAMP_BASE64} alt="Seal" className="w-24 h-24 object-contain" />
-                              </div>
-                              <p className="text-xs font-semibold text-slate-900">{tplVendorSignatory} ({tplVendorDesignation})</p>
-                              <p className="text-[10px] text-slate-600">Ph: {tplVendorPhone}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Page 2 Footer */}
-                        <div className="pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-sans">
-                          <span>PM Surya Ghar Muft Bijli Yojana • Rooftop Solar Inspection Dossier</span>
-                          <span>Page 2 of 2</span>
                         </div>
                       </div>
                     </div>
