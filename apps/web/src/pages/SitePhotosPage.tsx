@@ -1389,7 +1389,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 type="button"
                 onClick={() => setIsClientDrawerOpen(true)}
                 className="px-3 py-1.5 bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 text-xs font-bold rounded-xl border border-solar-500/30 flex items-center space-x-2 cursor-pointer transition shadow-2xs"
-                title="Click to search and change customer"
+                title={`Click to search and change customer (Site: ${tplAddress}, ${tplDistrict})`}
               >
                 <UserCheck className="w-3.5 h-3.5 text-solar-600" />
                 <span className="font-bold truncate max-w-[150px] sm:max-w-[200px]">
@@ -1398,6 +1398,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-solar-500/20 font-bold">
                   BP: {tplConsumerNumber}
                 </span>
+                {tplDistrict && (
+                  <span className="text-[10px] text-muted-foreground truncate hidden lg:inline">
+                    • {tplDistrict}
+                  </span>
+                )}
                 <span className="text-[10px] text-muted-foreground font-semibold">Switch ▾</span>
               </button>
             </div>
@@ -1865,7 +1870,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     <div ref={documentPrintRef}>
                       <div
                         data-pdf-page="1"
-                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1050px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
+                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1050px] p-5 sm:p-7 shadow-xl rounded-sm flex flex-col justify-start"
                         style={{
                           fontFamily: '"Times New Roman", Times, serif',
                           color: '#0f172a'
@@ -1873,52 +1878,47 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       >
                         <div>
                           {/* Document Header (Times New Roman, Bold, Underlined, Centered - Same to Same as sitepic.docx) */}
-                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-4 space-y-1">
-                            <h2 className="text-base sm:text-xl font-black tracking-wide uppercase text-slate-950 underline decoration-2 underline-offset-4">
+                          <div className="text-center pb-2 mb-2">
+                            <h2 className="text-base sm:text-xl font-bold tracking-wide uppercase text-slate-950 underline decoration-1 underline-offset-4">
                               SITE PHOTOS AT {tplConsumerName || 'BENEFICIARY CONSUMER'}
                             </h2>
-                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-700 font-semibold pt-1">
-                              <span><strong>Site:</strong> {tplAddress}, {tplDistrict}</span>
-                              <span>•</span>
-                              <span><strong>Consumer No / BP:</strong> {tplConsumerNumber}</span>
-                              <span>•</span>
-                              <span><strong>Capacity:</strong> {tplCapacityKwp} kWp RTS</span>
-                              <span>•</span>
-                              <span><strong>Inspection Date:</strong> {tplAgreementDate}</span>
-                            </div>
                           </div>
 
-                          {/* 4 Inspection Photos in a 2x2 Grid (Structure, Inverter, Net Meter, Earthing) */}
-                          <div className="grid grid-cols-2 gap-4">
-                            {PHOTO_SLOT_CONFIGS.map((cfg) => {
+                          {/* 4 Inspection Photos Stacked Vertically (Full-Width, One Big Picture Below Another) */}
+                          <div className="flex flex-col space-y-2.5">
+                            {PHOTO_SLOT_CONFIGS.map((cfg, idx) => {
                               const slot = photoSlots[cfg.id];
                               return (
                                 <div
                                   key={cfg.id}
-                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
+                                  className="relative w-full h-[228px] bg-slate-900 overflow-hidden border border-slate-300 rounded-sm"
                                 >
-                                  <div className="p-1.5 bg-slate-900 text-white font-bold text-[11px] truncate">
-                                    {cfg.officialTitle}
-                                  </div>
-                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                    {slot.dataUrl ? (
-                                      <img
-                                        src={slot.dataUrl}
-                                        alt={cfg.shortTitle}
-                                        className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-                                      />
-                                    ) : (
-                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                    )}
-                                    {slot.gps && (
-                                      <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
-                                        📍 {slot.gps}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                    {slot.caption}
-                                  </div>
+                                  {slot.dataUrl ? (
+                                    <img
+                                      src={slot.dataUrl}
+                                      alt={cfg.shortTitle}
+                                      className={`w-full h-full ${imageFit === 'contain' ? 'object-contain bg-black' : 'object-cover'}`}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 text-xs italic font-sans">
+                                      <span>[Photo #{idx + 1}: {cfg.shortTitle} Pending]</span>
+                                    </div>
+                                  )}
+                                  {/* Geotag Stamp Watermark in Bottom-Left (NoteCam style) */}
+                                  {(slot.latitude && slot.longitude) ? (
+                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-xs text-white text-[9px] font-mono px-2 py-1 rounded shadow-sm leading-tight text-left">
+                                      <div>Latitude: {slot.latitude.toFixed(6)}°</div>
+                                      <div>Longitude: {slot.longitude.toFixed(6)}°</div>
+                                      {slot.accuracy ? <div>Accuracy: ±{Math.round(slot.accuracy)}m</div> : null}
+                                      {slot.timestamp ? (
+                                        <div>Time: {slot.timestamp}</div>
+                                      ) : null}
+                                    </div>
+                                  ) : slot.gps ? (
+                                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded shadow-sm">
+                                      📍 {slot.gps}
+                                    </div>
+                                  ) : null}
                                 </div>
                               );
                             })}
