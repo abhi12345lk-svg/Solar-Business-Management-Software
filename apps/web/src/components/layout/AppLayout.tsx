@@ -163,16 +163,11 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Field Installation Hub',
+    title: 'Field Installation & Operations',
     items: [
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap }
-    ]
-  },
-  {
-    title: 'Projects & Compliance',
-    items: [
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }
