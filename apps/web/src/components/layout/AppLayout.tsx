@@ -172,7 +172,6 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Projects & Compliance',
     items: [
-      { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
