@@ -30,8 +30,7 @@ import {
   FilePlus2,
   Camera,
   PackageCheck,
-  MapPin,
-  CheckSquare
+  MapPin
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -154,19 +153,11 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Field Workflow',
+    title: 'Field Installation Workflow',
     items: [
       { to: '/customers', label: 'Site List', icon: MapPin },
-      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/documents', label: 'Site Documents & JCR', icon: FolderLock }
-    ]
-  },
-  {
-    title: 'Installation Tools',
-    items: [
-      { to: '/projects', label: 'Active Projects', icon: FolderKanban },
-      { to: '/inventory', label: 'Materials & Modules', icon: Boxes },
-      { to: '/tasks', label: 'Field Tasks & Schedule', icon: CheckSquare }
+      { to: '/site-photos', label: 'Site Photos', icon: Camera },
+      { to: '/documents', label: 'Site Documents', icon: FolderLock }
     ]
   }
 ];
