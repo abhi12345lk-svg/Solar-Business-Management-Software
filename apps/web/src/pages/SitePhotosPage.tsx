@@ -358,6 +358,32 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const [pdfPreviewModalOpen, setPdfPreviewModalOpen] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [saveEquipmentSuccess, setSaveEquipmentSuccess] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  // Restore photos from localStorage backup for a customer
+  const restoreFromLocalStorage = (custId: string) => {
+    try {
+      const savedPhotosStr = localStorage.getItem(`solar_photos_${custId}`);
+      if (savedPhotosStr) {
+        const savedData = JSON.parse(savedPhotosStr);
+        if (savedData.photoSlots) {
+          setPhotoSlots(prev => {
+            const hasPhotos = Object.values(prev).some(s => !!s.dataUrl);
+            return hasPhotos ? prev : savedData.photoSlots;
+          });
+        }
+        if (Array.isArray(savedData.extraPhotos) && savedData.extraPhotos.length > 0) {
+          setExtraPhotos(prev => (prev.length > 0 ? prev : savedData.extraPhotos));
+        }
+        if (savedData.savedAt) {
+          const d = new Date(savedData.savedAt);
+          setLastSavedAt(d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' on ' + d.toLocaleDateString('en-IN'));
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore photos from localStorage:', e);
+    }
+  };
 
   // Load detailed installation record directly from MongoDB
   const loadInstallationDetails = async (instId: string) => {
@@ -409,6 +435,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
           setQuickPanelCountInput(fullInst.panelDetails.panelBarcodes.length);
         }
 
+        let hasPhotosInDb = false;
         // Autofill Photos from MongoDB
         if (Array.isArray(fullInst.photos) && fullInst.photos.length > 0) {
           setPhotoSlots(prev => {
@@ -422,6 +449,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               else if (photo.category === 'LIGHTNING_PROTECTION' || photo.category === 'LIGHTNING') slotKey = 'lightning';
 
               if (slotKey) {
+                hasPhotosInDb = true;
                 next[slotKey] = {
                   dataUrl: photo.fileUrl || null,
                   caption: photo.remarks || photo.title || next[slotKey].caption,
@@ -437,6 +465,30 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             });
             return next;
           });
+
+          // Autofill extra photos
+          const extras = fullInst.photos
+            .filter((p: any) => p.category === 'FINAL_INSTALLATION' || p.category === 'EXTRA')
+            .map((p: any, idx: number) => ({
+              id: `extra-${idx + 1}-${Date.now()}`,
+              category: 'FINAL_INSTALLATION',
+              title: p.title || `Additional Site Photo #${idx + 1}`,
+              dataUrl: p.fileUrl || null,
+              latitude: p.gpsLocation?.latitude || null,
+              longitude: p.gpsLocation?.longitude || null,
+              accuracy: p.gpsLocation?.accuracyMeters || null,
+              timestamp: p.timestamp ? new Date(p.timestamp).toLocaleDateString('en-IN') : null,
+              gps: p.gpsLocation?.latitude
+                ? `Lat: ${p.gpsLocation.latitude.toFixed(6)}°, Long: ${p.gpsLocation.longitude.toFixed(6)}°`
+                : '',
+              caption: p.remarks || ''
+            }));
+          if (extras.length > 0) setExtraPhotos(extras);
+
+          if (fullInst.updatedAt || fullInst.createdAt) {
+            const d = new Date(fullInst.updatedAt || fullInst.createdAt);
+            setLastSavedAt(d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' on ' + d.toLocaleDateString('en-IN'));
+          }
         }
 
         // Autofill Verified GPS from MongoDB
@@ -459,6 +511,12 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             });
             return next;
           });
+        }
+
+        // If MongoDB didn't have photos, check local storage backup
+        const custId = fullInst.customerId?._id || fullInst.customerId || selectedCustomer?._id || selectedCustomer?.id;
+        if (!hasPhotosInDb && custId) {
+          restoreFromLocalStorage(String(custId));
         }
       }
     } catch (err) {
@@ -487,11 +545,15 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
         const instList: any[] = Array.isArray(instRes)
           ? instRes
-          : Array.isArray(instRes?.data)
-            ? instRes.data
-            : Array.isArray(instRes?.items)
-              ? instRes.items
-              : [];
+          : Array.isArray(instRes?.data?.installations)
+            ? instRes.data.installations
+            : Array.isArray(instRes?.installations)
+              ? instRes.installations
+              : Array.isArray(instRes?.data)
+                ? instRes.data
+                : Array.isArray(instRes?.items)
+                  ? instRes.items
+                  : [];
 
         if (isMounted) {
           setCustomers(custList);
@@ -513,12 +575,17 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
           if (targetCustomer) {
             setSelectedCustomer(targetCustomer);
             const custId = targetCustomer._id || targetCustomer.id;
-            const foundInst = instList.find(i =>
-              (i.customerId && (i.customerId === custId || i.customerId._id === custId)) ||
-              (i.customerCode && targetCustomer?.customerCode && i.customerCode === targetCustomer.customerCode)
-            );
-            if (foundInst) {
-              loadInstallationDetails(foundInst._id || foundInst.id);
+            if (custId) {
+              fetchCustomerDocuments(custId);
+              const foundInst = instList.find(i =>
+                (i.customerId && (i.customerId === custId || i.customerId._id === custId)) ||
+                (i.customerCode && targetCustomer?.customerCode && i.customerCode === targetCustomer.customerCode)
+              );
+              if (foundInst) {
+                loadInstallationDetails(foundInst._id || foundInst.id);
+              } else {
+                restoreFromLocalStorage(custId);
+              }
             }
           }
         }
@@ -573,6 +640,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         if (cust.installationAddress?.city || cust.installationAddress?.district) {
           setTplDistrict(cust.installationAddress.district || cust.installationAddress.city || 'Raipur');
         }
+        restoreFromLocalStorage(custId);
       }
     }
   };
@@ -690,63 +758,93 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     });
   };
 
-  // Upload Photo for Mandatory Slot with Smart Orientation
-  const handlePhotoUpload = async (slotId: PhotoSlotId, file: File) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const rawDataUrl = e.target?.result as string;
-      const img = new Image();
-      img.onload = async () => {
-        let finalDataUrl = rawDataUrl;
+  // Process and downscale uploaded photo to keep payload crisp & lightweight (~200KB per photo)
+  const processImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const rawDataUrl = e.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const isPortrait = img.naturalHeight > img.naturalWidth;
+          let drawW = isPortrait ? img.naturalHeight : img.naturalWidth;
+          let drawH = isPortrait ? img.naturalWidth : img.naturalHeight;
 
-        // Smart Orientation: If vertical/portrait (naturalHeight > naturalWidth),
-        // automatically rotate 90° clockwise into landscape format so it fills
-        // the horizontal report slot cleanly (matching DISCOM / NoteCam landscape standard)
-        if (img.naturalHeight > img.naturalWidth) {
+          // Scale down if larger than 1400px to avoid huge memory/network payloads
+          const MAX_DIM = 1400;
+          if (drawW > MAX_DIM || drawH > MAX_DIM) {
+            if (drawW > drawH) {
+              drawH = Math.round((drawH * MAX_DIM) / drawW);
+              drawW = MAX_DIM;
+            } else {
+              drawW = Math.round((drawW * MAX_DIM) / drawH);
+              drawH = MAX_DIM;
+            }
+          }
+
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalHeight;
-          canvas.height = img.naturalWidth;
+          canvas.width = drawW;
+          canvas.height = drawH;
           const ctx = canvas.getContext('2d');
-          if (ctx) {
+          if (!ctx) {
+            resolve(rawDataUrl);
+            return;
+          }
+
+          if (isPortrait) {
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate((90 * Math.PI) / 180);
-            ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-            finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            ctx.drawImage(img, -drawH / 2, -drawW / 2, drawH, drawW);
+          } else {
+            ctx.drawImage(img, 0, 0, drawW, drawH);
           }
-        }
 
-        setPhotoSlots(prev => ({
-          ...prev,
-          [slotId]: {
-            ...prev[slotId],
-            dataUrl: finalDataUrl
-          }
-        }));
-
-        const currentSlot = photoSlots[slotId];
-        if (!currentSlot?.latitude) {
-          try {
-            const loc = await captureDeviceLocation();
-            setPhotoSlots(prev => ({
-              ...prev,
-              [slotId]: {
-                ...prev[slotId],
-                latitude: loc.latitude,
-                longitude: loc.longitude,
-                accuracy: loc.accuracy,
-                timestamp: loc.timestamp,
-                gps: loc.formatted
-              }
-            }));
-          } catch {
-            // Handled in captureDeviceLocation
-          }
-        }
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => resolve(rawDataUrl);
+        img.src = rawDataUrl;
       };
-      img.src = rawDataUrl;
-    };
-    reader.readAsDataURL(file);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Upload Photo for Mandatory Slot with Smart Orientation & Compression
+  const handlePhotoUpload = async (slotId: PhotoSlotId, file: File) => {
+    if (!file) return;
+    try {
+      const finalDataUrl = await processImageFile(file);
+
+      setPhotoSlots(prev => ({
+        ...prev,
+        [slotId]: {
+          ...prev[slotId],
+          dataUrl: finalDataUrl
+        }
+      }));
+
+      const currentSlot = photoSlots[slotId];
+      if (!currentSlot?.latitude) {
+        try {
+          const loc = await captureDeviceLocation();
+          setPhotoSlots(prev => ({
+            ...prev,
+            [slotId]: {
+              ...prev[slotId],
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracy: loc.accuracy,
+              timestamp: loc.timestamp,
+              gps: loc.formatted
+            }
+          }));
+        } catch {
+          // Handled in captureDeviceLocation
+        }
+      }
+    } catch (err) {
+      console.warn('Photo processing error:', err);
+    }
   };
 
   // 1-Click 90° Clockwise Rotation for Any Slot
@@ -765,7 +863,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((90 * Math.PI) / 180);
       ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      const rotated = canvas.toDataURL('image/jpeg', 0.95);
+      const rotated = canvas.toDataURL('image/jpeg', 0.85);
 
       setPhotoSlots(prev => ({
         ...prev,
@@ -851,45 +949,28 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
 
   const handleExtraPhotoUpload = async (id: string, file: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const rawDataUrl = e.target?.result as string;
-      const img = new Image();
-      img.onload = async () => {
-        let finalDataUrl = rawDataUrl;
-        if (img.naturalHeight > img.naturalWidth) {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalHeight;
-          canvas.height = img.naturalWidth;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((90 * Math.PI) / 180);
-            ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-            finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-          }
-        }
-        handleUpdateExtraPhoto(id, { dataUrl: finalDataUrl });
+    try {
+      const finalDataUrl = await processImageFile(file);
+      handleUpdateExtraPhoto(id, { dataUrl: finalDataUrl });
 
-        const item = extraPhotos.find(p => p.id === id);
-        if (!item?.latitude) {
-          try {
-            const loc = await captureDeviceLocation();
-            handleUpdateExtraPhoto(id, {
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              accuracy: loc.accuracy,
-              timestamp: loc.timestamp,
-              gps: loc.formatted
-            });
-          } catch {
-            // handled
-          }
+      const item = extraPhotos.find(p => p.id === id);
+      if (!item?.latitude) {
+        try {
+          const loc = await captureDeviceLocation();
+          handleUpdateExtraPhoto(id, {
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            accuracy: loc.accuracy,
+            timestamp: loc.timestamp,
+            gps: loc.formatted
+          });
+        } catch {
+          // handled
         }
-      };
-      img.src = rawDataUrl;
-    };
-    reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.warn('Extra photo upload error:', err);
+    }
   };
 
   const handleRotateExtraPhoto = (id: string) => {
@@ -907,7 +988,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((90 * Math.PI) / 180);
       ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      const rotated = canvas.toDataURL('image/jpeg', 0.95);
+      const rotated = canvas.toDataURL('image/jpeg', 0.85);
 
       setExtraPhotos(prev => prev.map(p => (p.id === id ? { ...p, dataUrl: rotated } : p)));
     };
@@ -1203,15 +1284,45 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     }
   };
 
-  // Persist all 5 Mandatory Site Photos & GPS Location to MongoDB Database
+  // Preview document stored in customer vault
+  const handlePreviewVaultDoc = async (doc: any) => {
+    try {
+      const res: any = await apiClient<any>(`/documents/${doc._id}/access-url`);
+      const viewUrl = res?.viewUrl || res?.downloadUrl || getFullApiUrl(`/documents/${doc._id}/download`);
+      setPreviewDocModal({
+        isOpen: true,
+        title: doc.safeDisplayName || doc.originalFilename,
+        url: viewUrl,
+        mimeType: doc.mimeType || 'application/pdf'
+      });
+    } catch {
+      setPreviewDocModal({
+        isOpen: true,
+        title: doc.safeDisplayName || doc.originalFilename,
+        url: getFullApiUrl(`/documents/${doc._id}/download`),
+        mimeType: doc.mimeType || 'application/pdf'
+      });
+    }
+  };
+
+  // Persist all 4 Mandatory Site Photos & GPS Location to MongoDB Database and Document Vault
   const handleSavePhotosToDb = async () => {
     try {
       setIsSavingInstallation(true);
+      if (!selectedCustomer) {
+        alert('Please select a customer first.');
+        return;
+      }
+      const custId = selectedCustomer._id || selectedCustomer.id;
+      if (!custId) {
+        alert('Invalid customer selected.');
+        return;
+      }
+
       let targetInstId = activeInstallation?._id || activeInstallation?.id;
 
       // Auto-create installation in MongoDB if none exists yet
-      if (!targetInstId && selectedCustomer) {
-        const custId = selectedCustomer._id || selectedCustomer.id;
+      if (!targetInstId) {
         const res: any = await apiClient<any>('/installations', {
           method: 'POST',
           body: JSON.stringify({
@@ -1225,11 +1336,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         setActiveInstallation(created);
         setInstallations(prev => [created, ...prev]);
         targetInstId = created._id || created.id;
-      }
-
-      if (!targetInstId) {
-        alert('Please select a customer first.');
-        return;
       }
 
       const photosList: any[] = [];
@@ -1280,28 +1386,100 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         }
       });
 
-      const patchPayload: any = { photos: photosList };
-      if (photoSlots.structure.latitude && photoSlots.structure.longitude) {
-        patchPayload.location = {
-          latitude: photoSlots.structure.latitude,
-          longitude: photoSlots.structure.longitude,
-          accuracyMeters: photoSlots.structure.accuracy || 4,
-          capturedAt: new Date()
-        };
+      // 1. Update MongoDB Installation Record
+      if (targetInstId) {
+        const patchPayload: any = { photos: photosList };
+        if (photoSlots.structure.latitude && photoSlots.structure.longitude) {
+          patchPayload.location = {
+            latitude: photoSlots.structure.latitude,
+            longitude: photoSlots.structure.longitude,
+            accuracyMeters: photoSlots.structure.accuracy || 4,
+            capturedAt: new Date()
+          };
+        }
+
+        const res: any = await apiClient<any>(`/installations/${targetInstId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patchPayload)
+        });
+        const updated = res?.data || res;
+        if (updated) setActiveInstallation(updated);
       }
 
-      const res: any = await apiClient<any>(`/installations/${targetInstId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(patchPayload)
-      });
-      const updated = res?.data || res;
-      if (updated) setActiveInstallation(updated);
+      // 2. Save in LocalStorage backup so photos persist across sessions
+      const now = new Date();
+      const timeDisplay = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' on ' + now.toLocaleDateString('en-IN');
+      localStorage.setItem(`solar_photos_${custId}`, JSON.stringify({
+        customerId: custId,
+        customerName: tplConsumerName,
+        savedAt: now.toISOString(),
+        photoSlots,
+        extraPhotos
+      }));
+      setLastSavedAt(timeDisplay);
 
-      const msg = `All ${photosList.length} inspection photos & verified GPS saved successfully!`;
+      // 3. Compile 1-Page A4 Report and save directly into Document Vault
+      let vaultSaved = false;
+      if (documentPrintRef.current) {
+        try {
+          const cleanName = (tplConsumerName || 'Consumer').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+          const filename = `SITE_PHOTOS_${cleanName}.pdf`;
+          const title = `Site Inspection Photos Report - ${tplConsumerName.trim() || 'Consumer'}`;
+
+          const { blob } = await generatePdfFromElement(documentPrintRef.current, { filename });
+
+          const docPayload: any = {
+            originalFilename: filename,
+            safeDisplayName: title,
+            category: DocumentCategory.SITE_PHOTOS,
+            accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
+            mimeType: 'application/pdf',
+            fileSizeBytes: Math.max(blob.size, 1024),
+            customerId: custId,
+            metadata: {
+              documentType: 'SITE_PHOTOS_REPORT',
+              consumerNumber: tplConsumerNumber,
+              consumerName: tplConsumerName,
+              photosCount: photosList.length,
+              savedAt: now.toISOString()
+            }
+          };
+
+          const docRes = await apiClient<any>('/documents', {
+            method: 'POST',
+            body: JSON.stringify(docPayload)
+          });
+          const docId = docRes?._id || docRes?.id;
+
+          if (docId) {
+            const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
+            const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
+            await fetch(uploadUrl, {
+              method: 'PUT',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/pdf',
+                ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
+              },
+              body: blob
+            });
+            vaultSaved = true;
+          }
+        } catch (vaultErr) {
+          console.warn('Vault upload notice:', vaultErr);
+        }
+      }
+
+      // 4. Refresh customer documents from vault
+      await fetchCustomerDocuments(custId);
+
+      const msg = vaultSaved
+        ? `Photos saved successfully and 1-Page A4 Compliance Report archived in Document Vault!`
+        : `Photos saved successfully in database and local cache!`;
       setDbNotification({ type: 'success', message: msg });
       setTimeout(() => {
         setDbNotification(null);
-      }, 5000);
+      }, 6000);
     } catch (err: any) {
       alert('Failed to save inspection photos: ' + (err?.message || 'Server error'));
     } finally {
@@ -1427,6 +1605,14 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const mandatoryUploadedCount = Object.values(photoSlots).filter(s => !!s.dataUrl).length;
   const verifiedBarcodesCount = panelRows.filter(r => r.status === 'VERIFIED').length;
   const calculatedCapacityKw = ((panelRows.length * panelWattage) / 1000).toFixed(2);
+
+  const savedSitePhotoDocs = customerVaultDocs.filter(
+    (d: any) =>
+      d.category === 'SITE_PHOTOS' ||
+      d.category === DocumentCategory.SITE_PHOTOS ||
+      d.metadata?.documentType === 'SITE_PHOTOS_REPORT' ||
+      d.originalFilename?.toLowerCase().includes('site_photo')
+  );
 
   return (
     <div className="min-h-screen bg-muted/20 pb-16 flex flex-col font-sans">
@@ -1608,6 +1794,59 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 <span className="font-semibold">{dbNotification.message}</span>
               </div>
               <button onClick={() => setDbNotification(null)} className="ml-2 font-bold cursor-pointer hover:opacity-80">✕</button>
+            </div>
+          )}
+
+          {/* Saved Dossier & Document Vault Status Bar */}
+          {activeTab === 'photos' && (lastSavedAt || savedSitePhotoDocs.length > 0) && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-2 flex-wrap">
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      Site Photos Saved &amp; Live in Document Vault
+                    </span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                      {mandatoryUploadedCount}/4 Photos Ready
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {lastSavedAt ? `Saved: ${lastSavedAt}` : 'Available in Document Vault and Inspection Database'} • Client: {tplConsumerName} (BP: {tplConsumerNumber})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={handleOpenPdfPreview}
+                  className="px-3 py-1.5 bg-card hover:bg-muted text-foreground text-xs font-bold rounded-xl border border-border shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
+                  title="View fullscreen PDF report"
+                >
+                  <Eye className="w-3.5 h-3.5 text-solar-600" />
+                  <span>Preview Report</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-xs font-bold rounded-xl shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
+                  title="Download A4 PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </button>
+                <Link
+                  to={`/documents?customerId=${selectedCustomer?._id || selectedCustomer?.id || ''}`}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
+                  title="Open full Document Vault to view all files"
+                >
+                  <FolderLock className="w-3.5 h-3.5" />
+                  <span>Open Document Vault &rarr;</span>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -1966,6 +2205,79 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Saved Inspection Documents in Customer Vault Card */}
+                <div className="bg-card border border-border rounded-2xl p-4 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FolderLock className="w-4 h-4 text-solar-600" />
+                      <h4 className="text-xs font-bold text-foreground">
+                        Saved Documents in Customer Vault
+                      </h4>
+                    </div>
+                    <Link
+                      to={`/documents?customerId=${selectedCustomer?._id || selectedCustomer?.id || ''}`}
+                      className="text-[11px] font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1"
+                    >
+                      <span>Open Vault</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+
+                  {savedSitePhotoDocs.length > 0 ? (
+                    <div className="space-y-2">
+                      {savedSitePhotoDocs.map((doc: any) => (
+                        <div
+                          key={doc._id}
+                          className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center space-x-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {doc.safeDisplayName || doc.originalFilename}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(doc.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} • {(doc.fileSizeBytes / 1024).toFixed(1)} KB • In Vault
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewVaultDoc(doc)}
+                              className="p-1.5 text-muted-foreground hover:text-foreground bg-card hover:bg-muted rounded-lg border border-border transition cursor-pointer"
+                              title="Preview document"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <a
+                              href={getFullApiUrl(`/documents/${doc._id}/download`)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-muted-foreground hover:text-foreground bg-card hover:bg-muted rounded-lg border border-border transition cursor-pointer"
+                              title="Download file"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-muted/20 border border-dashed border-border rounded-xl text-center space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        No inspection report saved in vault yet.
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80">
+                        Click <strong className="text-solar-600">"Save Photos"</strong> above to automatically generate and save this 1-page A4 report directly to customer's Document Vault.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -2731,8 +3043,12 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </div>
                         ) : (
                           <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
-                            <span>Inspection Pending</span>
-                            <span className="text-solar-600 font-semibold">+ New Record</span>
+                            {localStorage.getItem(`solar_photos_${cust._id || cust.id}`) ? (
+                              <span className="text-emerald-600 font-bold">✓ Photos Saved</span>
+                            ) : (
+                              <span>Inspection Pending</span>
+                            )}
+                            <span className="text-solar-600 font-semibold">+ Open Dossier</span>
                           </div>
                         )}
                       </div>
