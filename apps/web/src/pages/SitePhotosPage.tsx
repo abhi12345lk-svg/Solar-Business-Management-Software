@@ -1586,28 +1586,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 </span>
                 <span className="text-[10px] text-muted-foreground font-semibold">Switch Client ▾</span>
               </button>
-
-              {/* Workstation Tab Switcher */}
-              <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border text-xs font-semibold">
-                <span className="px-2.5 py-1 rounded-lg bg-solar-600 text-white font-bold shadow-2xs flex items-center space-x-1">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Site Photos</span>
-                </span>
-                <Link
-                  to="/equipment-barcodes"
-                  className="px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background/60 transition flex items-center space-x-1"
-                >
-                  <Barcode className="w-3.5 h-3.5" />
-                  <span>Equipment &amp; Barcodes</span>
-                </Link>
-                <Link
-                  to="/installation-docs"
-                  className="px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background/60 transition flex items-center space-x-1"
-                >
-                  <ClipboardCheck className="w-3.5 h-3.5" />
-                  <span>Compliance Docs</span>
-                </Link>
-              </div>
             </div>
 
             {/* Quick Action Buttons */}

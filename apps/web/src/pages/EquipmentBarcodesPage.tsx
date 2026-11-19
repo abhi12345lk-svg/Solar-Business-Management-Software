@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   Barcode,
   Zap,
@@ -19,7 +19,6 @@ import {
   Download,
   UserCheck,
   Building2,
-  Camera,
   ClipboardCheck,
   Loader2,
   CheckCircle2,
@@ -647,30 +646,8 @@ export const EquipmentBarcodesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Workstation Tab Switcher & Customer Switcher */}
+            {/* Customer Switcher */}
             <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-              <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border text-xs font-semibold">
-                <Link
-                  to="/site-photos"
-                  className="px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background/60 transition flex items-center space-x-1"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Site Photos</span>
-                </Link>
-                <span className="px-2.5 py-1 rounded-lg bg-solar-600 text-white font-bold shadow-2xs flex items-center space-x-1">
-                  <Barcode className="w-3.5 h-3.5" />
-                  <span>Equipment &amp; Barcodes</span>
-                </span>
-                <Link
-                  to="/installation-docs"
-                  className="px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background/60 transition flex items-center space-x-1"
-                >
-                  <ClipboardCheck className="w-3.5 h-3.5" />
-                  <span>Compliance Docs</span>
-                </Link>
-              </div>
-
-              {/* Customer Switcher Button */}
               <button
                 type="button"
                 onClick={() => setIsClientDrawerOpen(true)}
