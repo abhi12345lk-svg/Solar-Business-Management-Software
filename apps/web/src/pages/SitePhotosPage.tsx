@@ -33,7 +33,6 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
 import { DocumentCategory, DocumentAccessClassification } from '@ins-solar/shared';
-import { RAREBOX_STAMP_BASE64 } from '../assets/rareboxStampBase64.js';
 
 interface CustomerOption {
   _id?: string;
@@ -296,12 +295,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       year: 'numeric'
     });
   });
-
-  // Vendor Information
-  const [tplVendorName] = useState('M/S RAREBOX LLP RAIPUR');
-  const [tplVendorSignatory] = useState('SAMEER SAHU');
-  const [tplVendorDesignation] = useState('PROPRIETOR / AUTHORIZED SIGNATORY');
-  const [tplVendorPhone] = useState('9630131550');
 
   // 1. Photo Framing Mode: 'contain' fits entire photo without crop, 'cover' fills frame
   const [imageFit, setImageFit] = useState<'contain' | 'cover'>('contain');
@@ -2257,28 +2250,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                                 </div>
                               );
                             })}
-                          </div>
-                        </div>
-
-                        {/* Consumer & Vendor Signatures Footer */}
-                        <div className="mt-6 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end">
-                          <div className="space-y-1.5">
-                            <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CONSUMER / BENEFICIARY</p>
-                            <p className="text-[11px] text-slate-600">I verify that the above solar plant photos are from my premises.</p>
-                            <div className="pt-2 text-xs font-semibold text-slate-900 space-y-1">
-                              <p><strong>Name:</strong> {tplConsumerName}</p>
-                              <p className="pt-2"><strong>Signature:</strong> ____________________________</p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1 text-right">
-                            <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CERTIFIED SOLAR VENDOR</p>
-                            <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
-                            <div className="flex justify-end py-1">
-                              <img src={RAREBOX_STAMP_BASE64} alt="Seal" className="w-20 h-20 object-contain" />
-                            </div>
-                            <p className="text-xs font-semibold text-slate-900">{tplVendorSignatory} ({tplVendorDesignation})</p>
-                            <p className="text-[10px] text-slate-600">Ph: {tplVendorPhone}</p>
                           </div>
                         </div>
                       </div>
