@@ -167,7 +167,6 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap },
       { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }
