@@ -131,6 +131,122 @@ export const OrderDetailPage: React.FC = () => {
     }
   };
 
+  // Inline Record Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [paymentForm, setPaymentForm] = useState({
+    milestoneName: '',
+    milestoneIndex: 0,
+    amountRupees: '',
+    paymentMethod: 'BANK_TRANSFER',
+    transactionReference: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
+  const handleOpenRecordMilestonePayment = (idx: number, milestone: any, balanceRupees: number) => {
+    const defaultAmount = balanceRupees > 0
+      ? balanceRupees
+      : Math.round(((order?.netTotalPaise || 0) * (milestone.percentage || 20)) / 100 / 100);
+    const method = idx === 0 ? 'CHEQUE' : idx === 1 ? 'BANK_TRANSFER' : 'CASH';
+    const refPrefix = method === 'CHEQUE' ? 'CHQ-' : method === 'CASH' ? 'CASH-REC-' : 'UTR-';
+
+    setPaymentForm({
+      milestoneName: milestone.name || `Milestone ${idx + 1}`,
+      milestoneIndex: idx,
+      amountRupees: defaultAmount.toString(),
+      paymentMethod: method,
+      transactionReference: `${refPrefix}${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+      paymentDate: new Date().toISOString().split('T')[0],
+      notes: `Milestone ${idx + 1}: ${milestone.name} (${milestone.percentage}%) - Order ${order?.orderNumber}`
+    });
+    setPaymentError(null);
+    setShowPaymentModal(true);
+  };
+
+  const handleOpenGeneralPayment = () => {
+    const outstanding = receivables ? Math.round((receivables.outstandingBalancePaise || 0) / 100) : 0;
+    const initialAmount = outstanding > 0 ? outstanding : Math.round(((order?.netTotalPaise || 0) * 0.2) / 100);
+
+    setPaymentForm({
+      milestoneName: 'Customer Payment / Order Advance',
+      milestoneIndex: -1,
+      amountRupees: initialAmount.toString(),
+      paymentMethod: 'BANK_TRANSFER',
+      transactionReference: `UTR-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+      paymentDate: new Date().toISOString().split('T')[0],
+      notes: `Direct payment intake for Sales Order ${order?.orderNumber}`
+    });
+    setPaymentError(null);
+    setShowPaymentModal(true);
+  };
+
+  const handleRecordOrderPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order) return;
+    try {
+      setPaymentSubmitting(true);
+      setPaymentError(null);
+      const amountPaise = Math.round(parseFloat(paymentForm.amountRupees) * 100);
+      if (isNaN(amountPaise) || amountPaise <= 0) {
+        setPaymentError('Please enter a valid positive payment amount.');
+        return;
+      }
+
+      const custId = (order.customerId as any)?._id || order.customerId;
+      if (!custId) {
+        setPaymentError('Customer record not linked to this order.');
+        return;
+      }
+
+      const resolvedCustId = typeof custId === 'object' ? custId._id : custId;
+
+      // 1. Record Customer Payment in Accounts
+      const pRes: any = await apiClient('/payments', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: resolvedCustId,
+          amountPaise,
+          paymentDate: paymentForm.paymentDate ? new Date(paymentForm.paymentDate) : new Date(),
+          paymentMethod: paymentForm.paymentMethod,
+          transactionReference: paymentForm.transactionReference.trim() || undefined,
+          notes: paymentForm.notes.trim() || `Payment for order ${order.orderNumber}`,
+          autoVerify: true
+        })
+      });
+
+      const paymentData = pRes?.data || pRes;
+      const paymentId = paymentData?._id || paymentData?.id;
+
+      // 2. Allocate payment directly to this Sales Order
+      if (paymentId) {
+        await apiClient(`/payments/${paymentId}/allocate`, {
+          method: 'POST',
+          body: JSON.stringify({
+            salesOrderId: order._id,
+            allocatedAmountPaise: amountPaise,
+            notes: paymentForm.notes.trim() || `Milestone payment credited to ${order.orderNumber}`
+          })
+        });
+      }
+
+      // 3. Immediately refresh order and receivables
+      await fetchReceivables();
+      await fetchOrderDetail();
+      setShowPaymentModal(false);
+      setPaymentSuccess(
+        `✓ ₹${Number(paymentForm.amountRupees).toLocaleString('en-IN')} payment recorded & successfully allocated to ${order.orderNumber}!`
+      );
+      setTimeout(() => setPaymentSuccess(null), 6000);
+    } catch (err: any) {
+      setPaymentError(err?.message || 'Failed to record payment receipt.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  };
+
   const fetchOrderDetail = async () => {
     if (!id) return;
     setLoading(true);
@@ -328,6 +444,22 @@ export const OrderDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-10">
+      {/* Real-time Payment Success Notification */}
+      {paymentSuccess && (
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{paymentSuccess}</span>
+          </div>
+          <button
+            onClick={() => setPaymentSuccess(null)}
+            className="text-muted-foreground hover:text-foreground font-bold p-1 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* 1. Back button & Top Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-border/60">
         <div>
@@ -384,14 +516,15 @@ export const OrderDetailPage: React.FC = () => {
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           {/* Collect / Reconcile Payment in Accounts */}
-          <Link
-            to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs"
-            title="Record payment or view 3-stage milestone reconciliation in Accounts"
+          <button
+            type="button"
+            onClick={handleOpenGeneralPayment}
+            className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+            title="Record customer payment or advance directly against this order"
           >
             <CreditCard className="w-3.5 h-3.5 mr-1.5" />
             <span>Record Payment / Milestones</span>
-          </Link>
+          </button>
           {order.status !== 'CANCELLED' &&
             (linkedProject ? (
               <Link
@@ -824,13 +957,14 @@ export const OrderDetailPage: React.FC = () => {
 
                       {/* Action button if pending */}
                       {!isPaid && (
-                        <Link
-                          to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}&milestone=${idx + 1}`}
-                          className="mt-3 w-full py-1.5 px-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-semibold text-[11px] text-center flex items-center justify-center gap-1 shadow-2xs"
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRecordMilestonePayment(idx, m, balanceRupees)}
+                          className="mt-3 w-full py-1.5 px-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-semibold text-[11px] text-center flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
                         >
                           <CreditCard className="w-3 h-3" />
                           <span>Record Receipt</span>
-                        </Link>
+                        </button>
                       )}
                     </div>
                   );
@@ -1300,6 +1434,201 @@ export const OrderDetailPage: React.FC = () => {
                 >
                   {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Inline Record Payment Receipt Modal */}
+      {showPaymentModal && order && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-border/80 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-xl bg-solar-500/10 text-solar-600 border border-solar-500/20">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    Record Milestone Receipt
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Intake payment receipt directly against {order.orderNumber}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-md hover:bg-muted"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Error banner */}
+            {paymentError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-xs text-destructive flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{paymentError}</span>
+              </div>
+            )}
+
+            {/* Context Card: Beneficiary & Order Snapshot */}
+            <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Client / Beneficiary:</span>
+                <span className="font-bold text-foreground">
+                  {order.customerId?.legalName} {order.customerId?.customerCode ? `(${order.customerId.customerCode})` : ''}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Target Milestone:</span>
+                <span className="font-semibold text-solar-600 dark:text-solar-400">
+                  {paymentForm.milestoneName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Contract Value:</span>
+                <span className="font-mono font-bold text-foreground">
+                  ₹{(order.netTotalPaise / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+              {receivables && (
+                <div className="flex justify-between pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground">Balance Outstanding:</span>
+                  <span className="font-mono font-bold text-destructive">
+                    ₹{((receivables.outstandingBalancePaise || 0) / 100).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleRecordOrderPayment} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Amount */}
+                <div>
+                  <label className="block font-bold text-foreground mb-1">
+                    Receipt Amount (₹) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-xs font-bold text-muted-foreground">₹</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="1"
+                      required
+                      value={paymentForm.amountRupees}
+                      onChange={e => setPaymentForm(prev => ({ ...prev, amountRupees: e.target.value }))}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg bg-background font-mono font-bold text-foreground text-sm focus:ring-2 focus:ring-solar-500/20 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Date */}
+                <div>
+                  <label className="block font-bold text-foreground mb-1">
+                    Receipt / Payment Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={paymentForm.paymentDate}
+                    onChange={e => setPaymentForm(prev => ({ ...prev, paymentDate: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground text-xs font-medium focus:ring-2 focus:ring-solar-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Payment Method */}
+                <div>
+                  <label className="block font-bold text-foreground mb-1">
+                    Payment Method *
+                  </label>
+                  <select
+                    value={paymentForm.paymentMethod}
+                    onChange={e => {
+                      const m = e.target.value;
+                      const pfx = m === 'CHEQUE' ? 'CHQ-' : m === 'CASH' ? 'CASH-REC-' : 'UTR-';
+                      setPaymentForm(prev => ({
+                        ...prev,
+                        paymentMethod: m,
+                        transactionReference: `${pfx}${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground text-xs font-semibold focus:ring-2 focus:ring-solar-500/20 focus:outline-none"
+                  >
+                    <option value="BANK_TRANSFER">🏛️ Bank Transfer (NEFT / RTGS / IMPS)</option>
+                    <option value="CHEQUE">🏦 Bank Cheque</option>
+                    <option value="UPI">📱 UPI / QR Transfer</option>
+                    <option value="CASH">💵 Cash Voucher / Counter Receipt</option>
+                    <option value="DEMAND_DRAFT">📄 Demand Draft (DD)</option>
+                  </select>
+                </div>
+
+                {/* Reference Number */}
+                <div>
+                  <label className="block font-bold text-foreground mb-1">
+                    {paymentForm.paymentMethod === 'CHEQUE'
+                      ? 'Cheque No. & Bank Name *'
+                      : paymentForm.paymentMethod === 'CASH'
+                        ? 'Cash Voucher / Receipt Ref *'
+                        : 'Bank UTR / Txn Ref *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={paymentForm.transactionReference}
+                    onChange={e => setPaymentForm(prev => ({ ...prev, transactionReference: e.target.value }))}
+                    placeholder="e.g. UTR-HDFC-9912048 or CHQ-881920"
+                    className="w-full px-3 py-2 border rounded-lg bg-background font-mono text-foreground text-xs focus:ring-2 focus:ring-solar-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block font-bold text-foreground mb-1">
+                  Payment Remarks / Ledger Notes
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.notes}
+                  onChange={e => setPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="e.g. Booking Advance 20% received"
+                  className="w-full px-3 py-2 border rounded-lg bg-background text-foreground text-xs focus:ring-2 focus:ring-solar-500/20 focus:outline-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-3 border-t border-border/80">
+                <Link
+                  to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
+                  className="text-xs text-muted-foreground hover:text-solar-600 transition-colors"
+                >
+                  Full Accounts Register ➔
+                </Link>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="px-3.5 py-2 rounded-lg border text-xs font-semibold hover:bg-muted text-foreground cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={paymentSubmitting}
+                    className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>{paymentSubmitting ? 'Recording & Crediting...' : `Confirm & Record ₹${Number(paymentForm.amountRupees || 0).toLocaleString('en-IN')}`}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

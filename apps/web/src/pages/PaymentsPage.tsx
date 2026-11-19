@@ -434,14 +434,22 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  const handleQuickRecordMilestone = (stage: (typeof milestoneStages)[0], index: number) => {
+  const handleQuickRecordMilestone = (
+    stage: (typeof milestoneStages)[0],
+    index: number,
+    targetCustomerId?: string,
+    targetOrderId?: string
+  ) => {
     const remainingDue = Math.max(0, stage.amountRupees - stage.paidRupees);
+    const resolvedCustId = targetCustomerId || milestoneCustomerId || (customersList[0]?._id || '');
+    const resolvedOrderId = targetOrderId || milestoneOrderId || '';
+
     setRecordForm({
-      customerId: milestoneCustomerId || (customersList[0]?._id || ''),
-      salesOrderId: milestoneOrderId || '',
+      customerId: resolvedCustId,
+      salesOrderId: resolvedOrderId,
       amountRupees: remainingDue > 0 ? remainingDue.toString() : stage.amountRupees.toString(),
       paymentDate: new Date().toISOString().split('T')[0],
-      paymentMethod: stage.paymentMethod,
+      paymentMethod: stage.paymentMethod || 'BANK_TRANSFER',
       transactionReference: stage.paymentRef || (stage.paymentMethod === 'CHEQUE' ? 'CHQ-' : stage.paymentMethod === 'CASH' ? 'CASH-REC-' : 'UTR-'),
       notes: `Milestone ${index + 1}: ${stage.name} (${stage.percentage}%) - ${stage.description}`,
       internalNotes: `Auto-generated from 3-Stage Milestone Payment Calculator. Bank/Ref: ${stage.bankName || stage.paymentRef}`,
@@ -505,23 +513,53 @@ export const PaymentsPage: React.FC = () => {
       setMilestoneCustomerId(paramCustomerId);
       fetchCustomerOrders(paramCustomerId);
       apiClient<any>(`/orders?customerId=${paramCustomerId}&limit=20`)
-        .then(res => {
+        .then(async res => {
           const list = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
           setMilestoneOrders(list);
           const targetOrderId = paramOrderId || list[0]?._id;
           if (targetOrderId) {
             setMilestoneOrderId(targetOrderId);
-            syncMilestonesWithOrder(targetOrderId);
-          }
-          if (paramMilestone) {
-            const mIdx = Math.max(0, parseInt(paramMilestone, 10) - 1);
-            const stage = milestoneStages[mIdx] || milestoneStages[0];
-            if (stage) {
-              setTimeout(() => handleQuickRecordMilestone(stage, mIdx), 200);
+            await syncMilestonesWithOrder(targetOrderId);
+
+            if (paramMilestone) {
+              const mIdx = Math.max(0, parseInt(paramMilestone, 10) - 1);
+              try {
+                const recRes = await apiClient<any>(`/payments/receivables/orders/${targetOrderId}`);
+                const orderTotalRupees = Math.round((recRes?.orderTotalPaise || 0) / 100);
+                const orderMilestones = recRes?.order?.paymentMilestones || [
+                  { name: 'Booking Advance', percentage: 20, description: 'Upon confirmation of order' },
+                  { name: 'Pre-Dispatch', percentage: 70, description: 'Prior to material dispatch from warehouse' },
+                  { name: 'Commissioning', percentage: 10, description: 'Post physical installation and net-meter testing' }
+                ];
+                const targetM = orderMilestones[mIdx] || orderMilestones[0];
+                const stageTargetAmt = Math.round((orderTotalRupees * (targetM.percentage || 20)) / 100);
+                const method = mIdx === 0 ? 'CHEQUE' : 'BANK_TRANSFER';
+                const pfx = method === 'CHEQUE' ? 'CHQ-' : 'UTR-';
+
+                setRecordForm({
+                  customerId: paramCustomerId,
+                  salesOrderId: targetOrderId,
+                  amountRupees: stageTargetAmt > 0 ? stageTargetAmt.toString() : '50000',
+                  paymentDate: new Date().toISOString().split('T')[0],
+                  paymentMethod: method,
+                  transactionReference: `${pfx}${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+                  notes: `Milestone ${mIdx + 1}: ${targetM.name} (${targetM.percentage}%) - ${targetM.description || ''}`,
+                  internalNotes: `Auto-directed from Sales Order link`,
+                  autoVerify: true,
+                  milestoneStage: `MILESTONE_${mIdx + 1}`,
+                  chequeNumber: '',
+                  bankName: '',
+                  chequeDate: new Date().toISOString().split('T')[0],
+                  cashVoucherRef: ''
+                });
+                setShowRecordModal(true);
+                return;
+              } catch (e) {
+                console.warn('Direct receivable intake failed:', e);
+              }
             }
-          } else {
-            setShowMilestoneModal(true);
           }
+          setShowMilestoneModal(true);
         })
         .catch(console.warn);
     } else if (paramOrderId) {
@@ -2471,7 +2509,7 @@ export const PaymentsPage: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => handleQuickRecordMilestone(stage, idx)}
+                          onClick={() => handleQuickRecordMilestone(stage, idx, milestoneCustomerId, milestoneOrderId)}
                           className="w-full py-1.5 px-3 bg-solar-600 hover:bg-solar-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-2xs transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />

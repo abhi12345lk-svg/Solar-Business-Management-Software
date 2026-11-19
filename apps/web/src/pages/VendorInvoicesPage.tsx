@@ -652,6 +652,9 @@ export function VendorInvoicesPage() {
                         </option>
                       ))}
                   </select>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Select an approved Purchase Order for 3-way matching, or keep &quot;Direct Invoice / No PO&quot; for direct site expenses, civil work, crane charges, or local purchases.
+                  </p>
                 </div>
               </div>
 

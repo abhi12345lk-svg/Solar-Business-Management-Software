@@ -163,7 +163,7 @@ export const ExpensesPage: React.FC = () => {
   useEffect(() => {
     apiClient<any>('/projects?limit=100')
       .then(res => {
-        const list = res?.projects || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
+        const list = res?.projects || res?.data?.projects || res?.items || res?.data?.items || (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
         setProjectsList(Array.isArray(list) ? list : []);
       })
       .catch(() => {});

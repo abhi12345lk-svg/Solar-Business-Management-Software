@@ -526,15 +526,6 @@ export const SubsidyPage: React.FC = () => {
                             <span>Record DBT</span>
                           </button>
                         )}
-                        {sub.projectId?._id && (
-                          <Link
-                            to={`/projects/${sub.projectId._id}?tab=subsidy`}
-                            className="inline-flex items-center space-x-1 px-2 py-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground text-xs transition-colors"
-                            title="Open 10-Stage EPC Project Subsidy Tab"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 text-solar-500" />
-                          </Link>
-                        )}
                       </div>
                     </td>
                   </tr>
