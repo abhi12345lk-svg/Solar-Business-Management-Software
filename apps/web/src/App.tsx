@@ -369,11 +369,7 @@ export const App: React.FC = () => {
           />
           <Route
             path="installation-docs"
-            element={
-              <ProtectedRoute>
-                <SitePhotosPage initialTab="documents" />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/site-photos" replace />}
           />
           <Route
             path="documents/create"

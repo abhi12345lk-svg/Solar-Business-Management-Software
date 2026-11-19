@@ -30,7 +30,6 @@ import {
   FilePlus2,
   Camera,
   Barcode,
-  ClipboardCheck,
   PackageCheck
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
@@ -79,7 +78,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
       { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
       { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
       { to: '/net-metering', label: 'Net Metering & BM Sync', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -171,7 +169,6 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
       { to: '/equipment-barcodes', label: 'Equipment & Barcodes', icon: Barcode },
-      { to: '/installation-docs', label: 'Installation Documents', icon: ClipboardCheck },
       { to: '/net-metering', label: 'Net Metering & BM Register', icon: Zap }
     ]
   },
