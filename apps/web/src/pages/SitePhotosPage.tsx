@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link, useLocation } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Camera,
   FolderLock,
@@ -17,17 +17,8 @@ import {
   Navigation,
   Plus,
   Search,
-  Barcode,
-  Zap,
-  Upload,
   FileText,
-  Check,
   Layers,
-  Boxes,
-  FilePlus2,
-  Scan,
-  ClipboardList,
-  ClipboardCheck,
   ArrowRight
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
@@ -242,25 +233,10 @@ export interface SitePhotosPageProps {
   initialTab?: 'photos' | 'equipment' | 'documents';
 }
 
-export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
+export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
+  const [searchParams] = useSearchParams();
 
-  // Active Workstation Tab: determine from prop, pathname or searchParams
-  const getTabFromLocation = (): 'photos' | 'equipment' | 'documents' => {
-    if (initialTab) return initialTab;
-    if (location.pathname.includes('equipment-barcodes')) return 'equipment';
-    if (location.pathname.includes('installation-docs')) return 'documents';
-    const queryTab = searchParams.get('tab');
-    if (queryTab === 'equipment' || queryTab === 'documents' || queryTab === 'photos') return queryTab;
-    return 'photos';
-  };
-
-  const [activeTab, setActiveTab] = useState<'photos' | 'equipment' | 'documents'>(getTabFromLocation);
-
-  useEffect(() => {
-    setActiveTab(getTabFromLocation());
-  }, [location.pathname, initialTab, searchParams]);
+  const activeTab = 'photos';
 
   // Customer Directory & Selection
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -293,52 +269,15 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     });
   });
 
-  // 1. Photo Framing Mode: 'contain' fits entire photo without crop, 'cover' fills frame
-  const [imageFit, setImageFit] = useState<'contain' | 'cover'>('contain');
-
-  // 2. 5 Mandatory Photo Slots
+  // 4 Mandatory Photo Slots
   const [photoSlots, setPhotoSlots] = useState<Record<PhotoSlotId, PhotoSlotData>>(createEmptySlots);
 
-  // 3. Extra / Additional Site Photos
+  // Extra / Additional Site Photos
   const [extraPhotos, setExtraPhotos] = useState<ExtraPhotoData[]>([]);
 
-  // 4. Inverter & Equipment Information
-  const [inverterBrand, setInverterBrand] = useState('Growatt');
-  const [inverterModel, setInverterModel] = useState('MIN 3300TL-X (Single Phase)');
-  const [inverterSerial, setInverterSerial] = useState('GW-2026-INV-98104');
-  const [inverterCapacity, setInverterCapacity] = useState('3.3 kW');
-
-  // 5. PV Module & Panel Barcodes Table
-  const [panelManufacturer, setPanelManufacturer] = useState('Waaree Energies');
-  const [panelModel, setPanelModel] = useState('540W Mono PERC Bifacial DCR');
-  const [panelWattage, setPanelWattage] = useState<number>(540);
-  const [panelRows, setPanelRows] = useState<PanelBarcodeRow[]>([
-    { id: 'p-1', itemNumber: 1, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-001', barcode: 'BC-2026-001', status: 'VERIFIED' },
-    { id: 'p-2', itemNumber: 2, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-002', barcode: 'BC-2026-002', status: 'VERIFIED' },
-    { id: 'p-3', itemNumber: 3, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-003', barcode: 'BC-2026-003', status: 'VERIFIED' },
-    { id: 'p-4', itemNumber: 4, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-004', barcode: 'BC-2026-004', status: 'PENDING' },
-    { id: 'p-5', itemNumber: 5, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-005', barcode: 'BC-2026-005', status: 'PENDING' },
-    { id: 'p-6', itemNumber: 6, description: 'Solar PV Module 540W', serialNumber: 'WAA-540-006', barcode: 'BC-2026-006', status: 'PENDING' }
-  ]);
-  const [quickPanelCountInput, setQuickPanelCountInput] = useState<number>(6);
-
-  // Barcode Scanner Modal State
-  const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
-  const [activeScanningRowId, setActiveScanningRowId] = useState<string | null>(null);
-  const [scannerManualInput, setScannerManualInput] = useState('');
-  const [scannerCameraActive, setScannerCameraActive] = useState(false);
-  const [scannerCameraError, setScannerCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoStreamRef = useRef<MediaStream | null>(null);
-
-  // Bulk Paste Barcodes Modal
-  const [isBulkPasteOpen, setIsBulkPasteOpen] = useState(false);
-  const [bulkBarcodeText, setBulkBarcodeText] = useState('');
-
-  // 6. After-Installation Documents State
+  // Customer Vault Documents
   const [customerVaultDocs, setCustomerVaultDocs] = useState<any[]>([]);
-  const [loadingVaultDocs, setLoadingVaultDocs] = useState(false);
-  const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null);
+  const [, setLoadingVaultDocs] = useState(false);
 
   // Document Preview Modal State
   const [previewDocModal, setPreviewDocModal] = useState<{
@@ -357,7 +296,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [pdfPreviewModalOpen, setPdfPreviewModalOpen] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-  const [saveEquipmentSuccess, setSaveEquipmentSuccess] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   // Restore photos from localStorage backup for a customer
@@ -399,40 +337,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         if (fullInst.siteAddress?.addressLine1) setTplAddress(fullInst.siteAddress.addressLine1.toUpperCase());
         if (fullInst.siteAddress?.city || fullInst.siteAddress?.district) {
           setTplDistrict(fullInst.siteAddress.district || fullInst.siteAddress.city);
-        }
-
-        // Autofill Inverter from MongoDB
-        if (fullInst.inverter?.brand) setInverterBrand(fullInst.inverter.brand);
-        if (fullInst.inverter?.modelNumber) setInverterModel(fullInst.inverter.modelNumber);
-        if (fullInst.inverter?.serialNumber) setInverterSerial(fullInst.inverter.serialNumber);
-        if (fullInst.inverter?.rating) setInverterCapacity(fullInst.inverter.rating);
-
-        // Autofill Solar Panels from MongoDB
-        if (fullInst.panelDetails?.manufacturer) setPanelManufacturer(fullInst.panelDetails.manufacturer);
-        if (fullInst.panelDetails?.model) setPanelModel(fullInst.panelDetails.model);
-        if (fullInst.panelDetails?.wattagePerPanel) setPanelWattage(fullInst.panelDetails.wattagePerPanel);
-
-        // Autofill Barcode Items from MongoDB
-        if (Array.isArray(fullInst.inventoryItems) && fullInst.inventoryItems.length > 0) {
-          setPanelRows(fullInst.inventoryItems.map((item: any, idx: number) => ({
-            id: item._id || `p-${idx + 1}`,
-            itemNumber: item.itemNumber || idx + 1,
-            description: item.equipmentName || `Solar PV Module ${fullInst.panelDetails?.wattagePerPanel || 540}W`,
-            serialNumber: item.serialNumber || '',
-            barcode: item.barcode || '',
-            status: item.status || 'VERIFIED'
-          })));
-          setQuickPanelCountInput(fullInst.inventoryItems.length);
-        } else if (Array.isArray(fullInst.panelDetails?.panelBarcodes) && fullInst.panelDetails.panelBarcodes.length > 0) {
-          setPanelRows(fullInst.panelDetails.panelBarcodes.map((bc: string, idx: number) => ({
-            id: `p-${idx + 1}`,
-            itemNumber: idx + 1,
-            description: `Solar PV Module ${fullInst.panelDetails?.wattagePerPanel || 540}W`,
-            serialNumber: fullInst.panelDetails?.panelSerialNumbers?.[idx] || `WAA-${idx + 1}`,
-            barcode: bc,
-            status: 'VERIFIED'
-          })));
-          setQuickPanelCountInput(fullInst.panelDetails.panelBarcodes.length);
         }
 
         let hasPhotosInDb = false;
@@ -758,7 +662,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     });
   };
 
-  // Process and downscale uploaded photo to keep payload crisp & lightweight (~200KB per photo)
+  // Process and downscale uploaded photo keeping 100% natural aspect ratio (no forced rotation, no squishing/stretching)
   const processImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -766,12 +670,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         const rawDataUrl = e.target?.result as string;
         const img = new Image();
         img.onload = () => {
-          const isPortrait = img.naturalHeight > img.naturalWidth;
-          let drawW = isPortrait ? img.naturalHeight : img.naturalWidth;
-          let drawH = isPortrait ? img.naturalWidth : img.naturalHeight;
+          let drawW = img.naturalWidth;
+          let drawH = img.naturalHeight;
 
-          // Scale down if larger than 1400px to avoid huge memory/network payloads
-          const MAX_DIM = 1400;
+          // Scale down proportionally if larger than 1600px to keep payload crisp & lightweight
+          const MAX_DIM = 1600;
           if (drawW > MAX_DIM || drawH > MAX_DIM) {
             if (drawW > drawH) {
               drawH = Math.round((drawH * MAX_DIM) / drawW);
@@ -791,15 +694,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             return;
           }
 
-          if (isPortrait) {
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((90 * Math.PI) / 180);
-            ctx.drawImage(img, -drawH / 2, -drawW / 2, drawH, drawW);
-          } else {
-            ctx.drawImage(img, 0, 0, drawW, drawH);
-          }
+          // Draw image keeping exact natural width and height proportions
+          ctx.drawImage(img, 0, 0, drawW, drawH);
 
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
+          resolve(canvas.toDataURL('image/jpeg', 0.88));
         };
         img.onerror = () => resolve(rawDataUrl);
         img.src = rawDataUrl;
@@ -1015,275 +913,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     setExtraPhotos(prev => prev.filter(p => p.id !== id));
   };
 
-  // --------------------------------------------------------------------------
-  // PANEL MODULES & BARCODE SCANNER LOGIC
-  // --------------------------------------------------------------------------
-  const handleGeneratePanelSlots = (count: number) => {
-    const validCount = Math.max(1, Math.min(100, count));
-    const newRows: PanelBarcodeRow[] = [];
-    for (let i = 1; i <= validCount; i++) {
-      const existing = panelRows.find(r => r.itemNumber === i);
-      newRows.push({
-        id: existing?.id || `p-${i}-${Date.now()}`,
-        itemNumber: i,
-        description: `Solar PV Module ${panelWattage}W`,
-        serialNumber: existing?.serialNumber || '',
-        barcode: existing?.barcode || '',
-        status: existing?.barcode ? 'VERIFIED' : 'PENDING'
-      });
-    }
-    setPanelRows(newRows);
-  };
-
-  const handleAddSinglePanel = () => {
-    const nextNumber = panelRows.length + 1;
-    setPanelRows(prev => [
-      ...prev,
-      {
-        id: `p-${nextNumber}-${Date.now()}`,
-        itemNumber: nextNumber,
-        description: `Solar PV Module ${panelWattage}W`,
-        serialNumber: '',
-        barcode: '',
-        status: 'PENDING'
-      }
-    ]);
-  };
-
-  const handleDeletePanelRow = (id: string) => {
-    setPanelRows(prev =>
-      prev
-        .filter(r => r.id !== id)
-        .map((r, idx) => ({ ...r, itemNumber: idx + 1 }))
-    );
-  };
-
-  const handleUpdatePanelRow = (id: string, updates: Partial<PanelBarcodeRow>) => {
-    setPanelRows(prev =>
-      prev.map(r => {
-        if (r.id !== id) return r;
-        const updated = { ...r, ...updates };
-        if (updates.barcode !== undefined) {
-          updated.status = updates.barcode.trim() ? 'VERIFIED' : 'PENDING';
-        }
-        return updated;
-      })
-    );
-  };
-
-  // Open Barcode Camera Scanner
-  const handleOpenScannerForRow = (rowId: string) => {
-    setActiveScanningRowId(rowId);
-    setScannerManualInput('');
-    setIsBarcodeScannerOpen(true);
-    startCameraStream();
-  };
-
-  const startCameraStream = async () => {
-    try {
-      setScannerCameraActive(true);
-      setScannerCameraError(null);
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        videoStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-      } else {
-        setScannerCameraError('Camera stream not supported in this browser. Use manual scanner input.');
-      }
-    } catch (err: any) {
-      console.warn('Camera stream notice:', err);
-      setScannerCameraError('Could not access camera. Please allow camera permissions or enter barcode manually.');
-    }
-  };
-
-  const stopCameraStream = () => {
-    if (videoStreamRef.current) {
-      videoStreamRef.current.getTracks().forEach(track => track.stop());
-      videoStreamRef.current = null;
-    }
-    setScannerCameraActive(false);
-  };
-
-  const handleApplyScannedBarcode = (code: string) => {
-    if (!activeScanningRowId || !code.trim()) return;
-    const cleanCode = code.trim().toUpperCase();
-    handleUpdatePanelRow(activeScanningRowId, {
-      barcode: cleanCode,
-      serialNumber: cleanCode
-    });
-
-    // Advance to next un-scanned row
-    const currentIndex = panelRows.findIndex(r => r.id === activeScanningRowId);
-    const nextRow = panelRows.slice(currentIndex + 1).find(r => !r.barcode);
-
-    if (nextRow) {
-      setActiveScanningRowId(nextRow.id);
-      setScannerManualInput('');
-    } else {
-      setIsBarcodeScannerOpen(false);
-      stopCameraStream();
-    }
-  };
-
-  const handleApplyBulkBarcodes = () => {
-    const lines = parseBarcodesFromText(bulkBarcodeText);
-
-    if (lines.length === 0) {
-      setIsBulkPasteOpen(false);
-      return;
-    }
-
-    setPanelRows(prev => {
-      const totalRequired = Math.max(prev.length, lines.length);
-      const next: PanelBarcodeRow[] = [];
-      for (let i = 1; i <= totalRequired; i++) {
-        const existing = prev[i - 1];
-        const assignedBarcode = lines[i - 1] || existing?.barcode || '';
-        next.push({
-          id: existing?.id || `p-${i}-${Date.now()}`,
-          itemNumber: i,
-          description: existing?.description || `Solar PV Module ${panelWattage}W`,
-          serialNumber: assignedBarcode || existing?.serialNumber || '',
-          barcode: assignedBarcode,
-          status: assignedBarcode ? 'VERIFIED' : 'PENDING'
-        });
-      }
-      return next;
-    });
-
-    setIsBulkPasteOpen(false);
-    setBulkBarcodeText('');
-  };
-
-  const handleExportCsv = () => {
-    const csv =
-      'S.No,Description,Serial Number,Barcode,Status\n' +
-      panelRows
-        .map(
-          r =>
-            `${r.itemNumber},"${(r.description || '').replace(/"/g, '""')}","${(r.serialNumber || '').replace(/"/g, '""')}","${(r.barcode || '').replace(/"/g, '""')}",${r.status}`
-        )
-        .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const cleanClient = (tplConsumerName || 'Client').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-    a.download = `Solar_Panels_Barcodes_${cleanClient}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Persist hardware equipment & barcodes to MongoDB Database
-  const handleSaveEquipment = async () => {
-    try {
-      setIsSavingInstallation(true);
-      setSaveEquipmentSuccess(null);
-
-      let targetInstId = activeInstallation?._id || activeInstallation?.id;
-
-      // Auto-create installation in MongoDB if none exists yet
-      if (!targetInstId && selectedCustomer) {
-        const custId = selectedCustomer._id || selectedCustomer.id;
-        const res: any = await apiClient<any>('/installations', {
-          method: 'POST',
-          body: JSON.stringify({
-            customerId: custId,
-            systemCapacityKw: selectedCustomer.sanctionedLoadKw || Number(tplCapacityKwp) || 3.3,
-            notes: `Auto-initialized during hardware barcode registration for ${tplConsumerName}`,
-            isDraft: false
-          })
-        });
-        const created = res?.data || res;
-        setActiveInstallation(created);
-        setInstallations(prev => [created, ...prev]);
-        targetInstId = created._id || created.id;
-      }
-
-      if (targetInstId) {
-        const patchPayload: any = {
-          inverter: {
-            name: 'Solar Grid Inverter',
-            brand: inverterBrand,
-            modelNumber: inverterModel,
-            serialNumber: inverterSerial,
-            barcode: inverterSerial,
-            rating: inverterCapacity
-          },
-          panelDetails: {
-            manufacturer: panelManufacturer,
-            model: panelModel,
-            wattagePerPanel: Number(panelWattage) || 540,
-            totalPanels: panelRows.length,
-            panelSerialNumbers: panelRows.map(r => r.serialNumber),
-            panelBarcodes: panelRows.map(r => r.barcode)
-          },
-          inventoryItems: panelRows.map((r, i) => ({
-            itemNumber: i + 1,
-            equipmentName: r.description,
-            barcode: r.barcode,
-            serialNumber: r.serialNumber,
-            model: panelModel,
-            quantity: 1,
-            status: r.status || 'VERIFIED'
-          }))
-        };
-
-        const updatedRes: any = await apiClient<any>(`/installations/${targetInstId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(patchPayload)
-        });
-        const updatedInst = updatedRes?.data || updatedRes;
-        if (updatedInst) setActiveInstallation(updatedInst);
-      }
-
-      // Local storage backup
-      const equipmentData = {
-        customerId: selectedCustomer?._id || selectedCustomer?.id,
-        installationId: targetInstId,
-        inverter: {
-          brand: inverterBrand,
-          model: inverterModel,
-          serial: inverterSerial,
-          capacity: inverterCapacity
-        },
-        panels: {
-          manufacturer: panelManufacturer,
-          model: panelModel,
-          wattage: panelWattage,
-          totalPanels: panelRows.length,
-          calculatedKw: ((panelRows.length * panelWattage) / 1000).toFixed(2),
-          modules: panelRows
-        },
-        savedAt: new Date().toISOString()
-      };
-
-      if (selectedCustomer) {
-        const key = `solar_equipment_${selectedCustomer._id || selectedCustomer.id}`;
-        localStorage.setItem(key, JSON.stringify(equipmentData));
-      }
-
-      const msg = `Equipment specifications and ${panelRows.length} module barcodes saved successfully!`;
-      setSaveEquipmentSuccess(msg);
-      setDbNotification({ type: 'success', message: msg });
-      setTimeout(() => {
-        setSaveEquipmentSuccess(null);
-        setDbNotification(null);
-      }, 5000);
-    } catch (err: any) {
-      alert('Error saving equipment data: ' + (err?.message || 'Server error'));
-    } finally {
-      setIsSavingInstallation(false);
-    }
-  };
-
   // Preview document stored in customer vault
   const handlePreviewVaultDoc = async (doc: any) => {
     try {
@@ -1487,69 +1116,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
     }
   };
 
-  // --------------------------------------------------------------------------
-  // AFTER-INSTALLATION DOCUMENTS LOGIC
-  // --------------------------------------------------------------------------
-  const handleUploadPostInstallDoc = async (templateKey: string, file: File) => {
-    if (!selectedCustomer) {
-      alert('Please select a customer first.');
-      return;
-    }
-    const custId = selectedCustomer._id || selectedCustomer.id;
-    if (!custId) return;
-
-    try {
-      setUploadingDocKey(templateKey);
-      const template = POST_INSTALL_DOC_TEMPLATES.find(t => t.key === templateKey);
-      const title = `${template?.title || templateKey} - ${tplConsumerName}`;
-
-      const docPayload: any = {
-        originalFilename: file.name,
-        safeDisplayName: title,
-        category: template?.category || DocumentCategory.SIGNED_CONTRACT,
-        accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
-        mimeType: file.type || 'application/pdf',
-        fileSizeBytes: file.size,
-        customerId: custId,
-        metadata: {
-          postInstallDoc: true,
-          templateKey,
-          consumerNumber: tplConsumerNumber,
-          consumerName: tplConsumerName
-        }
-      };
-
-      const docRes = await apiClient<any>('/documents', {
-        method: 'POST',
-        body: JSON.stringify(docPayload)
-      });
-
-      const docId = docRes?._id || docRes?.id;
-      if (!docId) throw new Error('Could not register document');
-
-      // Upload raw content
-      const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
-      const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-          ...(csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {})
-        },
-        body: file
-      });
-
-      await fetchCustomerDocuments(custId);
-      alert(`Document "${title}" uploaded and saved to customer vault!`);
-    } catch (err: any) {
-      alert('Upload failed: ' + (err?.message || 'Error'));
-    } finally {
-      setUploadingDocKey(null);
-    }
-  };
-
-  // --------------------------------------------------------------------------
   // PDF GENERATION & VAULT ACTIONS
   // --------------------------------------------------------------------------
   const handleOpenPdfPreview = async () => {
@@ -1603,8 +1169,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
   });
 
   const mandatoryUploadedCount = Object.values(photoSlots).filter(s => !!s.dataUrl).length;
-  const verifiedBarcodesCount = panelRows.filter(r => r.status === 'VERIFIED').length;
-  const calculatedCapacityKw = ((panelRows.length * panelWattage) / 1000).toFixed(2);
 
   const savedSitePhotoDocs = customerVaultDocs.filter(
     (d: any) =>
@@ -1626,37 +1190,19 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             <div className="flex items-center space-x-3 flex-wrap gap-y-2">
               <div className="flex items-center space-x-2.5">
                 <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
-                  {activeTab === 'photos' ? (
-                    <Camera className="w-5 h-5" />
-                  ) : activeTab === 'equipment' ? (
-                    <Barcode className="w-5 h-5" />
-                  ) : (
-                    <ClipboardCheck className="w-5 h-5" />
-                  )}
+                  <Camera className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight whitespace-nowrap">
-                      {activeTab === 'photos'
-                        ? 'Site Photos'
-                        : activeTab === 'equipment'
-                          ? 'Equipment & Barcode Register'
-                          : 'Installation Compliance Documents'}
+                      Site Photos
                     </h1>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/30">
-                      {activeTab === 'photos'
-                        ? `${mandatoryUploadedCount}/4 Photos Ready`
-                        : activeTab === 'equipment'
-                          ? 'Hardware Compliance'
-                          : 'Handover Dossiers'}
+                      {mandatoryUploadedCount}/4 Photos Ready
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate">
-                    {activeTab === 'photos'
-                      ? 'PM Surya Ghar 4-point inspection & DISCOM net metering compliance'
-                      : activeTab === 'equipment'
-                        ? 'Inverter specifications, solar module serial numbers & live barcode scanner'
-                        : 'Handover certificate, JCR, Net Meter test slip & SLD compliance dossiers'}
+                    PM Surya Ghar 4-point inspection &amp; DISCOM net metering compliance
                   </p>
                 </div>
               </div>
@@ -1666,7 +1212,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 type="button"
                 onClick={() => setIsClientDrawerOpen(true)}
                 className="px-3 py-1.5 bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 text-xs font-bold rounded-xl border border-solar-500/30 flex items-center space-x-2 cursor-pointer transition shadow-2xs"
-                title={`Click to search and change customer (Site: ${tplAddress}, ${tplDistrict})`}
+                title={`Click to search and change site (Site: ${tplAddress}, ${tplDistrict})`}
               >
                 <UserCheck className="w-3.5 h-3.5 text-solar-600" />
                 <span className="font-bold truncate max-w-[150px] sm:max-w-[200px]">
@@ -1682,138 +1228,33 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 )}
                 <span className="text-[10px] text-muted-foreground font-semibold">Switch ▾</span>
               </button>
-
-              {/* Sub-Tab Switcher: 4-Point Photos vs Equipment Barcodes */}
-              <div className="inline-flex rounded-xl bg-muted/60 p-0.5 border border-border text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('photos');
-                    setSearchParams(prev => {
-                      const n = new URLSearchParams(prev);
-                      n.delete('tab');
-                      return n;
-                    });
-                  }}
-                  className={`px-3 py-1 rounded-lg font-bold flex items-center space-x-1.5 transition cursor-pointer ${
-                    activeTab === 'photos'
-                      ? 'bg-solar-600 text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Site Photos</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('equipment');
-                    setSearchParams(prev => {
-                      const n = new URLSearchParams(prev);
-                      n.set('tab', 'equipment');
-                      return n;
-                    });
-                  }}
-                  className={`px-3 py-1 rounded-lg font-bold flex items-center space-x-1.5 transition cursor-pointer ${
-                    activeTab === 'equipment'
-                      ? 'bg-solar-600 text-white shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Barcode className="w-3.5 h-3.5" />
-                  <span>Equipment Barcodes</span>
-                </button>
-              </div>
             </div>
 
             {/* Quick Action Buttons */}
             <div className="flex items-center space-x-2 shrink-0 self-end md:self-center">
-              {activeTab === 'photos' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleSavePhotosToDb}
-                    disabled={isSavingInstallation}
-                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Save inspection photos"
-                  >
-                    {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                    <span>Save Photos</span>
-                  </button>
+              <button
+                type="button"
+                onClick={handleSavePhotosToDb}
+                disabled={isSavingInstallation}
+                className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                title="Save inspection photos to database and generate dossier"
+              >
+                {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                <span>Save Photos</span>
+              </button>
 
-                  <button
-                    type="button"
-                    onClick={handleDownloadPdf}
-                    disabled={generatingPdf}
-                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Download 1-Page A4 PDF Report"
-                  >
-                    {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    <span>Download PDF</span>
-                  </button>
-                </>
-              )}
-
-              {activeTab === 'equipment' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleExportCsv}
-                    className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
-                    title="Export Barcode Register to CSV file"
-                  >
-                    <Download className="w-3.5 h-3.5 text-solar-600" />
-                    <span>Export CSV</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveEquipment}
-                    disabled={isSavingInstallation}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Save Inverter & PV module barcodes"
-                  >
-                    {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
-                    <span>Save Equipment</span>
-                  </button>
-                </>
-              )}
-
-              {activeTab === 'documents' && (
-                <>
-                  {selectedCustomer && (
-                    <button
-                      type="button"
-                      onClick={() => fetchCustomerDocuments(selectedCustomer._id || selectedCustomer.id || '')}
-                      disabled={loadingVaultDocs}
-                      className="px-3.5 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer disabled:opacity-50"
-                      title="Refresh Vault Documents"
-                    >
-                      {loadingVaultDocs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5 text-solar-600" />}
-                      <span>Refresh Documents</span>
-                    </button>
-                  )}
-                  <Link
-                    to="/documents"
-                    className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
-                  >
-                    <span>Full Vault &rarr;</span>
-                  </Link>
-                </>
-              )}
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={generatingPdf}
+                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                title="Download 1-Page A4 PDF Report"
+              >
+                {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                <span>Download PDF</span>
+              </button>
             </div>
           </div>
-
-          {/* Success Alerts */}
-          {saveEquipmentSuccess && (
-            <div className="mt-2.5 p-2 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-xs flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{saveEquipmentSuccess}</span>
-              </div>
-              <button onClick={() => setSaveEquipmentSuccess(null)} className="ml-2 font-bold cursor-pointer">✕</button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1922,11 +1363,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       type="button"
                       onClick={handleGeotagAllSlots}
                       disabled={isLocatingAll}
-                      className="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs cursor-pointer disabled:opacity-50"
-                      title="Hook live GPS into all 4 slots"
+                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                      title="Rooftop ki live GPS location automatically 4 photos par set karein"
                     >
-                      {isLocatingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
-                      <span>📍 Geotag All</span>
+                      {isLocatingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                      <span>📍 Auto-Detect Site GPS</span>
                     </button>
                   </div>
                 </div>
@@ -1987,13 +1428,20 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </div>
                         </div>
 
-                        {/* Upload / Photo Container */}
+                        {/* Upload / Photo Container (100% Proportional, Never Stretches) */}
                         {hasPhoto ? (
-                          <div className="relative group rounded-xl overflow-hidden border bg-slate-900 flex items-center justify-center">
+                          <div className="relative group rounded-xl overflow-hidden border border-border bg-slate-950 flex items-center justify-center min-h-[176px] max-h-[220px] p-1.5">
                             <img
                               src={slot.dataUrl!}
                               alt={cfg.shortTitle}
-                              className={`w-full h-44 ${imageFit === 'contain' ? 'object-contain' : 'object-cover'} bg-slate-900`}
+                              className="max-h-44 max-w-full w-auto h-auto object-contain mx-auto block"
+                              style={{
+                                maxHeight: '176px',
+                                maxWidth: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain'
+                              }}
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                               <button
@@ -2037,16 +1485,16 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </label>
                         )}
 
-                        {/* Geotag section */}
+                        {/* Live Location / GPS Section */}
                         <div className="p-2.5 bg-background rounded-xl border space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-1.5 text-[11px] font-bold text-foreground">
                               <MapPin className={`w-3.5 h-3.5 ${hasGps ? 'text-emerald-600' : 'text-amber-500'}`} />
-                              <span>GPS Geotag</span>
+                              <span>📍 Rooftop GPS</span>
                               <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
                                 hasGps ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                               }`}>
-                                {hasGps ? 'Geotagged' : 'Pending GPS'}
+                                {hasGps ? '📍 GPS Added' : 'GPS Pending'}
                               </span>
                             </div>
                             <button
@@ -2056,7 +1504,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                               className="px-2 py-1 text-[10px] font-bold text-orange-700 bg-orange-50 rounded border border-orange-200 flex items-center space-x-1 cursor-pointer disabled:opacity-50"
                             >
                               {isLocatingThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
-                              <span>{hasGps ? 'Refresh GPS' : '📍 Capture GPS'}</span>
+                              <span>{hasGps ? '🔄 Update GPS' : '📍 Set Location'}</span>
                             </button>
                           </div>
                           {hasGps && (
@@ -2171,13 +1619,20 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                               </select>
                             </div>
 
-                            {/* Image container */}
+                            {/* Image container (100% Proportional, Never Stretches) */}
                             {hasPhoto ? (
-                              <div className="relative group rounded-xl overflow-hidden border bg-slate-950 flex items-center justify-center">
+                              <div className="relative group rounded-xl overflow-hidden border border-border bg-slate-950 flex items-center justify-center min-h-[160px] max-h-[220px] p-1.5">
                                 <img
                                   src={extra.dataUrl!}
                                   alt={extra.title}
-                                  className="w-full h-44 object-contain bg-slate-950"
+                                  className="max-h-44 max-w-full w-auto h-auto object-contain mx-auto block"
+                                  style={{
+                                    maxHeight: '176px',
+                                    maxWidth: '100%',
+                                    width: 'auto',
+                                    height: 'auto',
+                                    objectFit: 'contain'
+                                  }}
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                                   <button
@@ -2226,7 +1681,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-1.5 text-[11px] font-bold text-foreground">
                                   <MapPin className={`w-3.5 h-3.5 ${hasGps ? 'text-emerald-600' : 'text-amber-500'}`} />
-                                  <span>GPS Geotag</span>
+                                  <span>📍 Rooftop GPS</span>
                                 </div>
                                 <button
                                   type="button"
@@ -2235,7 +1690,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                                   className="px-2 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 rounded border border-blue-200 flex items-center space-x-1 cursor-pointer disabled:opacity-50"
                                 >
                                   {isLocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
-                                  <span>{hasGps ? 'Refresh GPS' : '📍 Capture GPS'}</span>
+                                  <span>{hasGps ? '🔄 Update GPS' : '📍 Set Location'}</span>
                                 </button>
                               </div>
                               {hasGps && (
@@ -2344,20 +1799,16 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setImageFit(f => (f === 'contain' ? 'cover' : 'contain'))}
-                        className="px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg border transition cursor-pointer"
-                      >
-                        <span>Framing: <strong>{imageFit === 'contain' ? 'Full Image' : 'Fill Frame'}</strong></span>
-                      </button>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        (Natural 100% Aspect Ratio)
+                      </span>
                       <button
                         type="button"
                         onClick={handleOpenPdfPreview}
-                        className="text-xs font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer"
+                        className="text-xs font-bold text-solar-600 hover:text-solar-700 flex items-center space-x-1 cursor-pointer bg-solar-500/10 px-2.5 py-1 rounded-lg border border-solar-500/20"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>Fullscreen</span>
+                        <span>Fullscreen Preview</span>
                       </button>
                     </div>
                   </div>
@@ -2381,20 +1832,27 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                             </h2>
                           </div>
 
-                          {/* 4 Inspection Photos Stacked Vertically (Full-Width, One Big Picture Below Another) */}
+                          {/* 4 Inspection Photos Stacked Vertically (Full-Width, One Big Picture Below Another, Exact Aspect Ratio) */}
                           <div className="flex flex-col space-y-2.5">
                             {PHOTO_SLOT_CONFIGS.map((cfg, idx) => {
                               const slot = photoSlots[cfg.id];
                               return (
                                 <div
                                   key={cfg.id}
-                                  className="group relative w-full h-[228px] bg-slate-50 overflow-hidden border border-slate-300 rounded-sm flex items-center justify-center"
+                                  className="group relative w-full h-[228px] bg-slate-100/70 overflow-hidden border border-slate-300 rounded-xs flex items-center justify-center p-1"
                                 >
                                   {slot.dataUrl ? (
                                     <img
                                       src={slot.dataUrl}
                                       alt={cfg.shortTitle}
-                                      className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+                                      className="max-h-[220px] max-w-full w-auto h-auto object-contain mx-auto block"
+                                      style={{
+                                        maxHeight: '220px',
+                                        maxWidth: '100%',
+                                        width: 'auto',
+                                        height: 'auto',
+                                        objectFit: 'contain'
+                                      }}
                                     />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 text-xs italic font-sans">
@@ -2441,497 +1899,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
             </div>
           )}
 
-          {/* =================================================================== */}
-          {/* TAB 2: ⚡ EQUIPMENT & PANEL BARCODES (S.NO / INVERTER / BARCODES)     */}
-          {/* =================================================================== */}
-          {activeTab === 'equipment' && (
-            <div className="space-y-5">
-              {/* Top Row: Inverter & Panel Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Card 1: Inverter Specifications */}
-                <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-3.5">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-foreground">Inverter Details &amp; Serial</h3>
-                        <p className="text-[10px] text-muted-foreground">On-Grid Solar PCU / Inverter specifications</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
-                      Single Phase On-Grid
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Inverter Make / Brand</label>
-                      <input
-                        type="text"
-                        value={inverterBrand}
-                        onChange={e => setInverterBrand(e.target.value)}
-                        placeholder="e.g. Growatt / Havells"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-semibold text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Inverter Model</label>
-                      <input
-                        type="text"
-                        value={inverterModel}
-                        onChange={e => setInverterModel(e.target.value)}
-                        placeholder="e.g. MIN 3300TL-X"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-semibold text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Inverter Serial Number (S.No) *</label>
-                      <input
-                        type="text"
-                        value={inverterSerial}
-                        onChange={e => setInverterSerial(e.target.value)}
-                        placeholder="e.g. GW-2026-INV-98104"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Capacity Rating</label>
-                      <input
-                        type="text"
-                        value={inverterCapacity}
-                        onChange={e => setInverterCapacity(e.target.value)}
-                        placeholder="e.g. 3.3 kW"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-semibold text-foreground"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 2: Solar PV Modules Summary */}
-                <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-3.5">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
-                        <Boxes className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-foreground">Solar PV Modules Overview</h3>
-                        <p className="text-[10px] text-muted-foreground">Module wattage &amp; calculated capacity</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-foreground bg-secondary px-2.5 py-0.5 rounded-full">
-                      {calculatedCapacityKw} kW Total
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Panel Manufacturer</label>
-                      <input
-                        type="text"
-                        value={panelManufacturer}
-                        onChange={e => setPanelManufacturer(e.target.value)}
-                        placeholder="e.g. Waaree Energies"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-semibold text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Panel Model / Technology</label>
-                      <input
-                        type="text"
-                        value={panelModel}
-                        onChange={e => setPanelModel(e.target.value)}
-                        placeholder="e.g. 540W Mono PERC Bifacial"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-semibold text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Wattage per Module (Wp)</label>
-                      <input
-                        type="number"
-                        value={panelWattage}
-                        onChange={e => setPanelWattage(Number(e.target.value) || 540)}
-                        placeholder="540"
-                        className="w-full px-3 py-1.5 bg-background border rounded-lg font-mono font-bold text-foreground"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted-foreground font-semibold mb-1">Total Solar Modules</label>
-                      <div className="px-3 py-1.5 bg-muted rounded-lg font-bold text-foreground text-sm">
-                        {panelRows.length} Modules ({verifiedBarcodesCount} Scanned)
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Panel Barcodes Table & Quick Setup Card */}
-              <div className="bg-card border rounded-2xl shadow-xs overflow-hidden">
-                {/* Table Header Controls */}
-                <div className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/20">
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
-                      <Barcode className="w-4 h-4 text-solar-600" />
-                      <span>Solar PV Panels Serial Number &amp; Barcode Table</span>
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground">
-                      Scan or input every module barcode for PM Surya Ghar subsidy DBT verification
-                    </p>
-                  </div>
-
-                  {/* Actions: Generate Count, Bulk Paste, Add Single */}
-                  <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-                    <div className="flex items-center space-x-1.5 bg-background border rounded-xl p-1 text-xs">
-                      <span className="text-muted-foreground pl-1.5 font-semibold">Total Panels:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={quickPanelCountInput}
-                        onChange={e => setQuickPanelCountInput(Number(e.target.value) || 1)}
-                        className="w-12 px-1 py-0.5 text-center font-bold text-foreground border rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleGeneratePanelSlots(quickPanelCountInput)}
-                        className="px-2.5 py-1 bg-solar-600 hover:bg-solar-700 text-white rounded-lg font-bold transition shadow-2xs cursor-pointer"
-                        title="Generate slots matching this number"
-                      >
-                        ⚡ Set Slots
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsBulkPasteOpen(true)}
-                      className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition flex items-center space-x-1.5 border border-border cursor-pointer shadow-2xs"
-                      title="Paste multiple barcodes at once"
-                    >
-                      <ClipboardList className="w-3.5 h-3.5 text-solar-600" />
-                      <span>Bulk Paste Barcodes</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleAddSinglePanel}
-                      className="px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1 shadow-xs cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Add Panel Row</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveEquipment}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Save Changes</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Table Content */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] tracking-wider border-b">
-                      <tr>
-                        <th className="px-4 py-3 font-bold w-12 text-center">S.No</th>
-                        <th className="px-4 py-3 font-bold">Module Description</th>
-                        <th className="px-4 py-3 font-bold">Serial Number (S.No)</th>
-                        <th className="px-4 py-3 font-bold">Barcode / QR Code</th>
-                        <th className="px-4 py-3 font-bold text-center">Barcode Reader</th>
-                        <th className="px-4 py-3 font-bold text-center">Status</th>
-                        <th className="px-4 py-3 font-bold w-14 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {panelRows.map(row => (
-                        <tr key={row.id} className="hover:bg-muted/20 transition">
-                          <td className="px-4 py-2.5 font-bold font-mono text-center text-foreground">
-                            #{row.itemNumber}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <input
-                              type="text"
-                              value={row.description}
-                              onChange={e => handleUpdatePanelRow(row.id, { description: e.target.value })}
-                              className="w-full px-2 py-1 bg-transparent border-b border-transparent hover:border-border focus:border-solar-500 focus:outline-none text-foreground text-xs"
-                            />
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <input
-                              type="text"
-                              placeholder="e.g. WAA-540-001"
-                              value={row.serialNumber}
-                              onChange={e => handleUpdatePanelRow(row.id, { serialNumber: e.target.value })}
-                              className="w-full px-2.5 py-1 bg-background border rounded-lg font-mono text-foreground text-xs"
-                            />
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <input
-                              type="text"
-                              placeholder="Scan or enter barcode..."
-                              value={row.barcode}
-                              onChange={e => handleUpdatePanelRow(row.id, { barcode: e.target.value })}
-                              className="w-full px-2.5 py-1 bg-background border rounded-lg font-mono text-foreground text-xs focus:ring-2 focus:ring-solar-500 font-semibold"
-                            />
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenScannerForRow(row.id)}
-                              className="px-2.5 py-1 bg-solar-500/10 hover:bg-solar-500/20 text-solar-700 dark:text-solar-400 font-bold rounded-lg transition inline-flex items-center space-x-1 cursor-pointer border border-solar-500/30"
-                              title="Scan barcode with camera or reader"
-                            >
-                              <Scan className="w-3.5 h-3.5" />
-                              <span>📷 Scan</span>
-                            </button>
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            {row.status === 'VERIFIED' ? (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center space-x-1">
-                                <Check className="w-2.5 h-2.5" />
-                                <span>Verified</span>
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
-                                Pending
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleDeletePanelRow(row.id)}
-                              className="p-1 text-muted-foreground hover:text-destructive rounded transition cursor-pointer"
-                              title="Delete row"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Table Footer */}
-                <div className="p-3.5 border-t bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-muted-foreground">
-                  <div>
-                    <span>Total Panels: <strong>{panelRows.length}</strong></span>
-                    <span className="mx-2">•</span>
-                    <span>Verified: <strong className="text-emerald-600">{verifiedBarcodesCount}</strong></span>
-                    <span className="mx-2">•</span>
-                    <span>System Capacity: <strong>{calculatedCapacityKw} kW</strong></span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleExportCsv}
-                    className="text-xs text-solar-600 hover:underline font-semibold cursor-pointer inline-flex items-center space-x-1"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Export Barcode Register (CSV) &rarr;</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================================================================== */}
-          {/* TAB 3: 📄 AFTER-INSTALLATION DOCUMENTS (HANDOVER / JCR / NET METER)   */}
-          {/* =================================================================== */}
-          {activeTab === 'documents' && (
-            <div className="space-y-4">
-              <div className="bg-card border rounded-2xl p-5 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground flex items-center space-x-2">
-                      <FileCheck2 className="w-4 h-4 text-solar-600" />
-                      <span>Post-Installation &amp; Handover Compliance Documents</span>
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground">
-                      Upload signed JCR, Handover Certificate, and DISCOM Net Metering verification slips
-                    </p>
-                  </div>
-                  <Link
-                    to={`/create-document?customerId=${selectedCustomer?._id || selectedCustomer?.id || ''}`}
-                    className="px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1 shadow-xs cursor-pointer"
-                  >
-                    <FilePlus2 className="w-3.5 h-3.5" />
-                    <span>+ Generate Document</span>
-                  </Link>
-                </div>
-
-                {/* 4 Standard Post-Installation Document Slots */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {loadingVaultDocs ? (
-                  <div className="col-span-2 py-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2"><Loader2 className="w-6 h-6 animate-spin text-solar-500" /><p className="text-xs">Loading customer documents...</p></div>
-                ) : POST_INSTALL_DOC_TEMPLATES.map(slot => {
-                    const existingDoc = customerVaultDocs.find(
-                      d => d.category === slot.category || d.safeDisplayName?.includes(slot.key)
-                    );
-                    const isUploading = uploadingDocKey === slot.key;
-
-                    return (
-                      <div
-                        key={slot.key}
-                        className={`p-4 rounded-xl border transition shadow-xs flex flex-col justify-between ${
-                          existingDoc ? 'bg-emerald-500/[0.04] border-emerald-500/30' : 'bg-card border-border hover:border-solar-500/40'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center space-x-2.5 min-w-0">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                existingDoc ? 'bg-emerald-500/15 text-emerald-700' : 'bg-solar-500/10 text-solar-600'
-                              }`}>
-                                <FileText className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-bold text-xs text-foreground block truncate">{slot.title}</span>
-                                <p className="text-[10px] text-muted-foreground line-clamp-1">{slot.subtitle}</p>
-                              </div>
-                            </div>
-
-                            {existingDoc ? (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0 flex items-center space-x-1">
-                                <Check className="w-2.5 h-2.5" />
-                                <span>Uploaded</span>
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
-                                Pending
-                              </span>
-                            )}
-                          </div>
-
-                          {existingDoc && (
-                            <div className="mt-2.5 pt-2 border-t border-border/50 text-[11px] text-muted-foreground space-y-0.5">
-                              <div className="flex items-center justify-between font-mono text-[10px]">
-                                <span className="truncate max-w-[180px] text-foreground font-semibold">
-                                  {existingDoc.safeDisplayName || existingDoc.originalFilename}
-                                </span>
-                                <span>{existingDoc.fileSizeBytes ? `${(existingDoc.fileSizeBytes / 1024).toFixed(1)} KB` : 'Ready'}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="pt-2.5 mt-2 border-t border-border/60 flex items-center justify-between gap-1">
-                          {existingDoc ? (
-                            <>
-                              <div className="flex items-center space-x-1.5">
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    try {
-                                      const res = await apiClient<{ downloadUrl: string; viewUrl?: string }>(
-                                        `/documents/${existingDoc._id || existingDoc.id}/access-url`
-                                      );
-                                      if (res?.downloadUrl) {
-                                        setPreviewDocModal({
-                                          isOpen: true,
-                                          title: existingDoc.safeDisplayName || existingDoc.originalFilename,
-                                          url: res.viewUrl || res.downloadUrl,
-                                          mimeType: existingDoc.mimeType
-                                        });
-                                      }
-                                    } catch (err: any) {
-                                      alert('Failed to preview document: ' + err.message);
-                                    }
-                                  }}
-                                  className="text-[11px] font-bold text-solar-700 bg-solar-500/10 px-2.5 py-1 rounded-md flex items-center space-x-1 cursor-pointer"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                  <span>View</span>
-                                </button>
-                                <a
-                                  href={getFullApiUrl(`/documents/${existingDoc._id || existingDoc.id}/download`)}
-                                  download={existingDoc.originalFilename}
-                                  className="text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted px-2.5 py-1 rounded-md flex items-center space-x-1"
-                                >
-                                  <Download className="w-3 h-3" />
-                                  <span>Download</span>
-                                </a>
-                              </div>
-                              <label className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer underline font-medium">
-                                Replace
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept=".pdf,.png,.jpg,.jpeg"
-                                  onChange={e => {
-                                    const f = e.target.files?.[0];
-                                    if (f) handleUploadPostInstallDoc(slot.key, f);
-                                  }}
-                                />
-                              </label>
-                            </>
-                          ) : (
-                            <label className={`w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-semibold cursor-pointer transition flex items-center justify-center space-x-1.5 ${
-                              isUploading ? 'bg-muted text-muted-foreground' : 'bg-solar-600 hover:bg-solar-700 text-white shadow-xs'
-                            }`}>
-                              {isUploading ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>Uploading...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="w-3 h-3" />
-                                  <span>+ Upload {slot.title.split(' ')[0]}</span>
-                                </>
-                              )}
-                              <input
-                                type="file"
-                                className="hidden"
-                                disabled={isUploading}
-                                accept=".pdf,.png,.jpg,.jpeg,.docx"
-                                onChange={e => {
-                                  const f = e.target.files?.[0];
-                                  if (f) handleUploadPostInstallDoc(slot.key, f);
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Stage 4 Next-Step Bridge: DISCOM Net Metering & BM Register */}
-                <div className="p-4 bg-gradient-to-r from-solar-500/10 via-cyan-500/10 to-emerald-500/10 border border-solar-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2.5 rounded-xl bg-solar-500/20 text-solar-600 shrink-0">
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground flex items-center space-x-2">
-                        <span>Official EPC Next Step: DISCOM Net Metering &amp; BM Number</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-solar-500/20 text-solar-700 dark:text-solar-300">
-                          Step 4
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        Physical solar installation complete. Proceed to record Bi-directional Net Meter (BM) number, initial 0000 readings &amp; DISCOM JE testing.
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    to="/net-metering"
-                    className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white rounded-xl text-xs font-bold shrink-0 flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <span>Open Net Meter Register</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -2955,10 +1922,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                 </div>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base text-foreground">
-                    Select Active Client for Workstation
+                    Select Active Rooftop Site
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Choose a client to view and update inspection photos, equipment barcodes, and handover docs
+                    Choose an assigned rooftop solar site to capture 4-point inspection photos
                   </p>
                 </div>
               </div>
@@ -3119,7 +2086,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                   onClick={() => setIsClientDrawerOpen(false)}
                   className="font-bold text-solar-600 hover:underline inline-flex items-center space-x-1"
                 >
-                  <span>Full Customer Directory &rarr;</span>
+                  <span>Return to Site List &rarr;</span>
                 </Link>
                 <button
                   type="button"
@@ -3134,228 +2101,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: LIVE BARCODE CAMERA SCANNER DIALOG                               */}
-      {/* ========================================================================= */}
-      {isBarcodeScannerOpen && (
-        <div
-          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-fadeIn"
-          style={{ zIndex: 100 }}
-          onClick={e => {
-            if (e.target === e.currentTarget) {
-              setIsBarcodeScannerOpen(false);
-              stopCameraStream();
-            }
-          }}
-        >
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
-                  <Scan className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    Barcode Scanner: Panel #{panelRows.find(r => r.id === activeScanningRowId)?.itemNumber || 1}
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground">Scan with device camera or handheld barcode gun</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsBarcodeScannerOpen(false);
-                  stopCameraStream();
-                }}
-                className="p-1 rounded-lg text-muted-foreground hover:bg-muted"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Camera Viewfinder */}
-            <div className="relative aspect-[4/3] bg-black rounded-xl overflow-hidden border border-slate-700 flex items-center justify-center">
-              {scannerCameraActive && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-ping z-10" />}
-              <video
-                ref={videoRef}
-                playsInline
-                autoPlay
-                muted
-                className="w-full h-full object-cover"
-              />
-              {/* Overlay Target Box */}
-              <div className="absolute inset-x-8 inset-y-10 border-2 border-dashed border-solar-500 rounded-xl pointer-events-none flex flex-col justify-between p-2">
-                <div className="flex justify-between">
-                  <span className="w-3 h-3 border-t-2 border-l-2 border-solar-400" />
-                  <span className="w-3 h-3 border-t-2 border-r-2 border-solar-400" />
-                </div>
-                <div className="text-center font-mono text-[10px] text-solar-300 font-bold bg-black/60 py-0.5 rounded">
-                  ALIGN BARCODE / QR CODE
-                </div>
-                <div className="flex justify-between">
-                  <span className="w-3 h-3 border-b-2 border-l-2 border-solar-400" />
-                  <span className="w-3 h-3 border-b-2 border-r-2 border-solar-400" />
-                </div>
-              </div>
-            </div>
-
-            {scannerCameraError && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-lg">
-                {scannerCameraError}
-              </p>
-            )}
-
-            {/* Manual Barcode Gun / Keyboard Input */}
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                handleApplyScannedBarcode(scannerManualInput);
-              }}
-              className="space-y-2"
-            >
-              <label className="block text-xs font-semibold text-muted-foreground">
-                Or Enter / Scan with Barcode Gun:
-              </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Barcode or serial number..."
-                  value={scannerManualInput}
-                  onChange={e => setScannerManualInput(e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-xs bg-background border rounded-lg font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
-                />
-                <button
-                  type="submit"
-                  disabled={!scannerManualInput.trim()}
-                  className="px-4 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
-                >
-                  Apply
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 2: BULK PASTE BARCODES DIALOG                                       */}
-      {/* ========================================================================= */}
-      {isBulkPasteOpen && (
-        <div
-          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-fadeIn"
-          style={{ zIndex: 100 }}
-          onClick={e => {
-            if (e.target === e.currentTarget) setIsBulkPasteOpen(false);
-          }}
-        >
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
-                  <ClipboardList className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Bulk Paste Barcodes</h3>
-                  <p className="text-[10px] text-muted-foreground">Paste barcodes from packing list, shipping manifest, or scanner</p>
-                </div>
-              </div>
-              <button onClick={() => setIsBulkPasteOpen(false)} className="p-1 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <label className="font-semibold text-muted-foreground">
-                  Paste barcodes (one per line, comma, or semicolon):
-                </label>
-                {bulkBarcodeText.trim() && (
-                  <span
-                    className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                      parseBarcodesFromText(bulkBarcodeText).length > 0
-                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-700 border border-amber-500/30'
-                    }`}
-                  >
-                    ✓ {parseBarcodesFromText(bulkBarcodeText).length} Barcode(s) Detected
-                  </span>
-                )}
-              </div>
-              <textarea
-                rows={7}
-                value={bulkBarcodeText}
-                onChange={e => setBulkBarcodeText(e.target.value)}
-                placeholder={"984562315320\n984562315321\n984562315322\n..."}
-                className="w-full p-3 text-xs bg-background border rounded-xl font-mono text-foreground focus:ring-2 focus:ring-solar-500"
-              />
-
-              {/* Live Preview Chips */}
-              {parseBarcodesFromText(bulkBarcodeText).length > 0 && (
-                <div className="p-2.5 bg-muted/40 rounded-xl border border-border/60 space-y-1.5">
-                  <div className="text-[10px] font-bold text-muted-foreground flex justify-between items-center">
-                    <span>
-                      Detected Preview (first{' '}
-                      {Math.min(5, parseBarcodesFromText(bulkBarcodeText).length)} of{' '}
-                      {parseBarcodesFromText(bulkBarcodeText).length}):
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setBulkBarcodeText('')}
-                      className="text-[10px] text-destructive hover:underline cursor-pointer"
-                    >
-                      Clear Text
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {parseBarcodesFromText(bulkBarcodeText)
-                      .slice(0, 5)
-                      .map((code, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[11px] font-mono bg-card px-2 py-0.5 rounded border border-border text-foreground font-semibold flex items-center space-x-1"
-                        >
-                          <span className="text-muted-foreground font-normal">#{idx + 1}</span>
-                          <span>{code}</span>
-                        </span>
-                      ))}
-                    {parseBarcodesFromText(bulkBarcodeText).length > 5 && (
-                      <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5">
-                        +{parseBarcodesFromText(bulkBarcodeText).length - 5} more...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <p className="text-[11px] text-muted-foreground">
-                Trailing punctuation like dots (.), commas, or spaces are automatically sanitized. Codes are assigned sequentially to Panel #1, #2, etc. and marked as Verified.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
-              <button
-                type="button"
-                onClick={() => setIsBulkPasteOpen(false)}
-                className="px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary rounded-lg cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyBulkBarcodes}
-                disabled={parseBarcodesFromText(bulkBarcodeText).length === 0}
-                className="px-4 py-1.5 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center space-x-1"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>
-                  Apply {parseBarcodesFromText(bulkBarcodeText).length > 0 ? `(${parseBarcodesFromText(bulkBarcodeText).length}) ` : ''}Barcodes
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* MODAL 3: IN-APP DOCUMENT PREVIEW MODAL                                    */}
