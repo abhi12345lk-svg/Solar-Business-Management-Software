@@ -19,6 +19,47 @@ export async function generatePdfFromElement(
   const orientation = options.orientation ?? 'portrait';
   const format = options.format ?? 'a4';
 
+  const pageWidthMm = orientation === 'portrait' ? 210 : 297;
+  const pageHeightMm = orientation === 'portrait' ? 297 : 210;
+  const contentWidthMm = pageWidthMm - marginMm * 2;
+  const maxContentHeightMm = pageHeightMm - marginMm * 2;
+
+  // Check if element defines explicit individual A4 pages via [data-pdf-page]
+  const explicitPages = Array.from(element.querySelectorAll<HTMLElement>('[data-pdf-page]'));
+
+  if (explicitPages.length > 0) {
+    const pdf = new jsPDF({
+      orientation,
+      unit: 'mm',
+      format
+    });
+
+    for (let i = 0; i < explicitPages.length; i++) {
+      if (i > 0) {
+        pdf.addPage();
+      }
+
+      const pageEl = explicitPages[i];
+      if (!pageEl) continue;
+      const canvas = await html2canvas(pageEl, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgHeightMm = (canvas.height * contentWidthMm) / canvas.width;
+      const fitHeightMm = Math.min(imgHeightMm, maxContentHeightMm);
+
+      pdf.addImage(imgData, 'JPEG', marginMm, marginMm, contentWidthMm, fitHeightMm);
+    }
+
+    const blob = pdf.output('blob');
+    const objectUrl = URL.createObjectURL(blob);
+    return { pdf, blob, objectUrl };
+  }
+
   // Render element to high-res canvas (scale 2 for crisp fonts and stamps)
   const canvas = await html2canvas(element, {
     scale: 2,
@@ -34,11 +75,6 @@ export async function generatePdfFromElement(
     format
   });
 
-  // A4 dimensions in mm: 210 x 297
-  const pageWidthMm = orientation === 'portrait' ? 210 : 297;
-  const pageHeightMm = orientation === 'portrait' ? 297 : 210;
-
-  const contentWidthMm = pageWidthMm - marginMm * 2;
   const contentHeightMm = (canvas.height * contentWidthMm) / canvas.width;
 
   let heightLeft = contentHeightMm;

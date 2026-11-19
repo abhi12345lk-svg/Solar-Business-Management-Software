@@ -623,11 +623,11 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       setInstallations(prev => [created, ...prev]);
       setDbNotification({
         type: 'success',
-        message: `Installation record ${created.installationNumber || 'INST'} created in MongoDB database!`
+        message: `Inspection dossier ${created.installationNumber || 'INST'} created successfully!`
       });
       setTimeout(() => setDbNotification(null), 5000);
     } catch (err: any) {
-      alert('Failed to initialize installation in database: ' + (err?.message || 'Server error'));
+      alert('Failed to initialize inspection record: ' + (err?.message || 'Server error'));
     } finally {
       setIsSavingInstallation(false);
     }
@@ -1205,7 +1205,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         localStorage.setItem(key, JSON.stringify(equipmentData));
       }
 
-      const msg = `Equipment & ${panelRows.length} barcodes saved directly to MongoDB database!`;
+      const msg = `Equipment specifications and ${panelRows.length} module barcodes saved successfully!`;
       setSaveEquipmentSuccess(msg);
       setDbNotification({ type: 'success', message: msg });
       setTimeout(() => {
@@ -1213,7 +1213,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         setDbNotification(null);
       }, 5000);
     } catch (err: any) {
-      alert('Error saving equipment data to database: ' + (err?.message || 'Server error'));
+      alert('Error saving equipment data: ' + (err?.message || 'Server error'));
     } finally {
       setIsSavingInstallation(false);
     }
@@ -1313,7 +1313,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       const updated = res?.data || res;
       if (updated) setActiveInstallation(updated);
 
-      const msg = `All ${photosList.length} inspection photos & verified GPS saved to MongoDB (${activeInstallation?.installationNumber || 'Database'})!`;
+      const msg = `All ${photosList.length} inspection photos & verified GPS saved successfully!`;
       setVaultSaveSuccess(msg);
       setDbNotification({ type: 'success', message: msg });
       setTimeout(() => {
@@ -1321,7 +1321,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
         setDbNotification(null);
       }, 5000);
     } catch (err: any) {
-      alert('Failed to save photos to database: ' + (err?.message || 'Server error'));
+      alert('Failed to save inspection photos: ' + (err?.message || 'Server error'));
     } finally {
       setIsSavingInstallation(false);
     }
@@ -1641,10 +1641,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     onClick={handleSavePhotosToDb}
                     disabled={isSavingInstallation}
                     className="px-3.5 py-1.5 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Persist photos and GPS coordinates directly into MongoDB"
+                    title="Save inspection photos and GPS geotags"
                   >
                     {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                    <span>Save Photos to DB</span>
+                    <span>Save Photos</span>
                   </button>
 
                   <button
@@ -1677,10 +1677,10 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     onClick={handleSaveEquipment}
                     disabled={isSavingInstallation}
                     className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Save Inverter & PV module barcodes to MongoDB database"
+                    title="Save Inverter & PV module barcodes"
                   >
                     {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderLock className="w-3.5 h-3.5" />}
-                    <span>Save to Database</span>
+                    <span>Save Equipment</span>
                   </button>
                 </>
               )}
@@ -1737,26 +1737,27 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
       {/* ========================================================================= */}
       <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-5 flex-1">
         <div className="w-full space-y-4">
-          {/* Active Client Info Banner */}
-          <div className="bg-card border rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Consolidated Client & Inspection Dossier Ribbon */}
+          <div className="bg-card border rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Beneficiary & Site Summary */}
             <div className="flex items-center space-x-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center shrink-0 font-bold">
                 <Building2 className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-wrap">
                   <h2 className="text-base font-bold text-foreground truncate">
                     {tplConsumerName}
                   </h2>
                   <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-bold shrink-0">
-                    {tplConsumerNumber}
+                    BP: {tplConsumerNumber}
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsClientDrawerOpen(true)}
-                    className="text-[11px] font-bold text-solar-600 hover:underline cursor-pointer ml-1 px-2 py-0.5 rounded bg-solar-500/10 border border-solar-500/30"
+                    className="text-[11px] font-bold text-solar-600 hover:underline cursor-pointer px-2 py-0.5 rounded bg-solar-500/10 border border-solar-500/30 transition"
                   >
-                    Change Client ▾
+                    Switch Client ▾
                   </button>
                 </div>
                 <div className="text-xs text-muted-foreground flex items-center space-x-2 mt-0.5 flex-wrap">
@@ -1767,32 +1768,102 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               </div>
             </div>
 
-            {/* Quick Metric Badge for Current Active Module */}
-            <div className="flex items-center space-x-2 shrink-0">
-              {activeTab === 'photos' && (
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
-                  mandatoryUploadedCount === 5 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+            {/* Dossier Status & Action Buttons */}
+            <div className="flex items-center space-x-3 flex-wrap gap-y-2 shrink-0">
+              {/* Dossier Identifier Badge */}
+              <div className="flex items-center space-x-1.5 text-xs">
+                <span className="font-semibold text-muted-foreground">Dossier:</span>
+                {loadingInstallation ? (
+                  <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-muted text-muted-foreground flex items-center space-x-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-solar-500" />
+                    <span>Loading...</span>
+                  </span>
+                ) : activeInstallation ? (
+                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-solar-500/15 text-solar-700 dark:text-solar-400 border border-solar-500/30 flex items-center space-x-1.5 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{activeInstallation.installationNumber}</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/25">
+                    Pending Creation
+                  </span>
+                )}
+              </div>
+
+              {/* Stage Badge */}
+              {activeInstallation && (
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                  activeInstallation.status === 'APPROVED'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                    : activeInstallation.status === 'SUBMITTED'
+                      ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30'
+                      : activeInstallation.status === 'IN_PROGRESS'
+                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
+                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
                 }`}>
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Inspection Photos: {mandatoryUploadedCount}/5</span>
+                  {activeInstallation.status === 'APPROVED'
+                    ? '✓ QA Approved & Commissioned'
+                    : activeInstallation.status === 'SUBMITTED'
+                      ? '⏳ Under Admin QA Review'
+                      : activeInstallation.status === 'IN_PROGRESS'
+                        ? '⚡ In Progress'
+                        : '👷 Crew Assigned'}
                 </span>
               )}
-              {activeTab === 'equipment' && (
-                <span className="text-xs px-2.5 py-1 rounded-lg font-bold border bg-blue-500/10 text-blue-700 border-blue-500/30 flex items-center space-x-1">
-                  <Barcode className="w-3.5 h-3.5" />
-                  <span>Panels: {verifiedBarcodesCount}/{panelRows.length} Verified</span>
-                </span>
-              )}
-              {activeTab === 'documents' && (
-                <span className="text-xs px-2.5 py-1 rounded-lg font-bold border bg-emerald-500/10 text-emerald-700 border-emerald-500/30 flex items-center space-x-1">
-                  <FolderLock className="w-3.5 h-3.5" />
-                  <span>Vault Documents: {customerVaultDocs.length}</span>
-                </span>
+
+              {/* Photos Count Badge */}
+              <span className={`text-xs px-2.5 py-1 rounded-lg font-bold border flex items-center space-x-1 ${
+                mandatoryUploadedCount === 5 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30' : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+              }`}>
+                <Camera className="w-3.5 h-3.5" />
+                <span>Photos: {mandatoryUploadedCount}/5</span>
+              </span>
+
+              {/* Lifecycle Actions */}
+              {!activeInstallation ? (
+                <button
+                  type="button"
+                  onClick={handleInitializeInstallation}
+                  disabled={isSavingInstallation}
+                  className="px-3.5 py-1.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                  title="Create an inspection dossier for this beneficiary"
+                >
+                  {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  <span>+ Start Inspection Record</span>
+                </button>
+              ) : (
+                <>
+                  {(activeInstallation.status === 'ASSIGNED' || activeInstallation.status === 'IN_PROGRESS') && (
+                    <button
+                      type="button"
+                      onClick={handleSubmitForQaApproval}
+                      disabled={isSubmittingApproval}
+                      className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                      title="Submit completed rooftop installation and photos for Admin QA review"
+                    >
+                      {isSubmittingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
+                      <span>Submit for QA</span>
+                    </button>
+                  )}
+
+                  {activeInstallation.status === 'SUBMITTED' && (
+                    <button
+                      type="button"
+                      onClick={handleApproveInstallation}
+                      disabled={isReviewingApproval}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                      title="Approve installation report and certify commissioning"
+                    >
+                      {isReviewingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <span>Approve Installation</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          {/* Global DB Sync Alert */}
+          {/* Sync Status Alert */}
           {dbNotification && (
             <div className={`p-3 rounded-xl text-xs flex items-center justify-between border shadow-2xs ${
               dbNotification.type === 'success'
@@ -1808,106 +1879,6 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
               <button onClick={() => setDbNotification(null)} className="ml-2 font-bold cursor-pointer hover:opacity-80">✕</button>
             </div>
           )}
-
-          {/* Installation Lifecycle & DB Sync Ribbon */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center space-x-3 flex-wrap gap-y-2">
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">MongoDB Record:</span>
-                {loadingInstallation ? (
-                  <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-muted text-muted-foreground flex items-center space-x-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-solar-500" />
-                    <span>Loading...</span>
-                  </span>
-                ) : activeInstallation ? (
-                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-solar-500/15 text-solar-700 dark:text-solar-400 border border-solar-500/30 flex items-center space-x-1.5 shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{activeInstallation.installationNumber}</span>
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/25">
-                    No Installation Record in DB
-                  </span>
-                )}
-              </div>
-
-              {activeInstallation && (
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground">Stage:</span>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                    activeInstallation.status === 'APPROVED'
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                      : activeInstallation.status === 'SUBMITTED'
-                        ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30'
-                        : activeInstallation.status === 'IN_PROGRESS'
-                          ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
-                          : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                  }`}>
-                    {activeInstallation.status === 'APPROVED'
-                      ? '✓ QA Approved & Commissioned'
-                      : activeInstallation.status === 'SUBMITTED'
-                        ? '⏳ Under Admin QA Review'
-                        : activeInstallation.status === 'IN_PROGRESS'
-                          ? '⚡ Installation In Progress'
-                          : '👷 Crew Assigned'}
-                  </span>
-                </div>
-              )}
-
-              {activeInstallation?.projectId && (
-                <Link
-                  to={`/projects/${activeInstallation.projectId}?tab=installation`}
-                  className="text-xs font-bold text-solar-600 hover:text-solar-700 hover:underline flex items-center space-x-1 bg-solar-500/10 px-2 py-1 rounded-lg border border-solar-500/25 transition"
-                >
-                  <span>10-Stage EPC #{activeInstallation.projectCode || ''}</span>
-                  <ArrowRight className="w-3 h-3 ml-0.5" />
-                </Link>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2 shrink-0 flex-wrap gap-y-2">
-              {!activeInstallation ? (
-                <button
-                  type="button"
-                  onClick={handleInitializeInstallation}
-                  disabled={isSavingInstallation}
-                  className="px-3.5 py-1.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                  title="Initialize a new installation record in MongoDB database for this customer"
-                >
-                  {isSavingInstallation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  <span>Initialize Installation in DB</span>
-                </button>
-              ) : (
-                <>
-                  {(activeInstallation.status === 'ASSIGNED' || activeInstallation.status === 'IN_PROGRESS') && (
-                    <button
-                      type="button"
-                      onClick={handleSubmitForQaApproval}
-                      disabled={isSubmittingApproval}
-                      className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                      title="Submit completed rooftop installation and photos for Admin QA review"
-                    >
-                      {isSubmittingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardCheck className="w-3.5 h-3.5" />}
-                      <span>Submit for Admin QA</span>
-                    </button>
-                  )}
-
-                  {activeInstallation.status === 'SUBMITTED' && (
-                    <button
-                      type="button"
-                      onClick={handleApproveInstallation}
-                      disabled={isReviewingApproval}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
-                      title="Approve installation report and certify commissioning"
-                    >
-                      {isReviewingApproval ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      <span>Approve Installation (Admin QA)</span>
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
 
           {/* =================================================================== */}
           {/* TAB 1: 📸 SITE INSPECTION PHOTOS (5 MANDATORY + EXTRA PHOTOS)        */}
@@ -2254,126 +2225,249 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                     </div>
                   </div>
 
-                  {/* White Sheet Paper Container */}
-                  <div className="bg-slate-300 dark:bg-slate-900/80 p-2 sm:p-5 rounded-xl overflow-x-auto">
-                    <div
-                      ref={documentPrintRef}
-                      className="bg-white text-slate-900 mx-auto max-w-[850px] p-6 sm:p-8 shadow-xl rounded-sm leading-relaxed text-[12px] sm:text-[13px]"
-                      style={{
-                        fontFamily: '"Times New Roman", Times, serif',
-                        color: '#0f172a'
-                      }}
-                    >
-                      {/* Document Header */}
-                      <div className="text-center border-b-2 border-slate-900 pb-3 mb-4 space-y-1">
-                        <h2 className="text-base sm:text-lg font-black tracking-wide uppercase text-slate-950">
-                          SITE PHOTOS AT {tplConsumerName || 'SHRI GYAN CHAND JAISWAL'}
-                        </h2>
-                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-700 font-semibold pt-1">
-                          <span><strong>Site:</strong> {tplAddress}, {tplDistrict}</span>
-                          <span>•</span>
-                          <span><strong>Consumer No / BP:</strong> {tplConsumerNumber}</span>
-                          <span>•</span>
-                          <span><strong>Capacity:</strong> {tplCapacityKwp} kWp RTS</span>
-                          <span>•</span>
-                          <span><strong>Inspection Date:</strong> {tplAgreementDate}</span>
+                  {/* Two Discrete A4 Sheets Container (Matches user's DOCX & Eliminates Cutoff) */}
+                  <div className="bg-slate-200 dark:bg-slate-900/90 p-2 sm:p-5 rounded-xl overflow-x-auto">
+                    <div ref={documentPrintRef} className="space-y-6">
+                      {/* ================= PAGE 1: HEADER & PHOTOS 1-4 ================= */}
+                      <div
+                        data-pdf-page="1"
+                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1130px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
+                        style={{
+                          fontFamily: '"Times New Roman", Times, serif',
+                          color: '#0f172a'
+                        }}
+                      >
+                        <div>
+                          {/* Page 1 Document Header */}
+                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-5 space-y-1">
+                            <h2 className="text-base sm:text-xl font-black tracking-wide uppercase text-slate-950 underline decoration-2 underline-offset-4">
+                              SITE PHOTOS AT {tplConsumerName || 'BENEFICIARY CONSUMER'}
+                            </h2>
+                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-700 font-semibold pt-1">
+                              <span><strong>Site:</strong> {tplAddress}, {tplDistrict}</span>
+                              <span>•</span>
+                              <span><strong>Consumer No / BP:</strong> {tplConsumerNumber}</span>
+                              <span>•</span>
+                              <span><strong>Capacity:</strong> {tplCapacityKwp} kWp RTS</span>
+                              <span>•</span>
+                              <span><strong>Inspection Date:</strong> {tplAgreementDate}</span>
+                            </div>
+                          </div>
+
+                          {/* 4 Photos (1 to 4) 2-Col Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {PHOTO_SLOT_CONFIGS.slice(0, 4).map((cfg) => {
+                              const slot = photoSlots[cfg.id];
+                              return (
+                                <div
+                                  key={cfg.id}
+                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
+                                >
+                                  <div className="p-1.5 bg-slate-900 text-white font-bold text-[11px] truncate">
+                                    {cfg.officialTitle}
+                                  </div>
+                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
+                                    {slot.dataUrl ? (
+                                      <img
+                                        src={slot.dataUrl}
+                                        alt={cfg.shortTitle}
+                                        className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+                                      />
+                                    ) : (
+                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
+                                    )}
+                                    {slot.gps && (
+                                      <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
+                                        📍 {slot.gps}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
+                                    {slot.caption}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Page 1 Footer */}
+                        <div className="pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-sans">
+                          <span>PM Surya Ghar Muft Bijli Yojana • Rooftop Solar Inspection Dossier</span>
+                          <span>Page 1 of 2</span>
                         </div>
                       </div>
 
-                      {/* 5 Mandatory Inspection Photos 2-Col Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {PHOTO_SLOT_CONFIGS.map((cfg) => {
-                          const slot = photoSlots[cfg.id];
-                          return (
-                            <div
-                              key={cfg.id}
-                              className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
-                            >
-                              <div className="p-1.5 bg-slate-900 text-white font-bold text-[11px] truncate">
-                                {cfg.officialTitle}
-                              </div>
-                              <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                {slot.dataUrl ? (
-                                  <img
-                                    src={slot.dataUrl}
-                                    alt={cfg.shortTitle}
-                                    className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-                                  />
-                                ) : (
-                                  <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                )}
-                                {slot.gps && (
-                                  <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
-                                    📍 {slot.gps}
+                      {/* ================= PAGE 2: PHOTO 5, HIGHLIGHTS, DECLARATION & SIGNATURES ================= */}
+                      <div
+                        data-pdf-page="2"
+                        className="bg-white text-slate-900 mx-auto w-full max-w-[800px] min-h-[1130px] p-6 sm:p-8 shadow-xl rounded-sm flex flex-col justify-between"
+                        style={{
+                          fontFamily: '"Times New Roman", Times, serif',
+                          color: '#0f172a'
+                        }}
+                      >
+                        <div>
+                          {/* Page 2 Document Header */}
+                          <div className="text-center border-b-2 border-slate-900 pb-3 mb-5 space-y-1">
+                            <h2 className="text-base sm:text-xl font-black tracking-wide uppercase text-slate-950 underline decoration-2 underline-offset-4">
+                              SITE PHOTOS AT {tplConsumerName || 'BENEFICIARY CONSUMER'}
+                            </h2>
+                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-700 font-semibold pt-1">
+                              <span><strong>Consumer No / BP:</strong> {tplConsumerNumber}</span>
+                              <span>•</span>
+                              <span><strong>Plant Capacity:</strong> {tplCapacityKwp} kWp RTS</span>
+                              <span>•</span>
+                              <span><strong>Page:</strong> 2 of 2 (Protection &amp; Signatures)</span>
+                            </div>
+                          </div>
+
+                          {/* Photo 5 & Highlights / Extra Photo in 2-Col Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Photo 5: Lightning Arrester */}
+                            {(() => {
+                              const cfg = PHOTO_SLOT_CONFIGS[4]; // lightning
+                              if (!cfg) return null;
+                              const slot = photoSlots[cfg.id];
+                              return (
+                                <div
+                                  key={cfg.id}
+                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
+                                >
+                                  <div className="p-1.5 bg-slate-900 text-white font-bold text-[11px] truncate">
+                                    {cfg.officialTitle}
                                   </div>
-                                )}
+                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
+                                    {slot.dataUrl ? (
+                                      <img
+                                        src={slot.dataUrl}
+                                        alt={cfg.shortTitle}
+                                        className={`w-full h-full ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+                                      />
+                                    ) : (
+                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
+                                    )}
+                                    {slot.gps && (
+                                      <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
+                                        📍 {slot.gps}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
+                                    {slot.caption}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Column 2: Extra photo or Technical Highlights Card */}
+                            {extraPhotos.length > 0 && extraPhotos[0] ? (
+                              (() => {
+                                const firstExtra = extraPhotos[0];
+                                return (
+                                  <div className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between">
+                                    <div className="p-1.5 bg-slate-800 text-white font-bold text-[11px] truncate">
+                                      6. {firstExtra.title}
+                                    </div>
+                                    <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
+                                      {firstExtra.dataUrl ? (
+                                        <img
+                                          src={firstExtra.dataUrl}
+                                          alt={firstExtra.title}
+                                          className="w-full h-full object-contain"
+                                        />
+                                      ) : (
+                                        <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
+                                      )}
+                                      {firstExtra.gps && (
+                                        <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
+                                          📍 {firstExtra.gps}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
+                                      {firstExtra.caption || firstExtra.title}
+                                    </div>
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <div className="border border-slate-300 rounded-lg p-4 bg-slate-50 flex flex-col justify-between text-xs">
+                                <div>
+                                  <h4 className="font-bold text-slate-900 uppercase text-[11px] mb-2 border-b pb-1">
+                                    Technical Installation Specifications
+                                  </h4>
+                                  <div className="space-y-1.5 text-[11px] text-slate-700">
+                                    <p>• <strong>PV Modules:</strong> High-efficiency ALMM/DCR Mono PERC / TOPCon</p>
+                                    <p>• <strong>Mounting Structure:</strong> Hot-Dip Galvanized / Aluminum Wind Load Compliant</p>
+                                    <p>• <strong>Earthing &amp; LA:</strong> Dual dedicated chemical earthing pits with copper bonded electrode</p>
+                                    <p>• <strong>Inverter &amp; Protection:</strong> MNRE approved on-grid inverter with Type II SPD &amp; ACDB/DCDB</p>
+                                  </div>
+                                </div>
+                                <div className="mt-3 p-2 bg-emerald-50 border border-emerald-200 rounded text-[10px] text-emerald-800 font-medium">
+                                  ✓ Physical installation verified in compliance with PM Surya Ghar &amp; DISCOM standards.
+                                </div>
                               </div>
-                              <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                {slot.caption}
+                            )}
+                          </div>
+
+                          {/* Extra photos row 2 if user uploaded more */}
+                          {extraPhotos.length > 1 && (
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                              {extraPhotos.slice(1, 3).map((extra, idx) => (
+                                <div
+                                  key={extra.id}
+                                  className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
+                                >
+                                  <div className="p-1.5 bg-slate-800 text-white font-bold text-[11px] truncate">
+                                    {idx + 7}. {extra.title}
+                                  </div>
+                                  <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
+                                    {extra.dataUrl ? (
+                                      <img
+                                        src={extra.dataUrl}
+                                        alt={extra.title}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    ) : (
+                                      <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
+                                    )}
+                                  </div>
+                                  <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
+                                    {extra.caption || extra.title}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Consumer & Vendor Signatures Footer (Identical to User DOCX) */}
+                          <div className="mt-8 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end">
+                            <div className="space-y-1.5">
+                              <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CONSUMER / BENEFICIARY</p>
+                              <p className="text-[11px] text-slate-600">I verify that the above solar plant photos are from my premises.</p>
+                              <div className="pt-2 text-xs font-semibold text-slate-900 space-y-1">
+                                <p><strong>Name:</strong> {tplConsumerName}</p>
+                                <p className="pt-2"><strong>Signature:</strong> ____________________________</p>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
 
-                      {/* Extra Photos in Print Layout */}
-                      {extraPhotos.length > 0 && (
-                        <div className="mt-6 pt-4 border-t-2 border-slate-800 space-y-3">
-                          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                            Additional Field Inspection &amp; Installation Photos ({extraPhotos.length})
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            {extraPhotos.map((extra, idx) => (
-                              <div
-                                key={extra.id}
-                                className="border border-slate-800 rounded-lg overflow-hidden bg-slate-50 flex flex-col justify-between"
-                              >
-                                <div className="p-1.5 bg-slate-800 text-white font-bold text-[11px] truncate">
-                                  {idx + 6}. {extra.title} ({extra.category})
-                                </div>
-                                <div className="relative aspect-[4/3] bg-slate-950 flex items-center justify-center overflow-hidden">
-                                  {extra.dataUrl ? (
-                                    <img
-                                      src={extra.dataUrl}
-                                      alt={extra.title}
-                                      className="w-full h-full object-contain"
-                                    />
-                                  ) : (
-                                    <span className="text-slate-400 text-xs italic">[Photo Pending]</span>
-                                  )}
-                                  {extra.gps && (
-                                    <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white text-[9px] p-1 font-mono truncate">
-                                      📍 {extra.gps}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="p-1.5 text-[10px] text-slate-700 bg-white border-t border-slate-200">
-                                  {extra.caption || extra.title}
-                                </div>
+                            <div className="space-y-1 text-right">
+                              <p className="font-bold text-xs uppercase tracking-wide text-slate-900">CERTIFIED SOLAR VENDOR</p>
+                              <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
+                              <div className="flex justify-end py-1">
+                                <img src={RAREBOX_STAMP_BASE64} alt="Seal" className="w-24 h-24 object-contain" />
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Consumer & Vendor Signatures Footer */}
-                      <div className="mt-8 pt-6 border-t-2 border-slate-900 grid grid-cols-2 gap-6 items-end">
-                        <div className="space-y-1">
-                          <p className="font-bold text-xs uppercase">Consumer / Beneficiary</p>
-                          <p className="text-[11px] text-slate-600">I verify that the above solar plant photos are from my premises.</p>
-                          <div className="pt-2 text-xs font-semibold">
-                            <p>Name: {tplConsumerName}</p>
-                            <p>Signature: ______________________</p>
+                              <p className="text-xs font-semibold text-slate-900">{tplVendorSignatory} ({tplVendorDesignation})</p>
+                              <p className="text-[10px] text-slate-600">Ph: {tplVendorPhone}</p>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="space-y-1 text-right">
-                          <p className="font-bold text-xs uppercase">Certified Solar Vendor</p>
-                          <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
-                          <div className="flex justify-end py-1">
-                            <img src={RAREBOX_STAMP_BASE64} alt="Seal" className="w-20 h-20 object-contain" />
-                          </div>
-                          <p className="text-xs font-semibold">{tplVendorSignatory} ({tplVendorDesignation})</p><p className="text-[10px] text-slate-600">Ph: {tplVendorPhone}</p>
+                        {/* Page 2 Footer */}
+                        <div className="pt-4 border-t border-slate-300 flex items-center justify-between text-[10px] text-slate-500 font-sans">
+                          <span>PM Surya Ghar Muft Bijli Yojana • Rooftop Solar Inspection Dossier</span>
+                          <span>Page 2 of 2</span>
                         </div>
                       </div>
                     </div>
@@ -3035,8 +3129,8 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = ({ initialTab }) =>
                           </div>
                         ) : (
                           <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
-                            <span>No Installation in DB</span>
-                            <span className="text-solar-600 font-semibold">+ Ready to Init</span>
+                            <span>Inspection Pending</span>
+                            <span className="text-solar-600 font-semibold">+ New Record</span>
                           </div>
                         )}
                       </div>

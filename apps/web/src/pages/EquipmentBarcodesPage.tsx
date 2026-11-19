@@ -305,7 +305,7 @@ export const EquipmentBarcodesPage: React.FC = () => {
       if (created) {
         setActiveInstallation(created);
         setInstallations(prev => [created, ...prev]);
-        setSaveSuccess(`Installation record ${created.installationNumber || 'INST-2026-XXXXX'} initialized in MongoDB!`);
+        setSaveSuccess(`Installation record ${created.installationNumber || 'INST-2026-XXXXX'} created successfully!`);
         setTimeout(() => setSaveSuccess(null), 5000);
       }
     } catch (err: any) {
@@ -555,7 +555,7 @@ export const EquipmentBarcodesPage: React.FC = () => {
 
         const verifiedCount = panelRows.filter(r => r.status === 'VERIFIED' || !!r.barcode).length;
         setSaveSuccess(
-          `✓ Inverter & ${panelRows.length} PV Module Barcodes (${verifiedCount} verified) successfully saved to MongoDB (${updatedInst?.installationNumber || 'INST-2026-XXXXX'})!`
+          `✓ Inverter & ${panelRows.length} PV Module Barcodes (${verifiedCount} verified) saved successfully (${updatedInst?.installationNumber || 'INST-2026-XXXXX'})!`
         );
         setTimeout(() => setSaveSuccess(null), 6000);
       }
@@ -741,10 +741,10 @@ export const EquipmentBarcodesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Installation MongoDB Status & QA Lifecycle Buttons */}
+          {/* Installation Dossier Status & QA Lifecycle Buttons */}
           <div className="flex items-center space-x-2 shrink-0 flex-wrap gap-y-2">
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">MongoDB Record:</span>
+              <span className="text-xs font-semibold text-muted-foreground">Dossier:</span>
               {loadingInstallation ? (
                 <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-muted text-muted-foreground flex items-center space-x-1">
                   <Loader2 className="w-3 h-3 animate-spin text-solar-500" />
@@ -762,7 +762,7 @@ export const EquipmentBarcodesPage: React.FC = () => {
                   disabled={isSavingInstallation}
                   className="px-2.5 py-1 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-50"
                 >
-                  + Init in DB
+                  + Start Record
                 </button>
               )}
             </div>
