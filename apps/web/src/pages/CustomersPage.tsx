@@ -830,15 +830,22 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
-  const getCustomerInspectionStatus = (custId: string): 'DONE' | 'IN_PROGRESS' | 'PENDING' => {
-    const photoCache = localStorage.getItem(`solar_photos_${custId}`);
-    if (photoCache) {
-      try {
-        const parsed = JSON.parse(photoCache);
-        const uploaded = Object.values(parsed.photoSlots || {}).filter((s: any) => !!s?.dataUrl).length;
-        if (uploaded >= 4) return 'DONE';
-        if (uploaded > 0) return 'IN_PROGRESS';
-      } catch {}
+  const getCustomerInspectionStatus = (customer: CustomerDto): 'DONE' | 'IN_PROGRESS' | 'PENDING' => {
+    const custId = customer.id || (customer as any)._id;
+    if (custId) {
+      const photoCache = localStorage.getItem(`solar_photos_${custId}`);
+      if (photoCache) {
+        try {
+          const parsed = JSON.parse(photoCache);
+          const uploaded = Object.values(parsed.photoSlots || {}).filter((s: any) => !!s?.dataUrl).length;
+          if (uploaded >= 4) return 'DONE';
+          if (uploaded > 0) return 'IN_PROGRESS';
+        } catch {}
+      }
+    }
+    // If customer has saved documents in vault, mark as inspected
+    if ((customer.documentCount || 0) > 0) {
+      return 'DONE';
     }
     return 'PENDING';
   };
@@ -853,20 +860,12 @@ export const CustomersPage: React.FC = () => {
       }
     }
     if (isInstaller) {
+      const inspStatus = getCustomerInspectionStatus(c);
       if (statusFilter === 'INSPECTION_PENDING') {
-        return getCustomerInspectionStatus(c.id) === 'PENDING';
-      }
-      if (statusFilter === 'INSPECTION_IN_PROGRESS') {
-        return getCustomerInspectionStatus(c.id) === 'IN_PROGRESS';
+        return inspStatus === 'PENDING';
       }
       if (statusFilter === 'INSPECTION_DONE') {
-        return getCustomerInspectionStatus(c.id) === 'DONE';
-      }
-      if (statusFilter === CustomerStatus.SITE_WORK_IN_PROGRESS) {
-        return c.status === CustomerStatus.SITE_WORK_IN_PROGRESS;
-      }
-      if (statusFilter === CustomerStatus.ACTIVE) {
-        return c.status === CustomerStatus.ACTIVE;
+        return inspStatus === 'DONE';
       }
     }
     return true;
@@ -989,10 +988,7 @@ export const CustomersPage: React.FC = () => {
             >
               <option value="ALL">All Inspection Statuses</option>
               <option value="INSPECTION_PENDING">⏳ Inspection Pending</option>
-              <option value="INSPECTION_IN_PROGRESS">📸 In Progress (1-3 Photos)</option>
-              <option value="INSPECTION_DONE">✅ 4/4 Photos Done</option>
-              <option value={CustomerStatus.SITE_WORK_IN_PROGRESS}>⚡ Site Work in Progress</option>
-              <option value={CustomerStatus.ACTIVE}>☀️ Completed / Active</option>
+              <option value="INSPECTION_DONE">✅ Inspection Completed (4/4 Done)</option>
             </select>
           ) : (
             <select
@@ -1207,7 +1203,7 @@ export const CustomersPage: React.FC = () => {
                           {/* Inspection Status Column for Installer */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
                             {(() => {
-                              const inspStatus = getCustomerInspectionStatus(customer.id);
+                              const inspStatus = getCustomerInspectionStatus(customer);
                               if (inspStatus === 'DONE') {
                                 return (
                                   <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">

@@ -670,41 +670,42 @@ export const DocumentsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Buttons: Installer gets direct Site Photos link; non-installer gets Generate Document */}
+        {/* Action Buttons: Installer gets direct Site Photos link; non-installer gets Generate Document & Upload to Vault */}
         <div className="flex items-center space-x-2.5 shrink-0">
           {isInstaller ? (
             <Link
               to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
             >
               <Camera className="w-4 h-4" />
-              <span>Open Site Photos</span>
+              <span>Capture Site Photos &rarr;</span>
             </Link>
           ) : (
-            <Link
-              to="/documents/create"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
-            >
-              <FilePlus2 className="w-4 h-4 text-solar-600" />
-              <span>Generate Document</span>
-            </Link>
-          )}
+            <>
+              <Link
+                to="/documents/create"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
+              >
+                <FilePlus2 className="w-4 h-4 text-solar-600" />
+                <span>Generate Document</span>
+              </Link>
 
-          <button
-            onClick={() => {
-              setFormError(null);
-              setSelectedFile(null);
-              setUploadFilename('');
-              setUploadDisplayName('');
-              setUploadCustomerId(customerFilter || '');
-              if (isInstaller) setUploadCategory('SITE_PHOTOS');
-              setUploadModalOpen(true);
-            }}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-          >
-            <UploadCloud className="w-4 h-4" />
-            <span>{isInstaller ? 'Upload Site Document' : 'Upload to Vault'}</span>
-          </button>
+              <button
+                onClick={() => {
+                  setFormError(null);
+                  setSelectedFile(null);
+                  setUploadFilename('');
+                  setUploadDisplayName('');
+                  setUploadCustomerId(customerFilter || '');
+                  setUploadModalOpen(true);
+                }}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Upload to Vault</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -896,15 +897,15 @@ export const DocumentsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Filter and Query Control Bar - 1 Balanced Professional Row */}
+      {/* Filter and Query Control Bar */}
       <div className="bg-card p-3 sm:p-3.5 rounded-xl border border-border shadow-2xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-3 items-center">
+        <div className={`grid grid-cols-1 ${isInstaller ? 'sm:grid-cols-12' : 'sm:grid-cols-2 lg:grid-cols-12'} gap-2.5 sm:gap-3 items-center`}>
           {/* Keyword Search */}
-          <div className="sm:col-span-2 lg:col-span-4 relative">
+          <div className={`${isInstaller ? 'sm:col-span-5' : 'sm:col-span-2 lg:col-span-4'} relative`}>
             <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by doc #, title, or filename..."
+              placeholder="Search by title, file name, or client..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 border border-border rounded-lg text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none transition"
@@ -912,7 +913,7 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {/* Client / Customer Filter */}
-          <div className="lg:col-span-3">
+          <div className={`${isInstaller ? 'sm:col-span-4' : 'lg:col-span-3'}`}>
             <select
               value={customerFilter}
               onChange={e => {
@@ -925,7 +926,7 @@ export const DocumentsPage: React.FC = () => {
               }}
               className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none font-medium cursor-pointer"
             >
-              <option value="">All Clients (No filter)</option>
+              <option value="">{isInstaller ? 'All Sites & Clients' : 'All Clients (No filter)'}</option>
               {customers.map(c => {
                 const cId = c._id || c.id || '';
                 const name = c.name || c.legalName || c.companyName || 'Client';
@@ -939,36 +940,40 @@ export const DocumentsPage: React.FC = () => {
           </div>
 
           {/* Category Filter */}
-          <div className="lg:col-span-3">
+          <div className={`${isInstaller ? 'sm:col-span-3 flex items-center gap-1.5' : 'lg:col-span-3'}`}>
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer"
+              className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
             >
-              <option value="">{isInstaller ? 'All Site Categories' : 'All Document Categories'}</option>
+              <option value="">{isInstaller ? 'All Site Documents' : 'All Document Categories'}</option>
               {(isInstaller ? INSTALLER_CATEGORIES : SOLAR_CATEGORIES).map(cat => (
                 <option key={cat.value} value={cat.value}>
                   {cat.icon} {cat.label}
                 </option>
               ))}
             </select>
+
+            {isInstaller && (search || customerFilter || categoryFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setCustomerFilter('');
+                  setCategoryFilter('');
+                  setSearchParams({});
+                }}
+                className="px-2 py-1.5 text-xs text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg font-bold transition shrink-0 cursor-pointer"
+                title="Reset Filters"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          {/* Review / Verification Status Filter & Reset */}
-          <div className="lg:col-span-2 flex items-center gap-1.5">
-            {isInstaller ? (
-              <select
-                value={reviewFilter}
-                onChange={e => setReviewFilter(e.target.value)}
-                className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
-              >
-                <option value="">All Statuses</option>
-                <option value="PENDING_REVIEW">⏳ Pending Verification</option>
-                <option value="ACCEPTED">✅ Verified / Approved</option>
-                <option value="REJECTED">❌ Rejected / Action Required</option>
-                <option value="RESUBMISSION_REQUIRED">🔄 Resubmission Required</option>
-              </select>
-            ) : (
+          {/* Review Status Filter & Reset (Non-Installer Only) */}
+          {!isInstaller && (
+            <div className="lg:col-span-2 flex items-center gap-1.5">
               <select
                 value={reviewFilter}
                 onChange={e => setReviewFilter(e.target.value)}
@@ -980,25 +985,25 @@ export const DocumentsPage: React.FC = () => {
                 <option value="REJECTED">❌ Rejected</option>
                 <option value="RESUBMISSION_REQUIRED">🔄 Resubmission</option>
               </select>
-            )}
 
-            {(search || customerFilter || categoryFilter || reviewFilter) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('');
-                  setCustomerFilter('');
-                  setCategoryFilter('');
-                  setReviewFilter('');
-                  setSearchParams({});
-                }}
-                className="px-2 py-1.5 text-xs text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg font-bold transition shrink-0 cursor-pointer"
-                title="Reset Filters"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+              {(search || customerFilter || categoryFilter || reviewFilter) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setCustomerFilter('');
+                    setCategoryFilter('');
+                    setReviewFilter('');
+                    setSearchParams({});
+                  }}
+                  className="px-2 py-1.5 text-xs text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg font-bold transition shrink-0 cursor-pointer"
+                  title="Reset Filters"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
