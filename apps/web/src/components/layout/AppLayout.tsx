@@ -29,7 +29,9 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  PackageCheck
+  PackageCheck,
+  MapPin,
+  CheckSquare
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -49,112 +51,101 @@ interface NavSection {
 
 const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Executive',
+    title: 'Executive & Overview',
     items: [
-      { to: '/', label: 'Admin Dashboard', icon: LayoutDashboard },
-      { to: '/quotations', label: 'Create Quotation', icon: FileSpreadsheet }
+      { to: '/', label: 'Executive Dashboard', icon: LayoutDashboard },
+      { to: '/projects', label: 'EPC Projects Pipeline', icon: FolderKanban },
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera }
     ]
   },
   {
-    title: 'CRM & Sales Pipeline',
+    title: 'Commercial & Sales',
     items: [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
-      { to: '/documents', label: 'Document Vault', icon: FolderLock },
-      { to: '/orders', label: 'Sales Orders', icon: ShoppingCart }
+      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
+      { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
   },
   {
-    title: 'Engineering & Feasibility',
-    items: [
-      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun }
-    ]
-  },
-  {
-    title: 'Operations & Project Execution',
-    items: [
-      { to: '/projects', label: '10-Stage EPC Projects', icon: FolderKanban },
-      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/net-metering', label: 'Net Metering & BM Sync', icon: Zap },
-      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
-    ]
-  },
-  {
-    title: 'Supply Chain & Stores',
+    title: 'Operations & Procurement',
     items: [
       { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes },
       { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: FileText },
-      { to: '/vendors', label: 'Vendor Directory', icon: Building2 }
+      { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
+      { to: '/net-metering', label: 'Net Metering & DISCOM', icon: Zap },
+      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
   },
   {
     title: 'Finance & Controlling',
     items: [
-      { to: '/payments', label: 'Accounts & Receivables', icon: CreditCard },
-      { to: '/expenses', label: 'Project Costing & P&L', icon: TrendingUp }
+      { to: '/payments', label: 'Payment Collections', icon: CreditCard },
+      { to: '/expenses', label: 'Project Costing & P&L', icon: TrendingUp },
+      { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock },
+      { to: '/create-document', label: 'Generate Contract', icon: FilePlus2 }
     ]
   },
   {
-    title: 'After-Sales & Asset Care',
-    items: [{ to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy }]
-  },
-  {
-    title: 'Workforce & Team',
-    items: [{ to: '/employees', label: 'Staff & Employees', icon: Users }]
+    title: 'Team & Services',
+    items: [
+      { to: '/service', label: 'Service & Maintenance Hub', icon: LifeBuoy },
+      { to: '/employees', label: 'Staff & Field Teams', icon: Users }
+    ]
   }
 ];
 
 const SALES_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'CRM & Sales Pipeline',
+    title: 'Commercial Pipeline',
     items: [
-      { to: '/', label: 'Sales Dashboard', icon: LayoutDashboard },
+      { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
-      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
-      { to: '/documents', label: 'Document Vault', icon: FolderLock },
-      { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell }
+      { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell },
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck }
     ]
   },
   {
-    title: 'Engineering & Proposals',
+    title: 'Proposals & Engineering',
     items: [
-      { to: '/solar-designs', label: 'Solar PV Sizing', icon: Sun },
-      { to: '/quotations', label: 'Create Quotation', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
+      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
+      { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
+      { to: '/create-document', label: 'Generate EPC Contract', icon: FilePlus2 }
     ]
   },
   {
-    title: 'Execution & Milestones',
+    title: 'Tracking & Records',
     items: [
-      { to: '/projects', label: 'Project Progress', icon: FolderKanban },
+      { to: '/projects', label: 'Project Milestones', icon: FolderKanban },
       { to: '/net-metering', label: 'Net Metering Status', icon: Zap },
-      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
+      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark },
+      { to: '/documents', label: 'Document Vault', icon: FolderLock }
     ]
   }
 ];
 
 const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Revenue & Collections (Inflow)',
+    title: 'Revenue & Inflow',
     items: [
-      { to: '/', label: 'Accounts Dashboard', icon: LayoutDashboard },
-      { to: '/payments', label: 'Customer Payments & Receipts', icon: CreditCard },
-      { to: '/orders', label: 'Confirmed Sales Orders (Billing)', icon: ShoppingCart },
-      { to: '/subsidies', label: 'Govt Subsidy (DBT Claims)', icon: Landmark }
+      { to: '/', label: 'Finance Dashboard', icon: LayoutDashboard },
+      { to: '/payments', label: 'Payment Collections', icon: CreditCard },
+      { to: '/orders', label: 'Sales Orders (Billing)', icon: ShoppingCart },
+      { to: '/subsidies', label: 'Govt Subsidy Claims (DBT)', icon: Landmark }
     ]
   },
   {
-    title: 'Payables & Costing (Outflow)',
+    title: 'Payables & Costing',
     items: [
       { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
-      { to: '/purchase-orders', label: 'Approved Purchase Orders', icon: PackageCheck },
-      { to: '/expenses', label: 'Expense Vouchers & Cash', icon: TrendingUp }
+      { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: PackageCheck },
+      { to: '/expenses', label: 'Project Expenses & Costing', icon: TrendingUp }
     ]
   },
   {
-    title: 'Compliance & Audit',
+    title: 'Audit & Records',
     items: [
       { to: '/documents', label: 'Financial Document Vault', icon: FolderLock }
     ]
@@ -163,11 +154,19 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Field Installation Workflow',
+    title: 'Field Workflow',
     items: [
-      { to: '/customers', label: 'Site List', icon: UserCheck },
-      { to: '/site-photos', label: 'Site Photos', icon: Camera },
-      { to: '/documents', label: 'Site Documents', icon: FolderLock }
+      { to: '/customers', label: 'Site List', icon: MapPin },
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
+      { to: '/documents', label: 'Site Documents & JCR', icon: FolderLock }
+    ]
+  },
+  {
+    title: 'Installation Tools',
+    items: [
+      { to: '/projects', label: 'Active Projects', icon: FolderKanban },
+      { to: '/inventory', label: 'Materials & Modules', icon: Boxes },
+      { to: '/tasks', label: 'Field Tasks & Schedule', icon: CheckSquare }
     ]
   }
 ];
@@ -175,56 +174,61 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
-    if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Dashboard' };
-    if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Accounts Dashboard' };
-    return { section: 'Executive', title: 'Admin Dashboard' };
+    if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Overview' };
+    if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Finance Dashboard' };
+    return { section: 'Executive', title: 'Executive Dashboard' };
   }
-  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Photos' };
-  if (pathname.startsWith('/leads')) return { section: 'CRM', title: 'Lead Management' };
+  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
+  if (pathname.startsWith('/leads')) return { section: 'Commercial', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
-    return { section: 'CRM', title: 'Customer Directory' };
+    return { section: 'Commercial', title: 'Customer Directory' };
   }
-  if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
-  if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'PV Sizing' };
-  if (pathname.startsWith('/quotations'))
-    return { section: 'Commercial', title: 'Create Quotation' };
+  if (pathname.startsWith('/follow-ups')) return { section: 'Commercial', title: 'Follow-ups & Reminders' };
+  if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'Solar PV Sizing & CAD' };
+  if (pathname.startsWith('/quotations')) return { section: 'Commercial', title: 'Quotation Proposals' };
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };
-  if (pathname.startsWith('/projects')) return { section: 'Operations', title: 'Project Pipeline' };
-  if (pathname.startsWith('/net-metering')) return { section: 'Compliance', title: 'Net Metering' };
+  if (pathname.startsWith('/projects')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
+    return { section: 'Operations', title: 'EPC Projects Pipeline' };
+  }
+  if (pathname.startsWith('/net-metering')) return { section: 'Operations', title: 'Net Metering (DISCOM)' };
   if (pathname.startsWith('/subsidies'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Govt Liaisons', title: 'Govt Subsidy (DBT)' };
-  if (pathname.startsWith('/inventory')) return { section: 'Supply Chain', title: 'Inventory' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Operations', title: 'Govt Subsidy (DBT)' };
+  if (pathname.startsWith('/inventory')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Materials & Modules' };
+    return { section: 'Supply Chain', title: 'Inventory & Stock' };
+  }
   if (pathname.startsWith('/vendors')) return { section: 'Procurement', title: 'Vendors' };
-  if (pathname.startsWith('/purchase-orders'))
-    return { section: 'Procurement', title: 'Purchase Orders' };
-  if (pathname.startsWith('/goods-receipts'))
-    return { section: 'Procurement', title: 'Goods Receipts' };
+  if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement', title: 'Purchase Orders' };
+  if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement', title: 'Goods Receipts' };
   if (pathname.startsWith('/vendor-invoices'))
     return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Procurement', title: 'Vendor Invoices & Bills' };
   if (pathname.startsWith('/payments'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Accounts', title: 'Payment Collections & Receipts' };
+    return { section: 'Finance', title: 'Payment Collections' };
   if (pathname.startsWith('/expenses'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Accounts', title: 'Expense Vouchers' };
+    return { section: 'Finance', title: 'Project Costing & Expenses' };
   if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
   if (pathname.startsWith('/warranties')) return { section: 'Service', title: 'Asset Warranties' };
   if (pathname.startsWith('/amc')) return { section: 'Service', title: 'AMC Contracts' };
   if (pathname.startsWith('/service-visits')) return { section: 'Service', title: 'Field Visits' };
-  if (pathname.startsWith('/employees')) return { section: 'HR', title: 'Employees' };
-  if (pathname.startsWith('/teams')) return { section: 'HR', title: 'Field Crews' };
-  if (pathname.startsWith('/tasks')) return { section: 'Workspace', title: 'Tasks' };
-  if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
-    return { section: 'CRM', title: 'Create Document' };
-  if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents' };
-    return { section: 'CRM', title: 'Document Vault' };
+  if (pathname.startsWith('/employees')) return { section: 'Workforce', title: 'Staff & Field Teams' };
+  if (pathname.startsWith('/teams')) return { section: 'Workforce', title: 'Field Crews' };
+  if (pathname.startsWith('/tasks')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Tasks & Schedule' };
+    return { section: 'Workspace', title: 'Tasks' };
   }
-  if (pathname.startsWith('/customer-portal'))
-    return { section: 'Customer', title: 'Client Portal' };
+  if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
+    return { section: 'Commercial', title: 'Generate EPC Contract' };
+  if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents & JCR' };
+    return { section: 'Records', title: 'Document Vault' };
+  }
+  if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };
   if (pathname.startsWith('/mfa')) return { section: 'Security', title: 'MFA Security' };
   if (pathname.startsWith('/health')) return { section: 'System', title: 'System Health' };
-  return { section: 'INS Solar', title: 'ERP Workstation' };
+  return { section: 'Rarebox Solar', title: 'Workstation' };
 }
 
 export const AppLayout: React.FC = () => {
@@ -265,27 +269,27 @@ export const AppLayout: React.FC = () => {
     <div className="flex flex-col h-full select-none">
       {/* Brand Header */}
       <div
-        className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} border-b border-border/70 shrink-0 bg-card`}
+        className={`h-14 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} border-b border-border/60 shrink-0 bg-card`}
       >
         <Link
-          to={activePanel === PanelType.INSTALLER ? '/site-photos' : '/'}
+          to={activePanel === PanelType.INSTALLER ? '/customers' : '/'}
           className="flex items-center space-x-2.5 group min-w-0"
         >
-          <div className="w-9 h-9 rounded-xl bg-solar-500/15 border border-solar-500/30 flex items-center justify-center text-solar-600 group-hover:bg-solar-500/25 transition-all shadow-xs shrink-0">
-            <Sun className="w-5 h-5 text-solar-500" />
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-100 text-amber-500 dark:text-amber-600 flex items-center justify-center shrink-0 shadow-xs border border-zinc-800/10 dark:border-zinc-200/10">
+            <Sun className="w-4 h-4 stroke-[2.2]" />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
               <div className="flex items-center space-x-1.5">
-                <span className="font-black text-[15px] tracking-tight text-foreground whitespace-nowrap">
-                  RAREBOX <span className="text-solar-600">SOLAR</span>
+                <span className="font-bold text-[14px] tracking-tight text-foreground whitespace-nowrap">
+                  Rarebox <span className="text-amber-600 dark:text-amber-500">Solar</span>
                 </span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20 shrink-0">
+                <span className="px-1 py-0.2 rounded text-[9px] font-mono font-semibold bg-muted text-muted-foreground border border-border/60 shrink-0">
                   ERP
                 </span>
               </div>
-              <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
-                RAREBOX LLP • Raipur
+              <span className="text-[10px] text-muted-foreground/70 font-medium whitespace-nowrap">
+                Raipur Operations
               </span>
             </div>
           )}
@@ -296,7 +300,7 @@ export const AppLayout: React.FC = () => {
           <button
             type="button"
             onClick={() => setSidebarCollapsed(true)}
-            className="hidden lg:flex p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            className="hidden lg:flex p-1.5 rounded-lg text-muted-foreground/60 hover:bg-secondary hover:text-foreground transition-colors"
             title="Collapse sidebar"
             aria-label="Collapse sidebar"
           >
@@ -307,11 +311,11 @@ export const AppLayout: React.FC = () => {
 
       {/* Expand Button when Collapsed */}
       {isCollapsed && (
-        <div className="p-2 border-b flex justify-center">
+        <div className="p-2 border-b border-border/60 flex justify-center">
           <button
             type="button"
             onClick={() => setSidebarCollapsed(false)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground/60 hover:bg-secondary hover:text-foreground transition-colors"
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
@@ -320,84 +324,60 @@ export const AppLayout: React.FC = () => {
         </div>
       )}
 
-      {/* Dedicated Workstation Badge (Role-Enforced) */}
-      <div className={`p-3 shrink-0 ${isCollapsed ? 'flex justify-center' : ''}`}>
+      {/* Panel / Workstation Identity Capsule */}
+      <div className={`px-3 py-2.5 shrink-0 ${isCollapsed ? 'flex justify-center' : ''}`}>
         {!isCollapsed ? (
-          <div
-            className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-xl border shadow-xs ${
-              activePanel === PanelType.ADMIN
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400'
+          <div className="px-3 py-2 rounded-xl bg-secondary/40 border border-border/60">
+            <div className="flex items-center space-x-2">
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  activePanel === PanelType.ADMIN
+                    ? 'bg-zinc-700 dark:bg-zinc-300'
+                    : activePanel === PanelType.SALES
+                      ? 'bg-blue-600 dark:bg-blue-400'
+                      : activePanel === PanelType.INSTALLER
+                        ? 'bg-amber-600 dark:bg-amber-400'
+                        : 'bg-emerald-600 dark:bg-emerald-400'
+                }`}
+              />
+              <span className="text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase truncate">
+                {activePanel === PanelType.ADMIN
+                  ? 'Executive Console'
+                  : activePanel === PanelType.SALES
+                    ? 'Commercial & CRM'
+                    : activePanel === PanelType.INSTALLER
+                      ? 'Field Operations'
+                      : 'Finance & Accounts'}
+              </span>
+            </div>
+            <div className="text-xs font-semibold text-foreground tracking-tight mt-0.5 truncate">
+              {activePanel === PanelType.ADMIN
+                ? 'EPC Operations & Oversight'
                 : activePanel === PanelType.SALES
-                  ? 'bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-400'
+                  ? 'Proposals, PV Sizing & Pipeline'
                   : activePanel === PanelType.INSTALLER
-                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-            }`}
-          >
-            <div
-              className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
-                activePanel === PanelType.ADMIN
-                  ? 'bg-amber-500 shadow-sm shadow-amber-500/50'
-                  : activePanel === PanelType.SALES
-                    ? 'bg-sky-500 shadow-sm shadow-sky-500/50'
-                    : activePanel === PanelType.INSTALLER
-                      ? 'bg-orange-500 shadow-sm shadow-orange-500/50'
-                      : 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
-              }`}
-            />
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black uppercase tracking-wider truncate">
-                {activePanel === PanelType.ADMIN
-                  ? '⚡ Admin Workstation'
-                  : activePanel === PanelType.SALES
-                    ? '💼 Sales & CRM Suite'
-                    : activePanel === PanelType.INSTALLER
-                      ? '👷 Field Installer'
-                      : '💳 Accounts & Finance'}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-medium truncate">
-                {activePanel === PanelType.ADMIN
-                  ? 'Full EPC Operations & Oversight'
-                  : activePanel === PanelType.SALES
-                    ? 'Proposals, PV Sizing & Pipeline'
-                    : activePanel === PanelType.INSTALLER
-                      ? 'Rooftop Installation & Commissioning'
-                      : 'Billing, Invoices & Subsidies'}
-              </span>
+                    ? 'Rooftop Installation & Commissioning'
+                    : 'Billing, Invoices & Subsidy DBT'}
             </div>
           </div>
         ) : (
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border shadow-xs ${
-              activePanel === PanelType.ADMIN
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-400'
-                : activePanel === PanelType.SALES
-                  ? 'bg-sky-500/15 border-sky-500/40 text-sky-700 dark:text-sky-400'
-                  : activePanel === PanelType.INSTALLER
-                    ? 'bg-orange-500/15 border-orange-500/40 text-orange-700 dark:text-orange-400'
-                    : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
-            }`}
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border border-border/80 bg-secondary/50 text-foreground"
             title={`${activePanel} Panel Active`}
           >
-            {activePanel === PanelType.ADMIN
-              ? '⚡'
-              : activePanel === PanelType.SALES
-                ? '💼'
-                : activePanel === PanelType.INSTALLER
-                  ? '👷'
-                  : '💳'}
+            {activePanel[0]}
           </div>
         )}
       </div>
 
       {/* Navigation Sections */}
       <nav
-        className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-3'} py-2 space-y-5 scrollbar-thin scrollbar-thumb-muted-foreground/20`}
+        className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-3'} py-1 space-y-4 scrollbar-thin scrollbar-thumb-muted-foreground/20`}
       >
         {currentSections.map((section, idx) => (
-          <div key={idx} className="space-y-1">
+          <div key={idx} className="space-y-0.5">
             {!isCollapsed && (
-              <div className="px-3 text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider mb-1.5">
+              <div className="px-2.5 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.08em] pb-1 pt-1">
                 {section.title}
               </div>
             )}
@@ -405,7 +385,7 @@ export const AppLayout: React.FC = () => {
               {section.items.map(item => {
                 const ItemIcon = item.icon;
 
-                // Bulletproof mutually-exclusive active matching to eliminate dual/overlap highlights:
+                // Mutually-exclusive active matching to prevent duplicate highlights
                 const isActive = (() => {
                   if (item.to === '/') {
                     return location.pathname === '/';
@@ -432,22 +412,29 @@ export const AppLayout: React.FC = () => {
                     key={item.to}
                     to={item.to}
                     title={isCollapsed ? item.label : undefined}
-                    className={() => {
-                      return `flex items-center ${isCollapsed ? 'justify-center p-2.5 min-h-[44px]' : 'justify-between px-3 py-2.5 min-h-[44px]'} rounded-lg text-xs font-medium transition-all group ${
-                        isActive
-                          ? 'bg-solar-500/15 text-solar-700 dark:text-solar-400 font-semibold border-l-3 border-solar-500 shadow-xs'
-                          : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
-                      }`;
-                    }}
+                    className={`flex items-center ${
+                      isCollapsed ? 'justify-center p-2 min-h-[38px]' : 'justify-between px-2.5 py-1.5 min-h-[36px]'
+                    } rounded-lg text-[13px] transition-colors group ${
+                      isActive
+                        ? 'bg-secondary text-foreground font-semibold shadow-2xs'
+                        : 'text-muted-foreground/80 hover:bg-secondary/50 hover:text-foreground font-medium'
+                    }`}
                   >
-                    <div
-                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2.5'} truncate`}
-                    >
-                      <ItemIcon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      {!isCollapsed && isActive && (
+                        <span className="w-1 h-3.5 rounded-full bg-amber-500 shrink-0 -ml-0.5" />
+                      )}
+                      <ItemIcon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          isActive
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-muted-foreground/70 group-hover:text-foreground'
+                        }`}
+                      />
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
                     </div>
                     {!isCollapsed && item.badge && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-solar-500/20 text-solar-700">
+                      <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                         {item.badge}
                       </span>
                     )}
@@ -459,44 +446,56 @@ export const AppLayout: React.FC = () => {
         ))}
       </nav>
 
-      {/* Sidebar Footer (Hidden in Installer Panel to eliminate developer jargon) */}
-      {activePanel !== PanelType.INSTALLER && (
-        <div
-          className={`p-3 border-t border-border/70 shrink-0 bg-card/50 space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
-        >
-          <NavLink
-            to="/health"
-            title="Health Status"
-            className={({ isActive }) =>
-              `flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-1.5'} rounded-lg text-xs font-medium transition-colors ${
-                isActive
-                  ? 'bg-solar-500/15 text-solar-700 font-semibold'
-                  : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
-              }`
-            }
-          >
-            <div className="flex items-center space-x-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              {!isCollapsed && <span>Health Status</span>}
+      {/* Sidebar Footer User Anchor Card */}
+      <div className={`p-3 border-t border-border/60 shrink-0 bg-card/60 ${isCollapsed ? 'flex justify-center' : ''}`}>
+        {!isCollapsed ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-secondary border border-border/80 flex items-center justify-center font-bold text-xs text-foreground shrink-0">
+                {user?.firstName ? user.firstName[0] : 'R'}
+                {user?.lastName ? user.lastName[0] : 'S'}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-foreground truncate">
+                  {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'Operator'}
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground/70 uppercase truncate">
+                  {user?.role || activePanel}
+                </span>
+              </div>
             </div>
-            {!isCollapsed && (
-              <span className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                Live
-              </span>
-            )}
-          </NavLink>
 
-          {!isCollapsed && (
-            <div className="px-3 text-[10px] text-muted-foreground/60 flex items-center justify-between">
-              <span>Enterprise v1.2</span>
-              <span>Prod Ready</span>
+            <div className="flex items-center space-x-1 shrink-0">
+              {activePanel !== PanelType.INSTALLER && (
+                <Link
+                  to="/mfa-setup"
+                  className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-secondary transition-colors"
+                  title="Security & 2FA"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-1.5 rounded-md text-muted-foreground/60 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-secondary transition-colors cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 
@@ -505,8 +504,8 @@ export const AppLayout: React.FC = () => {
       {/* 1. Desktop Left Sidebar */}
       <aside
         className={`hidden lg:flex ${
-          sidebarCollapsed ? 'w-20' : 'w-72'
-        } flex-col fixed inset-y-0 left-0 z-40 bg-card border-r border-border shadow-xs transition-all duration-300`}
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        } flex-col fixed inset-y-0 left-0 z-40 bg-card border-r border-border/60 shadow-xs transition-all duration-200`}
       >
         {renderNavContent(sidebarCollapsed)}
       </aside>
@@ -515,11 +514,11 @@ export const AppLayout: React.FC = () => {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-card border-r shadow-2xl z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-card border-r border-border shadow-2xl z-10 animate-in slide-in-from-left duration-200">
             <div className="absolute top-3 right-3 z-20">
               <button
                 type="button"
@@ -538,104 +537,78 @@ export const AppLayout: React.FC = () => {
       {/* 3. Main Workspace Area */}
       <div
         className={`flex-1 ${
-          sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
-        } flex flex-col min-h-screen min-w-0 transition-all duration-300`}
+          sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'
+        } flex flex-col min-h-screen min-w-0 transition-all duration-200`}
       >
         {/* Top Navbar Header */}
-        <header className="h-16 sticky top-0 z-30 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-3 sm:px-6 shadow-xs">
+        <header className="h-14 sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-3 sm:px-6">
           {/* Left: Mobile Toggle & Breadcrumbs */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95"
+              className="lg:hidden p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-colors"
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             {/* Breadcrumb Navigation */}
-            <div className="flex items-center space-x-1.5 text-xs sm:text-sm font-semibold truncate">
-              <span className="text-muted-foreground hidden sm:inline truncate">
+            <div className="flex items-center space-x-2 text-xs font-medium truncate">
+              <span className="text-muted-foreground/70 hidden sm:inline truncate">
                 {breadcrumb.section}
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 hidden sm:inline shrink-0" />
-              <span className="text-foreground font-bold truncate">{breadcrumb.title}</span>
-              <span
-                className={`ml-1.5 hidden xs:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                  activePanel === PanelType.ADMIN
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
-                    : activePanel === PanelType.SALES
-                      ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20'
-                      : activePanel === PanelType.INSTALLER
-                        ? 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20'
-                        : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                }`}
-              >
+              <ChevronRight className="w-3 h-3 text-muted-foreground/40 hidden sm:inline shrink-0" />
+              <span className="text-foreground font-semibold truncate">{breadcrumb.title}</span>
+              <span className="ml-1.5 hidden xs:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-secondary text-muted-foreground border border-border/60">
                 {activePanel}
               </span>
             </div>
           </div>
 
-          {/* Right: User Profile, Tasks Alert & Sign Out */}
-          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            {/* Operational Tasks & Alerts Quick Link (Admin / Sales / Accounts only) */}
+          {/* Right: Actions */}
+          <div className="flex items-center space-x-2 shrink-0">
             {activePanel !== PanelType.INSTALLER && (
               <Link
                 to="/tasks"
-                className="p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors relative"
-                title="Operational Tasks & Approvals"
-                aria-label="Operational Tasks and Approvals"
+                className="p-1.5 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors relative"
+                title="Tasks & Schedule"
+                aria-label="Tasks and Schedule"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               </Link>
             )}
 
-            {/* Authenticated User Badge & Logout */}
+            {/* Authenticated User Capsule */}
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-1.5 sm:space-x-3 pl-1.5 sm:pl-2 border-l border-border/80">
-                <div className="flex items-center space-x-1.5 sm:space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-solar-500 to-amber-400 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+              <div className="flex items-center space-x-2 pl-2 border-l border-border/60">
+                <div className="flex items-center space-x-2">
+                  <div className="w-7 h-7 rounded-lg bg-secondary border border-border/80 text-foreground flex items-center justify-center font-semibold text-xs shrink-0">
                     {user.firstName ? user.firstName[0] : 'U'}
-                    {user.lastName ? user.lastName[0] : ''}
                   </div>
-                  <div className="flex flex-col text-left">
-                    <div className="text-xs font-bold text-foreground leading-tight truncate max-w-[85px] sm:max-w-[130px]">
-                      {user.firstName || 'System'} {user.lastName || 'Admin'}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate max-w-[85px] sm:max-w-[130px]">
+                  <div className="hidden sm:flex flex-col text-left">
+                    <span className="text-xs font-semibold text-foreground leading-tight truncate max-w-[120px]">
+                      {user.firstName || 'User'} {user.lastName || ''}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground/70 uppercase">
                       {user.role}
-                    </div>
+                    </span>
                   </div>
                 </div>
-
-                {/* 2FA Setup Link (Hidden for Field Installer) */}
-                {activePanel !== PanelType.INSTALLER && (
-                  <Link
-                    to="/mfa-setup"
-                    className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-border"
-                    title="Security & 2FA Setup"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-solar-500" />
-                    <span className="hidden md:inline">2FA</span>
-                  </Link>
-                )}
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="inline-flex items-center space-x-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors border border-rose-200 dark:border-rose-900/50"
+                  className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   title="Sign Out"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white transition-colors shadow-xs"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors shadow-2xs"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
