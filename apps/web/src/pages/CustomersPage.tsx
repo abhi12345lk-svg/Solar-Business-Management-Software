@@ -899,16 +899,7 @@ export const CustomersPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {isInstaller ? (
-            <Link
-              to="/site-photos"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
-              title="Open 4-Point Site Photos Workstation"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Open Site Photos &rarr;</span>
-            </Link>
-          ) : (
+          {!isInstaller && (
             <>
               <Link
                 to="/create-document"
@@ -931,50 +922,52 @@ export const CustomersPage: React.FC = () => {
 
       {/* Sleek Filter & Search Strip */}
       <div className="p-2.5 bg-card border rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shadow-xs">
-        {/* Quick Filter Tabs */}
-        <div className="inline-flex rounded-lg bg-muted/60 p-0.5 border border-border text-xs">
-          <button
-            type="button"
-            onClick={() => setTypeFilter('ALL')}
-            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-              typeFilter === 'ALL'
-                ? 'bg-background text-foreground shadow-xs font-bold'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {isInstaller ? `All Sites (${totalCount})` : `All Clients (${totalCount})`}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTypeFilter(CustomerType.INDIVIDUAL)}
-            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-              typeFilter === CustomerType.INDIVIDUAL
-                ? 'bg-background text-foreground shadow-xs font-bold'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Residential ({residentialCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTypeFilter(CustomerType.COMMERCIAL)}
-            className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
-              typeFilter === CustomerType.COMMERCIAL || typeFilter === CustomerType.INDUSTRIAL
-                ? 'bg-background text-foreground shadow-xs font-bold'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Commercial & Industrial ({commercialCount})
-          </button>
-        </div>
+        {/* Quick Filter Tabs (Only shown for Non-Installer CRM) */}
+        {!isInstaller && (
+          <div className="inline-flex rounded-lg bg-muted/60 p-0.5 border border-border text-xs">
+            <button
+              type="button"
+              onClick={() => setTypeFilter('ALL')}
+              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                typeFilter === 'ALL'
+                  ? 'bg-background text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All Clients ({totalCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter(CustomerType.INDIVIDUAL)}
+              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                typeFilter === CustomerType.INDIVIDUAL
+                  ? 'bg-background text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Residential ({residentialCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter(CustomerType.COMMERCIAL)}
+              className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                typeFilter === CustomerType.COMMERCIAL || typeFilter === CustomerType.INDUSTRIAL
+                  ? 'bg-background text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Commercial &amp; Industrial ({commercialCount})
+            </button>
+          </div>
+        )}
 
         {/* Live Search & Status */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 sm:max-w-md">
+        <form onSubmit={handleSearchSubmit} className={`flex items-center gap-2 flex-1 ${isInstaller ? 'w-full' : 'sm:max-w-md'}`}>
           <div className="relative flex-1">
             <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by name, phone, code, city..."
+              placeholder="Search by site name, phone, customer code, city..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
@@ -984,9 +977,9 @@ export const CustomersPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-foreground font-semibold cursor-pointer"
+              className="px-2.5 py-1.5 text-xs bg-background border rounded-lg text-foreground font-semibold cursor-pointer shrink-0"
             >
-              <option value="ALL">All Inspection Statuses</option>
+              <option value="ALL">All Sites (Inspection Status)</option>
               <option value="INSPECTION_PENDING">⏳ Inspection Pending</option>
               <option value="INSPECTION_DONE">✅ Inspection Completed (4/4 Done)</option>
             </select>
@@ -1079,13 +1072,13 @@ export const CustomersPage: React.FC = () => {
               <thead>
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-semibold">
                   <th className="py-3 px-4">Customer ID</th>
-                  <th className="py-3 px-4">Customer Name &amp; Type</th>
+                  <th className="py-3 px-4">{isInstaller ? 'Site / Customer' : 'Customer Name & Type'}</th>
                   <th className="py-3 px-4">Contact Details</th>
                   <th className="py-3 px-4">Installation Site</th>
                   {isInstaller ? (
                     <>
                       <th className="py-3 px-4 text-center">Inspection Status</th>
-                      <th className="py-3 px-4 text-center">Field Workflow Actions</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </>
                   ) : (
                     <>
@@ -1226,28 +1219,26 @@ export const CustomersPage: React.FC = () => {
                             })()}
                           </td>
 
-                          {/* Field Operations Direct Actions Column */}
+                          {/* Field Operations Direct Action: Single Clean Button */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            <div className="flex items-center justify-center space-x-1.5">
-                              <Link
-                                to={`/site-photos?customerId=${customer.id}`}
-                                onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
-                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                                title={`Capture 4-point site inspection photos for ${customer.name}`}
-                              >
-                                <Camera className="w-3.5 h-3.5" />
-                                <span>Site Photos &rarr;</span>
-                              </Link>
-                              <Link
-                                to={`/documents?customerId=${customer.id}`}
-                                onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
-                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border shadow-2xs transition cursor-pointer"
-                                title={`Open compliance site documents for ${customer.name}`}
-                              >
-                                <FolderLock className="w-3.5 h-3.5 text-solar-600" />
-                                <span>Documents &rarr;</span>
-                              </Link>
-                            </div>
+                            {(() => {
+                              const inspStatus = getCustomerInspectionStatus(customer);
+                              return (
+                                <Link
+                                  to={`/site-photos?customerId=${customer.id}`}
+                                  onClick={() => localStorage.setItem('solar_installer_active_customer_id', customer.id)}
+                                  className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer ${
+                                    inspStatus === 'DONE'
+                                      ? 'bg-muted hover:bg-muted/80 text-foreground border border-border'
+                                      : 'bg-solar-600 hover:bg-solar-700 text-white'
+                                  }`}
+                                  title={`Open 4-point site inspection photos for ${customer.name}`}
+                                >
+                                  <Camera className="w-3.5 h-3.5" />
+                                  <span>{inspStatus === 'DONE' ? 'View Photos →' : 'Take Photos →'}</span>
+                                </Link>
+                              );
+                            })()}
                           </td>
                         </>
                       ) : (
