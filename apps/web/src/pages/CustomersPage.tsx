@@ -40,7 +40,6 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { CustomerDto, CustomerType, CustomerStatus, PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
-import { InstallerWorkflowNav } from '../components/installer/InstallerWorkflowNav.js';
 
 const MANDATORY_SOLAR_SLOTS = [
   {
@@ -850,9 +849,6 @@ export const CustomersPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Field Installer Workflow Stepper (Step 1 -> Step 2 -> Step 3) */}
-      {isInstaller && <InstallerWorkflowNav activeStep="customers" />}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -866,31 +862,21 @@ export const CustomersPage: React.FC = () => {
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {isInstaller
-              ? 'Select an assigned client site to capture 4-point geotagged inspection photos & manage installation dossiers.'
+              ? 'Select an assigned rooftop solar site to capture 4-point inspection photos & hardware barcodes.'
               : 'Registered solar clients, rooftop site installation profiles, and ongoing projects.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {isInstaller ? (
-            <div className="flex items-center space-x-2">
-              <Link
-                to="/site-photos"
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
-                title="Open 4-Point Site Photos Workstation"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>Site Photos &rarr;</span>
-              </Link>
-              <Link
-                to="/documents"
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-card hover:bg-muted text-foreground border border-border shadow-2xs transition"
-                title="Open Site Documents"
-              >
-                <FolderLock className="w-3.5 h-3.5 text-solar-600" />
-                <span>Site Documents &rarr;</span>
-              </Link>
-            </div>
+            <Link
+              to="/site-photos"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition"
+              title="Open 4-Point Site Photos Workstation"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Open Site Photos &rarr;</span>
+            </Link>
           ) : (
             <>
               <Link
