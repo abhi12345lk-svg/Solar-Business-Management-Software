@@ -557,80 +557,21 @@ export const AppLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Operational Shortcuts & System Status (User Profile is exclusively in Sidebar bottom) */}
-          <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
-            {/* Live DISCOM Grid Status indicator */}
-            <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-secondary/50 border border-border/60 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-medium text-muted-foreground">
-                DISCOM Grid: <span className="font-semibold text-foreground">Active</span>
-              </span>
-            </div>
-
-            {/* Role-Specific Quick Action Button */}
-            {activePanel === PanelType.INSTALLER && (
-              <Link
-                to="/site-photos"
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs rounded-lg transition-colors shadow-2xs"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>Capture Photos</span>
-              </Link>
-            )}
-
-            {activePanel === PanelType.SALES && (
-              <Link
-                to="/quotations"
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-solar-600 hover:bg-solar-700 text-white font-medium text-xs rounded-lg transition-colors shadow-2xs"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>New Quotation</span>
-              </Link>
-            )}
-
-            {activePanel === PanelType.ACCOUNTS && (
-              <Link
-                to="/payments"
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition-colors shadow-2xs"
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>Record Payment</span>
-              </Link>
-            )}
-
-            {activePanel === PanelType.ADMIN && (
-              <Link
-                to="/projects"
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 font-medium text-xs rounded-lg transition-colors shadow-2xs"
-              >
-                <FolderKanban className="w-3.5 h-3.5" />
-                <span>EPC Projects</span>
-              </Link>
-            )}
-
-            {/* Operational Tasks & Schedule Bell */}
+          {/* Right: Simple & Clean (Notifications & Mobile Sign Out) */}
+          <div className="flex items-center space-x-2 shrink-0">
             {activePanel !== PanelType.INSTALLER && (
               <Link
                 to="/tasks"
-                className="p-1.5 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors relative"
-                title="Operational Tasks & Schedule"
-                aria-label="Tasks and Schedule"
+                className="p-2 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors relative"
+                title="Tasks & Notifications"
+                aria-label="Tasks and Notifications"
               >
                 <Bell className="w-4 h-4" />
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500" />
               </Link>
             )}
 
-            {/* System Health Status shortcut */}
-            <Link
-              to="/health"
-              className="p-1.5 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors"
-              title="System Health & API Connectivity"
-            >
-              <Zap className="w-4 h-4 text-solar-500" />
-            </Link>
-
-            {/* Mobile-Only Sign Out (On desktop, user profile & logout are in sidebar bottom) */}
+            {/* Mobile-Only Sign Out (On desktop, user profile & logout are cleanly in sidebar bottom) */}
             {isAuthenticated ? (
               <button
                 type="button"
