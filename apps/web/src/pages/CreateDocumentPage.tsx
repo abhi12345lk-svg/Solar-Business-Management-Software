@@ -159,7 +159,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
   // Vendor Information (Rarebox LLP)
   const [tplVendorName, setTplVendorName] = useState('M/S RAREBOX LLP RAIPUR');
   const [tplVendorOffice, setTplVendorOffice] = useState('MAHADEV GHAT ROAD ASHWANI NAGAR RAIPUR, Chhattisgarh');
-  const [tplVendorSignatory, setTplVendorSignatory] = useState('SAMEER SAHU');
+  const [tplVendorSignatory, setTplVendorSignatory] = useState('AUTHORIZED SIGNATORY');
   const [tplVendorDesignation, setTplVendorDesignation] = useState('PROPRIETOR / AUTHORIZED SIGNATORY');
   const [tplVendorPhone, setTplVendorPhone] = useState('9630131550');
   const [tplVendorEmail, setTplVendorEmail] = useState('rareboxllp@gmail.com');

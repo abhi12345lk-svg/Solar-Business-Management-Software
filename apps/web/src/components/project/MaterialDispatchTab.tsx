@@ -551,7 +551,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                     type="text"
                     value={driverName}
                     onChange={e => setDriverName(e.target.value)}
-                    placeholder="e.g. Rajesh Sharma"
+                    placeholder="e.g. Authorized Dispatch Receiver"
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>

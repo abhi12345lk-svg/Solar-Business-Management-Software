@@ -790,7 +790,7 @@ export const LeadsPage: React.FC = () => {
                       type="text"
                       value={reference}
                       onChange={e => setReference(e.target.value)}
-                      placeholder="e.g. Ramesh Sharma, Channel Partner, Direct..."
+                      placeholder="e.g. Channel Partner, Direct Inquiry, Referral..."
                       className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                     />
                   </div>

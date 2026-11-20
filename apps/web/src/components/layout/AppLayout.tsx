@@ -441,8 +441,8 @@ export const AppLayout: React.FC = () => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center space-x-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-secondary border border-border/80 flex items-center justify-center font-bold text-xs text-foreground shrink-0">
-                {user?.firstName ? user.firstName[0] : 'R'}
-                {user?.lastName ? user.lastName[0] : 'S'}
+                {user?.firstName ? user.firstName[0] : 'S'}
+                {user?.lastName ? user.lastName[0] : 'O'}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-semibold text-foreground truncate">

@@ -1117,7 +1117,7 @@ export const InstallationWorkflowPage: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Ramesh Chandra Verma"
+                      placeholder="e.g. Site Supervisor / Electrician"
                       value={quickCustName}
                       onChange={e => setQuickCustName(e.target.value)}
                       className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20"

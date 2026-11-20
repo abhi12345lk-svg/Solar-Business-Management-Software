@@ -1053,7 +1053,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                   type="text"
                   value={meterForm.testedBy}
                   onChange={e => setMeterForm({ ...meterForm, testedBy: e.target.value })}
-                  placeholder="e.g. Er. Rajesh Verma (JE CSPDCL Raipur)"
+                  placeholder="e.g. Assistant Engineer (DISCOM)"
                   className="w-full px-3 py-2 bg-background border rounded-lg text-foreground focus:ring-2 focus:ring-solar-500"
                 />
               </div>

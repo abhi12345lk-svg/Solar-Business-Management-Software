@@ -665,7 +665,7 @@ export function ProjectsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 10kW Rooftop Solar - Ramesh Sharma Residence"
+                  placeholder="e.g. 10kW Rooftop Solar System"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-input bg-background text-xs"

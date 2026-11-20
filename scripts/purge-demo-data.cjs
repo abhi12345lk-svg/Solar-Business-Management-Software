@@ -7,6 +7,10 @@ const envPath = path.join(__dirname, '..', 'apps', 'api', '.env');
 const env = dotenv.parse(fs.readFileSync(envPath));
 
 const COLLECTIONS_TO_CLEAR = [
+  'stock_balances',
+  'vendors',
+  'products',
+  'productcategories',
   'customers',
   'leads',
   'lead_activities',
@@ -30,82 +34,84 @@ const COLLECTIONS_TO_CLEAR = [
   'sessions'
 ];
 
-async function purgeDemoData() {
+async function purgeAllData() {
   console.log('Connecting to MongoDB Atlas...');
   await mongoose.connect(env.MONGODB_URI);
   const db = mongoose.connection.db;
 
-  console.log('\n--- Purging Demo / Test Transactional Data ---');
+  console.log('\n--- Purging All Collections ---');
   for (const colName of COLLECTIONS_TO_CLEAR) {
     try {
       const col = db.collection(colName);
-      const beforeCount = await col.countDocuments();
-      if (beforeCount > 0) {
+      const count = await col.countDocuments();
+      if (count > 0) {
         await col.deleteMany({});
-        console.log(`✓ Cleared collection "${colName}": removed ${beforeCount} documents.`);
+        console.log(`✓ Cleared collection "${colName}": deleted ${count} documents.`);
       } else {
-        console.log(`- Collection "${colName}" was already empty.`);
+        console.log(`- Collection "${colName}" is already empty.`);
       }
     } catch (err) {
-      console.warn(`! Failed clearing "${colName}":`, err.message);
+      console.warn(`! Error clearing "${colName}":`, err.message);
     }
   }
 
-  console.log('\n--- Resetting Stock Balances ---');
-  try {
-    const sbCol = db.collection('stock_balances');
-    const updateRes = await sbCol.updateMany({}, [
-      {
-        $set: {
-          reservedQuantity: 0,
-          availableQuantity: '$onHandQuantity'
-        }
-      }
-    ]);
-    console.log(`✓ Reset ${updateRes.matchedCount} stock balances to unreserved (available = on-hand).`);
-  } catch (err) {
-    console.warn('! Error resetting stock balances:', err.message);
-  }
-
-  console.log('\n--- Resetting Sequence Counters ---');
+  console.log('\n--- Resetting Sequence Counters to 0 ---');
   try {
     const seqCol = db.collection('sequencecounters');
     const seqRes = await seqCol.updateMany({}, { $set: { currentValue: 0, updatedAt: new Date() } });
-    console.log(`✓ Reset ${seqRes.matchedCount} sequence counters to 0 (next new records start at 00001).`);
+    console.log(`✓ Reset ${seqRes.matchedCount} sequence counters to 0.`);
   } catch (err) {
     console.warn('! Error resetting sequence counters:', err.message);
   }
 
-  console.log('\n--- Verifying Preserved Configurations & Logins ---');
-  const userCount = await db.collection('users').countDocuments();
-  const users = await db.collection('users').find({}, { projection: { email: 1, role: 1 } }).toArray();
-  console.log(`✓ Users preserved (${userCount}):`);
-  users.forEach(u => console.log(`   - ${u.email} (${u.role})`));
+  console.log('\n--- Updating Workstation User Names (Removing all demo personal names) ---');
+  const usersCol = db.collection('users');
 
-  const company = await db.collection('companysettings').findOne({});
-  console.log(`✓ Company Settings preserved: ${company?.companyName || 'Rarebox Solar'}`);
+  await usersCol.updateOne(
+    { email: 'installer@inssolar.com' },
+    { $set: { firstName: 'Field', lastName: 'Installer', updatedAt: new Date() } }
+  );
+  console.log('✓ Updated installer@inssolar.com -> "Field Installer" (FI)');
 
-  const vendorCount = await db.collection('vendors').countDocuments();
-  console.log(`✓ Vendors preserved: ${vendorCount}`);
+  await usersCol.updateOne(
+    { email: 'sales@inssolar.com' },
+    { $set: { firstName: 'Sales', lastName: 'Executive', updatedAt: new Date() } }
+  );
+  console.log('✓ Updated sales@inssolar.com -> "Sales Executive" (SE)');
 
-  const warehouseCount = await db.collection('warehouses').countDocuments();
-  console.log(`✓ Warehouses preserved: ${warehouseCount}`);
+  await usersCol.updateOne(
+    { email: 'accounts@inssolar.com' },
+    { $set: { firstName: 'Accounts', lastName: 'Officer', updatedAt: new Date() } }
+  );
+  console.log('✓ Updated accounts@inssolar.com -> "Accounts Officer" (AO)');
 
-  const productCount = await db.collection('products').countDocuments();
-  console.log(`✓ Products preserved: ${productCount}`);
+  await usersCol.updateOne(
+    { email: 'admin@inssolar.com' },
+    { $set: { firstName: 'System', lastName: 'Administrator', updatedAt: new Date() } }
+  );
+  console.log('✓ Updated admin@inssolar.com -> "System Administrator" (SA)');
 
-  const templateCount = await db.collection('installationchecklisttemplates').countDocuments();
-  console.log(`✓ Installation Templates preserved: ${templateCount}`);
+  console.log('\n--- Final Verification ---');
+  const allCols = await db.listCollections().toArray();
+  const summary = {};
+  for (const c of allCols) {
+    const cnt = await db.collection(c.name).countDocuments();
+    if (cnt > 0) summary[c.name] = cnt;
+  }
+  console.log('Remaining documents in database:', JSON.stringify(summary, null, 2));
+
+  const users = await usersCol.find({}, { projection: { email: 1, firstName: 1, lastName: 1, role: 1 } }).toArray();
+  console.log('Active Workstation Users:');
+  users.forEach(u => console.log(`   - ${u.firstName} ${u.lastName} <${u.email}> (${u.role})`));
 
   console.log('\n========================================');
-  console.log('ALL DEMO & TEST DATA HAS BEEN COMPLETELY PURGED!');
-  console.log('The system is 100% clean and ready for client demonstration.');
+  console.log('SYSTEM IS NOW 100% CLEAN OF ALL DEMO / TEST DATA & NAMES!');
   console.log('========================================\n');
 
   await mongoose.disconnect();
 }
 
-purgeDemoData().catch(err => {
-  console.error('Purge script failed:', err);
+purgeAllData().catch(err => {
+  console.error('Purge failed:', err);
   process.exit(1);
 });

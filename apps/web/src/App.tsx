@@ -43,7 +43,7 @@ import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 export const App: React.FC = () => {
   React.useEffect(() => {
     try {
-      if (localStorage.getItem('solar_clean_slate_demo_v1') !== 'true') {
+      if (localStorage.getItem('solar_clean_slate_demo_v2') !== 'true') {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
@@ -51,13 +51,14 @@ export const App: React.FC = () => {
             k &&
             (k.startsWith('solar_photos_') ||
               k === 'solar_cached_customers' ||
-              k === 'solar_installer_active_customer_id')
+              k === 'solar_installer_active_customer_id' ||
+              k === 'ins_demo_user')
           ) {
             keysToRemove.push(k);
           }
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-        localStorage.setItem('solar_clean_slate_demo_v1', 'true');
+        localStorage.setItem('solar_clean_slate_demo_v2', 'true');
       }
     } catch {}
   }, []);

@@ -355,7 +355,7 @@ export function VendorsPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Rajesh Sharma"
+                    placeholder="e.g. Key Account Manager / Representative"
                     value={formData.contactPerson}
                     onChange={e => setFormData({ ...formData, contactPerson: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none"

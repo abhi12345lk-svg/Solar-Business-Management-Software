@@ -131,14 +131,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   const loginDemo = (role: UserRole = UserRole.SUPERADMIN) => {
+    let firstName = 'System';
+    let lastName = 'Administrator';
+    let email = 'admin@inssolar.com';
+    let empCode = 'EMP-0001';
+    let dept = Department.ADMIN;
+
+    if (role === UserRole.SALES_EXECUTIVE) {
+      firstName = 'Sales';
+      lastName = 'Executive';
+      email = 'sales@inssolar.com';
+      empCode = 'EMP-0002';
+      dept = Department.SALES;
+    } else if (role === UserRole.ACCOUNTS_OFFICER) {
+      firstName = 'Accounts';
+      lastName = 'Officer';
+      email = 'accounts@inssolar.com';
+      empCode = 'EMP-0003';
+      dept = Department.ACCOUNTS;
+    } else if (role === UserRole.INSTALLATION_CREW) {
+      firstName = 'Field';
+      lastName = 'Installer';
+      email = 'installer@inssolar.com';
+      empCode = 'EMP-0004';
+      dept = Department.OPERATIONS;
+    }
+
     const demoUser: AuthUserDto = {
-      id: 'demo-superadmin-001',
-      employeeCode: role === UserRole.SUPERADMIN ? 'EMP-0001' : 'EMP-0002',
-      email: role === UserRole.SUPERADMIN ? 'admin@inssolar.com' : 'sales@inssolar.com',
-      firstName: role === UserRole.SUPERADMIN ? 'System' : 'Rajesh',
-      lastName: role === UserRole.SUPERADMIN ? 'Administrator' : 'Sharma',
+      id: `workstation-${role.toLowerCase()}-001`,
+      employeeCode: empCode,
+      email,
+      firstName,
+      lastName,
       phone: '+919876500000',
-      department: role === UserRole.SUPERADMIN ? Department.ADMIN : Department.SALES,
+      department: dept,
       role,
       permissions: [],
       isActive: true,
