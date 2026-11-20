@@ -29,7 +29,6 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  PackageCheck,
   MapPin
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
@@ -81,6 +80,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'Finance & Controlling',
     items: [
       { to: '/payments', label: 'Payment Collections', icon: CreditCard },
+      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
       { to: '/expenses', label: 'Project Costing & P&L', icon: TrendingUp },
       { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock },
       { to: '/create-document', label: 'Generate Contract', icon: FilePlus2 }
@@ -131,7 +131,6 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/', label: 'Finance Dashboard', icon: LayoutDashboard },
       { to: '/payments', label: 'Payment Collections', icon: CreditCard },
-      { to: '/orders', label: 'Sales Orders (Billing)', icon: ShoppingCart },
       { to: '/subsidies', label: 'Govt Subsidy Claims (DBT)', icon: Landmark }
     ]
   },
@@ -139,7 +138,6 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     title: 'Payables & Costing',
     items: [
       { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
-      { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: PackageCheck },
       { to: '/expenses', label: 'Project Expenses & Costing', icon: TrendingUp }
     ]
   },

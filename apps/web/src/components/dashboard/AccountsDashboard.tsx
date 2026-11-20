@@ -2,7 +2,7 @@
  * INS Solar ERP — Accounts Panel Dashboard (Financial & Billing Workspace)
  * Tailored for Accounts Officers, Billing Executives, and CFOs.
  * Focuses on Customer Receivables, Bank Realizations, Aging Analysis, 3-Way Vendor Matching,
- * and Project Gross Profitability.
+ * DBT Govt Subsidies, and Solar EPC Gross Profitability.
  */
 
 import React, { useMemo } from 'react';
@@ -21,7 +21,6 @@ import {
   Plus,
   Landmark,
   FileText,
-  DollarSign,
   PackageCheck
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
@@ -38,66 +37,85 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     queryKey: ['accountsPayments'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/payments?limit=100');
-        return res?.data || res || { items: [] };
+        const res = await apiClient<any>('/payments?limit=150');
+        return res;
       } catch {
         return { items: [] };
       }
     }
   });
-  const payments: any[] = paymentsData?.items || (Array.isArray(paymentsData) ? paymentsData : []);
+  const payments: any[] = useMemo(() => {
+    if (Array.isArray(paymentsData)) return paymentsData;
+    return paymentsData?.items || paymentsData?.data?.items || paymentsData?.data || [];
+  }, [paymentsData]);
 
   // 2. Fetch Sales Orders (for contract billing & receivables)
-  const { data: orders = [] } = useQuery<any[]>({
+  const { data: ordersData } = useQuery<any>({
     queryKey: ['accountsOrders'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/orders?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
+        const res = await apiClient<any>('/orders?limit=150');
+        return res;
       } catch {
         return [];
       }
     }
   });
+  const orders: any[] = useMemo(() => {
+    if (Array.isArray(ordersData)) return ordersData;
+    return ordersData?.items || ordersData?.data?.items || ordersData?.data || [];
+  }, [ordersData]);
 
   // 3. Fetch Operational Expenses
-  const { data: expenses = [] } = useQuery<any[]>({
+  const { data: expensesData } = useQuery<any>({
     queryKey: ['accountsExpenses'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/expenses?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
+        const res = await apiClient<any>('/expenses?limit=150');
+        return res;
       } catch {
         return [];
       }
     }
   });
+  const expenses: any[] = useMemo(() => {
+    if (Array.isArray(expensesData)) return expensesData;
+    return expensesData?.data?.data || expensesData?.data || expensesData?.items || [];
+  }, [expensesData]);
 
   // 4. Fetch Vendor Invoices
-  const { data: vendorInvoices = [] } = useQuery<any[]>({
+  const { data: vendorInvoicesData } = useQuery<any>({
     queryKey: ['accountsVendorInvoices'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/vendor-invoices?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
+        const res = await apiClient<any>('/vendor-invoices?limit=150');
+        return res;
       } catch {
         return [];
       }
     }
   });
+  const vendorInvoices: any[] = useMemo(() => {
+    if (Array.isArray(vendorInvoicesData)) return vendorInvoicesData;
+    return vendorInvoicesData?.items || vendorInvoicesData?.data?.items || vendorInvoicesData?.data || [];
+  }, [vendorInvoicesData]);
 
   // 5. Fetch Subsidies
-  const { data: subsidies = [] } = useQuery<any[]>({
+  const { data: subsidiesData } = useQuery<any>({
     queryKey: ['accountsSubsidies'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/subsidies?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
+        const res = await apiClient<any>('/subsidies?limit=150');
+        return res;
       } catch {
         return [];
       }
     }
   });
+  const subsidies: any[] = useMemo(() => {
+    if (Array.isArray(subsidiesData)) return subsidiesData;
+    return subsidiesData?.applications || subsidiesData?.items || subsidiesData?.data || [];
+  }, [subsidiesData]);
 
   // Date Filtering
   const filteredPayments = useMemo(
@@ -105,16 +123,32 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     [payments, dateRange]
   );
   const filteredOrders = useMemo(
-    () => orders.filter(o => isWithinDateRange(o.orderDate || o.createdAt, dateRange)),
+    () =>
+      orders.filter(
+        o => o.status !== 'CANCELLED' && isWithinDateRange(o.orderDate || o.createdAt, dateRange)
+      ),
     [orders, dateRange]
   );
   const filteredExpenses = useMemo(
-    () => expenses.filter(e => isWithinDateRange(e.expenseDate || e.createdAt, dateRange)),
+    () =>
+      expenses.filter(
+        e =>
+          e.status !== 'CANCELLED' &&
+          e.status !== 'REJECTED' &&
+          isWithinDateRange(e.expenseDate || e.createdAt, dateRange)
+      ),
     [expenses, dateRange]
   );
   const filteredVendorInvoices = useMemo(
-    () => vendorInvoices.filter(vi => isWithinDateRange(vi.invoiceDate || vi.createdAt, dateRange)),
+    () =>
+      vendorInvoices.filter(
+        vi => vi.status !== 'CANCELLED' && isWithinDateRange(vi.invoiceDate || vi.createdAt, dateRange)
+      ),
     [vendorInvoices, dateRange]
+  );
+  const filteredSubsidies = useMemo(
+    () => subsidies.filter(s => isWithinDateRange(s.createdAt || s.updatedAt, dateRange)),
+    [subsidies, dateRange]
   );
 
   // Financial KPI Calculations (integer paise)
@@ -135,16 +169,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     0
   );
 
-  // Today's Collections
-  const todayCollectionsPaise = useMemo(() => {
-    return payments
-      .filter(
-        p => p.status === 'VERIFIED' && isWithinDateRange(p.paymentDate || p.createdAt, 'TODAY')
-      )
-      .reduce((sum, p) => sum + (p.amountPaise || 0), 0);
-  }, [payments]);
-
-  // Month-To-Date (MTD) Collections
+  // MTD Collections
   const mtdCollectionsPaise = useMemo(() => {
     return payments
       .filter(
@@ -157,20 +182,50 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
   // Total Customer Receivables
   const totalReceivablesPaise = Math.max(0, totalBilledContractPaise - realizedCollectionsPaise);
 
-  // Total Expenses
+  // Total Operational Expenses
   const totalExpensesPaise = filteredExpenses.reduce((sum, e) => sum + (e.amountPaise || 0), 0);
 
-  // Vendor Payables
-  const totalVendorPayablesPaise = filteredVendorInvoices
-    .filter(vi => vi.status === 'APPROVED' || vi.status === 'PENDING' || vi.status === 'SUBMITTED')
-    .reduce((sum, vi) => sum + (vi.netTotalPaise || vi.totalAmountPaise || 0), 0);
+  // Vendor Outflow & Payables
+  const totalVendorPayablesPaise = filteredVendorInvoices.reduce(
+    (sum, vi) =>
+      sum +
+      (vi.balancePayablePaise !== undefined
+        ? vi.balancePayablePaise
+        : Math.max(0, (vi.totalAmountPaise || 0) - (vi.paidAmountPaise || 0))),
+    0
+  );
+
+  const totalVendorPaidPaise = filteredVendorInvoices.reduce(
+    (sum, vi) => sum + (vi.paidAmountPaise || 0),
+    0
+  );
 
   const unreconciledInvoicesCount = filteredVendorInvoices.filter(
     vi => vi.status !== 'RECONCILED' && vi.status !== 'PAID'
   ).length;
 
-  // Gross Realized Margin
-  const grossMarginPaise = realizedCollectionsPaise - totalExpensesPaise;
+  // Govt DBT Subsidies
+  const totalSubsidyDisbursedPaise = filteredSubsidies.reduce(
+    (sum, s) => sum + (s.disbursedAmountPaise || 0),
+    0
+  );
+
+  const totalSubsidyPendingPaise = filteredSubsidies
+    .filter(s => s.status !== 'DISBURSED' && s.status !== 'REJECTED')
+    .reduce(
+      (sum, s) =>
+        sum +
+        Math.max(
+          0,
+          (s.approvedAmountPaise || s.requestedAmountPaise || 0) - (s.disbursedAmountPaise || 0)
+        ),
+      0
+    );
+
+  // Solar EPC Gross Realized Margin: Inflow (Collections + Disbursed Subsidy) - Outflow (Expenses + Paid Vendor Bills)
+  const totalInflowPaise = realizedCollectionsPaise + totalSubsidyDisbursedPaise;
+  const totalOutflowPaise = totalExpensesPaise + totalVendorPaidPaise;
+  const grossMarginPaise = totalInflowPaise - totalOutflowPaise;
 
   // Receivables Aging Breakdown (0-30, 31-60, 61-90, 90+ days)
   const agingBuckets = useMemo(() => {
@@ -289,12 +344,12 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
           <Landmark className="w-3.5 h-3.5 text-amber-500" />
-          <span>Govt Subsidy Disbursements</span>
+          <span>Govt Subsidy (DBT) Claims</span>
         </Link>
       </div>
 
       {/* =========================================================================
-          PART 2: 10 FINANCIAL & BILLING KPIS
+          PART 2: 10 FINANCIAL & BILLING KPIS (5 REVENUE & 5 OUTFLOW/MARGIN)
          ========================================================================= */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
@@ -312,7 +367,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <DashboardKpiCard
             title="Total Receivables"
             value={formatPaiseToInr(totalReceivablesPaise, { compact: true })}
-            subtitle="Contract order balance"
+            subtitle="Order contract balance"
             icon={CreditCard}
             to="/payments"
             color="rose"
@@ -349,14 +404,14 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
             color={overdueReceivablesPaise > 0 ? 'rose' : 'emerald'}
           />
 
-          {/* 5. Today's Collections */}
+          {/* 5. Govt Subsidy DBT Inflow */}
           <DashboardKpiCard
-            title="Today's Intake"
-            value={formatPaiseToInr(todayCollectionsPaise)}
-            subtitle="Realized during today"
-            icon={DollarSign}
-            to="/payments"
-            color="blue"
+            title="Govt Subsidy Disbursed"
+            value={formatPaiseToInr(totalSubsidyDisbursedPaise, { compact: true })}
+            subtitle={`${filteredSubsidies.filter(s => s.status === 'DISBURSED').length} claims disbursed`}
+            icon={Landmark}
+            to="/subsidies"
+            color="amber"
           />
 
           {/* 6. MTD Collections */}
@@ -373,7 +428,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <DashboardKpiCard
             title="Operational Expenses"
             value={formatPaiseToInr(totalExpensesPaise, { compact: true })}
-            subtitle="Approved vouchers"
+            subtitle={`${filteredExpenses.length} approved vouchers`}
             icon={Receipt}
             to="/expenses"
             color="orange"
@@ -383,7 +438,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <DashboardKpiCard
             title="Vendor Payables"
             value={formatPaiseToInr(totalVendorPayablesPaise, { compact: true })}
-            subtitle="Approved supplier bills"
+            subtitle="Outstanding supplier dues"
             icon={Building2}
             to="/vendor-invoices"
             color="purple"
@@ -393,7 +448,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <DashboardKpiCard
             title="Unreconciled Invoices"
             value={unreconciledInvoicesCount}
-            subtitle="Pending bill audit"
+            subtitle="Pending 3-way bill audit"
             icon={FileText}
             to="/vendor-invoices"
             color="cyan"
@@ -402,9 +457,9 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
 
           {/* 10. Gross Realized Margin */}
           <DashboardKpiCard
-            title="Gross Realized Margin"
+            title="Net Realized Margin"
             value={formatPaiseToInr(grossMarginPaise, { compact: true })}
-            subtitle="Collections - Expenses"
+            subtitle="Inflow - Outflow"
             icon={TrendingUp}
             to="/expenses"
             color={grossMarginPaise >= 0 ? 'emerald' : 'rose'}
@@ -421,7 +476,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-solar-600" />
+                <Clock className="w-4 h-4 text-amber-600" />
                 Customer Receivables Aging Schedule
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -605,16 +660,18 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
                   vendorInvoices.filter(vi => vi.status === 'RECONCILED' || vi.status === 'PAID')
                     .length
                 }{' '}
-                Invoices
+                Invoices ({formatPaiseToInr(totalVendorPaidPaise, { compact: true })})
               </span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <Clock className="w-4 h-4 text-amber-500" />
-                <span className="font-medium">Pending Audit &amp; Clearance</span>
+                <span className="font-medium">Pending Audit &amp; Balance Dues</span>
               </div>
-              <span className="font-bold text-amber-600">{unreconciledInvoicesCount} Invoices</span>
+              <span className="font-bold text-amber-600">
+                {unreconciledInvoicesCount} Invoices ({formatPaiseToInr(totalVendorPayablesPaise, { compact: true })})
+              </span>
             </div>
 
             {subsidies.length > 0 && (
@@ -623,7 +680,9 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
                   <Landmark className="w-4 h-4 text-amber-500" />
                   <span className="font-medium">Govt Subsidy DBT Claims</span>
                 </div>
-                <span className="font-bold text-emerald-600">{subsidies.length} Claims</span>
+                <span className="font-bold text-amber-600">
+                  {subsidies.length} Claims ({formatPaiseToInr(totalSubsidyPendingPaise, { compact: true })} Pending)
+                </span>
               </div>
             )}
           </div>
