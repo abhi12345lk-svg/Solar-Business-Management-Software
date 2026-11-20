@@ -144,17 +144,17 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
   }, [defaultTemplate, searchParams]);
 
   // Customer & Site Information
-  const [tplConsumerName, setTplConsumerName] = useState('SHRI GYAN CHAND JAISWAL');
-  const [tplParentage, setTplParentage] = useState('S/O LATE HARIKISHAN JAISWAL');
-  const [tplApplicationNo, setTplApplicationNo] = useState('NP-CGSPD26-11760274 / 06-05-2026');
-  const [tplConsumerNumber, setTplConsumerNumber] = useState('1001750390');
-  const [tplMobile, setTplMobile] = useState('9826178156');
-  const [tplAddress, setTplAddress] = useState('SHANTI VIHAR COLONY, DANGANIA');
+  const [tplConsumerName, setTplConsumerName] = useState('');
+  const [tplParentage, setTplParentage] = useState('');
+  const [tplApplicationNo, setTplApplicationNo] = useState('');
+  const [tplConsumerNumber, setTplConsumerNumber] = useState('');
+  const [tplMobile, setTplMobile] = useState('');
+  const [tplAddress, setTplAddress] = useState('');
   const [tplDistrict, setTplDistrict] = useState('Raipur');
   const [tplState, setTplState] = useState('Chhattisgarh');
-  const [tplPinCode, setTplPinCode] = useState('492013');
+  const [tplPinCode, setTplPinCode] = useState('');
   const [tplCapacityKwp, setTplCapacityKwp] = useState('3');
-  const [tplAgreementDate, setTplAgreementDate] = useState('11/06/2026');
+  const [tplAgreementDate, setTplAgreementDate] = useState(() => new Date().toLocaleDateString('en-GB'));
 
   // Vendor Information (Rarebox LLP)
   const [tplVendorName, setTplVendorName] = useState('M/S RAREBOX LLP RAIPUR');
@@ -212,10 +212,10 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
   const [tplPpaTariff, setTplPpaTariff] = useState('As per CSERC Distributed Solar energy Regulations 2019');
 
   // Bank Loan Disbursement Application (Hindi) Details
-  const [tplLoanBankName, setTplLoanBankName] = useState('UNION BANK');
-  const [tplLoanBranchName, setTplLoanBranchName] = useState('AHIWADA BRANCH');
-  const [tplLoanApplicantName, setTplLoanApplicantName] = useState('ATUL SONI');
-  const [tplLoanMobile, setTplLoanMobile] = useState('9201042828');
+  const [tplLoanBankName, setTplLoanBankName] = useState('STATE BANK OF INDIA');
+  const [tplLoanBranchName, setTplLoanBranchName] = useState('MAIN BRANCH');
+  const [tplLoanApplicantName, setTplLoanApplicantName] = useState('');
+  const [tplLoanMobile, setTplLoanMobile] = useState('');
   const [tplLoanDisbursedPercent, setTplLoanDisbursedPercent] = useState('100%');
 
   // Ref to formatted document container for PDF rendering
@@ -313,22 +313,22 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
     }
   }, [selectedCustomer]);
 
-  // Reset details to default sample values
+  // Reset details to default clean values
   const handleResetDefaults = () => {
     setSelectedCustomer(null);
-    setTplConsumerName('SHRI GYAN CHAND JAISWAL');
-    setTplParentage('S/O LATE HARIKISHAN JAISWAL');
-    setTplApplicationNo('NP-CGSPD26-11760274 / 06-05-2026');
-    setTplConsumerNumber('1001750390');
-    setTplMobile('9826178156');
-    setTplAddress('SHANTI VIHAR COLONY, DANGANIA');
+    setTplConsumerName('');
+    setTplParentage('');
+    setTplApplicationNo('');
+    setTplConsumerNumber('');
+    setTplMobile('');
+    setTplAddress('');
     setTplDistrict('Raipur');
     setTplState('Chhattisgarh');
-    setTplPinCode('492013');
+    setTplPinCode('');
     setTplCapacityKwp('3');
-    setTplAgreementDate('11/06/2026');
-    setTplLoanApplicantName('ATUL SONI');
-    setTplLoanMobile('9201042828');
+    setTplAgreementDate(new Date().toLocaleDateString('en-GB'));
+    setTplLoanApplicantName('');
+    setTplLoanMobile('');
     setVaultSaveSuccess(null);
   };
 
@@ -650,7 +650,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplConsumerName}
                       onChange={e => setTplConsumerName(e.target.value)}
-                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      placeholder="e.g. Full Legal Consumer Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
@@ -663,7 +663,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplParentage}
                       onChange={e => setTplParentage(e.target.value)}
-                      placeholder="e.g. S/O LATE HARIKISHAN JAISWAL"
+                      placeholder="e.g. S/o or D/o Guardian Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
                     />
                   </div>
@@ -847,7 +847,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplConsumerName}
                       onChange={e => setTplConsumerName(e.target.value)}
-                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      placeholder="e.g. Full Legal Consumer Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
@@ -1024,7 +1024,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplConsumerName}
                       onChange={e => setTplConsumerName(e.target.value)}
-                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      placeholder="e.g. Full Legal Consumer Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
@@ -1308,7 +1308,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplConsumerName}
                       onChange={e => setTplConsumerName(e.target.value)}
-                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      placeholder="e.g. Full Legal Consumer Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
@@ -1427,7 +1427,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       type="text"
                       value={tplConsumerName}
                       onChange={e => setTplConsumerName(e.target.value)}
-                      placeholder="e.g. SHRI GYAN CHAND JAISWAL"
+                      placeholder="e.g. Full Legal Consumer Name"
                       className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:ring-2 focus:ring-solar-500 font-bold text-foreground"
                     />
                   </div>
@@ -1559,7 +1559,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                         type="text"
                         value={tplLoanApplicantName}
                         onChange={e => setTplLoanApplicantName(e.target.value)}
-                        placeholder="ATUL SONI"
+                        placeholder="e.g. Loan Applicant Name"
                         className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-xl text-foreground font-bold"
                       />
                     </div>

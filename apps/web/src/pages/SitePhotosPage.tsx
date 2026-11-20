@@ -469,10 +469,14 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                   : [];
 
         if (isMounted) {
+          setCustomers(custList);
           if (custList.length > 0) {
-            setCustomers(custList);
             try {
               localStorage.setItem('solar_cached_customers', JSON.stringify(custList));
+            } catch {}
+          } else {
+            try {
+              localStorage.removeItem('solar_cached_customers');
             } catch {}
           }
           setInstallations(instList);
@@ -505,6 +509,8 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                 restoreFromLocalStorage(custId);
               }
             }
+          } else {
+            setSelectedCustomer(null);
           }
         }
       } catch (err) {
@@ -2008,8 +2014,15 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                   <p className="text-xs">Loading customer directory...</p>
                 </div>
               ) : filteredCustomers.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-xs bg-muted/20 rounded-xl border border-dashed">
-                  No clients found matching &quot;{searchQuery}&quot;.
+                <div className="p-8 text-center text-muted-foreground text-xs bg-muted/20 rounded-xl border border-dashed flex flex-col items-center justify-center space-y-1">
+                  <p className="font-semibold text-foreground">
+                    {customers.length === 0 ? 'No customer sites registered yet' : `No clients found matching "${searchQuery}"`}
+                  </p>
+                  <p className="text-[11px]">
+                    {customers.length === 0
+                      ? 'New rooftop customer installations created in Sales or Operations will automatically appear here.'
+                      : 'Try searching by a different name, phone number or customer code.'}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

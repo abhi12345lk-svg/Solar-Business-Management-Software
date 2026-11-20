@@ -41,6 +41,27 @@ import { SitePhotosPage } from './pages/SitePhotosPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
+  React.useEffect(() => {
+    try {
+      if (localStorage.getItem('solar_clean_slate_demo_v1') !== 'true') {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (
+            k &&
+            (k.startsWith('solar_photos_') ||
+              k === 'solar_cached_customers' ||
+              k === 'solar_installer_active_customer_id')
+          ) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('solar_clean_slate_demo_v1', 'true');
+      }
+    } catch {}
+  }, []);
+
   return (
     <AuthProvider>
       <Routes>

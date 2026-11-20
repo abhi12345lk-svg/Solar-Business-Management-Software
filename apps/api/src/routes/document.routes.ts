@@ -1,4 +1,5 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import {
   uploadDocumentMetadataSchema,
   reviewDocumentSchema,
@@ -23,6 +24,9 @@ export const documentRouter = Router();
 documentRouter.get('/:id/download', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const documentId = req.params.id as string;
+    if (!mongoose.isValidObjectId(documentId)) {
+      return next(AppError.notFound('Document not found in vault.'));
+    }
     const { token, expires } = req.query;
 
     if (!token || !expires) {
@@ -89,7 +93,7 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
             <rect x="50" y="315" width="150" height="60" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1.5"/>
             <text x="125" y="352" font-family="cursive, 'Brush Script MT', sans-serif" font-size="24" font-style="italic" fill="#1e293b" text-anchor="middle">${safeTitle.replace(/PAN Card - /i, '') || 'Applicant'}</text>
             <text x="240" y="135" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#64748b">NAME / नाम</text>
-            <text x="240" y="165" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="#0f172a">${safeTitle.replace(/PAN Card - /i, '').toUpperCase() || 'RAAKUU'}</text>
+            <text x="240" y="165" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="#0f172a">${safeTitle.replace(/PAN Card - /i, '').toUpperCase() || 'APPLICANT / BENEFICIARY'}</text>
             <text x="240" y="205" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#64748b">FATHER'S NAME / पिता का नाम</text>
             <text x="240" y="230" font-family="system-ui, sans-serif" font-size="17" font-weight="bold" fill="#1e293b">MR. GUARDIAN / SENIOR</text>
             <text x="240" y="270" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#64748b">DATE OF BIRTH / जन्म की तारीख</text>
@@ -132,7 +136,7 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
             <circle cx="125" cy="175" r="35" fill="#94a3b8"/>
             <path d="M80 255 C80 215 170 215 170 255 Z" fill="#94a3b8"/>
             <text x="240" y="130" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#64748b">नाम / Name</text>
-            <text x="240" y="160" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="#0f172a">${safeTitle || 'Raakuu Sahu'}</text>
+            <text x="240" y="160" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="#0f172a">${safeTitle || 'Applicant / Consumer'}</text>
             <text x="240" y="200" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#64748b">जन्म तिथि / DOB: 15/08/1990</text>
             <text x="240" y="235" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#64748b">लिंग / Gender: MALE</text>
             <rect x="230" y="290" width="580" height="80" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
@@ -154,7 +158,7 @@ documentRouter.get('/:id/download', async (req: Request, res: Response, next: Ne
             <text x="65" y="135" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">Consumer Number / बीपी नंबर</text>
             <text x="65" y="160" font-family="monospace" font-size="18" font-weight="bold" fill="#0f172a">100389271049</text>
             <text x="320" y="135" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">Consumer Name</text>
-            <text x="320" y="160" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="#0f172a">${safeTitle || 'Raakuu Sahu'}</text>
+            <text x="320" y="160" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="#0f172a">${safeTitle || 'Applicant / Consumer'}</text>
             <text x="600" y="135" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">Sanctioned Load / Phase</text>
             <text x="600" y="160" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="#15803d">5.0 kW • 1-Phase LT</text>
             <rect x="40" y="250" width="776" height="180" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
@@ -369,6 +373,9 @@ documentRouter.get(
   requirePermission('document:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
       const user = req.session.user!;
       const expiresIn = req.query.expiresIn ? parseInt(req.query.expiresIn as string, 10) : 900;
       const urlInfo = await DocumentService.generateSignedAccessUrl(
@@ -392,6 +399,9 @@ documentRouter.post(
   requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
       const parseResult = reviewDocumentSchema.safeParse(req.body);
       if (!parseResult.success) {
         return next(AppError.validation(parseResult.error));
@@ -428,6 +438,9 @@ documentRouter.post(
   requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
       const parseResult = createDocumentVersionSchema.safeParse(req.body);
       if (!parseResult.success) {
         return next(AppError.validation(parseResult.error));
@@ -464,6 +477,9 @@ documentRouter.patch(
   requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
       const { reason } = req.body || {};
       const user = req.session.user!;
       const actorContext = {
@@ -496,6 +512,9 @@ documentRouter.delete(
   requireEmployee,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return sendSuccess(req, res, { message: 'Document removed successfully', id: req.params.id });
+      }
       const doc = await DocumentModel.findByIdAndDelete(req.params.id);
       if (!doc) {
         return next(AppError.notFound('Document not found in vault.'));
@@ -518,6 +537,9 @@ documentRouter.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const documentId = req.params.id as string;
+      if (!mongoose.isValidObjectId(documentId)) {
+        return next(AppError.notFound('Document not found in vault.'));
+      }
       const buffer = req.body as Buffer;
 
       if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) {
