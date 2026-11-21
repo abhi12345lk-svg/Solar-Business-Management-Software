@@ -143,13 +143,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
     }
   }, [defaultTemplate, searchParams]);
 
-  // Customer & Site Information
-  const [tplConsumerName, setTplConsumerName] = useState('');
+  // Customer & Site Information (Pre-filled with authentic default reference values matching official DCR formats)
+  const [tplConsumerName, setTplConsumerName] = useState('SHRI GYAN CHAND JAISWAL');
   const [tplParentage, setTplParentage] = useState('');
-  const [tplApplicationNo, setTplApplicationNo] = useState('');
+  const [tplApplicationNo, setTplApplicationNo] = useState('NP-CGSPD26-11760274 / 06-05-2026');
   const [tplConsumerNumber, setTplConsumerNumber] = useState('');
   const [tplMobile, setTplMobile] = useState('');
-  const [tplAddress, setTplAddress] = useState('');
+  const [tplAddress, setTplAddress] = useState('SHANTI VIHAR COLONY, DANGANIA');
   const [tplDistrict, setTplDistrict] = useState('Raipur');
   const [tplState, setTplState] = useState('Chhattisgarh');
   const [tplPinCode, setTplPinCode] = useState('');
@@ -159,8 +159,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
   // Vendor Information (Rarebox LLP)
   const [tplVendorName, setTplVendorName] = useState('M/S RAREBOX LLP RAIPUR');
   const [tplVendorOffice, setTplVendorOffice] = useState('MAHADEV GHAT ROAD ASHWANI NAGAR RAIPUR, Chhattisgarh');
-  const [tplVendorSignatory, setTplVendorSignatory] = useState('AUTHORIZED SIGNATORY');
-  const [tplVendorDesignation, setTplVendorDesignation] = useState('PROPRIETOR / AUTHORIZED SIGNATORY');
+  const [tplVendorSignatory, setTplVendorSignatory] = useState('SAMEER SAHU');
+  const [tplVendorDesignation, setTplVendorDesignation] = useState('PROPRIETOR');
   const [tplVendorPhone, setTplVendorPhone] = useState('9630131550');
   const [tplVendorEmail, setTplVendorEmail] = useState('rareboxllp@gmail.com');
 
@@ -220,6 +220,20 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
   // Ref to formatted document container for PDF rendering
   const documentPrintRef = useRef<HTMLDivElement>(null);
+
+  // Template formatting & page-fit detection
+  const isSinglePageTemplate = [
+    'ANNEXURE_A_DCR',
+    'BANK_LOAN_DISBURSEMENT',
+    'GRID_CONNECTIVITY_APP'
+  ].includes(selectedTemplateId);
+
+  const isSerifTemplate = [
+    'ANNEXURE_A_DCR',
+    'ANNEXURE_2_AGREEMENT',
+    'CSPDCL_PPA_AGREEMENT',
+    'GRID_CONNECTIVITY_APP'
+  ].includes(selectedTemplateId);
 
   // PDF Preview & Download State
   const [pdfPreviewModalOpen, setPdfPreviewModalOpen] = useState(false);
@@ -339,7 +353,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
       setGeneratingPdf(true);
       const cleanName = tplConsumerName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       const { objectUrl } = await generatePdfFromElement(documentPrintRef.current, {
-        filename: `${selectedTemplateId}_${cleanName || 'Consumer'}.pdf`
+        filename: `${selectedTemplateId}_${cleanName || 'Consumer'}.pdf`,
+        fitSinglePage: isSinglePageTemplate
       });
       setPdfPreviewUrl(objectUrl);
       setPdfPreviewModalOpen(true);
@@ -357,7 +372,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
       setGeneratingPdf(true);
       const cleanName = tplConsumerName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       const filename = `${selectedTemplateId}_${cleanName || 'Document'}.pdf`;
-      await downloadElementAsPdf(documentPrintRef.current, filename);
+      await downloadElementAsPdf(documentPrintRef.current, filename, {
+        fitSinglePage: isSinglePageTemplate
+      });
     } catch (err: any) {
       alert('Failed to generate PDF download: ' + (err?.message || 'Error'));
     } finally {
@@ -384,7 +401,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
       // 1. Generate PDF Blob
       const { blob } = await generatePdfFromElement(documentPrintRef.current, {
-        filename
+        filename,
+        fitSinglePage: isSinglePageTemplate
       });
 
       const custId = selectedCustomer._id || selectedCustomer.id;
@@ -981,23 +999,45 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-foreground mb-1.5">
-                        Module Serial Numbers (Grid of 5)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11px] font-bold text-foreground">
+                          Module Serial Numbers ({tplDcrSerials.length})
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setTplDcrSerials([...tplDcrSerials, ''])}
+                          className="text-[10px] text-solar-600 font-bold hover:underline cursor-pointer"
+                        >
+                          + Add Serial
+                        </button>
+                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {[0, 1, 2, 3, 4].map(idx => (
-                          <div key={idx}>
+                        {tplDcrSerials.map((serial, idx) => (
+                          <div key={idx} className="relative">
                             <input
                               type="text"
-                              value={tplDcrSerials[idx] || ''}
+                              value={serial}
                               onChange={e => {
                                 const updated = [...tplDcrSerials];
                                 updated[idx] = e.target.value.trim();
                                 setTplDcrSerials(updated);
                               }}
                               placeholder={`Sr #${idx + 1}`}
-                              className="w-full px-2.5 py-1.5 text-xs bg-background border border-border rounded-lg font-mono font-semibold text-foreground"
+                              className="w-full pl-2.5 pr-6 py-1.5 text-xs bg-background border border-border rounded-lg font-mono font-semibold text-foreground"
                             />
+                            {tplDcrSerials.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = tplDcrSerials.filter((_, i) => i !== idx);
+                                  setTplDcrSerials(updated);
+                                }}
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-red-500 text-xs px-1 cursor-pointer"
+                                title="Remove Serial"
+                              >
+                                &times;
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1708,24 +1748,35 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                   <FileText className="w-4 h-4 text-solar-600" />
                   <span>Live Paper Document View</span>
                   <span className="text-[10px] text-muted-foreground font-normal">
-                    (Updates automatically with your edits)
+                    (Updates live with edits)
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleOpenPdfPreview}
-                  className="text-xs text-solar-600 font-bold hover:underline inline-flex items-center space-x-1 cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Full PDF Preview</span>
-                </button>
+                <div className="flex items-center space-x-2.5">
+                  {isSinglePageTemplate && (
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      1 Page A4 Formatted
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleOpenPdfPreview}
+                    className="text-xs text-solar-600 font-bold hover:underline inline-flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Full PDF Preview</span>
+                  </button>
+                </div>
               </div>
 
               {/* Formatted A4 Document Canvas */}
-              <div className="bg-slate-100/90 dark:bg-zinc-900/60 p-4 sm:p-8 rounded-2xl border border-border/80 flex justify-center">
+              <div className="bg-slate-200/60 dark:bg-zinc-950 p-4 sm:p-6 rounded-2xl border border-border/80 flex justify-center overflow-x-auto">
                 <div
                   ref={documentPrintRef}
-                  className="bg-white text-slate-900 w-full max-w-[700px] p-8 sm:p-10 rounded-sm shadow-md border border-slate-200/90 text-[11px] leading-relaxed font-sans"
+                  data-single-page={isSinglePageTemplate ? 'true' : undefined}
+                  style={isSerifTemplate ? { fontFamily: '"Times New Roman", Times, serif' } : undefined}
+                  className={`bg-white text-slate-950 w-full max-w-[680px] p-6 sm:p-9 shadow-lg border border-slate-300 text-[12px] leading-relaxed transition-all ${
+                    isSerifTemplate ? 'font-serif' : 'font-sans'
+                  }`}
                 >
                   {/* ===================================================== */}
                   {/* FORMAT 1: ANNEXURE 2 MODEL AGREEMENT                  */}
@@ -1894,105 +1945,101 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
                   {/* ===================================================== */}
                   {/* FORMAT 2: ANNEXURE - A DCR UNDERTAKING                */}
+                  {/* Matches Declaration_for_DCR-Annexure A.docx exactly   */}
                   {/* ===================================================== */}
                   {selectedTemplateId === 'ANNEXURE_A_DCR' && (
-                    <div className="space-y-5">
-                      {/* Document Header */}
-                      <div className="text-center space-y-1 mb-6 border-b-2 border-slate-900 pb-4">
-                        <h2 className="text-lg font-bold tracking-tight uppercase">Annexure - A</h2>
-                        <h3 className="text-sm font-bold leading-snug">
-                          Undertaking / Self-Declaration for Domestic Content Requirement fulfillment
+                    <div className="font-serif text-[12.5px] leading-relaxed text-black space-y-4">
+                      {/* Document Header (Times New Roman, Centered, exact titles) */}
+                      <div className="text-center space-y-0.5 mb-4">
+                        <h2 className="text-[17px] font-bold tracking-tight uppercase text-black">
+                          Annexure -A
+                        </h2>
+                        <h3 className="text-[13px] font-bold text-black leading-snug">
+                          Undertaking/Self- Declaration for Domestic Content Requirement fulfillment
                         </h3>
-                        <p className="text-[11px] text-slate-600 font-medium">(On a plain Paper)</p>
+                        <p className="text-[12px] text-black">
+                          (On a plain Paper)
+                        </p>
                       </div>
 
                       {/* Point 1: Certification */}
-                      <div className="text-justify leading-relaxed space-y-2">
-                        <p>
-                          <strong>1.</strong> This is to certify that <strong>{tplVendorName}</strong> has installed <strong>{tplCapacityKwp} KW</strong> Grid Connected Rooftop Solar Plant for <strong>{tplConsumerName}</strong>, at <strong>{tplAddress}</strong>, District: <strong>{tplDistrict}</strong>, State: <strong>{tplState}</strong>. Under application number <strong>{tplApplicationNo}</strong> under CSPDCL.
-                        </p>
-                      </div>
+                      <p className="text-justify leading-relaxed">
+                        1.This is to certify that {tplVendorName || 'M/S RAREBOX LLP RAIPUR'} has installed {tplCapacityKwp || '3'} KW Grid Connected Rooftop Solar Plant for {tplConsumerName || 'SHRI GYAN CHAND JAISWAL'}, at {tplAddress || 'SHANTI VIHAR COLONY, DANGANIA'}, District: {tplDistrict || 'Raipur'}, State: {tplState || 'Chhattisgarh'}. Under application number {tplApplicationNo || 'NP-CGSPD26-11760274 / 06-05-2026'} under CSPDCL.
+                      </p>
 
                       {/* Point 2: PV Module Specifications */}
-                      <div className="text-justify leading-relaxed space-y-3">
-                        <p>
-                          <strong>2.</strong> It is hereby undertaken that the PV modules installed for the above-mentioned project are domestically manufactured using domestic manufactured solar cells. The details of installed PV Modules are follows:
-                        </p>
+                      <p className="text-justify leading-relaxed">
+                        2. It is hereby undertaken that the PV modules installed for the above-mentioned project are domestically manufactured using domestic manufactured solar cells. The details of installed PV Modules are follows:
+                      </p>
 
-                        <div className="bg-slate-50 border border-slate-300 p-4 rounded-md space-y-2 text-[11px]">
-                          <p><strong>PV Module Capacity:</strong> {tplDcrCapacityWp}</p>
-                          <p><strong>Number of PV Modules:</strong> {tplDcrModuleCount}</p>
-                          <p className="font-bold pt-1">Sr. No of Solar PV Module:</p>
-
-                          {/* Grid Table for Serial Numbers */}
-                          <div className="border border-slate-300 rounded overflow-hidden">
-                            <table className="w-full text-center border-collapse text-[11px]">
-                              <tbody>
-                                <tr>
-                                  <td className="border border-slate-300 p-1.5 font-mono font-bold bg-white">
-                                    {tplDcrSerials[0] || 'AS2605132C1835'}
-                                  </td>
-                                  <td className="border border-slate-300 p-1.5 font-mono font-bold bg-white">
-                                    {tplDcrSerials[1] || 'AS2605132C3736'}
-                                  </td>
-                                  <td className="border border-slate-300 p-1.5 bg-slate-50"></td>
-                                </tr>
-                                <tr>
-                                  <td className="border border-slate-300 p-1.5 font-mono font-bold bg-white">
-                                    {tplDcrSerials[2] || 'AS2605132C3609'}
-                                  </td>
-                                  <td className="border border-slate-300 p-1.5 font-mono font-bold bg-white">
-                                    {tplDcrSerials[3] || 'AS2605132C1574'}
-                                  </td>
-                                  <td className="border border-slate-300 p-1.5 bg-slate-50"></td>
-                                </tr>
-                                <tr>
-                                  <td className="border border-slate-300 p-1.5 font-mono font-bold bg-white">
-                                    {tplDcrSerials[4] || 'AS2605132C3783'}
-                                  </td>
-                                  <td className="border border-slate-300 p-1.5 bg-slate-50"></td>
-                                  <td className="border border-slate-300 p-1.5 bg-slate-50"></td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-
-                          <div className="pt-2 space-y-1">
-                            <p><strong>PV Module Make:</strong> {tplDcrModuleMake}</p>
-                            <p><strong>Cell manufacturer’s name:</strong> {tplDcrCellManufacturer}</p>
-                          </div>
-                        </div>
+                      {/* PV Module Parameters */}
+                      <div className="space-y-0.5 text-[12.5px]">
+                        <p><strong>PV Module Capacity:</strong> {tplDcrCapacityWp || '620 Wp'}</p>
+                        <p><strong>Number of PV Modules:</strong> {tplDcrModuleCount || '05 No’s'}</p>
+                        <p>Sr. No of Solar PV Module:</p>
                       </div>
 
-                      {/* Point 3 & 4: Manufacturer Certification & Solemn Declaration */}
-                      <div className="text-justify leading-relaxed space-y-2">
-                        <p>
-                          <strong>3.</strong> The above undertaking is based on the certificate issued by PV Module manufacturer/supplier while supplying the above mentioned order.
-                        </p>
-                        <p>
-                          <strong>4.</strong> I, <strong>{tplVendorSignatory}</strong> on behalf of <strong>{tplVendorName}</strong> further declare that the information given above is true and correct and nothing has been concealed therein. If anything is found incorrect at any stage, then REC/ MNRE may take any appropriate action against my company for wrong declaration. Supporting documents and proof of the above information will be provided as and when requested by MNRE.
-                        </p>
+                      {/* 2-Column Serial Numbers Grid Table matching Docx */}
+                      <div className="flex justify-center my-2">
+                        <table className="border-collapse border border-black text-center text-[12px] font-bold font-serif w-auto min-w-[340px]">
+                          <tbody>
+                            {Array.from({
+                              length: Math.ceil(
+                                Math.max(tplDcrSerials.filter(s => s && s.trim()).length, 5) / 2
+                              )
+                            }).map((_, rIdx) => {
+                              const s1 = tplDcrSerials[rIdx * 2] || '';
+                              const s2 = tplDcrSerials[rIdx * 2 + 1] || '';
+                              return (
+                                <tr key={rIdx}>
+                                  <td className="border border-black px-6 py-1 min-w-[160px] tracking-wider font-semibold">
+                                    {s1}
+                                  </td>
+                                  <td className="border border-black px-6 py-1 min-w-[160px] tracking-wider font-semibold">
+                                    {s2}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
 
-                      {/* Signature with Official Rarebox LLP Seal */}
-                      <div className="pt-6 border-t-2 border-slate-300 flex justify-end">
-                        <div className="space-y-2 text-right">
-                          <p className="text-[11px] text-slate-600">(Signature with official Seal)</p>
-                          <p className="font-bold text-xs uppercase">For {tplVendorName}</p>
+                      {/* Make and Cell Manufacturer */}
+                      <div className="space-y-0.5 text-[12.5px]">
+                        <p><strong>PV Module Make:</strong> &nbsp;{tplDcrModuleMake || 'Adani Solar'}</p>
+                        <p><strong>Cell manufacturer’s name:</strong> {tplDcrCellManufacturer || 'Mundra Solar PV Limited'}</p>
+                      </div>
 
-                          <div className="flex justify-end py-1">
+                      {/* Point 3 */}
+                      <p className="text-justify leading-relaxed">
+                        &nbsp;&nbsp;&nbsp;3.The above undertaking is based on the certificate issued by PV Module manufacturer/supplier while supplying the above mentioned order.
+                      </p>
+
+                      {/* Point 4 */}
+                      <p className="text-justify leading-relaxed">
+                        &nbsp;&nbsp;&nbsp;4.I, {tplVendorSignatory || 'SAMEER SAHU'} on behalf of {tplVendorName || 'M/S RAREBOX LLP RAIPUR'} further declare that the information given above is true and correct and nothing has been concealed therein. If anything is found incorrect at any stage, then REC/ MNRE may take any appropriate action against my company for wrong declaration. Supporting documents and proof of the above information will be provided as and when requested by MNRE
+                      </p>
+
+                      {/* Signature with Official Rarebox LLP Seal (Right aligned like Word tabs) */}
+                      <div className="pt-4 flex justify-end">
+                        <div className="w-64 text-left space-y-0.5 text-[12px] font-serif leading-normal">
+                          <p className="text-slate-900">(Signature with official Seal)</p>
+                          <p className="font-bold">For M/S RAREBOX LLP</p>
+
+                          <div className="py-1">
                             <img
                               src={RAREBOX_STAMP_BASE64}
-                              alt="Rarebox LLP Stamp & Signature"
-                              className="w-32 h-32 object-contain filter contrast-125"
+                              alt="Rarebox LLP Official Seal"
+                              className="w-28 h-22 object-contain filter contrast-125"
                             />
                           </div>
 
-                          <div className="text-[11px] space-y-0.5 text-right font-medium">
-                            <p><strong>Name:</strong> {tplVendorSignatory}</p>
-                            <p><strong>Designation:</strong> {tplVendorDesignation}</p>
-                            <p><strong>Phone:</strong> {tplVendorPhone}</p>
-                            <p><strong>Email:</strong> {tplVendorEmail}</p>
+                          <div className="space-y-0.5">
+                            <p><strong>Name:</strong> {tplVendorSignatory || 'SAMEER SAHU'}</p>
+                            <p><strong>Designation:</strong> {tplVendorDesignation || 'PROPRIETOR'}</p>
+                            <p><strong>Phone:</strong> {tplVendorPhone || '9630131550'}</p>
+                            <p><strong>Email:</strong> {tplVendorEmail || 'rareboxllp@gmail.com'}</p>
                           </div>
                         </div>
                       </div>

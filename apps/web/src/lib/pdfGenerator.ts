@@ -6,6 +6,7 @@ export interface GeneratePdfOptions {
   marginMm?: number;
   format?: 'a4' | 'letter';
   orientation?: 'portrait' | 'landscape';
+  fitSinglePage?: boolean;
 }
 
 /**
@@ -170,10 +171,22 @@ export async function generatePdfFromElement(
   // Calculate max printable height per page in canvas pixel units
   const maxPageCanvasHeight = Math.floor((masterWidth * maxContentHeightMm) / contentWidthMm);
 
-  // If document fits on 1 single page without overflow (allow a 5% tolerance so single-page letters fit 100%)
-  if (masterHeight <= maxPageCanvasHeight * 1.05) {
-    const fitHeightMm = Math.min((masterHeight * contentWidthMm) / masterWidth, maxContentHeightMm);
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', marginMm, marginMm, contentWidthMm, fitHeightMm);
+  // Check if document should be formatted to 1 single page without multi-page slicing
+  const shouldFitSinglePage =
+    options.fitSinglePage === true ||
+    element.getAttribute('data-single-page') === 'true' ||
+    element.dataset.singlePage === 'true' ||
+    masterHeight <= maxPageCanvasHeight * 1.15;
+
+  if (shouldFitSinglePage) {
+    const rawHeightMm = (masterHeight * contentWidthMm) / masterWidth;
+    const scale = rawHeightMm > maxContentHeightMm ? (maxContentHeightMm / rawHeightMm) : 1;
+    const printWidthMm = contentWidthMm * scale;
+    const printHeightMm = rawHeightMm * scale;
+    const offsetX = marginMm + (contentWidthMm - printWidthMm) / 2;
+    const offsetY = marginMm;
+
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', offsetX, offsetY, printWidthMm, printHeightMm);
 
     const blob = pdf.output('blob');
     const objectUrl = URL.createObjectURL(blob);
@@ -272,9 +285,10 @@ export async function generatePdfFromElement(
  */
 export async function downloadElementAsPdf(
   element: HTMLElement,
-  filename = 'document.pdf'
+  filename = 'document.pdf',
+  options: GeneratePdfOptions = {}
 ): Promise<Blob> {
-  const { pdf, blob } = await generatePdfFromElement(element, { filename });
+  const { pdf, blob } = await generatePdfFromElement(element, { ...options, filename });
   pdf.save(filename);
   return blob;
 }
