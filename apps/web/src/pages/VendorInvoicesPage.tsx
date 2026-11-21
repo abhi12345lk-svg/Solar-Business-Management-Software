@@ -65,6 +65,21 @@ const SOLAR_CATEGORIES = [
   'General Procurement & Tools'
 ];
 
+// Indian GSTIN validation regex: 2 State Digits + 10 PAN alphanumeric + 1 Entity + "Z" + 1 Check Digit
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+const isGstinFormatValid = (gstin: string): boolean => {
+  if (!gstin || !gstin.trim()) return false;
+  return GSTIN_REGEX.test(gstin.trim().toUpperCase());
+};
+
+const GST_PRESETS = [
+  { label: '0%', rate: 0, title: '0% (Exempt / Nil Rated)' },
+  { label: '5%', rate: 5, title: '5% (Concessional Solar Rate)' },
+  { label: '12% (Solar)', rate: 12, title: '12% for Solar Panels & Inverters' },
+  { label: '18% (EPC)', rate: 18, title: '18% for Services, BOS & Cables' }
+];
+
 export function VendorInvoicesPage() {
   // Safe auth hook (works in both app and isolated test environments)
   let auth: any = { isAdmin: true, hasPermission: () => true };
@@ -89,11 +104,20 @@ export function VendorInvoicesPage() {
   // Master Dropdown Lists
   const [vendorsList, setVendorsList] = useState<any[]>([]);
   const [customersList, setCustomersList] = useState<any[]>([]);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
 
   // Modals State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [deleteTargetInvoice, setDeleteTargetInvoice] = useState<VendorInvoiceItem | null>(null);
+
+  // In-modal errors (clean alerts, replacing window.alert)
+  const [formError, setFormError] = useState<string | null>(null);
+  const [payFormError, setPayFormError] = useState<string | null>(null);
+
+  // Active GST Preset Rate: 0, 5, 12, 18, or null for manual/custom
+  const [activeGstRate, setActiveGstRate] = useState<number | null>(12);
 
   // Active Selections
   const [selectedPayInvoice, setSelectedPayInvoice] = useState<VendorInvoiceItem | null>(null);
@@ -109,7 +133,8 @@ export function VendorInvoicesPage() {
     name: '',
     contactPerson: '',
     phone: '',
-    gstin: ''
+    gstin: '',
+    isUnregistered: false
   });
 
   // Invoice Form State
@@ -143,6 +168,8 @@ export function VendorInvoicesPage() {
   });
 
   const resetInvoiceForm = () => {
+    setFormError(null);
+    setActiveGstRate(12);
     setFormData({
       vendorId: vendorsList[0]?._id || '',
       linkedCustomerId: '',
@@ -159,7 +186,8 @@ export function VendorInvoicesPage() {
       name: '',
       contactPerson: '',
       phone: '',
-      gstin: ''
+      gstin: '',
+      isUnregistered: false
     });
     setVendorMode(vendorsList.length > 0 ? 'EXISTING' : 'NEW');
   };
@@ -184,20 +212,24 @@ export function VendorInvoicesPage() {
     }
   }, [search, statusFilter, vendorFilter]);
 
-  // 2. Load Master Dropdowns (Vendors & Customers)
+  // 2. Load Master Dropdowns (Vendors, Customers, and Projects)
   const loadDropdowns = async () => {
     try {
-      const [vRes, cRes] = await Promise.all([
+      const [vRes, cRes, pRes] = await Promise.all([
         apiClient<any>('/vendors?limit=100&isActive=true'),
-        apiClient<any>('/customers?limit=100&status=ACTIVE')
+        apiClient<any>('/customers?limit=100&status=ACTIVE'),
+        apiClient<any>('/projects?limit=100').catch(() => null)
       ]);
       const vList =
         vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
       const cList =
         cRes?.items || cRes?.data?.items || cRes?.data || (Array.isArray(cRes) ? cRes : []);
+      const pList =
+        pRes?.projects || pRes?.data?.projects || pRes?.items || pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : Array.isArray(pRes) ? pRes : []);
 
       setVendorsList(vList);
       setCustomersList(cList);
+      setProjectsList(pList);
       if (vList.length === 0) {
         setVendorMode('NEW');
       }
@@ -214,44 +246,77 @@ export function VendorInvoicesPage() {
     loadDropdowns();
   }, []);
 
-  // 3. Quick GST Calculation Buttons (0%, 5%, 12% Solar, 18% EPC)
+  // 3. Dynamic GST Rate & Real-Time Calculation Handlers
   const applyGSTRate = (ratePercent: number) => {
+    setActiveGstRate(ratePercent);
     const sub = parseFloat(formData.subtotalInr) || 0;
-    if (sub <= 0) return;
+    if (sub <= 0) {
+      setFormData(prev => ({
+        ...prev,
+        taxAmountInr: ratePercent === 0 ? '0' : prev.taxAmountInr,
+        totalAmountInr: ratePercent === 0 && sub > 0 ? sub.toString() : prev.totalAmountInr
+      }));
+      return;
+    }
     const tax = Math.round(sub * (ratePercent / 100) * 100) / 100;
     const total = Math.round((sub + tax) * 100) / 100;
     setFormData(prev => ({
       ...prev,
-      taxAmountInr: tax > 0 ? tax.toString() : '0',
+      taxAmountInr: tax.toString(),
       totalAmountInr: total.toString()
     }));
   };
 
   const handleSubtotalChange = (val: string) => {
     const sub = parseFloat(val) || 0;
-    const tax = parseFloat(formData.taxAmountInr) || 0;
-    const total = Math.round((sub + tax) * 100) / 100;
-    setFormData(prev => ({
-      ...prev,
-      subtotalInr: val,
-      totalAmountInr: sub > 0 ? total.toString() : ''
-    }));
+    if (activeGstRate !== null && activeGstRate >= 0) {
+      const tax = Math.round(sub * (activeGstRate / 100) * 100) / 100;
+      const total = Math.round((sub + tax) * 100) / 100;
+      setFormData(prev => ({
+        ...prev,
+        subtotalInr: val,
+        taxAmountInr: sub > 0 ? tax.toString() : '',
+        totalAmountInr: sub > 0 ? total.toString() : ''
+      }));
+    } else {
+      const tax = parseFloat(formData.taxAmountInr) || 0;
+      const total = Math.round((sub + tax) * 100) / 100;
+      setFormData(prev => ({
+        ...prev,
+        subtotalInr: val,
+        totalAmountInr: sub > 0 ? total.toString() : ''
+      }));
+    }
   };
 
   const handleTaxChange = (val: string) => {
+    setActiveGstRate(null); // Switch to manual custom tax mode
     const sub = parseFloat(formData.subtotalInr) || 0;
     const tax = parseFloat(val) || 0;
     const total = Math.round((sub + tax) * 100) / 100;
     setFormData(prev => ({
       ...prev,
       taxAmountInr: val,
-      totalAmountInr: total > 0 ? total.toString() : ''
+      totalAmountInr: total > 0 ? total.toString() : (sub > 0 ? sub.toString() : '')
+    }));
+  };
+
+  const handleTotalChange = (val: string) => {
+    setActiveGstRate(null);
+    const total = parseFloat(val) || 0;
+    const sub = parseFloat(formData.subtotalInr) || 0;
+    const tax = Math.max(0, Math.round((total - sub) * 100) / 100);
+    setFormData(prev => ({
+      ...prev,
+      totalAmountInr: val,
+      taxAmountInr: sub > 0 && total >= sub ? tax.toString() : prev.taxAmountInr
     }));
   };
 
   // 4. Create Vendor Invoice Submit (with Auto-Supplier Creation if NEW)
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     try {
       setSubmitting(true);
       setError(null);
@@ -260,19 +325,32 @@ export function VendorInvoicesPage() {
 
       // If user is adding a new supplier inline:
       if (vendorMode === 'NEW') {
-        if (!newVendorData.name.trim()) {
-          alert('Please enter the Supplier / Vendor name.');
+        const cleanName = newVendorData.name.trim();
+        if (!cleanName) {
+          setFormError('Please enter the Supplier / Company name.');
           setSubmitting(false);
           return;
+        }
+
+        let cleanGstin: string | undefined = undefined;
+        if (!newVendorData.isUnregistered && newVendorData.gstin.trim()) {
+          cleanGstin = newVendorData.gstin.trim().toUpperCase();
+          if (!GSTIN_REGEX.test(cleanGstin)) {
+            setFormError(
+              `Invalid GSTIN "${cleanGstin}". Indian GSTIN format must be exactly 15 alphanumeric characters (e.g. 22AAAAA0000A1Z5: 2 digits State + 10 alphanumeric PAN + 1 Entity + "Z" + 1 Check Digit). If this supplier does not have a GST registration, check "Unregistered Vendor".`
+            );
+            setSubmitting(false);
+            return;
+          }
         }
 
         const vendorRes = await apiClient<any>('/vendors', {
           method: 'POST',
           body: JSON.stringify({
-            name: newVendorData.name.trim(),
+            name: cleanName,
             contactPerson: newVendorData.contactPerson.trim() || undefined,
             phone: newVendorData.phone.trim() || undefined,
-            gstin: newVendorData.gstin.trim().toUpperCase() || undefined
+            gstin: cleanGstin
           })
         });
 
@@ -282,7 +360,7 @@ export function VendorInvoicesPage() {
       }
 
       if (!targetVendorId) {
-        alert('Please select or specify a Supplier / Vendor.');
+        setFormError('Please select or specify a Supplier / Vendor.');
         setSubmitting(false);
         return;
       }
@@ -292,14 +370,24 @@ export function VendorInvoicesPage() {
       const total = parseFloat(formData.totalAmountInr) || subtotal + tax;
 
       if (total <= 0) {
-        alert('Invoice total amount must be greater than zero.');
+        setFormError('Invoice total amount must be greater than ₹0.');
         setSubmitting(false);
         return;
       }
 
-      // Link project info if selected
-      const matchedCustomer = customersList.find(c => c._id === formData.linkedCustomerId);
-      const projectPrefix = matchedCustomer ? `[Project: ${matchedCustomer.name}] ` : '';
+      // Link project/customer info if selected
+      let projectPrefix = '';
+      if (formData.linkedCustomerId) {
+        if (formData.linkedCustomerId.startsWith('PRJ:')) {
+          const parts = formData.linkedCustomerId.split(':');
+          projectPrefix = `[Project: ${parts[2] || parts[1]}] `;
+        } else {
+          const matchedCustomer = customersList.find(c => c._id === formData.linkedCustomerId);
+          if (matchedCustomer) {
+            projectPrefix = `[Customer: ${matchedCustomer.name}] `;
+          }
+        }
+      }
       const particularsNote = `${projectPrefix}[${formData.category}] ${formData.notes || ''}`.trim();
 
       const payload = {
@@ -324,7 +412,7 @@ export function VendorInvoicesPage() {
       setActionSuccess(`Supplier Bill #${payload.vendorInvoiceNumber} recorded successfully!`);
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to save supplier bill: ${err.message || 'Error'}`);
+      setFormError(err.message || 'Failed to save supplier bill. Please check inputs.');
     } finally {
       setSubmitting(false);
     }
@@ -333,6 +421,7 @@ export function VendorInvoicesPage() {
   // 5. Pay Bill Modal Open & Submit (Disbursement to Vendor)
   const handleOpenPayModal = (inv: VendorInvoiceItem) => {
     setSelectedPayInvoice(inv);
+    setPayFormError(null);
     const balanceInr = (inv.balancePayablePaise / 100).toFixed(2);
     setPayFormData({
       amountInr: balanceInr,
@@ -346,12 +435,19 @@ export function VendorInvoicesPage() {
 
   const handleRecordBillPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPayFormError(null);
     if (!selectedPayInvoice) return;
     try {
       setSubmitting(true);
       const amountPaise = Math.round(Number(payFormData.amountInr) * 100);
       if (isNaN(amountPaise) || amountPaise <= 0) {
-        alert('Please enter a valid disbursement amount.');
+        setPayFormError('Please enter a valid disbursement amount greater than ₹0.');
+        setSubmitting(false);
+        return;
+      }
+      if (amountPaise > selectedPayInvoice.balancePayablePaise) {
+        setPayFormError(`Disbursement amount cannot exceed remaining balance of ₹${(selectedPayInvoice.balancePayablePaise / 100).toFixed(2)}.`);
+        setSubmitting(false);
         return;
       }
 
@@ -371,25 +467,24 @@ export function VendorInvoicesPage() {
       await fetchInvoices();
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to disburse payment: ${err.message || 'Error'}`);
+      setPayFormError(err.message || 'Failed to disburse payment.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 6. Delete Invoice
-  const handleDeleteInvoice = async (inv: VendorInvoiceItem) => {
-    if (!confirm(`Are you sure you want to delete Supplier Bill #${inv.vendorInvoiceNumber}?`)) {
-      return;
-    }
+  // 6. Delete Invoice Confirmation
+  const confirmDeleteInvoice = async () => {
+    if (!deleteTargetInvoice) return;
     try {
       setSubmitting(true);
-      await apiClient(`/vendor-invoices/${inv._id}`, { method: 'DELETE' });
-      setActionSuccess(`Supplier Bill #${inv.vendorInvoiceNumber} deleted successfully.`);
+      await apiClient(`/vendor-invoices/${deleteTargetInvoice._id}`, { method: 'DELETE' });
+      setActionSuccess(`Supplier Bill #${deleteTargetInvoice.vendorInvoiceNumber} deleted successfully.`);
+      setDeleteTargetInvoice(null);
       await fetchInvoices();
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      alert(`Failed to delete invoice: ${err.message || 'Error'}`);
+      setError(err.message || 'Failed to delete invoice');
     } finally {
       setSubmitting(false);
     }
@@ -810,7 +905,7 @@ export function VendorInvoicesPage() {
                           {canManageInvoice && (inv.paidAmountPaise || 0) === 0 && (
                             <button
                               type="button"
-                              onClick={() => handleDeleteInvoice(inv)}
+                              onClick={() => setDeleteTargetInvoice(inv)}
                               className="p-1 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer"
                               title="Delete bill"
                             >
@@ -832,8 +927,8 @@ export function VendorInvoicesPage() {
           MODAL 1: ADD SUPPLIER PURCHASE BILL (OUTFLOW)
          ========================================================================= */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="w-full max-w-lg bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 !mt-0 !m-0">
+          <div className="w-full max-w-lg bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto !mt-0 !m-0">
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -848,12 +943,28 @@ export function VendorInvoicesPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* In-Modal Error Banner */}
+            {formError && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <div className="flex-1 font-medium leading-relaxed">{formError}</div>
+                <button
+                  type="button"
+                  onClick={() => setFormError(null)}
+                  className="text-rose-600 hover:text-rose-800 dark:hover:text-rose-200 cursor-pointer p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleCreateInvoice} className="space-y-4 text-xs">
               {/* Supplier Selection Mode: Choose Existing vs + New Supplier */}
@@ -893,42 +1004,148 @@ export function VendorInvoicesPage() {
                   <select
                     required
                     value={formData.vendorId}
-                    onChange={e => setFormData({ ...formData, vendorId: e.target.value })}
+                    onChange={e => {
+                      setFormData({ ...formData, vendorId: e.target.value });
+                      if (formError) setFormError(null);
+                    }}
                     className="w-full px-3 py-2 rounded-xl border bg-background text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   >
                     <option value="">-- Choose Supplier (e.g. Waaree, Growatt, Havells) --</option>
                     {vendorsList.map(v => (
                       <option key={v._id} value={v._id}>
-                        {v.name} {v.gstin ? `(GST: ${v.gstin})` : ''}
+                        {v.name} {v.gstin ? `(GST: ${v.gstin})` : '(No GST)'}
                       </option>
                     ))}
                   </select>
                 ) : (
-                  <div className="p-3 rounded-xl border bg-secondary/30 space-y-2.5">
+                  <div className="p-3.5 rounded-xl border bg-secondary/30 space-y-3">
                     <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1">
+                        Supplier / Company Name *
+                      </label>
                       <input
                         type="text"
                         required
-                        placeholder="Supplier Name * (e.g. Waaree Energies, Local Fabricator)"
+                        placeholder="e.g. Waaree Energies Ltd, Tata Power Solar, Local Fabricator"
                         value={newVendorData.name}
-                        onChange={e => setNewVendorData({ ...newVendorData, name: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border bg-background text-xs font-bold focus:ring-2 focus:ring-amber-500"
+                        onChange={e => {
+                          setNewVendorData({ ...newVendorData, name: e.target.value });
+                          if (formError) setFormError(null);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border bg-background text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+
+                    {/* Unregistered Vendor (No GST) Checkbox */}
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-background/80 border border-border/60">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={newVendorData.isUnregistered}
+                          onChange={e => {
+                            const checked = e.target.checked;
+                            setNewVendorData(prev => ({
+                              ...prev,
+                              isUnregistered: checked,
+                              gstin: checked ? '' : prev.gstin
+                            }));
+                            if (formError) setFormError(null);
+                          }}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        />
+                        <span className="text-xs font-medium text-foreground">
+                          Unregistered Vendor (No GSTIN / Local Small Supplier)
+                        </span>
+                      </label>
+                      {newVendorData.isUnregistered && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                          Non-GST Supplier
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* GSTIN field with live validation & helper */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold text-foreground">
+                            GSTIN {newVendorData.isUnregistered ? '(Disabled)' : '(15-Char Tax ID)'}
+                          </label>
+                          {!newVendorData.isUnregistered && newVendorData.gstin.trim().length > 0 && (
+                            <span
+                              className={`text-[10px] font-mono font-semibold ${
+                                isGstinFormatValid(newVendorData.gstin)
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-amber-600 dark:text-amber-400'
+                              }`}
+                            >
+                              {isGstinFormatValid(newVendorData.gstin)
+                                ? '✓ Valid Format'
+                                : `${newVendorData.gstin.trim().length}/15`}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          disabled={newVendorData.isUnregistered}
+                          maxLength={15}
+                          placeholder={
+                            newVendorData.isUnregistered
+                              ? 'Unregistered (No GST required)'
+                              : 'e.g. 22AAAAA0000A1Z5'
+                          }
+                          value={newVendorData.gstin}
+                          onChange={e => {
+                            const val = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
+                            setNewVendorData({ ...newVendorData, gstin: val });
+                            if (formError) setFormError(null);
+                          }}
+                          className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-mono uppercase focus:ring-2 focus:ring-amber-500 focus:outline-none ${
+                            newVendorData.isUnregistered
+                              ? 'bg-muted/50 text-muted-foreground cursor-not-allowed border-dashed'
+                              : newVendorData.gstin && !isGstinFormatValid(newVendorData.gstin)
+                              ? 'border-amber-500 bg-amber-50/20 text-amber-900 dark:text-amber-200'
+                              : 'bg-background text-foreground'
+                          }`}
+                        />
+                        {!newVendorData.isUnregistered && (
+                          <span className="text-[10px] text-muted-foreground mt-0.5 block leading-tight">
+                            Format: 2 State + 10 PAN + 1 + Z + 1 (e.g. 22AAAAA0000A1Z5)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Phone / Contact */}
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Phone / Mobile (Optional)
+                        </label>
+                        <input
+                          type="tel"
+                          maxLength={15}
+                          placeholder="e.g. 9876543210"
+                          value={newVendorData.phone}
+                          onChange={e => setNewVendorData({ ...newVendorData, phone: e.target.value })}
+                          className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                          Vendor dispatch / accounts contact
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1">
+                        Contact Person Name (Optional)
+                      </label>
                       <input
                         type="text"
-                        placeholder="GSTIN (Optional)"
-                        value={newVendorData.gstin}
-                        onChange={e => setNewVendorData({ ...newVendorData, gstin: e.target.value })}
-                        className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono uppercase"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Phone / Contact (Optional)"
-                        value={newVendorData.phone}
-                        onChange={e => setNewVendorData({ ...newVendorData, phone: e.target.value })}
-                        className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs"
+                        placeholder="e.g. Ramesh Kumar (Sales Head)"
+                        value={newVendorData.contactPerson}
+                        onChange={e =>
+                          setNewVendorData({ ...newVendorData, contactPerson: e.target.value })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -946,14 +1163,29 @@ export function VendorInvoicesPage() {
                   className="w-full px-3 py-2 rounded-xl border bg-background text-xs focus:ring-2 focus:ring-amber-500 font-medium"
                 >
                   <option value="">-- General Stock / Warehouse Inventory (No specific site) --</option>
-                  {customersList.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''} {c.city ? `• ${c.city}` : ''}
-                    </option>
-                  ))}
+                  {projectsList.length > 0 && (
+                    <optgroup label="Active Solar EPC Projects">
+                      {projectsList.map(p => (
+                        <option key={p._id} value={`PRJ:${p._id}:${p.name || p.projectCode}`}>
+                          Project: {p.projectCode ? `${p.projectCode} - ` : ''}
+                          {p.name} {p.systemCapacityKw ? `(${p.systemCapacityKw} kW)` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {customersList.length > 0 && (
+                    <optgroup label="Rooftop Customers">
+                      {customersList.map(c => (
+                        <option key={c._id} value={c._id}>
+                          Customer: {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''}{' '}
+                          {c.city ? `• ${c.city}` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 <span className="text-[10px] text-muted-foreground mt-0.5 block">
-                  Select customer if this material was purchased specifically for a rooftop solar order.
+                  Select customer or project if material was purchased specifically for a rooftop site order.
                 </span>
               </div>
 
@@ -968,7 +1200,10 @@ export function VendorInvoicesPage() {
                     required
                     placeholder="e.g. INV-9021"
                     value={formData.vendorInvoiceNumber}
-                    onChange={e => setFormData({ ...formData, vendorInvoiceNumber: e.target.value })}
+                    onChange={e => {
+                      setFormData({ ...formData, vendorInvoiceNumber: e.target.value });
+                      if (formError) setFormError(null);
+                    }}
                     className="w-full px-3 py-2 rounded-xl border bg-background text-xs font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
@@ -1017,46 +1252,34 @@ export function VendorInvoicesPage() {
                 </div>
               </div>
 
-              {/* Amount Breakdown with Quick GST Buttons */}
+              {/* Amount Breakdown with Quick GST Buttons & Real-Time Math */}
               <div className="p-3.5 rounded-xl border bg-secondary/20 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-1.5">
                   <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
                     <Calculator className="w-3.5 h-3.5 text-amber-500" />
                     <span>Purchase Cost &amp; GST Breakdown (₹)</span>
                   </span>
-                  {/* GST Preset Buttons */}
+                  {/* Dynamic GST Preset Buttons */}
                   <div className="flex items-center gap-1 text-[10px]">
-                    <span className="text-muted-foreground mr-1">GST:</span>
-                    <button
-                      type="button"
-                      onClick={() => applyGSTRate(0)}
-                      className="px-1.5 py-0.5 rounded bg-card border hover:bg-muted font-medium cursor-pointer"
-                    >
-                      0%
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyGSTRate(5)}
-                      className="px-1.5 py-0.5 rounded bg-card border hover:bg-muted font-medium cursor-pointer"
-                    >
-                      5%
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyGSTRate(12)}
-                      className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold cursor-pointer"
-                      title="12% for Solar Panels & Inverters"
-                    >
-                      12% (Solar)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyGSTRate(18)}
-                      className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 font-bold cursor-pointer"
-                      title="18% for Services & BOS"
-                    >
-                      18% (EPC)
-                    </button>
+                    <span className="text-muted-foreground mr-0.5">GST:</span>
+                    {GST_PRESETS.map(p => {
+                      const isActive = activeGstRate === p.rate;
+                      return (
+                        <button
+                          key={p.rate}
+                          type="button"
+                          onClick={() => applyGSTRate(p.rate)}
+                          className={`px-2 py-0.5 rounded cursor-pointer transition ${
+                            isActive
+                              ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                              : 'bg-card border text-muted-foreground hover:text-foreground hover:bg-muted font-medium'
+                          }`}
+                          title={p.title}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1070,24 +1293,37 @@ export function VendorInvoicesPage() {
                       min="0"
                       step="0.01"
                       required
-                      placeholder="e.g. 50000"
+                      placeholder="e.g. 150000"
                       value={formData.subtotalInr}
-                      onChange={e => handleSubtotalChange(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-bold"
+                      onChange={e => {
+                        handleSubtotalChange(e.target.value);
+                        if (formError) setFormError(null);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                      GST Tax (₹)
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
+                        GST Tax (₹)
+                      </label>
+                      {activeGstRate !== null && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                          @{activeGstRate}%
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      placeholder="e.g. 6000"
+                      placeholder="e.g. 18000"
                       value={formData.taxAmountInr}
-                      onChange={e => handleTaxChange(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-bold"
+                      onChange={e => {
+                        handleTaxChange(e.target.value);
+                        if (formError) setFormError(null);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -1099,10 +1335,13 @@ export function VendorInvoicesPage() {
                       min="0"
                       step="0.01"
                       required
-                      placeholder="e.g. 56000"
+                      placeholder="e.g. 168000"
                       value={formData.totalAmountInr}
-                      onChange={e => setFormData({ ...formData, totalAmountInr: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-black text-amber-600 dark:text-amber-500"
+                      onChange={e => {
+                        handleTotalChange(e.target.value);
+                        if (formError) setFormError(null);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border bg-background text-xs font-mono font-black text-amber-600 dark:text-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1148,8 +1387,8 @@ export function VendorInvoicesPage() {
           MODAL 2: DISBURSE VENDOR PAYMENT (OUTFLOW)
          ========================================================================= */}
       {isPayModalOpen && selectedPayInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="w-full max-w-md bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 !mt-0 !m-0">
+          <div className="w-full max-w-md bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto !mt-0 !m-0">
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -1171,6 +1410,21 @@ export function VendorInvoicesPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* In-Modal Error Banner */}
+            {payFormError && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <div className="flex-1 font-medium leading-relaxed">{payFormError}</div>
+                <button
+                  type="button"
+                  onClick={() => setPayFormError(null)}
+                  className="text-rose-600 hover:text-rose-800 dark:hover:text-rose-200 cursor-pointer p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Bill Financial Summary */}
             <div className="p-3.5 rounded-xl bg-secondary/30 border text-xs space-y-1.5">
@@ -1207,7 +1461,10 @@ export function VendorInvoicesPage() {
                     max={selectedPayInvoice.balancePayablePaise / 100}
                     required
                     value={payFormData.amountInr}
-                    onChange={e => setPayFormData({ ...payFormData, amountInr: e.target.value })}
+                    onChange={e => {
+                      setPayFormData({ ...payFormData, amountInr: e.target.value });
+                      if (payFormError) setPayFormError(null);
+                    }}
                     className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1250,7 +1507,10 @@ export function VendorInvoicesPage() {
                   required
                   placeholder="e.g. UTR-HDFC-9912048 or UPI-88371902"
                   value={payFormData.paymentReference}
-                  onChange={e => setPayFormData({ ...payFormData, paymentReference: e.target.value })}
+                  onChange={e => {
+                    setPayFormData({ ...payFormData, paymentReference: e.target.value });
+                    if (payFormError) setPayFormError(null);
+                  }}
                   className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -1293,8 +1553,8 @@ export function VendorInvoicesPage() {
           MODAL 3: VIEW SUPPLIER BILL DETAILS
          ========================================================================= */}
       {isDetailModalOpen && selectedDetailInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="w-full max-w-lg bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 !mt-0 !m-0">
+          <div className="w-full max-w-lg bg-card rounded-2xl border shadow-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto !mt-0 !m-0">
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -1346,9 +1606,13 @@ export function VendorInvoicesPage() {
                   <span className="font-semibold text-foreground">
                     {selectedDetailInvoice.vendorId?.name || 'Supplier'}
                   </span>
-                  {selectedDetailInvoice.vendorId?.gstin && (
+                  {selectedDetailInvoice.vendorId?.gstin ? (
                     <span className="block text-[11px] font-mono text-muted-foreground">
                       GSTIN: {selectedDetailInvoice.vendorId.gstin}
+                    </span>
+                  ) : (
+                    <span className="block text-[11px] text-muted-foreground">
+                      Unregistered (No GST)
                     </span>
                   )}
                 </div>
@@ -1428,6 +1692,52 @@ export function VendorInvoicesPage() {
                 className="px-4 py-2 text-xs font-semibold rounded-xl bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 4: DELETE INVOICE CONFIRMATION
+         ========================================================================= */}
+      {deleteTargetInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 !mt-0 !m-0">
+          <div className="w-full max-w-sm bg-card rounded-2xl border shadow-2xl p-5 space-y-4 !mt-0 !m-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Delete Supplier Bill?</h3>
+                <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                  Bill #{deleteTargetInvoice.vendorInvoiceNumber}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to delete this bill from{' '}
+              <strong className="text-foreground">
+                {deleteTargetInvoice.vendorId?.name || 'Supplier'}
+              </strong>{' '}
+              for <strong className="text-foreground">{formatINR(deleteTargetInvoice.totalAmountPaise)}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetInvoice(null)}
+                className="px-3.5 py-1.5 text-xs rounded-xl border hover:bg-muted font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={confirmDeleteInvoice}
+                className="px-4 py-1.5 text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Deleting...' : 'Yes, Delete Bill'}
               </button>
             </div>
           </div>

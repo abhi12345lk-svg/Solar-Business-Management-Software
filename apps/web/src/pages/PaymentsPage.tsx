@@ -8,7 +8,7 @@
  * - Clean printable payment receipts and customer account statements
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Banknote,
@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Receipt,
   Lock,
-  Check
+  Check,
+  FileText
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -128,6 +129,7 @@ export const PaymentsPage: React.FC = () => {
   const [activeOrderContractRupees, setActiveOrderContractRupees] = useState<number>(0);
   const [customerTotalPaidRupees, setCustomerTotalPaidRupees] = useState<number>(0);
   const [customContractRupees, setCustomContractRupees] = useState<number>(100000);
+  const [customerReceipts, setCustomerReceipts] = useState<any[]>([]);
 
   // Computed Solar EPC Contract & Balance values
   const effectiveContractRupees = activeOrderContractRupees > 0 ? activeOrderContractRupees : (customContractRupees || 100000);
@@ -139,22 +141,62 @@ export const PaymentsPage: React.FC = () => {
   const m2Target = Math.round(effectiveContractRupees * 0.7); // 70% Pre-Dispatch
   const m3Target = Math.round(effectiveContractRupees * 0.1); // 10% Handover & Commissioning
 
-  // Cumulative thresholds
-  const m2Cumulative = m1Target + m2Target; // 90%
-  const m3Cumulative = effectiveContractRupees; // 100%
+  // Calculate stage breakdown specifically from verified receipts
+  const stageTotals = useMemo(() => {
+    let s1 = 0;
+    let s2 = 0;
+    let s3 = 0;
+    let untagged = 0;
 
-  // Paid amounts towards each milestone
-  const m1Paid = Math.min(m1Target, customerTotalPaidRupees);
-  const m1Due = Math.max(0, m1Target - customerTotalPaidRupees);
-  const m1Completed = customerTotalPaidRupees >= m1Target;
+    for (const p of customerReceipts) {
+      const amtRupees = Math.round((p.amountPaise || 0) / 100);
+      const n = (p.notes || '').toLowerCase();
+      if (n.includes('stage 2') || n.includes('pre-dispatch') || n.includes('milestone 2')) {
+        s2 += amtRupees;
+      } else if (n.includes('stage 3') || n.includes('commissioning') || n.includes('milestone 3')) {
+        s3 += amtRupees;
+      } else if (n.includes('stage 1') || n.includes('advance') || n.includes('booking') || n.includes('milestone 1') || n.includes('token')) {
+        s1 += amtRupees;
+      } else {
+        untagged += amtRupees;
+      }
+    }
 
-  const m2Paid = Math.max(0, Math.min(m2Target, customerTotalPaidRupees - m1Target));
+    // Allocate any untagged payment sequentially across stages
+    if (untagged > 0) {
+      const s1Need = Math.max(0, m1Target - s1);
+      const addS1 = Math.min(s1Need, untagged);
+      s1 += addS1;
+      untagged -= addS1;
+
+      const s2Need = Math.max(0, m2Target - s2);
+      const addS2 = Math.min(s2Need, untagged);
+      s2 += addS2;
+      untagged -= addS2;
+
+      const s3Need = Math.max(0, m3Target - s3);
+      const addS3 = Math.min(s3Need, untagged);
+      s3 += addS3;
+    }
+
+    return { s1, s2, s3 };
+  }, [customerReceipts, m1Target, m2Target, m3Target]);
+
+  // Milestone completion & dues
+  const m1Paid = stageTotals.s1;
+  const m1Due = Math.max(0, m1Target - m1Paid);
+  const m1Completed = m1Due === 0 && m1Target > 0;
+
+  const m2Paid = stageTotals.s2;
   const m2Due = Math.max(0, m2Target - m2Paid);
-  const m2Completed = customerTotalPaidRupees >= m2Cumulative;
+  const m2Completed = m2Due === 0 && m2Target > 0;
 
-  const m3Paid = Math.max(0, Math.min(m3Target, customerTotalPaidRupees - m2Cumulative));
+  const m3Paid = stageTotals.s3;
   const m3Due = Math.max(0, m3Target - m3Paid);
-  const m3Completed = customerTotalPaidRupees >= m3Cumulative;
+  const m3Completed = m3Due === 0 && m3Target > 0;
+
+  // Fully settled if all 3 stages completed OR total remaining balance <= 0
+  const isContractFullySettled = (m1Completed && m2Completed && m3Completed) || (effectiveContractRupees > 0 && remainingBalanceRupees <= 0);
 
   // Live Projected Balance when entering payment amount
   const enteredAmount = parseFloat(recordForm.amountRupees) || 0;
@@ -308,6 +350,7 @@ export const PaymentsPage: React.FC = () => {
       setCustomerOrders([]);
       setActiveOrderContractRupees(0);
       setCustomerTotalPaidRupees(0);
+      setCustomerReceipts([]);
       return;
     }
     try {
@@ -321,7 +364,13 @@ export const PaymentsPage: React.FC = () => {
       const activeOrders = items.filter((o: any) => o.status !== 'CANCELLED');
       setCustomerOrders(activeOrders);
 
-      const totalPaidPaise = recvRes?.data?.totalPaidPaise ?? recvRes?.totalPaidPaise ?? 0;
+      const allPayments = recvRes?.data?.payments || recvRes?.payments || [];
+      const verifiedPayments = allPayments.filter((p: any) => p.status === 'VERIFIED' || p.status === 'RECORDED');
+      setCustomerReceipts(verifiedPayments);
+
+      const totalPaidPaise = verifiedPayments.length > 0
+        ? verifiedPayments.reduce((sum: number, p: any) => sum + (p.amountPaise || 0), 0)
+        : (recvRes?.data?.totalPaidPaise ?? recvRes?.totalPaidPaise ?? 0);
       setCustomerTotalPaidRupees(Math.round(totalPaidPaise / 100));
 
       if (activeOrders.length > 0) {
@@ -355,6 +404,7 @@ export const PaymentsPage: React.FC = () => {
       setCustomerOrders([]);
       setActiveOrderContractRupees(0);
       setCustomerTotalPaidRupees(0);
+      setCustomerReceipts([]);
     }
   };
 
@@ -385,10 +435,14 @@ export const PaymentsPage: React.FC = () => {
         ...prev,
         amountRupees: stageAmt.toString(),
         notes: m1Paid > 0
-          ? `Stage 1 Booking Advance: Balance installment of ${formatINR(stageAmt * 100)} (completing 20% token)`
+          ? `Stage 1 Booking Advance: Balance payment of ${formatINR(stageAmt * 100)} (completing 20% milestone)`
           : `Stage 1: Booking Advance (20%) - Order confirmation token`
       }));
     } else if (stage === 'M2') {
+      if (!m1Completed) {
+        alert(`Stage 1 (20% Booking Advance) must be completed before proceeding to Stage 2 (Material Pre-Dispatch)!`);
+        return;
+      }
       if (m2Completed) {
         alert(`Stage 2 (70% Material Pre-Dispatch - ${formatINR(m2Target * 100)}) has already been fully paid and locked! Please proceed to Stage 3.`);
         return;
@@ -398,10 +452,14 @@ export const PaymentsPage: React.FC = () => {
         ...prev,
         amountRupees: stageAmt.toString(),
         notes: m2Paid > 0
-          ? `Stage 2 Pre-Dispatch: Installment payment of ${formatINR(stageAmt * 100)} (towards 70% milestone)`
+          ? `Stage 2 Pre-Dispatch: Balance payment of ${formatINR(stageAmt * 100)} (completing 70% milestone)`
           : `Stage 2: Material Pre-Dispatch (70%) - Prior to warehouse dispatch`
       }));
     } else if (stage === 'M3') {
+      if (!m2Completed) {
+        alert(`Stage 2 (70% Material Pre-Dispatch) must be completed before proceeding to Stage 3 (Commissioning & Handover)!`);
+        return;
+      }
       if (m3Completed) {
         alert(`Stage 3 (10% Commissioning - ${formatINR(m3Target * 100)}) has already been fully paid! All project milestones are 100% completed.`);
         return;
@@ -410,7 +468,9 @@ export const PaymentsPage: React.FC = () => {
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Stage 3: Installation & Commissioning (10%) - Post net-meter test & final handover`
+        notes: m3Paid > 0
+          ? `Stage 3 Commissioning: Balance payment of ${formatINR(stageAmt * 100)} (completing 10% handover milestone)`
+          : `Stage 3: Installation & Commissioning (10%) - Post net-meter test & final handover`
       }));
     }
   };
@@ -443,9 +503,34 @@ export const PaymentsPage: React.FC = () => {
       return;
     }
 
+    if (isContractFullySettled || remainingBalanceRupees <= 0) {
+      alert('This project contract is already 100% fully settled! No further payments can be accepted.');
+      return;
+    }
+
     const amountNum = parseFloat(recordForm.amountRupees);
     if (isNaN(amountNum) || amountNum <= 0) {
       alert('Please enter a valid received amount (INR).');
+      return;
+    }
+
+    if (amountNum > remainingBalanceRupees) {
+      alert(`Received amount (${formatINR(amountNum * 100)}) exceeds remaining contract balance of ${formatINR(remainingBalanceRupees * 100)}. You cannot overpay.`);
+      return;
+    }
+
+    if (selectedMilestoneStage === 'M1' && amountNum > m1Due) {
+      alert(`Stage 1 Booking Advance only requires ${formatINR(m1Due * 100)} to complete. You cannot overpay this stage.`);
+      return;
+    }
+
+    if (selectedMilestoneStage === 'M2' && amountNum > m2Due) {
+      alert(`Stage 2 Pre-Dispatch only requires ${formatINR(m2Due * 100)} to complete. You cannot overpay this stage.`);
+      return;
+    }
+
+    if (selectedMilestoneStage === 'M3' && amountNum > m3Due) {
+      alert(`Stage 3 Commissioning only requires ${formatINR(m3Due * 100)} to complete. You cannot overpay this stage.`);
       return;
     }
 
@@ -842,13 +927,14 @@ export const PaymentsPage: React.FC = () => {
                   const isReversed = payment.status === 'REVERSED';
 
                   // Extract milestone tag if present
-                  let milestoneLabel = 'Advance Receipt';
-                  if (payment.notes?.includes('Booking Advance') || payment.notes?.includes('Milestone 1') || payment.notes?.includes('Stage 1')) {
-                    milestoneLabel = 'Stage 1: Advance (20%)';
-                  } else if (payment.notes?.includes('Pre-Dispatch') || payment.notes?.includes('Milestone 2') || payment.notes?.includes('Stage 2')) {
+                  let milestoneLabel = 'General Receipt';
+                  const n = (payment.notes || '').toLowerCase();
+                  if (n.includes('stage 2') || n.includes('pre-dispatch') || n.includes('milestone 2')) {
                     milestoneLabel = 'Stage 2: Pre-Dispatch (70%)';
-                  } else if (payment.notes?.includes('Commissioning') || payment.notes?.includes('Milestone 3') || payment.notes?.includes('Stage 3')) {
+                  } else if (n.includes('stage 3') || n.includes('commissioning') || n.includes('milestone 3')) {
                     milestoneLabel = 'Stage 3: Commissioning (10%)';
+                  } else if (n.includes('stage 1') || n.includes('advance') || n.includes('booking') || n.includes('milestone 1') || n.includes('token')) {
+                    milestoneLabel = 'Stage 1: Advance (20%)';
                   }
 
                   return (
@@ -1095,272 +1181,358 @@ export const PaymentsPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 1-Click Milestone Selector & Progress / Balance Tracker */}
-              {recordForm.customerId && (
-                <div className="p-3.5 bg-secondary/40 border rounded-xl space-y-3">
-                  {/* Balance & Progress Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2.5">
-                    <div>
-                      <div className="text-[11px] font-bold uppercase text-foreground flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Solar EPC 3-Stage Milestone Billing</span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        Contract: <strong className="text-foreground font-mono">{formatINR(effectiveContractRupees * 100)}</strong> &bull; Paid So Far: <strong className="text-emerald-600 font-mono">{formatINR(customerTotalPaidRupees * 100)}</strong>
-                      </div>
+              {/* If Contract is 100% Fully Settled */}
+              {recordForm.customerId && isContractFullySettled ? (
+                <div className="p-5 sm:p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center space-y-4">
+                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-emerald-800 dark:text-emerald-300">
+                      Contract 100% Fully Settled!
+                    </h3>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 max-w-md mx-auto">
+                      All 3 solar project milestones (20% Advance, 70% Pre-Dispatch, 10% Handover) have been completely realized and verified.
+                    </p>
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-emerald-500/20 text-xs text-left">
+                    <div className="bg-background/80 p-2.5 rounded-xl border border-emerald-500/20">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Contract</div>
+                      <div className="font-mono font-bold text-foreground text-sm mt-0.5">{formatINR(effectiveContractRupees * 100)}</div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Remaining Balance:</span>
-                      <div className="text-xs font-mono font-bold text-rose-600">
-                        {formatINR(remainingBalanceRupees * 100)} ({Math.max(0, 100 - percentPaid)}% due)
-                      </div>
+                    <div className="bg-background/80 p-2.5 rounded-xl border border-emerald-500/20">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Realized</div>
+                      <div className="font-mono font-bold text-emerald-600 text-sm mt-0.5">{formatINR(customerTotalPaidRupees * 100)}</div>
+                    </div>
+                    <div className="bg-background/80 p-2.5 rounded-xl border border-emerald-500/20">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold">Balance Due</div>
+                      <div className="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-sm mt-0.5">₹0.00 (0% due)</div>
                     </div>
                   </div>
 
-                  {/* 3 Milestone Buttons */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Stage 1 Button */}
-                    <button
-                      type="button"
-                      onClick={() => applyMilestoneStage('M1')}
-                      className={`p-2.5 rounded-xl border text-left transition-all ${
-                        m1Completed
-                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
-                          : selectedMilestoneStage === 'M1'
-                            ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30 cursor-pointer'
-                            : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
-                          {m1Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
-                          Stage 1 (20%)
-                        </span>
-                        {m1Completed ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
-                            <Check className="w-2.5 h-2.5" /> Paid
-                          </span>
-                        ) : m1Paid > 0 ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 font-bold">
-                            Due {formatINR(m1Due * 100)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
-                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {m1Completed ? (
-                          <span className="text-emerald-600">✓ {formatINR(m1Target * 100)}</span>
-                        ) : m1Paid > 0 ? (
-                          <span className="text-amber-600">Pay Due: {formatINR(m1Due * 100)}</span>
-                        ) : (
-                          formatINR(m1Target * 100)
-                        )}
-                      </div>
-                      {m1Paid > 0 && !m1Completed && (
-                        <div className="text-[9px] text-muted-foreground mt-0.5">
-                          ({formatINR(m1Paid * 100)} already received)
-                        </div>
-                      )}
-                    </button>
+                  {/* Milestone Status Badges */}
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div className="p-2 rounded-xl bg-background/80 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center justify-center gap-1.5 shadow-xs">
+                      <Lock className="w-3 h-3 text-emerald-600" />
+                      <span>Stage 1: {formatINR(m1Target * 100)} ✓</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-background/80 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center justify-center gap-1.5 shadow-xs">
+                      <Lock className="w-3 h-3 text-emerald-600" />
+                      <span>Stage 2: {formatINR(m2Target * 100)} ✓</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-background/80 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center justify-center gap-1.5 shadow-xs">
+                      <Lock className="w-3 h-3 text-emerald-600" />
+                      <span>Stage 3: {formatINR(m3Target * 100)} ✓</span>
+                    </div>
+                  </div>
 
-                    {/* Stage 2 Button */}
-                    <button
-                      type="button"
-                      onClick={() => applyMilestoneStage('M2')}
-                      className={`p-2.5 rounded-xl border text-left transition-all ${
-                        m2Completed
-                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
-                          : selectedMilestoneStage === 'M2'
-                            ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30 cursor-pointer'
-                            : m1Completed && !m2Completed
-                              ? 'bg-blue-500/5 border-blue-400/50 hover:bg-blue-500/10 cursor-pointer'
-                              : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
-                          {m2Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
-                          Stage 2 (70%)
-                        </span>
-                        {m2Completed ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
-                            <Check className="w-2.5 h-2.5" /> Paid
-                          </span>
-                        ) : m1Completed && !m2Completed ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-700 font-bold">
-                            👉 Next Step
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
-                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {m2Completed ? (
-                          <span className="text-emerald-600">✓ {formatINR(m2Target * 100)}</span>
-                        ) : (
-                          formatINR(m2Due > 0 ? m2Due * 100 : m2Target * 100)
-                        )}
-                      </div>
-                      {m2Paid > 0 && !m2Completed && (
-                        <div className="text-[9px] text-muted-foreground mt-0.5">
-                          ({formatINR(m2Paid * 100)} paid)
-                        </div>
-                      )}
-                    </button>
+                  <div className="text-[11px] text-muted-foreground">
+                    🔒 Payment intake is locked because this client account has zero outstanding dues.
+                  </div>
 
-                    {/* Stage 3 Button */}
+                  <div className="pt-2 flex items-center justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => applyMilestoneStage('M3')}
-                      className={`p-2.5 rounded-xl border text-left transition-all ${
-                        m3Completed
-                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
-                          : selectedMilestoneStage === 'M3'
-                            ? 'bg-purple-500/10 border-purple-500 ring-2 ring-purple-500/30 cursor-pointer'
-                            : m2Completed && !m3Completed
-                              ? 'bg-purple-500/5 border-purple-400/50 hover:bg-purple-500/10 cursor-pointer'
-                              : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
-                      }`}
+                      onClick={() => {
+                        setShowRecordModal(false);
+                        openCustomerStatement(recordForm.customerId);
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1">
-                          {m3Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
-                          Stage 3 (10%)
-                        </span>
-                        {m3Completed ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
-                            <Check className="w-2.5 h-2.5" /> Paid
-                          </span>
-                        ) : m2Completed && !m3Completed ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-700 font-bold">
-                            👉 Final Step
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
-                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {m3Completed ? (
-                          <span className="text-emerald-600">✓ {formatINR(m3Target * 100)}</span>
-                        ) : (
-                          formatINR(m3Due > 0 ? m3Due * 100 : m3Target * 100)
-                        )}
-                      </div>
-                      {m3Paid > 0 && !m3Completed && (
-                        <div className="text-[9px] text-muted-foreground mt-0.5">
-                          ({formatINR(m3Paid * 100)} paid)
-                        </div>
-                      )}
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>View Customer Statement</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowRecordModal(false)}
+                      className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold text-xs cursor-pointer"
+                    >
+                      Close
                     </button>
                   </div>
                 </div>
-              )}
-
-              {/* Amount & Date */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold mb-1 text-foreground">
-                    Received Amount (INR ₹) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    placeholder="e.g. 30000"
-                    value={recordForm.amountRupees}
-                    onChange={e => {
-                      setRecordForm(prev => ({ ...prev, amountRupees: e.target.value }));
-                      setSelectedMilestoneStage('CUSTOM');
-                    }}
-                    className="w-full px-3 py-2 border rounded-xl bg-background font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                  {enteredAmount > 0 && recordForm.customerId && (
-                    <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 mt-1.5 space-y-0.5">
+              ) : recordForm.customerId ? (
+                <>
+                  {/* 1-Click Milestone Selector & Progress / Balance Tracker */}
+                  <div className="p-3.5 bg-secondary/40 border rounded-xl space-y-3">
+                    {/* Balance & Progress Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2.5">
                       <div>
-                        After receipt: <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Total Paid: {formatINR(projectedPaid * 100)} ({projectedPercent}%)</strong>
+                        <div className="text-[11px] font-bold uppercase text-foreground flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Solar EPC 3-Stage Milestone Billing</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Contract: <strong className="text-foreground font-mono">{formatINR(effectiveContractRupees * 100)}</strong> &bull; Paid So Far: <strong className="text-emerald-600 font-mono">{formatINR(customerTotalPaidRupees * 100)}</strong>
+                        </div>
                       </div>
-                      <div className="text-rose-700 dark:text-rose-300">
-                        Remaining to 100%: <strong className="font-mono">{formatINR(projectedRemaining * 100)}</strong>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Remaining Balance:</span>
+                        <div className="text-xs font-mono font-bold text-rose-600">
+                          {formatINR(remainingBalanceRupees * 100)} ({Math.max(0, 100 - percentPaid)}% due)
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block font-semibold mb-1 text-foreground">
-                    Payment Date &amp; Time <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={recordForm.paymentDate}
-                    onChange={e => setRecordForm(prev => ({ ...prev, paymentDate: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-xl bg-background font-mono text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
+                    {/* 3 Milestone Buttons */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Stage 1 Button */}
+                      <button
+                        type="button"
+                        disabled={m1Completed}
+                        onClick={() => applyMilestoneStage('M1')}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          m1Completed
+                            ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-not-allowed'
+                            : selectedMilestoneStage === 'M1'
+                              ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30 cursor-pointer'
+                              : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                            {m1Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
+                            Stage 1 (20%)
+                          </span>
+                          {m1Completed ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" /> Paid
+                            </span>
+                          ) : m1Paid > 0 ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 font-bold">
+                              Due {formatINR(m1Due * 100)}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
+                        <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                          {m1Completed ? (
+                            <span className="text-emerald-600">✓ {formatINR(m1Target * 100)}</span>
+                          ) : m1Paid > 0 ? (
+                            <span className="text-amber-600">Pay Due: {formatINR(m1Due * 100)}</span>
+                          ) : (
+                            formatINR(m1Target * 100)
+                          )}
+                        </div>
+                        {m1Paid > 0 && !m1Completed && (
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
+                            ({formatINR(m1Paid * 100)} already received)
+                          </div>
+                        )}
+                      </button>
 
-              {/* Mode & Reference */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold mb-1 text-foreground">Payment Mode</label>
-                  <select
-                    value={recordForm.paymentMethod}
-                    onChange={e => setRecordForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  >
-                    <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS / IMPS)</option>
-                    <option value="UPI">UPI</option>
-                    <option value="CHEQUE">Cheque</option>
-                    <option value="CASH">Cash Voucher</option>
-                    <option value="PAYMENT_GATEWAY">Online Gateway</option>
-                  </select>
-                </div>
+                      {/* Stage 2 Button */}
+                      <button
+                        type="button"
+                        disabled={m2Completed || !m1Completed}
+                        onClick={() => applyMilestoneStage('M2')}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          m2Completed
+                            ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-not-allowed'
+                            : !m1Completed
+                              ? 'bg-muted/20 border-border/50 text-muted-foreground opacity-50 cursor-not-allowed'
+                              : selectedMilestoneStage === 'M2'
+                                ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30 cursor-pointer'
+                                : 'bg-blue-500/5 border-blue-400/50 hover:bg-blue-500/10 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
+                            {(m2Completed || !m1Completed) && <Lock className="w-2.5 h-2.5 text-muted-foreground" />}
+                            Stage 2 (70%)
+                          </span>
+                          {m2Completed ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" /> Paid
+                            </span>
+                          ) : !m1Completed ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-semibold">
+                              Locked
+                            </span>
+                          ) : (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-700 font-bold">
+                              👉 Next Step
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
+                        <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                          {m2Completed ? (
+                            <span className="text-emerald-600">✓ {formatINR(m2Target * 100)}</span>
+                          ) : (
+                            formatINR(m2Due > 0 ? m2Due * 100 : m2Target * 100)
+                          )}
+                        </div>
+                        {m2Paid > 0 && !m2Completed && (
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
+                            ({formatINR(m2Paid * 100)} paid)
+                          </div>
+                        )}
+                      </button>
 
-                <div>
-                  <label className="block font-semibold mb-1 text-foreground">
-                    Transaction / UTR / Cheque Ref #
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. UTR-HDFC-9912048 or CHQ-881920"
-                    value={recordForm.transactionReference}
-                    onChange={e => setRecordForm(prev => ({ ...prev, transactionReference: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-xl bg-background font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
+                      {/* Stage 3 Button */}
+                      <button
+                        type="button"
+                        disabled={m3Completed || !m2Completed}
+                        onClick={() => applyMilestoneStage('M3')}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          m3Completed
+                            ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-not-allowed'
+                            : !m2Completed
+                              ? 'bg-muted/20 border-border/50 text-muted-foreground opacity-50 cursor-not-allowed'
+                              : selectedMilestoneStage === 'M3'
+                                ? 'bg-purple-500/10 border-purple-500 ring-2 ring-purple-500/30 cursor-pointer'
+                                : 'bg-purple-500/5 border-purple-400/50 hover:bg-purple-500/10 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1">
+                            {(m3Completed || !m2Completed) && <Lock className="w-2.5 h-2.5 text-muted-foreground" />}
+                            Stage 3 (10%)
+                          </span>
+                          {m3Completed ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" /> Paid
+                            </span>
+                          ) : !m2Completed ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-semibold">
+                              Locked
+                            </span>
+                          ) : (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-700 font-bold">
+                              👉 Final Step
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
+                        <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                          {m3Completed ? (
+                            <span className="text-emerald-600">✓ {formatINR(m3Target * 100)}</span>
+                          ) : (
+                            formatINR(m3Due > 0 ? m3Due * 100 : m3Target * 100)
+                          )}
+                        </div>
+                        {m3Paid > 0 && !m3Completed && (
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
+                            ({formatINR(m3Paid * 100)} paid)
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Notes */}
-              <div>
-                <label className="block font-semibold mb-1 text-foreground">
-                  Receipt Remarks / Notes
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Milestone 1 advance intake on signing contract"
-                  value={recordForm.notes}
-                  onChange={e => setRecordForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
+                  {/* Amount & Date */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1 text-foreground">
+                        Received Amount (INR ₹) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        max={remainingBalanceRupees}
+                        required
+                        placeholder="e.g. 30000"
+                        value={recordForm.amountRupees}
+                        onChange={e => {
+                          setRecordForm(prev => ({ ...prev, amountRupees: e.target.value }));
+                          setSelectedMilestoneStage('CUSTOM');
+                        }}
+                        className="w-full px-3 py-2 border rounded-xl bg-background font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                      {enteredAmount > 0 && recordForm.customerId && (
+                        <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 mt-1.5 space-y-0.5">
+                          <div>
+                            After receipt: <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Total Paid: {formatINR(projectedPaid * 100)} ({projectedPercent}%)</strong>
+                          </div>
+                          <div className="text-rose-700 dark:text-rose-300">
+                            Remaining to 100%: <strong className="font-mono">{formatINR(projectedRemaining * 100)}</strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowRecordModal(false)}
-                  className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {submitting ? 'Saving...' : 'Save & Issue Receipt'}
-                </button>
-              </div>
+                    <div>
+                      <label className="block font-semibold mb-1 text-foreground">
+                        Payment Date &amp; Time <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={recordForm.paymentDate}
+                        onChange={e => setRecordForm(prev => ({ ...prev, paymentDate: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-xl bg-background font-mono text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mode & Reference */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1 text-foreground">Payment Mode</label>
+                      <select
+                        value={recordForm.paymentMethod}
+                        onChange={e => setRecordForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      >
+                        <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS / IMPS)</option>
+                        <option value="UPI">UPI</option>
+                        <option value="CHEQUE">Cheque</option>
+                        <option value="CASH">Cash Voucher</option>
+                        <option value="PAYMENT_GATEWAY">Online Gateway</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold mb-1 text-foreground">
+                        Transaction / UTR / Cheque Ref #
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. UTR-HDFC-9912048 or CHQ-881920"
+                        value={recordForm.transactionReference}
+                        onChange={e => setRecordForm(prev => ({ ...prev, transactionReference: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-xl bg-background font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block font-semibold mb-1 text-foreground">
+                      Receipt Remarks / Notes
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Milestone 1 advance intake on signing contract"
+                      value={recordForm.notes}
+                      onChange={e => setRecordForm(prev => ({ ...prev, notes: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setShowRecordModal(false)}
+                      className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {submitting ? 'Saving...' : 'Save & Issue Receipt'}
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </form>
           </div>
         </div>
@@ -1687,10 +1859,14 @@ export const PaymentsPage: React.FC = () => {
                 <span>Loading customer statement...</span>
               </div>
             ) : statementData ? (() => {
-              const totalContractPaise = statementData.totalOrderValuePaise ?? statementData.totalInvoicedPaise ?? 0;
+              const totalContractPaise = (statementData.totalOrderValuePaise && statementData.totalOrderValuePaise > 0)
+                ? statementData.totalOrderValuePaise
+                : (statementData.totalInvoicedPaise && statementData.totalInvoicedPaise > 0)
+                  ? statementData.totalInvoicedPaise
+                  : (effectiveContractRupees * 100);
               const totalPaidPaise = statementData.totalPaidPaise ?? statementData.totalRealizedPaise ?? 0;
-              const totalPendingPaise = statementData.totalOutstandingPaise ?? statementData.netReceivablesPaise ?? Math.max(0, totalContractPaise - totalPaidPaise);
-              const percentPaid = totalContractPaise > 0 ? Math.min(100, Math.round((totalPaidPaise / totalContractPaise) * 100)) : (totalPaidPaise > 0 ? 100 : 0);
+              const totalPendingPaise = Math.max(0, totalContractPaise - totalPaidPaise);
+              const percentPaid = totalContractPaise > 0 ? Math.min(100, Math.round((totalPaidPaise / totalContractPaise) * 100)) : 0;
               const ordersList = statementData.orders ?? statementData.contractedOrders ?? [];
               const paymentsList = statementData.payments || [];
 
@@ -1701,19 +1877,19 @@ export const PaymentsPage: React.FC = () => {
                     <div>
                       <span className="text-muted-foreground">Total Invoiced / Contract</span>
                       <div className="font-mono font-bold text-foreground text-sm mt-0.5">
-                        {totalContractPaise > 0 ? formatINR(totalContractPaise) : 'Project Advance Intake'}
+                        {formatINR(totalContractPaise)}
                       </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Realized Collections</span>
                       <div className="font-mono font-bold text-emerald-600 text-sm mt-0.5">
-                        {formatINR(totalPaidPaise)} {totalContractPaise > 0 ? `(${percentPaid}%)` : ''}
+                        {formatINR(totalPaidPaise)} ({percentPaid}%)
                       </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Outstanding Due</span>
                       <div className="font-mono font-bold text-rose-600 text-sm mt-0.5">
-                        {totalContractPaise > 0 ? formatINR(totalPendingPaise) : '—'}
+                        {totalPendingPaise > 0 ? formatINR(totalPendingPaise) : '₹0.00 (Settled)'}
                       </div>
                     </div>
                   </div>
