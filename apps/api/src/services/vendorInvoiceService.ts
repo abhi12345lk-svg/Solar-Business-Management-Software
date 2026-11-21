@@ -23,6 +23,10 @@ export class VendorInvoiceService {
     user: { userId: string; role: UserRole },
     context: { ipAddress?: string; userAgent?: string; correlationId?: string }
   ): Promise<IVendorInvoiceDocument> {
+    if (!Types.ObjectId.isValid(input.vendorId)) {
+      throw AppError.validation(`Invalid Vendor ID format: '${input.vendorId}'. Expected a 24-character hexadecimal ObjectId.`);
+    }
+
     const vendor = await Vendor.findById(input.vendorId);
     if (!vendor) {
       throw AppError.notFound('Vendor not found.');

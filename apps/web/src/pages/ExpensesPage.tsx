@@ -507,6 +507,11 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
+  const isPrivilegedFiscalRole =
+    user?.role === 'SUPERADMIN' ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'ACCOUNTS_OFFICER';
+
   // Live financial preview in modal
   const basePaisePreview = Math.round((parseFloat(recordForm.amountRupees) || 0) * 100);
   const taxPaisePreview = Math.round((parseFloat(recordForm.taxAmountRupees) || 0) * 100);
@@ -520,13 +525,13 @@ export const ExpensesPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center">
             <Receipt className="w-6 h-6 mr-2 text-solar-600" />
-            <span>Operational Expense Management</span>
-            <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
-              Project Costing & Profitability
+            <span>Site Expenses &amp; Labor</span>
+            <span className="text-xs ml-2.5 px-2 py-0.5 rounded font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              Site Work &amp; Overheads
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track project budgets, direct site expenses, civil works, and profitability disbursements.
+            Track direct site costs (Installation labor wages, crane hire, transport, civil works, DISCOM liaison) and overheads.
           </p>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3">
@@ -739,8 +744,13 @@ export const ExpensesPage: React.FC = () => {
               ) : (
                 expenses.map(exp => {
                   const isSubmitter = !!(user && exp.submittedBy && (
-                    exp.submittedBy._id === user.id || exp.submittedBy._id === (user as any).userId
+                    exp.submittedBy._id === user.id ||
+                    exp.submittedBy._id === (user as any).userId ||
+                    (exp.submittedBy as any).id === user.id ||
+                    (exp.submittedBy as any).id === (user as any).userId
                   ));
+
+                  const isBlockedBySelfApproval = !isPrivilegedFiscalRole && isSubmitter;
 
                   return (
                     <tr key={exp._id} className="hover:bg-muted/30 transition-colors">
@@ -817,10 +827,10 @@ export const ExpensesPage: React.FC = () => {
 
                           {exp.status === 'PENDING_APPROVAL' && (
                             <>
-                              {isSubmitter ? (
+                              {isBlockedBySelfApproval ? (
                                 <span
                                   className="px-2 py-1 text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded font-medium cursor-not-allowed"
-                                  title="Anti-self-approval rule: An employee cannot approve their own expense submission. Another manager or admin must approve."
+                                  title="Anti-self-approval rule: Field staff cannot approve their own expense submission. Another manager or admin must approve."
                                 >
                                   Awaiting Peer
                                 </span>
@@ -1038,6 +1048,11 @@ export const ExpensesPage: React.FC = () => {
                   <span className="text-[11px] text-muted-foreground">Routing Threshold:</span>
                   {basePaisePreview <= 0 ? (
                     <span className="text-[11px] text-muted-foreground italic">Enter amount to preview approval route</span>
+                  ) : isPrivilegedFiscalRole ? (
+                    <span className="inline-flex items-center text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      Directly Approved ({user?.role === 'ACCOUNTS_OFFICER' ? 'Accounts Officer' : 'Admin'} Fiscal Authority)
+                    </span>
                   ) : isAboveThreshold ? (
                     <span className="inline-flex items-center text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                       <ShieldCheck className="w-3.5 h-3.5 mr-1" />

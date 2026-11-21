@@ -80,8 +80,8 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     title: 'Finance & Controlling',
     items: [
       { to: '/payments', label: 'Payment Collections', icon: CreditCard },
-      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
-      { to: '/expenses', label: 'Project Costing & P&L', icon: TrendingUp },
+      { to: '/vendor-invoices', label: 'Equipment Purchase Bills', icon: Receipt },
+      { to: '/expenses', label: 'Site Expenses & Labor', icon: TrendingUp },
       { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock },
       { to: '/create-document', label: 'Generate Contract', icon: FilePlus2 }
     ]
@@ -134,7 +134,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Expenses & Payables (Outflow)',
     items: [
-      { to: '/vendor-invoices', label: 'Vendor Bills & Invoices', icon: Receipt },
+      { to: '/vendor-invoices', label: 'Equipment Purchase Bills', icon: Receipt },
       { to: '/expenses', label: 'Site Expenses & Labor', icon: TrendingUp }
     ]
   }
@@ -178,7 +178,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   }
   if (pathname.startsWith('/net-metering')) return { section: 'Operations', title: 'Net Metering (DISCOM)' };
   if (pathname.startsWith('/subsidies'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Operations', title: 'Govt Subsidy (DBT)' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Inflow' : 'Operations', title: 'Govt Subsidy (DBT)' };
   if (pathname.startsWith('/inventory')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Materials & Modules' };
     return { section: 'Supply Chain', title: 'Inventory & Stock' };
@@ -187,11 +187,11 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement', title: 'Purchase Orders' };
   if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement', title: 'Goods Receipts' };
   if (pathname.startsWith('/vendor-invoices'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Payables' : 'Procurement', title: 'Vendor Bills & Invoices' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Outflows' : 'Procurement', title: 'Equipment Purchase Bills' };
   if (pathname.startsWith('/payments'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Billing' : 'Finance', title: 'Payment Collections' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Inflow' : 'Finance', title: 'Payment Collections' };
   if (pathname.startsWith('/expenses'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Expenses' : 'Finance', title: 'Site Expenses & Labor' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Outflows' : 'Finance', title: 'Site Expenses & Labor' };
   if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
   if (pathname.startsWith('/warranties')) return { section: 'Service', title: 'Asset Warranties' };

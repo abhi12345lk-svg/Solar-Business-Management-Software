@@ -23,6 +23,7 @@ import {
   AuditAction,
   AuditOutcome,
   ActorType,
+  UserRole,
   CreateExpenseInput,
   ApproveExpenseInput,
   RejectExpenseInput,
@@ -99,7 +100,15 @@ export class ExpenseService {
     const companySettings = await CompanySettings.findOne({ key: 'COMPANY_SETTINGS' });
     const thresholdPaise = companySettings?.expenseApprovalThresholdPaise ?? 500000; // default ₹5,000
 
-    const requiresApproval = input.amountPaise > thresholdPaise;
+    // Privileged fiscal roles (ADMIN, SUPERADMIN, ACCOUNTS_OFFICER) creating expenses directly have financial authority,
+    // so their operational expense entries are directly approved and ready for payment disbursement.
+    // Non-privileged staff (technicians, crew, sales) creating expenses above the threshold require manager approval.
+    const isPrivilegedFiscalRole =
+      actor.role === UserRole.ADMIN ||
+      actor.role === UserRole.SUPERADMIN ||
+      actor.role === UserRole.ACCOUNTS_OFFICER;
+
+    const requiresApproval = !isPrivilegedFiscalRole && input.amountPaise > thresholdPaise;
     const initialStatus = requiresApproval
       ? ExpenseStatus.PENDING_APPROVAL
       : ExpenseStatus.APPROVED;
@@ -115,6 +124,8 @@ export class ExpenseService {
         changedBy: actorId,
         notes: requiresApproval
           ? `Submitted for approval (amount exceeds ₹${(thresholdPaise / 100).toFixed(2)} threshold)`
+          : isPrivilegedFiscalRole
+          ? `Directly approved by ${actor.role || 'Finance/Admin'} fiscal authority`
           : 'Auto-approved below company approval threshold'
       }
     ];
@@ -138,11 +149,11 @@ export class ExpenseService {
       status: initialStatus,
       requiresApproval,
       submittedBy: actorId,
-      approvedBy: requiresApproval ? undefined : actorId,
-      approvedAt: requiresApproval ? undefined : new Date(),
-      approvalNotes: requiresApproval
-        ? undefined
-        : 'Auto-approved below company approval threshold',
+      approvedBy: initialStatus === ExpenseStatus.APPROVED ? actorId : undefined,
+      approvedAt: initialStatus === ExpenseStatus.APPROVED ? new Date() : undefined,
+      approvalNotes: initialStatus === ExpenseStatus.APPROVED
+        ? (isPrivilegedFiscalRole ? `Directly approved by ${actor.role || 'Finance/Admin'} authority` : 'Auto-approved below threshold')
+        : undefined,
       idempotencyKey: input.idempotencyKey?.trim() || undefined,
       statusHistory: initialHistory
     });
@@ -278,8 +289,19 @@ export class ExpenseService {
       throw AppError.notFound(`Expense with ID ${id} not found.`);
     }
 
-    // Anti-self-approval enforcement
-    if (actor.userId && expense.submittedBy.toString() === actor.userId.toString()) {
+    // Anti-self-approval enforcement:
+    // Non-privileged staff (technicians, crew, sales, department heads) cannot approve their own expense.
+    // Privileged fiscal roles (SUPERADMIN, ADMIN, ACCOUNTS_OFFICER) have authority to clear/approve expenses.
+    const isPrivilegedFiscalRole =
+      actor.role === UserRole.SUPERADMIN ||
+      actor.role === UserRole.ADMIN ||
+      actor.role === UserRole.ACCOUNTS_OFFICER;
+
+    if (
+      !isPrivilegedFiscalRole &&
+      actor.userId &&
+      expense.submittedBy.toString() === actor.userId.toString()
+    ) {
       throw AppError.forbidden(
         'Anti-self-approval violation: An employee cannot approve their own expense submission.'
       );

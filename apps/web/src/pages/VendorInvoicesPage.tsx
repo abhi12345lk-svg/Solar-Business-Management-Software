@@ -54,15 +54,12 @@ interface VendorInvoiceItem {
 }
 
 const SOLAR_CATEGORIES = [
-  'Solar PV Modules / Panels',
-  'Solar Inverters & PCU',
-  'Mounting Structure & Hardware',
-  'AC/DC Cables & BOS Electricals',
-  'Civil Work & Foundation',
-  'Installation & Commissioning Labor',
-  'Freight, Crane & Logistics',
-  'Site Survey & Testing',
-  'General Procurement & Tools'
+  'Solar PV Modules / Panels (Waaree, Adani, etc.)',
+  'Solar Inverters & PCU (Growatt, Deye, Havells, etc.)',
+  'Mounting Structures & Hardware (GI / Aluminum)',
+  'AC/DC Cables & Earthing BOS',
+  'ACDB / DCDB & Junction Protection Boxes',
+  'Solar Batteries & Energy Storage (BESS)'
 ];
 
 // Indian GSTIN validation regex: 2 State Digits + 10 PAN alphanumeric + 1 Entity + "Z" + 1 Check Digit
@@ -170,8 +167,9 @@ export function VendorInvoicesPage() {
   const resetInvoiceForm = () => {
     setFormError(null);
     setActiveGstRate(12);
+    const defaultVendorId = vendorsList[0]?._id || vendorsList[0]?.id || '';
     setFormData({
-      vendorId: vendorsList[0]?._id || '',
+      vendorId: defaultVendorId,
       linkedCustomerId: '',
       vendorInvoiceNumber: '',
       invoiceDate: getTodayISO(),
@@ -203,8 +201,20 @@ export function VendorInvoicesPage() {
       if (vendorFilter && vendorFilter !== 'ALL') query += `&vendorId=${vendorFilter}`;
 
       const res = await apiClient<any>(`/vendor-invoices${query}`);
-      const list = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
-      setInvoices(Array.isArray(list) ? list : []);
+      const rawList = res?.items || res?.data?.items || res?.data || (Array.isArray(res) ? res : []);
+      const list = (Array.isArray(rawList) ? rawList : []).map((inv: any) => ({
+        ...inv,
+        _id: inv._id || inv.id,
+        id: inv.id || inv._id,
+        vendorId: inv.vendorId
+          ? {
+              ...inv.vendorId,
+              _id: inv.vendorId._id || inv.vendorId.id,
+              id: inv.vendorId.id || inv.vendorId._id
+            }
+          : undefined
+      }));
+      setInvoices(list);
     } catch (err: any) {
       setError(err.message || 'Failed to load vendor invoices');
     } finally {
@@ -220,18 +230,44 @@ export function VendorInvoicesPage() {
         apiClient<any>('/customers?limit=100&status=ACTIVE'),
         apiClient<any>('/projects?limit=100').catch(() => null)
       ]);
-      const vList =
+      const rawVList =
         vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
-      const cList =
+      const vList = (Array.isArray(rawVList) ? rawVList : []).map((v: any) => ({
+        ...v,
+        _id: v._id || v.id,
+        id: v.id || v._id
+      }));
+
+      const rawCList =
         cRes?.items || cRes?.data?.items || cRes?.data || (Array.isArray(cRes) ? cRes : []);
-      const pList =
-        pRes?.projects || pRes?.data?.projects || pRes?.items || pRes?.data?.items || (Array.isArray(pRes?.data) ? pRes.data : Array.isArray(pRes) ? pRes : []);
+      const cList = (Array.isArray(rawCList) ? rawCList : []).map((c: any) => ({
+        ...c,
+        _id: c._id || c.id,
+        id: c.id || c._id
+      }));
+
+      const rawPList =
+        pRes?.projects ||
+        pRes?.data?.projects ||
+        pRes?.items ||
+        pRes?.data?.items ||
+        (Array.isArray(pRes?.data) ? pRes.data : Array.isArray(pRes) ? pRes : []);
+      const pList = (Array.isArray(rawPList) ? rawPList : []).map((p: any) => ({
+        ...p,
+        _id: p._id || p.id,
+        id: p.id || p._id
+      }));
 
       setVendorsList(vList);
       setCustomersList(cList);
       setProjectsList(pList);
       if (vList.length === 0) {
         setVendorMode('NEW');
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          vendorId: prev.vendorId || vList[0]._id || vList[0].id || ''
+        }));
       }
     } catch (err) {
       console.error('Failed to load dropdowns', err);
@@ -354,15 +390,45 @@ export function VendorInvoicesPage() {
           })
         });
 
-        const createdVendor = vendorRes?.data || vendorRes;
-        targetVendorId = createdVendor._id;
+        const rawCreated = vendorRes?.data || vendorRes;
+        const newVendorId = rawCreated?._id || rawCreated?.id;
+        if (!newVendorId) {
+          setFormError('Failed to retrieve newly created supplier ID. Please select from Existing suppliers.');
+          setSubmitting(false);
+          return;
+        }
+        const createdVendor = {
+          ...rawCreated,
+          _id: newVendorId,
+          id: newVendorId
+        };
+        targetVendorId = newVendorId;
         setVendorsList(prev => [createdVendor, ...prev]);
+        setFormData(prev => ({ ...prev, vendorId: newVendorId }));
       }
 
+      // If existing vendor selected, resolve ID safely:
       if (!targetVendorId) {
         setFormError('Please select or specify a Supplier / Vendor.');
         setSubmitting(false);
         return;
+      }
+
+      // Safeguard: If targetVendorId is a vendor name or label instead of a 24-char ObjectId, find the real ID from vendorsList
+      if (!/^[0-9a-fA-F]{24}$/.test(targetVendorId)) {
+        const found = vendorsList.find(
+          v =>
+            (v._id || v.id) === targetVendorId ||
+            v.name?.trim().toLowerCase() === targetVendorId.trim().toLowerCase() ||
+            targetVendorId.includes(v.name)
+        );
+        if (found && (found._id || found.id)) {
+          targetVendorId = found._id || found.id;
+        } else {
+          setFormError('Selected supplier is invalid. Please select an existing supplier from the list or create a new one.');
+          setSubmitting(false);
+          return;
+        }
       }
 
       const subtotal = parseFloat(formData.subtotalInr) || 0;
@@ -382,7 +448,9 @@ export function VendorInvoicesPage() {
           const parts = formData.linkedCustomerId.split(':');
           projectPrefix = `[Project: ${parts[2] || parts[1]}] `;
         } else {
-          const matchedCustomer = customersList.find(c => c._id === formData.linkedCustomerId);
+          const matchedCustomer = customersList.find(
+            c => (c._id || c.id) === formData.linkedCustomerId
+          );
           if (matchedCustomer) {
             projectPrefix = `[Customer: ${matchedCustomer.name}] `;
           }
@@ -451,7 +519,8 @@ export function VendorInvoicesPage() {
         return;
       }
 
-      await apiClient(`/vendor-invoices/${selectedPayInvoice._id}/payments`, {
+      const invId = selectedPayInvoice._id || (selectedPayInvoice as any).id;
+      await apiClient(`/vendor-invoices/${invId}/payments`, {
         method: 'POST',
         body: JSON.stringify({
           amountPaise,
@@ -478,7 +547,8 @@ export function VendorInvoicesPage() {
     if (!deleteTargetInvoice) return;
     try {
       setSubmitting(true);
-      await apiClient(`/vendor-invoices/${deleteTargetInvoice._id}`, { method: 'DELETE' });
+      const invId = deleteTargetInvoice._id || (deleteTargetInvoice as any).id;
+      await apiClient(`/vendor-invoices/${invId}`, { method: 'DELETE' });
       setActionSuccess(`Supplier Bill #${deleteTargetInvoice.vendorInvoiceNumber} deleted successfully.`);
       setDeleteTargetInvoice(null);
       await fetchInvoices();
@@ -550,12 +620,12 @@ export function VendorInvoicesPage() {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <span>Vendor Invoices &amp; Bills</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-secondary border text-muted-foreground">
-                  Accounts Payable
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                  Panels &amp; Inverters
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Record supplier equipment bills and monitor accounts payable clearance.
+                Record major solar hardware purchases (Panels, Inverters, Structures, Cables) and supplier payables.
               </p>
             </div>
           </div>
@@ -583,7 +653,7 @@ export function VendorInvoicesPage() {
               className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Add Vendor Bill</span>
+              <span>Add Equipment Bill</span>
             </button>
           )}
         </div>
@@ -703,11 +773,14 @@ export function VendorInvoicesPage() {
                 className="px-2.5 py-1.5 text-xs bg-background border rounded-xl font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none max-w-[180px] truncate"
               >
                 <option value="ALL">All Suppliers</option>
-                {vendorsList.map(v => (
-                  <option key={v._id} value={v._id}>
-                    {v.name}
-                  </option>
-                ))}
+                {vendorsList.map(v => {
+                  const vId = v._id || v.id;
+                  return (
+                    <option key={vId} value={vId}>
+                      {v.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           )}
@@ -933,13 +1006,13 @@ export function VendorInvoicesPage() {
               <div>
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-amber-500" />
-                  <span>Record Supplier Purchase Bill</span>
+                  <span>Record Equipment Purchase Bill</span>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-                    Outflow (-)
+                    Material Outflow (-)
                   </span>
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Record equipment purchase tax invoices from manufacturers or local distributors.
+                  Record equipment tax invoices (Panels, Inverters, Structures, Cables) from manufacturers or distributors.
                 </p>
               </div>
               <button
@@ -1011,11 +1084,14 @@ export function VendorInvoicesPage() {
                     className="w-full px-3 py-2 rounded-xl border bg-background text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   >
                     <option value="">-- Choose Supplier (e.g. Waaree, Growatt, Havells) --</option>
-                    {vendorsList.map(v => (
-                      <option key={v._id} value={v._id}>
-                        {v.name} {v.gstin ? `(GST: ${v.gstin})` : '(No GST)'}
-                      </option>
-                    ))}
+                    {vendorsList.map(v => {
+                      const vId = v._id || v.id;
+                      return (
+                        <option key={vId} value={vId}>
+                          {v.name} {v.gstin ? `(GST: ${v.gstin})` : '(No GST)'}
+                        </option>
+                      );
+                    })}
                   </select>
                 ) : (
                   <div className="p-3.5 rounded-xl border bg-secondary/30 space-y-3">
@@ -1165,22 +1241,28 @@ export function VendorInvoicesPage() {
                   <option value="">-- General Stock / Warehouse Inventory (No specific site) --</option>
                   {projectsList.length > 0 && (
                     <optgroup label="Active Solar EPC Projects">
-                      {projectsList.map(p => (
-                        <option key={p._id} value={`PRJ:${p._id}:${p.name || p.projectCode}`}>
-                          Project: {p.projectCode ? `${p.projectCode} - ` : ''}
-                          {p.name} {p.systemCapacityKw ? `(${p.systemCapacityKw} kW)` : ''}
-                        </option>
-                      ))}
+                      {projectsList.map(p => {
+                        const pId = p._id || p.id;
+                        return (
+                          <option key={pId} value={`PRJ:${pId}:${p.name || p.projectCode}`}>
+                            Project: {p.projectCode ? `${p.projectCode} - ` : ''}
+                            {p.name} {p.systemCapacityKw ? `(${p.systemCapacityKw} kW)` : ''}
+                          </option>
+                        );
+                      })}
                     </optgroup>
                   )}
                   {customersList.length > 0 && (
                     <optgroup label="Rooftop Customers">
-                      {customersList.map(c => (
-                        <option key={c._id} value={c._id}>
-                          Customer: {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''}{' '}
-                          {c.city ? `• ${c.city}` : ''}
-                        </option>
-                      ))}
+                      {customersList.map(c => {
+                        const cId = c._id || c.id;
+                        return (
+                          <option key={cId} value={cId}>
+                            Customer: {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''}{' '}
+                            {c.city ? `• ${c.city}` : ''}
+                          </option>
+                        );
+                      })}
                     </optgroup>
                   )}
                 </select>
@@ -1375,7 +1457,7 @@ export function VendorInvoicesPage() {
                   disabled={submitting}
                   className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submitting ? 'Recording...' : '+ Record Supplier Bill'}
+                  {submitting ? 'Recording...' : '+ Record Equipment Bill'}
                 </button>
               </div>
             </form>
