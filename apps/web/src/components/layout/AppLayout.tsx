@@ -27,8 +27,7 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  MapPin,
-  Calculator
+  MapPin
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -60,7 +59,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
       { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
@@ -71,6 +69,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
       { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes },
       { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: FileText },
       { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
+      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
       { to: '/net-metering', label: 'Net Metering & DISCOM', icon: Zap },
       { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
@@ -100,17 +99,16 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
+      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
     ]
   },
   {
-    title: 'Estimation & Proposals',
+    title: 'Proposals & Sales Orders',
     items: [
-      { to: '/solar-designs', label: 'Solar Calculator & Sizing', icon: Calculator },
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
-      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 }
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
   }
 ];
@@ -165,8 +163,8 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/follow-ups')) return { section: 'Commercial', title: 'Lead Management' };
   if (pathname.startsWith('/solar-designs'))
     return {
-      section: panel === PanelType.SALES ? 'Estimation' : 'Engineering',
-      title: panel === PanelType.SALES ? 'Solar Calculator & Sizing' : 'Solar PV Sizing & CAD'
+      section: 'Operations & Engineering',
+      title: 'Solar PV Sizing & CAD'
     };
   if (pathname.startsWith('/quotations')) return { section: 'Commercial', title: 'Quotation Proposals' };
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };

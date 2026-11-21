@@ -397,11 +397,11 @@ export const LeadDetailPage: React.FC = () => {
           {lead.status === LeadStatus.CONTACTED && (
             <div className="flex items-center space-x-2">
               <Link
-                to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
+                to={`/quotations?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
                 className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
               >
-                <Sun className="w-3.5 h-3.5" />
-                <span>Solar PV Sizing &amp; Design →</span>
+                <FileText className="w-3.5 h-3.5" />
+                <span>Create Quotation Proposal →</span>
               </Link>
               <button
                 onClick={() =>
