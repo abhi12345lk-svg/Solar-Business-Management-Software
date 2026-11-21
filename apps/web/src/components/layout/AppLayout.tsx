@@ -127,24 +127,23 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
 
 const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Revenue & Inflow',
+    title: 'Financial Overview',
     items: [
-      { to: '/', label: 'Finance Dashboard', icon: LayoutDashboard },
+      { to: '/', label: 'Finance Dashboard', icon: LayoutDashboard }
+    ]
+  },
+  {
+    title: 'Customer Billing (Inflow)',
+    items: [
       { to: '/payments', label: 'Payment Collections', icon: CreditCard },
-      { to: '/subsidies', label: 'Govt Subsidy Claims (DBT)', icon: Landmark }
+      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark }
     ]
   },
   {
-    title: 'Payables & Costing',
+    title: 'Expenses & Payables (Outflow)',
     items: [
-      { to: '/vendor-invoices', label: 'Vendor Invoices & Bills', icon: Receipt },
-      { to: '/expenses', label: 'Project Expenses & Costing', icon: TrendingUp }
-    ]
-  },
-  {
-    title: 'Audit & Records',
-    items: [
-      { to: '/documents', label: 'Financial Document Vault', icon: FolderLock }
+      { to: '/vendor-invoices', label: 'Vendor Bills & Invoices', icon: Receipt },
+      { to: '/expenses', label: 'Site Expenses & Labor', icon: TrendingUp }
     ]
   }
 ];
@@ -167,7 +166,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Finance Dashboard' };
     return { section: 'Executive', title: 'Executive Dashboard' };
   }
-  if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
+    if (pathname.startsWith('/site-photos')) return { section: 'Field Operations', title: 'Site Inspection Photos' };
   if (pathname.startsWith('/leads')) return { section: 'Commercial', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
@@ -192,11 +191,11 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement', title: 'Purchase Orders' };
   if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement', title: 'Goods Receipts' };
   if (pathname.startsWith('/vendor-invoices'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Finance' : 'Procurement', title: 'Vendor Invoices & Bills' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Payables' : 'Procurement', title: 'Vendor Bills & Invoices' };
   if (pathname.startsWith('/payments'))
-    return { section: 'Finance', title: 'Payment Collections' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Billing' : 'Finance', title: 'Payment Collections' };
   if (pathname.startsWith('/expenses'))
-    return { section: 'Finance', title: 'Project Costing & Expenses' };
+    return { section: panel === PanelType.ACCOUNTS ? 'Expenses' : 'Finance', title: 'Site Expenses & Labor' };
   if (pathname.startsWith('/service')) return { section: 'After-Sales', title: 'Service Hub' };
   if (pathname.startsWith('/complaints')) return { section: 'Service', title: 'Service Tickets' };
   if (pathname.startsWith('/warranties')) return { section: 'Service', title: 'Asset Warranties' };
@@ -346,7 +345,7 @@ export const AppLayout: React.FC = () => {
                   ? 'Proposals, PV Sizing & Pipeline'
                   : activePanel === PanelType.INSTALLER
                     ? 'Rooftop Installation & Commissioning'
-                    : 'Billing, Invoices & Subsidy DBT'}
+                    : 'Billing, Milestones & Expenses'}
             </div>
           </div>
         ) : (
