@@ -301,8 +301,6 @@ export const ProjectDetailPage: React.FC = () => {
   });
   const [addTaskSubmitting, setAddTaskSubmitting] = useState(false);
   const [taskModalError, setTaskModalError] = useState<string | null>(null);
-  const [taskModalError, setTaskModalError] = useState<string | null>(null);
-  void taskModalError;
 
   // Fetch Project Detail
   const fetchProject = async () => {
@@ -1305,6 +1303,15 @@ export const ProjectDetailPage: React.FC = () => {
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="COMPLETED">Completed</option>
                   </select>
+                  <label className="flex items-center space-x-1 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={taskOnlyOverdue}
+                      onChange={e => setTaskOnlyOverdue(e.target.checked)}
+                      className="rounded text-solar-600 focus:ring-solar-500"
+                    />
+                    <span>Overdue</span>
+                  </label>
                   {!isTerminal && (
                     <button
                       onClick={() => {

@@ -522,7 +522,10 @@ export class MaterialDispatchService {
       orderedQuantity: number;
       dispatchedQuantity: number;
       remainingQuantity: number;
+      contractedQuantity?: number;
+      totalIssuedQuantity?: number;
     }>;
+    materialSummary?: any[];
   }> {
     if (!Types.ObjectId.isValid(projectId)) {
       throw AppError.validation(`Invalid project ID '${projectId}'.`);
@@ -587,9 +590,16 @@ export class MaterialDispatchService {
       }
     }
 
+    const mappedItems = Array.from(itemsSummaryMap.values()).map(it => ({
+      ...it,
+      contractedQuantity: it.orderedQuantity,
+      totalIssuedQuantity: it.dispatchedQuantity
+    }));
+
     return {
       projectCode: project.projectCode,
-      items: Array.from(itemsSummaryMap.values())
+      items: mappedItems,
+      materialSummary: mappedItems
     };
   }
 }

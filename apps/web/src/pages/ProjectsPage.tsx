@@ -136,7 +136,7 @@ export function ProjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialStage = searchParams.get('stage') || 'ALL';
 
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [allProjects, setAllProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -192,15 +192,10 @@ export function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
-      let query = `?limit=50&search=${encodeURIComponent(search)}`;
-      if (statusFilter !== 'ALL') query += `&status=${statusFilter}`;
-      if (priorityFilter !== 'ALL') query += `&priority=${priorityFilter}`;
-      if (stageFilter !== 'ALL') query += `&currentStage=${stageFilter}`;
-
       const res = await apiClient<{ projects: ProjectListItem[]; total: number }>(
-        `/projects${query}`
+        '/projects?limit=200'
       );
-      setProjects(res.projects || []);
+      setAllProjects(res?.projects || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch projects');
     } finally {
@@ -210,7 +205,7 @@ export function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
-  }, [search, statusFilter, priorityFilter, stageFilter]);
+  }, []);
 
   const openNewProjectModal = async () => {
     setIsModalOpen(true);
@@ -342,12 +337,31 @@ export function ProjectsPage() {
     }
   };
 
-  // Metrics
-  const totalCount = projects.length;
-  const inProgressCount = projects.filter(p => p.status === 'IN_PROGRESS').length;
-  const planningCount = projects.filter(p => p.status === 'PLANNING').length;
-  const completedCount = projects.filter(p => p.status === 'COMPLETED').length;
-  const onHoldCount = projects.filter(p => p.status === 'ON_HOLD').length;
+  // Filter projects across status, stage, priority, and search
+  const filteredProjects = allProjects.filter(p => {
+    if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
+    if (stageFilter !== 'ALL') {
+      const stageInfo = getSimplifiedStage(p.currentStage);
+      if (stageInfo.key !== stageFilter && p.currentStage !== stageFilter) return false;
+    }
+    if (priorityFilter !== 'ALL' && p.priority !== priorityFilter) return false;
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
+      const codeMatch = p.projectCode?.toLowerCase().includes(s);
+      const nameMatch = p.name?.toLowerCase().includes(s);
+      const custMatch = p.customerId?.name?.toLowerCase().includes(s);
+      const phoneMatch = p.customerId?.phone?.includes(s);
+      if (!codeMatch && !nameMatch && !custMatch && !phoneMatch) return false;
+    }
+    return true;
+  });
+
+  // Metrics (computed from allProjects so counts remain stable across tabs)
+  const totalCount = allProjects.length;
+  const inProgressCount = allProjects.filter(p => p.status === 'IN_PROGRESS').length;
+  const planningCount = allProjects.filter(p => p.status === 'PLANNING').length;
+  const completedCount = allProjects.filter(p => p.status === 'COMPLETED').length;
+  const onHoldCount = allProjects.filter(p => p.status === 'ON_HOLD').length;
 
   return (
     <div className="space-y-6">
@@ -512,7 +526,7 @@ export function ProjectsPage() {
           <div className="p-12 text-center text-muted-foreground text-sm">
             Loading project records...
           </div>
-        ) : projects.length === 0 ? (
+        ) : filteredProjects.length === 0 ? (
           <div className="p-12 text-center">
             <FolderKanban className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-30" />
             <h3 className="font-semibold text-foreground text-base">No projects found</h3>
@@ -536,7 +550,7 @@ export function ProjectsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-sm">
-                {projects.map(proj => {
+                {filteredProjects.map(proj => {
                   const stageInfo = getSimplifiedStage(proj.currentStage);
                   const percent = Math.round((stageInfo.step / 5) * 100);
 

@@ -74,6 +74,25 @@ materialDispatchRouter.get(
 );
 
 /**
+ * GET /api/v1/dispatches/projects/:projectId/summary
+ * Get contracted vs dispatched BOM fulfillment summary for a project.
+ */
+materialDispatchRouter.get(
+  '/projects/:projectId/summary',
+  requirePermission('dispatch:read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const summary = await MaterialDispatchService.getProjectMaterialSummary(
+        req.params.projectId as string
+      );
+      return sendSuccess(req, res, summary);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * GET /api/v1/dispatches/:id
  * Get single dispatch details.
  */
