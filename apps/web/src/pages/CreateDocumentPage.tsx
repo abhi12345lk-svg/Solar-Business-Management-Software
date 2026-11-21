@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
+  Minus,
+  Plus,
   FilePlus2,
   FolderLock,
   Download,
@@ -205,6 +207,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
     preselectedTemplate || 'SOLAR_AGREEMENT'
   );
+
+  // Live Preview Zoom State (Default 80% for ideal side-by-side editing)
+  const [previewZoom, setPreviewZoom] = useState<number>(0.8);
 
   useEffect(() => {
     const target = defaultTemplate || searchParams.get('template');
@@ -693,13 +698,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
           </div>
         </div>
 
-        {/* Split Screen Layout: Left = Editable Details, Right = Live Authentic Multi-Page Document */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Split Screen Side-by-Side Layout: Left = Editable Details (Compact), Right = Live Authentic Multi-Page Document */}
+        <div className="flex flex-col md:flex-row gap-5 items-start w-full">
           {/* ========================================================= */}
-          {/* LEFT COLUMN: DYNAMIC CUSTOMER-SPECIFIC EDITABLE FORM      */}
+          {/* LEFT COLUMN: COMPACT DYNAMIC CUSTOMER EDITABLE FORM       */}
           {/* ========================================================= */}
-          <div className="lg:col-span-5 space-y-5">
-            <div className="bg-card border border-border rounded-2xl p-5 shadow-2xs space-y-5">
+          <div className="w-full md:w-[350px] xl:w-[380px] shrink-0 space-y-4">
+            <div className="bg-card border border-border rounded-2xl p-4 sm:p-4.5 shadow-2xs space-y-4">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center space-x-2">
@@ -1711,7 +1716,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
           {/* ========================================================= */}
           {/* RIGHT COLUMN: LIVE AUTHENTIC MULTI-PAGE DOCUMENT CANVAS   */}
           {/* ========================================================= */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+          <div className="flex-1 min-w-0 space-y-4 w-full">
             <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
               {/* Header Info Banner */}
               <div className="flex items-center justify-between border-b border-border pb-3">
@@ -1729,26 +1734,72 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    {currentTemplate.totalPages} {currentTemplate.totalPages === 1 ? 'Page A4 Formatted' : 'Pages Multi-Sheet'}
+                <div className="flex items-center space-x-2">
+                  {/* Zoom Controls Bar */}
+                  <div className="flex items-center space-x-1 bg-muted/60 dark:bg-muted/30 px-2 py-0.5 rounded-xl border border-border">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase mr-0.5">Zoom:</span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(prev => Math.max(0.5, Math.round((prev - 0.05) * 100) / 100))}
+                      className="p-1 hover:bg-background rounded-lg text-xs font-bold transition text-foreground cursor-pointer"
+                      title="Zoom Out"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-xs font-mono font-bold w-10 text-center text-foreground">
+                      {Math.round(previewZoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(prev => Math.min(1.2, Math.round((prev + 0.05) * 100) / 100))}
+                      className="p-1 hover:bg-background rounded-lg text-xs font-bold transition text-foreground cursor-pointer"
+                      title="Zoom In"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(0.8)}
+                      className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                        previewZoom === 0.8 ? 'bg-solar-600 text-white' : 'hover:bg-background text-muted-foreground'
+                      }`}
+                    >
+                      80%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom(1)}
+                      className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                        previewZoom === 1 ? 'bg-solar-600 text-white' : 'hover:bg-background text-muted-foreground'
+                      }`}
+                    >
+                      100%
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">
+                    {currentTemplate.totalPages} {currentTemplate.totalPages === 1 ? 'Page' : 'Pages'}
                   </span>
                   <button
                     type="button"
                     onClick={handleOpenPdfPreview}
-                    className="text-xs text-solar-600 font-bold hover:underline inline-flex items-center space-x-1 cursor-pointer"
+                    className="text-xs text-solar-600 font-bold hover:underline inline-flex items-center space-x-1 cursor-pointer whitespace-nowrap"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Full PDF Preview</span>
+                    <span>PDF Preview</span>
                   </button>
                 </div>
               </div>
 
               {/* Formatted A4 Document Canvas Container */}
-              <div className="bg-slate-200/70 dark:bg-zinc-950 p-4 sm:p-6 rounded-2xl border border-border/80 flex flex-col items-center overflow-x-auto">
+              <div className="bg-slate-300/80 dark:bg-zinc-950 p-3 sm:p-5 rounded-2xl border border-border/80 flex flex-col items-center overflow-x-auto min-h-[600px]">
                 <div
                   ref={documentPrintRef}
-                  className="w-full max-w-[794px] flex flex-col items-center space-y-8 py-2 mx-auto"
+                  style={{
+                    zoom: previewZoom,
+                    width: '794px'
+                  }}
+                  className="flex flex-col items-center space-y-8 py-2 mx-auto origin-top transition-transform duration-150"
                 >
                   {/* ===================================================== */}
                   {/* TEMPLATE 1: SOLAR AGREEMENT (2 PAGES)                 */}
@@ -1770,9 +1821,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -1866,9 +1920,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="2"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-3.5">
                           {/* Mini Header */}
@@ -2005,9 +2062,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <RareboxWatermark />
 
@@ -2149,9 +2209,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -2271,9 +2334,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-5 font-sans">
                           {/* Document Header */}
@@ -2377,9 +2443,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-2.5">
                           {/* CSPDCL Header */}
@@ -2474,9 +2543,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="2"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-6">
                           {/* Mini Header */}
@@ -2579,9 +2651,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <RareboxWatermark />
 
