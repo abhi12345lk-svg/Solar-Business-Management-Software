@@ -850,12 +850,31 @@ export const CustomersPage: React.FC = () => {
     return 'PENDING';
   };
 
-  // Filtered by type and inspection/site status in client
+  // Filtered by type, search, and status in client
   const filteredCustomers = customers.filter(c => {
     if (typeFilter !== 'ALL') {
       if (typeFilter === CustomerType.COMMERCIAL) {
         if (c.type !== CustomerType.COMMERCIAL && c.type !== CustomerType.INDUSTRIAL) return false;
       } else if (c.type !== typeFilter) {
+        return false;
+      }
+    }
+    if (!isInstaller && statusFilter !== 'ALL') {
+      if (c.status !== statusFilter) return false;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = c.name?.toLowerCase().includes(q);
+      const codeMatch = c.customerCode?.toLowerCase().includes(q);
+      const phoneMatch = c.primaryPhone?.includes(q);
+      const emailMatch = c.email?.toLowerCase().includes(q);
+      const cityMatch =
+        c.installationAddress?.city?.toLowerCase().includes(q) ||
+        c.billingAddress?.city?.toLowerCase().includes(q);
+      const addressMatch =
+        c.installationAddress?.addressLine1?.toLowerCase().includes(q) ||
+        c.companyName?.toLowerCase().includes(q);
+      if (!nameMatch && !codeMatch && !phoneMatch && !emailMatch && !cityMatch && !addressMatch) {
         return false;
       }
     }
@@ -1052,12 +1071,26 @@ export const CustomersPage: React.FC = () => {
                 : 'Convert prospective leads from the CRM pipeline or directly register new customers.'}
             </p>
             <div className="pt-2 flex items-center justify-center gap-3">
-              <Link
-                to="/leads"
-                className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition"
-              >
-                View Leads to Convert →
-              </Link>
+              {search || typeFilter !== 'ALL' || statusFilter !== 'ALL' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setTypeFilter('ALL');
+                    setStatusFilter('ALL');
+                  }}
+                  className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+              ) : (
+                <Link
+                  to="/leads"
+                  className="px-4 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 rounded-lg text-secondary-foreground transition"
+                >
+                  View Leads to Convert →
+                </Link>
+              )}
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="px-4 py-2 text-xs font-semibold bg-solar-600 hover:bg-solar-700 text-white rounded-lg transition"

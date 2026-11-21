@@ -7,7 +7,8 @@ import {
   Phone,
   ArrowRight,
   Check,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -37,6 +38,7 @@ export const FollowUpsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [timeframe, setTimeframe] = useState<'all' | 'overdue' | 'today' | 'upcoming'>('all');
+  const [search, setSearch] = useState('');
 
   // Complete Follow-up Modal State
   const [selectedItem, setSelectedItem] = useState<FollowUpItem | null>(null);
@@ -90,6 +92,18 @@ export const FollowUpsPage: React.FC = () => {
 
   const overdueCount = followUps.filter(f => f.isOverdue).length;
 
+  const filteredFollowUps = followUps.filter(item => {
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = item.lead?.prospectName?.toLowerCase().includes(q);
+      const phoneMatch = item.lead?.prospectPhone?.includes(q);
+      const codeMatch = item.lead?.leadCode?.toLowerCase().includes(q);
+      const summaryMatch = item.summary?.toLowerCase().includes(q);
+      if (!nameMatch && !phoneMatch && !codeMatch && !summaryMatch) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -109,21 +123,34 @@ export const FollowUpsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs / Filter Nav */}
-      <div className="flex items-center space-x-2 border-b pb-3">
-        {(['all', 'overdue', 'today', 'upcoming'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setTimeframe(tab)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition ${
-              timeframe === tab
-                ? 'bg-solar-600 text-white shadow-sm'
-                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      {/* Tabs / Filter Nav & Search Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-3">
+        <div className="flex items-center space-x-2">
+          {(['all', 'overdue', 'today', 'upcoming'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setTimeframe(tab)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
+                timeframe === tab
+                  ? 'bg-solar-600 text-white shadow-sm font-bold'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search prospect, phone, code..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-card border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+          />
+        </div>
       </div>
 
       {/* Follow-up Items List */}
@@ -138,14 +165,28 @@ export const FollowUpsPage: React.FC = () => {
             <AlertCircle className="w-8 h-8 mx-auto" />
             <p>{error}</p>
           </div>
-        ) : followUps.length === 0 ? (
+        ) : filteredFollowUps.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground bg-card border rounded-xl space-y-2">
             <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500 opacity-60" />
-            <p className="font-semibold text-foreground">All follow-ups up to date!</p>
-            <p className="text-xs">No pending tasks found for the selected timeframe.</p>
+            <p className="font-semibold text-foreground">
+              {search.trim() ? 'No follow-ups match your search' : 'All follow-ups up to date!'}
+            </p>
+            <p className="text-xs">
+              {search.trim()
+                ? 'Try clearing the search query to see all scheduled follow-ups.'
+                : 'No pending tasks found for the selected timeframe.'}
+            </p>
+            {search.trim() && (
+              <button
+                onClick={() => setSearch('')}
+                className="mt-2 px-3 py-1 text-xs font-semibold bg-secondary rounded-lg text-foreground hover:bg-secondary/80"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
-          followUps.map(item => (
+          filteredFollowUps.map(item => (
             <div
               key={item.id}
               className={`p-4 rounded-xl border bg-card shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${

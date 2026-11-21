@@ -103,7 +103,8 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell },
-      { to: '/customers', label: 'Customer Directory', icon: UserCheck }
+      { to: '/customers', label: 'Customer Directory', icon: UserCheck },
+      { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
     ]
   },
   {
@@ -111,7 +112,8 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/solar-designs', label: 'Solar Calculator & Sizing', icon: Calculator },
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
+      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 }
     ]
   }
 ];
@@ -203,9 +205,10 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Workspace', title: 'Tasks' };
   }
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
-    return { section: 'Commercial', title: 'Generate EPC Contract' };
+    return { section: 'Commercial', title: 'Generate Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents & JCR' };
+    if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Document Vault & KYC' };
     return { section: 'Records', title: 'Document Vault' };
   }
   if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };

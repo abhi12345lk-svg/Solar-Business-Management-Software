@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -240,19 +241,25 @@ export const LeadsPage: React.FC = () => {
     }
   };
 
-  // Filter leads based on the exact 4 statuses
+  // Filter leads dynamically based on status, priority, and live search term
   const filteredLeads = leads.filter(lead => {
-    if (statusFilter === LeadStatus.NEW) {
-      return lead.status === LeadStatus.NEW;
+    if (statusFilter !== 'ALL' && lead.status !== statusFilter) {
+      return false;
     }
-    if (statusFilter === LeadStatus.FOLLOW_UP) {
-      return lead.status === LeadStatus.FOLLOW_UP;
+    if (priorityFilter !== 'ALL' && lead.priority !== priorityFilter) {
+      return false;
     }
-    if (statusFilter === LeadStatus.PAYMENT_PENDING) {
-      return lead.status === LeadStatus.PAYMENT_PENDING;
-    }
-    if (statusFilter === LeadStatus.CONVERTED) {
-      return lead.status === LeadStatus.CONVERTED;
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = lead.prospectName?.toLowerCase().includes(q);
+      const phoneMatch = lead.prospectPhone?.includes(q);
+      const cityMatch = lead.location?.city?.toLowerCase().includes(q);
+      const refMatch = lead.reference?.toLowerCase().includes(q);
+      const reqMatch = lead.solarRequirement?.toLowerCase().includes(q);
+      const codeMatch = (lead as any).leadCode?.toLowerCase().includes(q);
+      if (!nameMatch && !phoneMatch && !cityMatch && !refMatch && !reqMatch && !codeMatch) {
+        return false;
+      }
     }
     return true;
   });
@@ -262,6 +269,7 @@ export const LeadsPage: React.FC = () => {
   const followUpCount = leads.filter(l => l.status === LeadStatus.FOLLOW_UP).length;
   const paymentPendingCount = leads.filter(l => l.status === LeadStatus.PAYMENT_PENDING).length;
   const convertedCount = leads.filter(l => l.status === LeadStatus.CONVERTED).length;
+  const lostCount = leads.filter(l => l.status === LeadStatus.LOST).length;
 
   return (
     <div className="space-y-6">
@@ -374,6 +382,19 @@ export const LeadsPage: React.FC = () => {
           >
             Converted ({convertedCount})
           </button>
+          {lostCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter(LeadStatus.LOST)}
+              className={`px-3 py-1.5 rounded-md font-semibold transition cursor-pointer ${
+                statusFilter === LeadStatus.LOST
+                  ? 'bg-background text-rose-600 dark:text-rose-400 shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Lost ({lostCount})
+            </button>
+          )}
         </div>
 
         {/* Live Search & Priority Filter */}
@@ -457,9 +478,13 @@ export const LeadsPage: React.FC = () => {
                         <span className="font-mono text-xs font-bold text-muted-foreground block">
                           S.No. {index + 1}
                         </span>
-                        <h3 className="font-bold text-sm text-foreground truncate mt-0.5">
+                        <Link
+                          to={`/leads/${lead.id}`}
+                          className="font-bold text-sm text-foreground hover:text-solar-600 hover:underline block truncate mt-0.5"
+                          title="Open Lead Dossier"
+                        >
                           {lead.prospectName}
-                        </h3>
+                        </Link>
                         {lead.companyName && (
                           <p className="text-xs text-muted-foreground truncate">{lead.companyName}</p>
                         )}
@@ -479,6 +504,7 @@ export const LeadsPage: React.FC = () => {
                           <option value={LeadStatus.FOLLOW_UP}>Follow Up</option>
                           <option value={LeadStatus.PAYMENT_PENDING}>Payment Pending</option>
                           <option value={LeadStatus.CONVERTED}>Converted</option>
+                          <option value={LeadStatus.LOST}>Lost</option>
                           {![
                             LeadStatus.NEW,
                             LeadStatus.FOLLOW_UP,
@@ -541,9 +567,13 @@ export const LeadsPage: React.FC = () => {
                           {index + 1}
                         </td>
                         <td className="py-3.5 px-4 font-medium text-foreground">
-                          <span className="font-bold block">
+                          <Link
+                            to={`/leads/${lead.id}`}
+                            className="font-bold block text-foreground hover:text-solar-600 hover:underline transition"
+                            title="Open Lead Dossier"
+                          >
                             {lead.prospectName}
-                          </span>
+                          </Link>
                           {lead.companyName && (
                             <span className="block text-xs text-muted-foreground">
                               {lead.companyName}
@@ -601,6 +631,7 @@ export const LeadsPage: React.FC = () => {
                               <option value={LeadStatus.FOLLOW_UP}>Follow Up</option>
                               <option value={LeadStatus.PAYMENT_PENDING}>Payment Pending</option>
                               <option value={LeadStatus.CONVERTED}>Converted</option>
+                              <option value={LeadStatus.LOST}>Lost</option>
                               {![
                                 LeadStatus.NEW,
                                 LeadStatus.FOLLOW_UP,

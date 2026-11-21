@@ -25,7 +25,9 @@ import {
   CreditCard,
   ArrowUpRight,
   TrendingUp,
-  Receipt
+  Receipt,
+  Lock,
+  Check
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -98,11 +100,18 @@ export const PaymentsPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedMilestoneStage, setSelectedMilestoneStage] = useState<'M1' | 'M2' | 'M3' | 'CUSTOM'>('CUSTOM');
 
+  // Local ISO string for datetime-local input (YYYY-MM-DDTHH:MM)
+  const getNowLocalISO = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+  };
+
   const [recordForm, setRecordForm] = useState({
     customerId: '',
     salesOrderId: '',
     amountRupees: '',
-    paymentDate: new Date().toISOString().split('T')[0],
+    paymentDate: getNowLocalISO(),
     paymentMethod: 'BANK_TRANSFER',
     transactionReference: '',
     notes: ''
@@ -117,6 +126,28 @@ export const PaymentsPage: React.FC = () => {
   const effectiveContractRupees = activeOrderContractRupees > 0 ? activeOrderContractRupees : (customContractRupees || 100000);
   const remainingBalanceRupees = Math.max(0, effectiveContractRupees - customerTotalPaidRupees);
   const percentPaid = effectiveContractRupees > 0 ? Math.min(100, Math.round((customerTotalPaidRupees / effectiveContractRupees) * 100)) : 0;
+
+  // 3-Stage Milestone Targets & Progression
+  const m1Target = Math.round(effectiveContractRupees * 0.2); // 20% Booking Advance
+  const m2Target = Math.round(effectiveContractRupees * 0.7); // 70% Pre-Dispatch
+  const m3Target = Math.round(effectiveContractRupees * 0.1); // 10% Handover & Commissioning
+
+  // Cumulative thresholds
+  const m2Cumulative = m1Target + m2Target; // 90%
+  const m3Cumulative = effectiveContractRupees; // 100%
+
+  // Paid amounts towards each milestone
+  const m1Paid = Math.min(m1Target, customerTotalPaidRupees);
+  const m1Due = Math.max(0, m1Target - customerTotalPaidRupees);
+  const m1Completed = customerTotalPaidRupees >= m1Target;
+
+  const m2Paid = Math.max(0, Math.min(m2Target, customerTotalPaidRupees - m1Target));
+  const m2Due = Math.max(0, m2Target - m2Paid);
+  const m2Completed = customerTotalPaidRupees >= m2Cumulative;
+
+  const m3Paid = Math.max(0, Math.min(m3Target, customerTotalPaidRupees - m2Cumulative));
+  const m3Due = Math.max(0, m3Target - m3Paid);
+  const m3Completed = customerTotalPaidRupees >= m3Cumulative;
 
   // Live Projected Balance when entering payment amount
   const enteredAmount = parseFloat(recordForm.amountRupees) || 0;
@@ -173,6 +204,52 @@ export const PaymentsPage: React.FC = () => {
     } catch {
       return dateStr;
     }
+  };
+
+  // Format Date & Time for professional audit
+  const formatDateTime = (dateStr?: string | Date) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return (
+        d.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }) +
+        ', ' +
+        d.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      );
+    } catch {
+      return String(dateStr);
+    }
+  };
+
+  // Convert Number to Words (INR)
+  const numberToWordsINR = (amount: number): string => {
+    const num = Math.floor(amount);
+    if (num <= 0) return 'Zero Rupees Only';
+
+    const a = [
+      '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+    ];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const inWords = (n: number): string => {
+      if (n < 20) return a[n] || '';
+      if (n < 100) return (b[Math.floor(n / 10)] || '') + (n % 10 !== 0 ? ' ' + (a[n % 10] || '') : '');
+      if (n < 1000) return (a[Math.floor(n / 100)] || '') + ' Hundred' + (n % 100 !== 0 ? ' ' + inWords(n % 100) : '');
+      if (n < 100000) return inWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + inWords(n % 1000) : '');
+      if (n < 10000000) return inWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + inWords(n % 100000) : '');
+      return inWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + inWords(n % 10000000) : '');
+    };
+
+    return inWords(num).trim() + ' Rupees Only';
   };
 
   // Fetch payments list
@@ -287,31 +364,46 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  // 1-Click Milestone Stage Selection
+  // 1-Click Milestone Stage Selection with Smart Locking & Balance Tracking
   const applyMilestoneStage = (stage: 'M1' | 'M2' | 'M3' | 'CUSTOM') => {
     setSelectedMilestoneStage(stage);
-    const contract = effectiveContractRupees;
 
     if (stage === 'M1') {
-      const stageAmt = Math.round(contract * 0.2); // 20% Booking Advance
+      if (m1Completed) {
+        alert(`Stage 1 (20% Booking Advance - ${formatINR(m1Target * 100)}) has already been fully paid and locked! Please proceed to Stage 2.`);
+        return;
+      }
+      const stageAmt = m1Due > 0 ? m1Due : m1Target;
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Stage 1: Booking Advance (20%) - Order confirmation token`
+        notes: m1Paid > 0
+          ? `Stage 1 Booking Advance: Balance installment of ${formatINR(stageAmt * 100)} (completing 20% token)`
+          : `Stage 1: Booking Advance (20%) - Order confirmation token`
       }));
     } else if (stage === 'M2') {
-      const stageAmt = Math.round(contract * 0.7); // 70% Pre-Dispatch
+      if (m2Completed) {
+        alert(`Stage 2 (70% Material Pre-Dispatch - ${formatINR(m2Target * 100)}) has already been fully paid and locked! Please proceed to Stage 3.`);
+        return;
+      }
+      const stageAmt = m2Due > 0 ? m2Due : m2Target;
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Stage 2: Material Pre-Dispatch (70%) - Prior to warehouse dispatch`
+        notes: m2Paid > 0
+          ? `Stage 2 Pre-Dispatch: Installment payment of ${formatINR(stageAmt * 100)} (towards 70% milestone)`
+          : `Stage 2: Material Pre-Dispatch (70%) - Prior to warehouse dispatch`
       }));
     } else if (stage === 'M3') {
-      const stageAmt = Math.round(contract * 0.1); // 10% Commissioning
+      if (m3Completed) {
+        alert(`Stage 3 (10% Commissioning - ${formatINR(m3Target * 100)}) has already been fully paid! All project milestones are 100% completed.`);
+        return;
+      }
+      const stageAmt = m3Due > 0 ? m3Due : m3Target;
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Stage 3: Installation & Commissioning (10%) - Post net-meter test`
+        notes: `Stage 3: Installation & Commissioning (10%) - Post net-meter test & final handover`
       }));
     }
   };
@@ -323,7 +415,7 @@ export const PaymentsPage: React.FC = () => {
       customerId: cId,
       salesOrderId: prefillOrderId || '',
       amountRupees: '',
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: getNowLocalISO(),
       paymentMethod: 'BANK_TRANSFER',
       transactionReference: '',
       notes: ''
@@ -772,8 +864,17 @@ export const PaymentsPage: React.FC = () => {
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-medium text-foreground">{formatDate(payment.paymentDate)}</div>
-                        <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        <div className="font-semibold text-foreground">{formatDate(payment.paymentDate)}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          {payment.paymentDate
+                            ? new Date(payment.paymentDate).toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                            : ''}
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mt-0.5 inline-block">
                           {payment.paymentMethod?.replace(/_/g, ' ')}
                         </span>
                       </td>
@@ -1004,73 +1105,136 @@ export const PaymentsPage: React.FC = () => {
 
                   {/* 3 Milestone Buttons */}
                   <div className="grid grid-cols-3 gap-2">
+                    {/* Stage 1 Button */}
                     <button
                       type="button"
                       onClick={() => applyMilestoneStage('M1')}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        selectedMilestoneStage === 'M1'
-                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                          : 'bg-card hover:bg-muted/50 border-border'
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        m1Completed
+                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
+                          : selectedMilestoneStage === 'M1'
+                            ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30 cursor-pointer'
+                            : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                          {m1Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
                           Stage 1 (20%)
                         </span>
-                        {customerTotalPaidRupees >= Math.round(effectiveContractRupees * 0.2) && (
-                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
-                        )}
+                        {m1Completed ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5" /> Paid
+                          </span>
+                        ) : m1Paid > 0 ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 font-bold">
+                            Due {formatINR(m1Due * 100)}
+                          </span>
+                        ) : null}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(effectiveContractRupees * 0.2 * 100))}
+                        {m1Completed ? (
+                          <span className="text-emerald-600">✓ {formatINR(m1Target * 100)}</span>
+                        ) : m1Paid > 0 ? (
+                          <span className="text-amber-600">Pay Due: {formatINR(m1Due * 100)}</span>
+                        ) : (
+                          formatINR(m1Target * 100)
+                        )}
                       </div>
+                      {m1Paid > 0 && !m1Completed && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">
+                          ({formatINR(m1Paid * 100)} already received)
+                        </div>
+                      )}
                     </button>
 
+                    {/* Stage 2 Button */}
                     <button
                       type="button"
                       onClick={() => applyMilestoneStage('M2')}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        selectedMilestoneStage === 'M2'
-                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                          : 'bg-card hover:bg-muted/50 border-border'
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        m2Completed
+                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
+                          : selectedMilestoneStage === 'M2'
+                            ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30 cursor-pointer'
+                            : m1Completed && !m2Completed
+                              ? 'bg-blue-500/5 border-blue-400/50 hover:bg-blue-500/10 cursor-pointer'
+                              : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
+                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
+                          {m2Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
                           Stage 2 (70%)
                         </span>
-                        {customerTotalPaidRupees >= Math.round(effectiveContractRupees * 0.9) && (
-                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
-                        )}
+                        {m2Completed ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5" /> Paid
+                          </span>
+                        ) : m1Completed && !m2Completed ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-700 font-bold">
+                            👉 Next Step
+                          </span>
+                        ) : null}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(effectiveContractRupees * 0.7 * 100))}
+                        {m2Completed ? (
+                          <span className="text-emerald-600">✓ {formatINR(m2Target * 100)}</span>
+                        ) : (
+                          formatINR(m2Due > 0 ? m2Due * 100 : m2Target * 100)
+                        )}
                       </div>
+                      {m2Paid > 0 && !m2Completed && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">
+                          ({formatINR(m2Paid * 100)} paid)
+                        </div>
+                      )}
                     </button>
 
+                    {/* Stage 3 Button */}
                     <button
                       type="button"
                       onClick={() => applyMilestoneStage('M3')}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        selectedMilestoneStage === 'M3'
-                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                          : 'bg-card hover:bg-muted/50 border-border'
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        m3Completed
+                          ? 'bg-muted/40 border-muted text-muted-foreground opacity-80 cursor-pointer'
+                          : selectedMilestoneStage === 'M3'
+                            ? 'bg-purple-500/10 border-purple-500 ring-2 ring-purple-500/30 cursor-pointer'
+                            : m2Completed && !m3Completed
+                              ? 'bg-purple-500/5 border-purple-400/50 hover:bg-purple-500/10 cursor-pointer'
+                              : 'bg-card hover:bg-muted/50 border-border cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1">
+                          {m3Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
                           Stage 3 (10%)
                         </span>
-                        {customerTotalPaidRupees >= effectiveContractRupees && (
-                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
-                        )}
+                        {m3Completed ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5" /> Paid
+                          </span>
+                        ) : m2Completed && !m3Completed ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-700 font-bold">
+                            👉 Final Step
+                          </span>
+                        ) : null}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(effectiveContractRupees * 0.1 * 100))}
+                        {m3Completed ? (
+                          <span className="text-emerald-600">✓ {formatINR(m3Target * 100)}</span>
+                        ) : (
+                          formatINR(m3Due > 0 ? m3Due * 100 : m3Target * 100)
+                        )}
                       </div>
+                      {m3Paid > 0 && !m3Completed && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">
+                          ({formatINR(m3Paid * 100)} paid)
+                        </div>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1109,14 +1273,14 @@ export const PaymentsPage: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold mb-1 text-foreground">
-                    Payment Date <span className="text-rose-500">*</span>
+                    Payment Date &amp; Time <span className="text-rose-500">*</span>
                   </label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     required
                     value={recordForm.paymentDate}
                     onChange={e => setRecordForm(prev => ({ ...prev, paymentDate: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    className="w-full px-3 py-2 border rounded-xl bg-background font-mono text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>
@@ -1191,103 +1355,295 @@ export const PaymentsPage: React.FC = () => {
 
 
       {/* =========================================================================
-          MODAL 3: PRINTABLE OPERATIONAL PAYMENT RECEIPT
+          MODAL 3: PRINTABLE OPERATIONAL PAYMENT RECEIPT (ON-SCREEN PREVIEW + A4 PRINT)
          ========================================================================= */}
       {showReceiptModal && receiptData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
-          <div className="bg-card border rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl max-h-[95vh] overflow-y-auto space-y-5">
-            {/* Header */}
-            <div className="flex items-start justify-between border-b pb-4">
-              <div>
-                <div className="text-base font-black text-foreground">
-                  Rarebox Solar <span className="text-xs font-normal text-muted-foreground">(RAREBOX LLP)</span>
+        <>
+          {/* Dedicated A4 Print Document (Visible only when printing) */}
+          <div id="printable-a4-receipt" className="hidden print:block text-slate-900 bg-white font-sans text-xs">
+            <style>{`
+              @media print {
+                body * {
+                  visibility: hidden !important;
+                }
+                #printable-a4-receipt, #printable-a4-receipt * {
+                  visibility: visible !important;
+                }
+                #printable-a4-receipt {
+                  display: block !important;
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 100% !important;
+                  min-height: 100% !important;
+                  margin: 0 !important;
+                  padding: 12mm 15mm !important;
+                  background: white !important;
+                  color: #0f172a !important;
+                  box-sizing: border-box !important;
+                }
+                @page {
+                  size: A4 portrait;
+                  margin: 0;
+                }
+              }
+            `}</style>
+
+            {/* Letterhead */}
+            <div className="border-b-2 border-slate-900 pb-4 mb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
+                    RAREBOX SOLAR
+                  </h1>
+                  <p className="text-[11px] font-bold text-amber-700 tracking-wide uppercase mt-0.5">
+                    A Division of RAREBOX LLP &bull; Solar EPC &amp; Clean Energy Solutions
+                  </p>
+                  <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
+                    <div>GSTIN: <strong className="text-slate-900 font-mono">22AAAFR1234A1Z5</strong> &bull; PAN: <strong className="text-slate-900 font-mono">AAAFR1234A</strong></div>
+                    <div>Regd. Office: Rarebox Tower, Great Eastern Road, Raipur, Chhattisgarh - 492001</div>
+                    <div>Phone: +91 771 4055555 &bull; Email: accounts@rareboxsolar.com &bull; Web: www.rareboxsolar.com</div>
+                  </div>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  GSTIN: 22AAAFR1234A1Z5 &bull; Raipur, Chhattisgarh
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="font-mono font-bold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg text-xs">
-                  {receiptData.receiptNumber}
-                </span>
-                <div className="text-[11px] text-muted-foreground mt-1">
-                  Date: {formatDate(receiptData.paymentDate)}
+                <div className="text-right">
+                  <span className="inline-block px-3 py-1 bg-slate-900 text-white font-mono font-bold text-xs uppercase tracking-wider rounded">
+                    MONEY RECEIPT
+                  </span>
+                  <div className="font-mono font-bold text-base text-amber-700 mt-2">
+                    {receiptData.receiptNumber}
+                  </div>
+                  <div className="text-[11px] text-slate-600 mt-0.5">
+                    Date &amp; Time: <strong className="text-slate-900">{formatDateTime(receiptData.paymentDate)}</strong>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Client Info & Mode */}
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span className="text-muted-foreground uppercase text-[10px] font-bold">Received From Client:</span>
-                <div className="font-bold text-foreground text-sm mt-0.5">
-                  {receiptData.customer?.name || receiptData.customerId?.name || 'Customer'}
+            {/* Client & Payment Info Box */}
+            <div className="border border-slate-300 rounded-lg overflow-hidden mb-4">
+              <div className="grid grid-cols-2 divide-x divide-slate-300">
+                {/* Left Column: Customer Info */}
+                <div className="p-3 space-y-1.5 bg-slate-50/50">
+                  <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    RECEIVED FROM CLIENT / BILL TO:
+                  </div>
+                  <div className="text-sm font-bold text-slate-900">
+                    {receiptData.customer?.name || receiptData.customerId?.name || 'Customer'}
+                  </div>
+                  <div className="text-xs text-slate-700 font-mono">
+                    Phone: {receiptData.customer?.primaryPhone || receiptData.customerId?.primaryPhone || 'N/A'}
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    Address: {receiptData.customer?.installationAddress?.city || receiptData.customer?.billingAddress?.city || 'Raipur, Chhattisgarh'}
+                  </div>
+                  {receiptData.customer?.customerCode && (
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      Customer ID: {receiptData.customer.customerCode}
+                    </div>
+                  )}
                 </div>
-                <div className="text-muted-foreground text-[11px]">
-                  {receiptData.customer?.primaryPhone || receiptData.customerId?.primaryPhone || ''}
-                </div>
-              </div>
 
-              <div>
-                <span className="text-muted-foreground uppercase text-[10px] font-bold">Payment Instrument:</span>
-                <div className="font-bold text-foreground mt-0.5">
-                  {receiptData.paymentMethod?.replace(/_/g, ' ')}
-                </div>
-                <div className="text-muted-foreground font-mono text-[11px]">
-                  Ref: {receiptData.transactionReference || 'N/A'}
+                {/* Right Column: Instrument & Realization Info */}
+                <div className="p-3 space-y-1.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    PAYMENT INSTRUMENT &amp; SETTLEMENT:
+                  </div>
+                  <div className="text-xs text-slate-900">
+                    Mode: <strong className="uppercase font-mono">{receiptData.paymentMethod?.replace(/_/g, ' ')}</strong>
+                  </div>
+                  <div className="text-xs text-slate-900 font-mono">
+                    UTR / Cheque Ref: <strong>{receiptData.transactionReference || 'Direct Bank Settlement'}</strong>
+                  </div>
+                  <div className="text-xs text-slate-700">
+                    Settlement Status: <strong className="text-emerald-700">REALIZED &amp; VERIFIED IN BANK</strong>
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    Milestone Purpose: <span className="font-semibold">{receiptData.notes || 'Rooftop Solar Project Advance'}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Total Box */}
-            <div className="p-4 rounded-xl bg-secondary/40 border flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-muted-foreground">Total Realized Amount:</span>
-                <div className="text-2xl font-black text-foreground font-mono mt-0.5">
-                  {formatINR(receiptData.amountPaise)}
-                </div>
-              </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  receiptData.status === 'VERIFIED'
-                    ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
-                }`}
-              >
-                {receiptData.status}
+            {/* Table: Financial Particulars */}
+            <div className="border border-slate-300 rounded-lg overflow-hidden mb-4">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 border-b border-slate-300 font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="py-2.5 px-3 w-12 text-center">Sr.</th>
+                    <th className="py-2.5 px-3">Description of Solar EPC Service / Milestone</th>
+                    <th className="py-2.5 px-3 w-40 text-center">Stage Tag</th>
+                    <th className="py-2.5 px-3 w-36 text-right">Realized Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  <tr>
+                    <td className="py-3 px-3 text-center font-mono">01</td>
+                    <td className="py-3 px-3">
+                      <div className="font-bold text-slate-900">Rooftop Solar PV Installation Milestone Receipt</div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">
+                        Received towards solar power plant procurement, installation, and commissioning.
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                        {receiptData.notes?.includes('Stage') ? receiptData.notes.split('-')[0].trim() : 'Advance Token'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 text-sm">
+                      {formatINR(receiptData.amountPaise)}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold">
+                  <tr>
+                    <td colSpan={3} className="py-3 px-3 text-right uppercase text-slate-700 text-[11px]">
+                      Total Realized Amount:
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono font-black text-slate-900 text-base">
+                      {formatINR(receiptData.amountPaise)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Amount In Words */}
+            <div className="p-3 bg-slate-50 border border-slate-300 rounded-lg mb-4 text-xs">
+              <span className="font-bold text-slate-700 uppercase text-[10px]">Amount in Words: </span>
+              <span className="font-serif italic font-bold text-slate-900">
+                {numberToWordsINR(receiptData.amountPaise / 100)}
               </span>
             </div>
 
-            {receiptData.notes && (
-              <div className="text-xs text-muted-foreground bg-muted/20 p-2.5 rounded-lg border">
-                <span className="font-semibold text-foreground">Remarks: </span>
-                {receiptData.notes}
-              </div>
-            )}
-
-            {/* Legal Disclaimer */}
-            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-800 dark:text-amber-300">
-              Notice of Fund Realization: This document confirms receipt of customer funds against rooftop solar milestones. It does not constitute a statutory Tax Invoice.
+            {/* Legal Terms & Acknowledgement Notice */}
+            <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-lg text-[10px] text-slate-600 space-y-1 mb-6">
+              <div className="font-bold text-amber-900 uppercase">Acknowledgement &amp; Terms:</div>
+              <div>1. This document acknowledges realization of customer funds against rooftop solar milestones in Rarebox Solar bank account.</div>
+              <div>2. Final statutory GST Tax Invoice will be issued upon commissioning of the solar system and net-meter synchronization.</div>
+              <div>3. Payments made via Cheque are subject to bank realization. Computer generated voucher — valid with authorized stamp.</div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t">
-              <button
-                onClick={() => setShowReceiptModal(false)}
-                className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold text-xs cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Receipt</span>
-              </button>
+            {/* Signatures */}
+            <div className="grid grid-cols-2 pt-6 mt-6 border-t border-slate-300 text-xs">
+              <div>
+                <div className="h-12"></div>
+                <div className="border-t border-slate-400 w-48 pt-1 text-slate-600 font-semibold text-[11px]">
+                  Customer / Depositor Signature
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                <div className="h-12 flex items-end justify-end">
+                  <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-bold mb-1">
+                    ✓ VERIFIED BY ACCOUNTS
+                  </span>
+                </div>
+                <div className="border-t border-slate-400 w-56 pt-1 text-slate-900 font-bold text-[11px]">
+                  For RAREBOX SOLAR (RAREBOX LLP)
+                  <div className="text-[10px] font-normal text-slate-500">Authorized Signatory</div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* On-Screen Modal Dialog (Hidden during print) */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 print:hidden">
+            <div className="bg-card border rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl max-h-[95vh] overflow-y-auto space-y-5">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b pb-4">
+                <div>
+                  <div className="text-base font-black text-foreground">
+                    Rarebox Solar <span className="text-xs font-normal text-muted-foreground">(RAREBOX LLP)</span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    GSTIN: 22AAAFR1234A1Z5 &bull; Raipur, Chhattisgarh
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg text-xs">
+                    {receiptData.receiptNumber}
+                  </span>
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    {formatDateTime(receiptData.paymentDate)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Client Info & Mode */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Received From Client:</span>
+                  <div className="font-bold text-foreground text-sm mt-0.5">
+                    {receiptData.customer?.name || receiptData.customerId?.name || 'Customer'}
+                  </div>
+                  <div className="text-muted-foreground text-[11px]">
+                    {receiptData.customer?.primaryPhone || receiptData.customerId?.primaryPhone || ''}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground uppercase text-[10px] font-bold">Payment Instrument:</span>
+                  <div className="font-bold text-foreground mt-0.5">
+                    {receiptData.paymentMethod?.replace(/_/g, ' ')}
+                  </div>
+                  <div className="text-muted-foreground font-mono text-[11px]">
+                    Ref: {receiptData.transactionReference || 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Box */}
+              <div className="p-4 rounded-xl bg-secondary/40 border flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-bold uppercase text-muted-foreground">Total Realized Amount:</span>
+                  <div className="text-2xl font-black text-foreground font-mono mt-0.5">
+                    {formatINR(receiptData.amountPaise)}
+                  </div>
+                  <div className="text-[11px] font-serif italic text-muted-foreground mt-1">
+                    {numberToWordsINR(receiptData.amountPaise / 100)}
+                  </div>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    receiptData.status === 'VERIFIED'
+                      ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+                  }`}
+                >
+                  {receiptData.status}
+                </span>
+              </div>
+
+              {receiptData.notes && (
+                <div className="text-xs text-muted-foreground bg-muted/20 p-2.5 rounded-lg border">
+                  <span className="font-semibold text-foreground">Remarks: </span>
+                  {receiptData.notes}
+                </div>
+              )}
+
+              {/* Legal Disclaimer */}
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-800 dark:text-amber-300">
+                Notice of Fund Realization: This document confirms receipt of customer funds against rooftop solar milestones. Statutory Tax Invoice will be handed over at project commissioning.
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold text-xs cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs cursor-pointer shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print A4 Receipt (Save as PDF)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* =========================================================================
@@ -1331,7 +1687,7 @@ export const PaymentsPage: React.FC = () => {
                     <div>
                       <span className="text-muted-foreground">Total Invoiced / Contract</span>
                       <div className="font-mono font-bold text-foreground text-sm mt-0.5">
-                        {formatINR(totalContractPaise)}
+                        {totalContractPaise > 0 ? formatINR(totalContractPaise) : 'Project Advance Intake'}
                       </div>
                     </div>
                     <div>
@@ -1343,7 +1699,7 @@ export const PaymentsPage: React.FC = () => {
                     <div>
                       <span className="text-muted-foreground">Outstanding Due</span>
                       <div className="font-mono font-bold text-rose-600 text-sm mt-0.5">
-                        {formatINR(totalPendingPaise)}
+                        {totalContractPaise > 0 ? formatINR(totalPendingPaise) : '—'}
                       </div>
                     </div>
                   </div>
@@ -1362,7 +1718,7 @@ export const PaymentsPage: React.FC = () => {
                           <thead className="bg-muted/40 text-muted-foreground font-semibold">
                             <tr className="border-b">
                               <th className="py-2 px-3">Receipt #</th>
-                              <th className="py-2 px-3">Date</th>
+                              <th className="py-2 px-3">Date &amp; Time</th>
                               <th className="py-2 px-3">Method</th>
                               <th className="py-2 px-3">Reference / UTR</th>
                               <th className="py-2 px-3 text-right">Amount</th>
@@ -1373,7 +1729,7 @@ export const PaymentsPage: React.FC = () => {
                             {paymentsList.map((p: any) => (
                               <tr key={p._id} className="hover:bg-muted/20">
                                 <td className="py-2 px-3 font-bold text-amber-600">{p.receiptNumber}</td>
-                                <td className="py-2 px-3 font-sans">{formatDate(p.paymentDate)}</td>
+                                <td className="py-2 px-3 font-sans">{formatDateTime(p.paymentDate)}</td>
                                 <td className="py-2 px-3 uppercase text-[10px] font-semibold text-foreground font-sans">
                                   {p.paymentMethod?.replace(/_/g, ' ')}
                                 </td>
