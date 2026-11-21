@@ -5,8 +5,6 @@
  * 2. Customer Directory (/customers)
  * 3. Quotation Proposals (/quotations)
  * 4. Confirmed Sales Orders (/orders)
- * 5. Document Vault & KYC (/documents)
- * 6. Generate Agreement / Form (/create-document)
  */
 
 import React, { useMemo } from 'react';
@@ -17,8 +15,6 @@ import {
   UserCheck,
   FileSpreadsheet,
   ShoppingCart,
-  FolderLock,
-  FilePlus2,
   TrendingUp,
   ArrowRight,
   Plus,
@@ -90,19 +86,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // 5. Fetch Documents
-  const { data: documents = [] } = useQuery<any[]>({
-    queryKey: ['salesDocuments'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/documents?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
   // Date Filtering
   const filteredLeads = useMemo(
     () => leads.filter(l => isWithinDateRange(l.createdAt, dateRange)),
@@ -122,11 +105,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
   const filteredOrders = useMemo(
     () => orders.filter(o => isWithinDateRange(o.orderDate || o.createdAt, dateRange)),
     [orders, dateRange]
-  );
-
-  const filteredDocuments = useMemo(
-    () => documents.filter(d => isWithinDateRange(d.createdAt, dateRange)),
-    [documents, dateRange]
   );
 
   // Key KPI Calculations
@@ -157,7 +135,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
   }, 0);
 
   const totalCustomers = filteredCustomers.length;
-  const totalDocuments = filteredDocuments.length;
 
   // Conversion rate: Accepted quotes vs total quotes (or Orders vs Leads)
   const quoteConversionRate =
@@ -198,7 +175,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          PART 1: SALES QUICK ACTION LAUNCHPAD (Only Real Sales Modules)
+          PART 1: SALES QUICK ACTION LAUNCHPAD (Strictly Sales Modules)
          ========================================================================= */}
       <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-2xl bg-card border shadow-xs">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
@@ -219,13 +196,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           <span>Create Quotation</span>
         </Link>
         <Link
-          to="/create-document"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <FilePlus2 className="w-3.5 h-3.5 text-amber-500" />
-          <span>Generate Agreement / Form</span>
-        </Link>
-        <Link
           to="/customers"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
@@ -239,17 +209,10 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           <ShoppingCart className="w-3.5 h-3.5 text-emerald-500" />
           <span>Confirmed Orders</span>
         </Link>
-        <Link
-          to="/documents"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <FolderLock className="w-3.5 h-3.5 text-slate-500" />
-          <span>Document Vault</span>
-        </Link>
       </div>
 
       {/* =========================================================================
-          PART 2: CORE SALES & CRM KPIS (Directly matching the Sales panel modules)
+          PART 2: CORE SALES & CRM KPIS (5 Core Sales Performance Cards)
          ========================================================================= */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
@@ -262,7 +225,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
           {/* 1. Total Leads */}
           <DashboardKpiCard
             title="Total Inbound Leads"
@@ -274,7 +237,17 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             badge={newLeads > 0 ? `${newLeads} New` : undefined}
           />
 
-          {/* 2. Quotation Proposals */}
+          {/* 2. Customer Directory */}
+          <DashboardKpiCard
+            title="Registered Clients"
+            value={totalCustomers}
+            subtitle="Customer directory accounts"
+            icon={UserCheck}
+            to="/customers"
+            color="sky"
+          />
+
+          {/* 3. Quotation Proposals */}
           <DashboardKpiCard
             title="Active Quotations"
             value={totalQuotes}
@@ -285,7 +258,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             badge={awaitingQuotes > 0 ? `${awaitingQuotes} Pending` : undefined}
           />
 
-          {/* 3. Confirmed Orders */}
+          {/* 4. Confirmed Orders */}
           <DashboardKpiCard
             title="Confirmed Orders"
             value={confirmedOrders || totalOrders}
@@ -295,27 +268,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             color="emerald"
           />
 
-          {/* 4. Customer Directory */}
-          <DashboardKpiCard
-            title="Registered Clients"
-            value={totalCustomers}
-            subtitle="Customer directory accounts"
-            icon={UserCheck}
-            to="/customers"
-            color="sky"
-          />
-
-          {/* 5. Document Vault & Generation */}
-          <DashboardKpiCard
-            title="Agreements &amp; KYC"
-            value={totalDocuments}
-            subtitle="Generated official docs"
-            icon={FolderLock}
-            to="/documents"
-            color="amber"
-          />
-
-          {/* 6. Conversion Rate */}
+          {/* 5. Conversion Rate */}
           <DashboardKpiCard
             title="Conversion Rate"
             value={`${quoteConversionRate}%`}
@@ -383,7 +336,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
       </div>
 
       {/* =========================================================================
-          PART 4: TWO OPERATIONAL SECTIONS: PROPOSALS & CONFIRMED ORDERS + CONTRACTS
+          PART 4: TWO OPERATIONAL SECTIONS: PROPOSALS & CONFIRMED ORDERS
          ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Recent Quotations & Proposals */}
@@ -493,16 +446,16 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           )}
         </div>
 
-        {/* Right Column: Confirmed Sales Orders & Contract Generation */}
+        {/* Right Column: Confirmed Sales Orders */}
         <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-emerald-600" />
-                Confirmed Orders &amp; Documents
+                Confirmed Sales Orders
               </h2>
               <p className="text-xs text-muted-foreground">
-                Booked customer contracts ready for document generation &amp; execution.
+                Customer-accepted proposals converted into confirmed project sales orders.
               </p>
             </div>
             <Link
@@ -527,7 +480,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             </div>
           ) : (
             <div className="space-y-2.5">
-              {filteredOrders.slice(0, 4).map((order: any) => {
+              {filteredOrders.slice(0, 5).map((order: any) => {
                 const custName =
                   order.customerId?.legalName ||
                   order.customerId?.name ||
@@ -539,7 +492,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
                   order.totalAmountPaise ||
                   (order.grandTotal ? Math.round(order.grandTotal * 100) : 0) ||
                   0;
-                const custId = order.customerId?._id || order.customerId?.id || order.customerId;
 
                 return (
                   <div
@@ -569,18 +521,11 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <Link
-                        to={`/create-document${custId ? `?customerId=${custId}` : ''}`}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-500/20 transition-all"
-                        title="Generate Solar Agreement or Cover Letter"
-                      >
-                        <FilePlus2 className="w-3.5 h-3.5" />
-                        <span>Gen Doc</span>
-                      </Link>
-                      <Link
                         to={`/orders/${order._id || order.id}`}
-                        className="inline-flex items-center space-x-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-colors"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-colors"
                       >
-                        <ArrowRight className="w-3 h-3" />
+                        <span>Order Details</span>
+                        <ArrowRight className="w-3 h-3 ml-1" />
                       </Link>
                     </div>
                   </div>
@@ -588,71 +533,9 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
               })}
             </div>
           )}
-
-          {/* Quick Official Document Templates Launch Bar */}
-          <div className="pt-2 border-t space-y-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Official Document Templates (/create-document):
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <Link
-                to="/create-document?template=SOLAR_AGGREMENT"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Solar Agreement
-                </div>
-                <div className="text-[10px] text-muted-foreground">2 Pages A4 Contract</div>
-              </Link>
-              <Link
-                to="/create-document?template=COVER_LETTER"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Cover Letter
-                </div>
-                <div className="text-[10px] text-muted-foreground">DISCOM Application</div>
-              </Link>
-              <Link
-                to="/create-document?template=WORK_COMPLETION"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Work Completion
-                </div>
-                <div className="text-[10px] text-muted-foreground">Handover Report</div>
-              </Link>
-              <Link
-                to="/create-document?template=LETTER_FOR_BANK"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Letter For Bank
-                </div>
-                <div className="text-[10px] text-muted-foreground">Loan Disbursement</div>
-              </Link>
-              <Link
-                to="/create-document?template=POWER_PURCHASE_AGREEMENT"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Power Purchase
-                </div>
-                <div className="text-[10px] text-muted-foreground">CSPDCL PPA Form</div>
-              </Link>
-              <Link
-                to="/create-document?template=DECLARATION_DCR_ANNEXURE_A"
-                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
-                  Annexure - A
-                </div>
-                <div className="text-[10px] text-muted-foreground">DCR Declaration</div>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 };
+

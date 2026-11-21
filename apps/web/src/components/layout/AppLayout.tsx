@@ -106,9 +106,7 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/leads', label: 'Lead Management', icon: Users },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
-      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 },
-      { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
   }
 ];
