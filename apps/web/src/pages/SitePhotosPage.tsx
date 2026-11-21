@@ -313,19 +313,45 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
       const savedPhotosStr = localStorage.getItem(`solar_photos_${custId}`);
       if (savedPhotosStr) {
         const savedData = JSON.parse(savedPhotosStr);
-        if (savedData.photoSlots) {
-          setPhotoSlots(prev => {
-            const hasPhotos = Object.values(prev).some(s => !!s.dataUrl);
-            return hasPhotos ? prev : savedData.photoSlots;
-          });
+        const hasMandatoryPhotos = savedData.photoSlots
+          ? Object.values(savedData.photoSlots).some((s: any) => !!s?.dataUrl)
+          : false;
+        const hasExtraPhotos = Array.isArray(savedData.extraPhotos)
+          ? savedData.extraPhotos.some((p: any) => !!p?.dataUrl)
+          : false;
+
+        if (hasMandatoryPhotos || hasExtraPhotos) {
+          if (savedData.photoSlots) {
+            setPhotoSlots(savedData.photoSlots);
+          } else {
+            setPhotoSlots(createEmptySlots());
+          }
+          if (Array.isArray(savedData.extraPhotos)) {
+            setExtraPhotos(savedData.extraPhotos);
+          } else {
+            setExtraPhotos([]);
+          }
+          if (savedData.savedAt) {
+            const d = new Date(savedData.savedAt);
+            setLastSavedAt(
+              d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) +
+                ' on ' +
+                d.toLocaleDateString('en-IN')
+            );
+          } else {
+            setLastSavedAt(null);
+          }
+        } else {
+          // If all photos were removed, do not resurrect empty structure
+          setPhotoSlots(createEmptySlots());
+          setExtraPhotos([]);
+          setLastSavedAt(null);
+          localStorage.removeItem(`solar_photos_${custId}`);
         }
-        if (Array.isArray(savedData.extraPhotos) && savedData.extraPhotos.length > 0) {
-          setExtraPhotos(prev => (prev.length > 0 ? prev : savedData.extraPhotos));
-        }
-        if (savedData.savedAt) {
-          const d = new Date(savedData.savedAt);
-          setLastSavedAt(d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' on ' + d.toLocaleDateString('en-IN'));
-        }
+      } else {
+        setPhotoSlots(createEmptySlots());
+        setExtraPhotos([]);
+        setLastSavedAt(null);
       }
     } catch (e) {
       console.warn('Could not restore photos from localStorage:', e);
@@ -349,44 +375,43 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
         }
 
         let hasPhotosInDb = false;
+        const freshSlots = createEmptySlots();
+
         // Autofill Photos from MongoDB
         if (Array.isArray(fullInst.photos) && fullInst.photos.length > 0) {
-          setPhotoSlots(prev => {
-            const next = { ...prev };
-            fullInst.photos.forEach((photo: any) => {
-              let slotKey: PhotoSlotId | null = null;
-              if (photo.category === 'SOLAR_STRUCTURE' || photo.category === 'STRUCTURE') slotKey = 'structure';
-              else if (photo.category === 'INVERTER_INSTALLATION' || photo.category === 'INVERTER') slotKey = 'inverter';
-              else if (photo.category === 'METER_INSTALLATION' || photo.category === 'NET_METER') slotKey = 'meter';
-              else if (photo.category === 'EARTHING_INSTALLATION' || photo.category === 'EARTHING') slotKey = 'earthing';
-              else if (photo.category === 'LIGHTNING_PROTECTION' || photo.category === 'LIGHTNING') slotKey = 'lightning';
+          fullInst.photos.forEach((photo: any) => {
+            let slotKey: PhotoSlotId | null = null;
+            if (photo.category === 'SOLAR_STRUCTURE' || photo.category === 'STRUCTURE') slotKey = 'structure';
+            else if (photo.category === 'INVERTER_INSTALLATION' || photo.category === 'INVERTER') slotKey = 'inverter';
+            else if (photo.category === 'METER_INSTALLATION' || photo.category === 'NET_METER') slotKey = 'meter';
+            else if (photo.category === 'EARTHING_INSTALLATION' || photo.category === 'EARTHING') slotKey = 'earthing';
+            else if (photo.category === 'LIGHTNING_PROTECTION' || photo.category === 'LIGHTNING') slotKey = 'lightning';
 
-              if (slotKey) {
-                hasPhotosInDb = true;
-                next[slotKey] = {
-                  dataUrl: photo.fileUrl || null,
-                  caption: photo.remarks || photo.title || next[slotKey].caption,
-                  gps: photo.gpsLocation?.latitude
-                    ? `Lat: ${photo.gpsLocation.latitude.toFixed(6)}°, Long: ${photo.gpsLocation.longitude.toFixed(6)}° • Acc: ±${photo.gpsLocation.accuracyMeters || 4}m`
-                    : next[slotKey].gps,
-                  latitude: photo.gpsLocation?.latitude || null,
-                  longitude: photo.gpsLocation?.longitude || null,
-                  accuracy: photo.gpsLocation?.accuracyMeters || null,
-                  timestamp: photo.timestamp ? new Date(photo.timestamp).toLocaleDateString('en-IN') : null
-                };
-              }
-            });
-            return next;
+            if (slotKey && photo.fileUrl) {
+              hasPhotosInDb = true;
+              freshSlots[slotKey] = {
+                dataUrl: photo.fileUrl,
+                caption: photo.remarks || photo.title || freshSlots[slotKey].caption,
+                gps: photo.gpsLocation?.latitude
+                  ? `Lat: ${photo.gpsLocation.latitude.toFixed(6)}°, Long: ${photo.gpsLocation.longitude.toFixed(6)}° • Acc: ±${photo.gpsLocation.accuracyMeters || 4}m`
+                  : freshSlots[slotKey].gps,
+                latitude: photo.gpsLocation?.latitude || null,
+                longitude: photo.gpsLocation?.longitude || null,
+                accuracy: photo.gpsLocation?.accuracyMeters || null,
+                timestamp: photo.timestamp ? new Date(photo.timestamp).toLocaleDateString('en-IN') : null
+              };
+            }
           });
+          setPhotoSlots(freshSlots);
 
           // Autofill extra photos
           const extras = fullInst.photos
-            .filter((p: any) => p.category === 'FINAL_INSTALLATION' || p.category === 'EXTRA')
+            .filter((p: any) => (p.category === 'FINAL_INSTALLATION' || p.category === 'EXTRA') && p.fileUrl)
             .map((p: any, idx: number) => ({
               id: `extra-${idx + 1}-${Date.now()}`,
               category: 'FINAL_INSTALLATION',
               title: p.title || `Additional Site Photo #${idx + 1}`,
-              dataUrl: p.fileUrl || null,
+              dataUrl: p.fileUrl,
               latitude: p.gpsLocation?.latitude || null,
               longitude: p.gpsLocation?.longitude || null,
               accuracy: p.gpsLocation?.accuracyMeters || null,
@@ -396,12 +421,16 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                 : '',
               caption: p.remarks || ''
             }));
-          if (extras.length > 0) setExtraPhotos(extras);
+          setExtraPhotos(extras);
 
           if (fullInst.updatedAt || fullInst.createdAt) {
             const d = new Date(fullInst.updatedAt || fullInst.createdAt);
             setLastSavedAt(d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' on ' + d.toLocaleDateString('en-IN'));
           }
+        } else {
+          setPhotoSlots(freshSlots);
+          setExtraPhotos([]);
+          setLastSavedAt(null);
         }
 
         // Autofill Verified GPS from MongoDB
@@ -929,8 +958,180 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
     }
   };
 
-  const handleRemoveExtraPhoto = (id: string) => {
-    setExtraPhotos(prev => prev.filter(p => p.id !== id));
+  // Helper to compile current photos payload for backend and persistence
+  const buildPhotosPayload = (
+    slots: Record<PhotoSlotId, PhotoSlotData>,
+    extras: ExtraPhotoData[]
+  ) => {
+    const photosList: any[] = [];
+    const slotMappings: Array<{ slot: PhotoSlotId; category: string; title: string }> = [
+      { slot: 'structure', category: 'SOLAR_STRUCTURE', title: 'Solar PV Mounting Structure & Rooftop Array' },
+      { slot: 'inverter', category: 'INVERTER_INSTALLATION', title: 'On-Grid Inverter & ACDB/DCDB' },
+      { slot: 'meter', category: 'METER_INSTALLATION', title: 'Net Meter & Generation Check Meter' },
+      { slot: 'earthing', category: 'EARTHING_INSTALLATION', title: 'Chemical Earthing Pits & Electrode Chambers' },
+      { slot: 'lightning', category: 'LIGHTNING_PROTECTION', title: 'Lightning Arrester & Down Conductor Strip' }
+    ];
+
+    slotMappings.forEach(m => {
+      const d = slots[m.slot];
+      if (d?.dataUrl) {
+        photosList.push({
+          category: m.category,
+          title: m.title,
+          fileUrl: d.dataUrl,
+          originalFilename: `${m.slot}_photo.jpg`,
+          mimeType: 'image/jpeg',
+          timestamp: new Date(),
+          gpsLocation: d.latitude
+            ? {
+                latitude: d.latitude,
+                longitude: d.longitude,
+                accuracyMeters: d.accuracy || 4
+              }
+            : undefined,
+          remarks: d.caption
+        });
+      }
+    });
+
+    extras.forEach((p, idx) => {
+      if (p?.dataUrl) {
+        photosList.push({
+          category: 'FINAL_INSTALLATION',
+          title: p.title || `Additional Site Photo #${idx + 1}`,
+          fileUrl: p.dataUrl,
+          originalFilename: `extra_${p.id}.jpg`,
+          mimeType: 'image/jpeg',
+          timestamp: new Date(),
+          gpsLocation: p.latitude
+            ? {
+                latitude: p.latitude,
+                longitude: p.longitude,
+                accuracyMeters: p.accuracy || 4
+              }
+            : undefined,
+          remarks: p.caption
+        });
+      }
+    });
+
+    return photosList;
+  };
+
+  // Permanently remove a mandatory slot photo & persist to database & local storage immediately
+  const handleRemovePhoto = async (slotId: PhotoSlotId) => {
+    const nextSlots: Record<PhotoSlotId, PhotoSlotData> = {
+      ...photoSlots,
+      [slotId]: {
+        ...photoSlots[slotId],
+        dataUrl: null
+      }
+    };
+    setPhotoSlots(nextSlots);
+
+    const hasAnyPhoto =
+      Object.values(nextSlots).some(s => !!s.dataUrl) || extraPhotos.some(p => !!p.dataUrl);
+
+    if (!hasAnyPhoto) {
+      setLastSavedAt(null);
+    }
+
+    const custId = selectedCustomer?._id || selectedCustomer?.id;
+    if (custId) {
+      try {
+        if (!hasAnyPhoto) {
+          localStorage.removeItem(`solar_photos_${custId}`);
+        } else {
+          localStorage.setItem(
+            `solar_photos_${custId}`,
+            JSON.stringify({
+              customerId: custId,
+              customerName: tplConsumerName,
+              savedAt: new Date().toISOString(),
+              photoSlots: nextSlots,
+              extraPhotos
+            })
+          );
+        }
+      } catch (e) {
+        console.warn('Could not update localStorage after photo removal:', e);
+      }
+    }
+
+    const targetInstId = activeInstallation?._id || activeInstallation?.id;
+    if (targetInstId) {
+      try {
+        const photosList = buildPhotosPayload(nextSlots, extraPhotos);
+        const res: any = await apiClient<any>(`/installations/${targetInstId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ photos: photosList })
+        });
+        const updated = res?.data || res;
+        if (updated) {
+          setActiveInstallation(updated);
+          setInstallations(prev =>
+            prev.map(i => (i._id === targetInstId || i.id === targetInstId ? updated : i))
+          );
+        }
+      } catch (err) {
+        console.warn('Could not sync photo deletion to MongoDB:', err);
+      }
+    }
+  };
+
+  // Permanently remove an extra photo & persist to database & local storage immediately
+  const handleRemoveExtraPhoto = async (id: string) => {
+    const nextExtras = extraPhotos.filter(p => p.id !== id);
+    setExtraPhotos(nextExtras);
+
+    const hasAnyPhoto =
+      Object.values(photoSlots).some(s => !!s.dataUrl) || nextExtras.some(p => !!p.dataUrl);
+
+    if (!hasAnyPhoto) {
+      setLastSavedAt(null);
+    }
+
+    const custId = selectedCustomer?._id || selectedCustomer?.id;
+    if (custId) {
+      try {
+        if (!hasAnyPhoto) {
+          localStorage.removeItem(`solar_photos_${custId}`);
+        } else {
+          localStorage.setItem(
+            `solar_photos_${custId}`,
+            JSON.stringify({
+              customerId: custId,
+              customerName: tplConsumerName,
+              savedAt: new Date().toISOString(),
+              photoSlots,
+              extraPhotos: nextExtras
+            })
+          );
+        }
+      } catch (e) {
+        console.warn('Could not update localStorage after extra photo removal:', e);
+      }
+    }
+
+    const targetInstId = activeInstallation?._id || activeInstallation?.id;
+    if (targetInstId) {
+      try {
+        const photosList = buildPhotosPayload(photoSlots, nextExtras);
+        const res: any = await apiClient<any>(`/installations/${targetInstId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ photos: photosList })
+        });
+        const updated = res?.data || res;
+        if (updated) {
+          setActiveInstallation(updated);
+          setInstallations(prev =>
+            prev.map(i => (i._id === targetInstId || i.id === targetInstId ? updated : i))
+          );
+        }
+      } catch (err) {
+        console.warn('Could not sync extra photo deletion to MongoDB:', err);
+      }
+    }
   };
 
   // Preview document stored in customer vault
@@ -987,53 +1188,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
         targetInstId = created._id || created.id;
       }
 
-      const photosList: any[] = [];
-      const slotMappings: Array<{ slot: PhotoSlotId; category: string; title: string }> = [
-        { slot: 'structure', category: 'SOLAR_STRUCTURE', title: 'Solar PV Mounting Structure & Rooftop Array' },
-        { slot: 'inverter', category: 'INVERTER_INSTALLATION', title: 'On-Grid Inverter & ACDB/DCDB' },
-        { slot: 'meter', category: 'METER_INSTALLATION', title: 'Net Meter & Generation Check Meter' },
-        { slot: 'earthing', category: 'EARTHING_INSTALLATION', title: 'Chemical Earthing Pits & Electrode Chambers' },
-        { slot: 'lightning', category: 'LIGHTNING_PROTECTION', title: 'Lightning Arrester & Down Conductor Strip' }
-      ];
-
-      slotMappings.forEach(m => {
-        const d = photoSlots[m.slot];
-        if (d.dataUrl) {
-          photosList.push({
-            category: m.category,
-            title: m.title,
-            fileUrl: d.dataUrl,
-            originalFilename: `${m.slot}_photo.jpg`,
-            mimeType: 'image/jpeg',
-            timestamp: new Date(),
-            gpsLocation: d.latitude ? {
-              latitude: d.latitude,
-              longitude: d.longitude,
-              accuracyMeters: d.accuracy || 4
-            } : undefined,
-            remarks: d.caption
-          });
-        }
-      });
-
-      extraPhotos.forEach((p, idx) => {
-        if (p.dataUrl) {
-          photosList.push({
-            category: 'FINAL_INSTALLATION',
-            title: p.title || `Additional Site Photo #${idx + 1}`,
-            fileUrl: p.dataUrl,
-            originalFilename: `extra_${p.id}.jpg`,
-            mimeType: 'image/jpeg',
-            timestamp: new Date(),
-            gpsLocation: p.latitude ? {
-              latitude: p.latitude,
-              longitude: p.longitude,
-              accuracyMeters: p.accuracy || 4
-            } : undefined,
-            remarks: p.caption
-          });
-        }
-      });
+      const photosList = buildPhotosPayload(photoSlots, extraPhotos);
 
       // 1. Update MongoDB Installation Record
       if (targetInstId) {
@@ -1434,12 +1589,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
                             {hasPhoto && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setPhotoSlots(prev => ({
-                                    ...prev,
-                                    [cfg.id]: { ...prev[cfg.id], dataUrl: null }
-                                  }));
-                                }}
+                                onClick={() => handleRemovePhoto(cfg.id)}
                                 className="p-1 text-muted-foreground hover:text-rose-600 rounded transition cursor-pointer"
                                 title="Remove photo"
                               >

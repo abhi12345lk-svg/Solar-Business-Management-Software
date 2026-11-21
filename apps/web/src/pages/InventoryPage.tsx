@@ -20,7 +20,8 @@ import {
   Plus,
   Tag,
   Search,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -163,22 +164,26 @@ export const InventoryPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
   const fetchWarehousesAndProducts = async () => {
     try {
       const [whRes, prodRes] = await Promise.all([
         apiClient('/warehouses?isActive=true'),
         apiClient('/catalog/products?isActive=true&limit=100')
       ]);
-      setWarehouses(whRes.items || []);
-      setProducts(prodRes.items || []);
-      if (whRes.items?.length > 0) {
-        setFormWarehouseA(whRes.items[0]._id);
-        if (whRes.items.length > 1) {
-          setFormWarehouseB(whRes.items[1]._id);
+      const whList = whRes?.items || whRes?.data?.data || whRes?.data || [];
+      const prodList = prodRes?.items || prodRes?.data?.data || prodRes?.data || [];
+      setWarehouses(whList);
+      setProducts(prodList);
+      if (whList.length > 0) {
+        setFormWarehouseA(whList[0].id || whList[0]._id);
+        if (whList.length > 1) {
+          setFormWarehouseB(whList[1].id || whList[1]._id);
         }
       }
-      if (prodRes.items?.length > 0) {
-        setFormProduct(prodRes.items[0]._id);
+      if (prodList.length > 0) {
+        setFormProduct(prodList[0].id || prodList[0]._id);
       }
     } catch {
       // fallback
@@ -189,7 +194,8 @@ export const InventoryPage: React.FC = () => {
     setLoadingBalances(true);
     try {
       const res = await apiClient('/inventory/balances?limit=100');
-      setBalances(res.items || []);
+      const items = res?.items || res?.data?.items || res?.data?.data || res?.data || [];
+      setBalances(items);
     } catch {
       // error handled in view
     } finally {
@@ -201,7 +207,8 @@ export const InventoryPage: React.FC = () => {
     setLoadingMovements(true);
     try {
       const res = await apiClient('/inventory/movements?limit=100');
-      setMovements(res.items || []);
+      const items = res?.items || res?.data?.items || res?.data?.data || res?.data || [];
+      setMovements(items);
     } catch {
       // error
     } finally {
@@ -213,7 +220,8 @@ export const InventoryPage: React.FC = () => {
     setLoadingSerials(true);
     try {
       const res = await apiClient('/inventory/serials?limit=100');
-      setSerials(res.items || []);
+      const items = res?.items || res?.data?.items || res?.data?.data || res?.data || [];
+      setSerials(items);
     } catch {
       // error
     } finally {
@@ -228,10 +236,12 @@ export const InventoryPage: React.FC = () => {
         apiClient('/catalog/products?limit=100'),
         apiClient('/catalog/categories?isActive=true')
       ]);
-      setCatalogProducts(prodRes.items || []);
-      setCategories(catRes || []);
-      if (catRes?.length > 0 && !newProductCategory) {
-        setNewProductCategory(catRes[0]._id);
+      const prodList = prodRes?.items || prodRes?.data?.data || prodRes?.data || [];
+      const catList = catRes?.items || catRes?.data?.data || catRes?.data || catRes || [];
+      setCatalogProducts(prodList);
+      setCategories(catList);
+      if (catList?.length > 0 && !newProductCategory) {
+        setNewProductCategory(catList[0].id || catList[0]._id);
       }
     } catch {
       // handled
@@ -409,7 +419,7 @@ export const InventoryPage: React.FC = () => {
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           {canManageStock ? (
             <>
               <button
@@ -417,9 +427,9 @@ export const InventoryPage: React.FC = () => {
                   setModalType('receipt');
                   setFormError(null);
                 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors cursor-pointer"
+                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
               >
-                <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />
+                <ArrowDownToLine className="w-3.5 h-3.5 mr-1.5" />
                 Receive Stock
               </button>
               <button
@@ -427,50 +437,82 @@ export const InventoryPage: React.FC = () => {
                   setModalType('issue');
                   setFormError(null);
                 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium transition-colors cursor-pointer"
+                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
               >
-                <ArrowUpFromLine className="w-3.5 h-3.5 mr-1" />
+                <ArrowUpFromLine className="w-3.5 h-3.5 mr-1.5" />
                 Issue Material
               </button>
-              <button
-                onClick={() => {
-                  setModalType('transfer');
-                  setFormError(null);
-                }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors cursor-pointer"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5 mr-1" />
-                Transfer
-              </button>
-              <button
-                onClick={() => {
-                  setModalType('return');
-                  setFormError(null);
-                }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                Return
-              </button>
-              <button
-                onClick={() => {
-                  setModalType('serials');
-                  setFormError(null);
-                }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-colors cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5 mr-1" />
-                Register Serials
-              </button>
-              <button
-                onClick={() => {
-                  setModalType('opening');
-                  setFormError(null);
-                }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-muted border hover:bg-muted/80 text-foreground text-xs font-medium transition-colors cursor-pointer"
-              >
-                Opening Stock
-              </button>
+
+              {/* More Operations Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className="inline-flex items-center px-3 py-2 rounded-lg border bg-card hover:bg-muted/60 text-foreground text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <span>More Operations</span>
+                  <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-70" />
+                </button>
+
+                {showMoreMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setShowMoreMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-1 w-52 rounded-xl bg-card border shadow-lg py-1.5 z-30 text-xs divide-y divide-border/60">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setModalType('transfer');
+                            setFormError(null);
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center hover:bg-muted/60 text-foreground transition-colors cursor-pointer"
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5 mr-2.5 text-indigo-500" />
+                          Warehouse Transfer
+                        </button>
+                        <button
+                          onClick={() => {
+                            setModalType('return');
+                            setFormError(null);
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center hover:bg-muted/60 text-foreground transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-2.5 text-blue-500" />
+                          Site Return
+                        </button>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setModalType('serials');
+                            setFormError(null);
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center hover:bg-muted/60 text-foreground transition-colors cursor-pointer"
+                        >
+                          <QrCode className="w-3.5 h-3.5 mr-2.5 text-purple-500" />
+                          Register Serials
+                        </button>
+                        <button
+                          onClick={() => {
+                            setModalType('opening');
+                            setFormError(null);
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 flex items-center hover:bg-muted/60 text-foreground transition-colors cursor-pointer"
+                        >
+                          <Boxes className="w-3.5 h-3.5 mr-2.5 text-amber-500" />
+                          Opening Stock
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </>
           ) : (
             <span className="text-xs text-muted-foreground px-3 py-1.5 bg-secondary/80 rounded-lg border font-medium">
@@ -595,7 +637,7 @@ export const InventoryPage: React.FC = () => {
                   </tr>
                 ) : (
                   balances.map(b => (
-                    <tr key={b._id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={b._id || (b as any).id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 sm:px-6 py-4 font-semibold text-foreground">
                         {b.productId?.name || 'Hardware Asset'}
                         <span className="block text-xs font-mono text-muted-foreground">
@@ -693,7 +735,7 @@ export const InventoryPage: React.FC = () => {
                       : true
                   )
                   .map(p => (
-                    <div key={p._id} className="p-4 space-y-2">
+                    <div key={p._id || (p as any).id} className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-semibold text-sm text-foreground truncate">{p.name}</p>
@@ -777,7 +819,7 @@ export const InventoryPage: React.FC = () => {
                           : true
                       )
                       .map(p => (
-                        <tr key={p._id} className="hover:bg-muted/30 transition-colors">
+                        <tr key={p._id || (p as any).id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4 font-semibold text-foreground">
                             {p.name}
                             <span className="block text-xs font-mono text-muted-foreground">
@@ -837,7 +879,7 @@ export const InventoryPage: React.FC = () => {
               </div>
             ) : (
               movements.map(m => (
-                <div key={m._id} className="p-4 space-y-2">
+                <div key={m._id || (m as any).id} className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-semibold text-xs text-solar-500">
                       {m.movementNumber}
@@ -908,7 +950,7 @@ export const InventoryPage: React.FC = () => {
                   </tr>
                 ) : (
                   movements.map(m => (
-                    <tr key={m._id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={m._id || (m as any).id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-mono font-semibold text-solar-500">
                         {m.movementNumber}
                       </td>
@@ -966,7 +1008,7 @@ export const InventoryPage: React.FC = () => {
               </div>
             ) : (
               serials.map(s => (
-                <div key={s._id} className="p-4 space-y-1.5">
+                <div key={s._id || (s as any).id} className="p-4 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-bold text-xs text-foreground">
                       {s.serialNumber}
@@ -1015,7 +1057,7 @@ export const InventoryPage: React.FC = () => {
                   </tr>
                 ) : (
                   serials.map(s => (
-                    <tr key={s._id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={s._id || (s as any).id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-mono font-bold text-foreground">
                         {s.serialNumber}
                       </td>
@@ -1063,7 +1105,7 @@ export const InventoryPage: React.FC = () => {
                   </tr>
                 ) : (
                   warehouses.map(w => (
-                    <tr key={w._id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={w._id || (w as any).id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-semibold text-foreground flex items-center space-x-2">
                         <Building2 className="w-4 h-4 text-solar-500" />
                         <span>{w.name}</span>
@@ -1166,11 +1208,14 @@ export const InventoryPage: React.FC = () => {
                     {categories.length === 0 ? (
                       <option value="">No categories defined</option>
                     ) : (
-                      categories.map(c => (
-                        <option key={c._id} value={c._id}>
-                          {c.name} ({c.code})
-                        </option>
-                      ))
+                      categories.map(c => {
+                        const cid = c.id || c._id;
+                        return (
+                          <option key={cid} value={cid}>
+                            {c.name} ({c.code})
+                          </option>
+                        );
+                      })
                     )}
                   </select>
                 </div>
@@ -1287,11 +1332,14 @@ export const InventoryPage: React.FC = () => {
                   required
                   className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
                 >
-                  {products.map(p => (
-                    <option key={p._id} value={p._id}>
-                      {p.name} ({p.sku})
-                    </option>
-                  ))}
+                  {products.map(p => {
+                    const pid = p.id || p._id;
+                    return (
+                      <option key={pid} value={pid}>
+                        {p.name} ({p.sku})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1308,11 +1356,14 @@ export const InventoryPage: React.FC = () => {
                   required
                   className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
                 >
-                  {warehouses.map(wh => (
-                    <option key={wh._id} value={wh._id}>
-                      {wh.name} ({wh.code})
-                    </option>
-                  ))}
+                  {warehouses.map(wh => {
+                    const wid = wh.id || wh._id;
+                    return (
+                      <option key={wid} value={wid}>
+                        {wh.name} ({wh.code})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1328,11 +1379,14 @@ export const InventoryPage: React.FC = () => {
                     required
                     className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-solar-500"
                   >
-                    {warehouses.map(wh => (
-                      <option key={wh._id} value={wh._id}>
-                        {wh.name} ({wh.code})
-                      </option>
-                    ))}
+                    {warehouses.map(wh => {
+                      const wid = wh.id || wh._id;
+                      return (
+                        <option key={wid} value={wid}>
+                          {wh.name} ({wh.code})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}

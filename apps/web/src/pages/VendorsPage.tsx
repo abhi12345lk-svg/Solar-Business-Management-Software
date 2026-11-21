@@ -11,7 +11,6 @@ import {
   AlertCircle,
   FileText,
   Edit2,
-  ArrowRight,
   MapPin,
   FileCheck
 } from 'lucide-react';
