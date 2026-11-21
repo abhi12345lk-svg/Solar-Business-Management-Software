@@ -707,7 +707,12 @@ export class PaymentService {
     totalAllocatedPaise: number;
     totalUnallocatedCreditPaise: number;
     totalOutstandingPaise: number;
+    totalInvoicedPaise?: number;
+    totalRealizedPaise?: number;
+    netReceivablesPaise?: number;
+    contractedOrders?: any[];
     orders: any[];
+    payments?: any[];
     aging: {
       current0To30Paise: number;
       overdue31To60Paise: number;
@@ -734,11 +739,13 @@ export class PaymentService {
       .sort({ orderDate: -1 })
       .lean();
 
-    // 2. Fetch verified payments
+    // 2. Fetch customer payments (verified & recorded)
     const payments = await CustomerPayment.find({
       customerId: customer._id,
-      status: { $in: [CustomerPaymentStatus.VERIFIED, CustomerPaymentStatus.REFUNDED] }
-    }).lean();
+      status: { $in: [CustomerPaymentStatus.VERIFIED, CustomerPaymentStatus.RECORDED, CustomerPaymentStatus.REFUNDED] }
+    })
+      .sort({ paymentDate: -1, createdAt: -1 })
+      .lean();
 
     // 3. Fetch active allocations
     const allocations = await PaymentAllocation.find({
@@ -821,7 +828,22 @@ export class PaymentService {
       totalAllocatedPaise,
       totalUnallocatedCreditPaise,
       totalOutstandingPaise,
+      // Frontend alias compatibility
+      totalInvoicedPaise: totalOrderValuePaise,
+      totalRealizedPaise: totalPaidPaise,
+      netReceivablesPaise: totalOutstandingPaise,
+      contractedOrders: orderSummaries,
       orders: orderSummaries,
+      payments: payments.map(p => ({
+        _id: p._id,
+        receiptNumber: p.receiptNumber,
+        paymentDate: p.paymentDate,
+        paymentMethod: p.paymentMethod,
+        transactionReference: p.transactionReference,
+        amountPaise: p.amountPaise,
+        status: p.status,
+        notes: p.notes
+      })),
       aging
     };
   }

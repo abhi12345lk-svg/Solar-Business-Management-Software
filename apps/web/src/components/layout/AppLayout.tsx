@@ -29,7 +29,8 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  MapPin
+  MapPin,
+  Calculator
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -106,21 +107,11 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Proposals & Engineering',
+    title: 'Estimation & Proposals',
     items: [
-      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
+      { to: '/solar-designs', label: 'Solar Calculator & Sizing', icon: Calculator },
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
-      { to: '/create-document', label: 'Generate EPC Contract', icon: FilePlus2 }
-    ]
-  },
-  {
-    title: 'Tracking & Records',
-    items: [
-      { to: '/projects', label: 'Project Milestones', icon: FolderKanban },
-      { to: '/net-metering', label: 'Net Metering Status', icon: Zap },
-      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark },
-      { to: '/documents', label: 'Document Vault', icon: FolderLock }
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
     ]
   }
 ];
@@ -173,7 +164,11 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Commercial', title: 'Customer Directory' };
   }
   if (pathname.startsWith('/follow-ups')) return { section: 'Commercial', title: 'Follow-ups & Reminders' };
-  if (pathname.startsWith('/solar-designs')) return { section: 'Engineering', title: 'Solar PV Sizing & CAD' };
+  if (pathname.startsWith('/solar-designs'))
+    return {
+      section: panel === PanelType.SALES ? 'Estimation' : 'Engineering',
+      title: panel === PanelType.SALES ? 'Solar Calculator & Sizing' : 'Solar PV Sizing & CAD'
+    };
   if (pathname.startsWith('/quotations')) return { section: 'Commercial', title: 'Quotation Proposals' };
   if (pathname.startsWith('/orders')) return { section: 'Commercial', title: 'Sales Orders' };
   if (pathname.startsWith('/projects')) {
@@ -342,7 +337,7 @@ export const AppLayout: React.FC = () => {
               {activePanel === PanelType.ADMIN
                 ? 'EPC Operations & Oversight'
                 : activePanel === PanelType.SALES
-                  ? 'Proposals, PV Sizing & Pipeline'
+                  ? 'Leads, Proposals & Bookings'
                   : activePanel === PanelType.INSTALLER
                     ? 'Rooftop Installation & Commissioning'
                     : 'Billing, Milestones & Expenses'}

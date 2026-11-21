@@ -108,9 +108,21 @@ export const PaymentsPage: React.FC = () => {
     notes: ''
   });
 
-  // Selected Order Contract Info (for milestone calculations)
+  // Selected Order Contract Info & Milestone Progress
   const [activeOrderContractRupees, setActiveOrderContractRupees] = useState<number>(0);
-  const [activeOrderAllocatedRupees, setActiveOrderAllocatedRupees] = useState<number>(0);
+  const [customerTotalPaidRupees, setCustomerTotalPaidRupees] = useState<number>(0);
+  const [customContractRupees, setCustomContractRupees] = useState<number>(100000);
+
+  // Computed Solar EPC Contract & Balance values
+  const effectiveContractRupees = activeOrderContractRupees > 0 ? activeOrderContractRupees : (customContractRupees || 100000);
+  const remainingBalanceRupees = Math.max(0, effectiveContractRupees - customerTotalPaidRupees);
+  const percentPaid = effectiveContractRupees > 0 ? Math.min(100, Math.round((customerTotalPaidRupees / effectiveContractRupees) * 100)) : 0;
+
+  // Live Projected Balance when entering payment amount
+  const enteredAmount = parseFloat(recordForm.amountRupees) || 0;
+  const projectedPaid = customerTotalPaidRupees + enteredAmount;
+  const projectedRemaining = Math.max(0, effectiveContractRupees - projectedPaid);
+  const projectedPercent = effectiveContractRupees > 0 ? Math.min(100, Math.round((projectedPaid / effectiveContractRupees) * 100)) : 0;
 
   // Edit Payment Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -206,35 +218,38 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  // Load orders for a specific customer
-  const loadCustomerOrders = async (customerId: string) => {
+  // Load customer data & receivables
+  const loadCustomerData = async (customerId: string) => {
     if (!customerId) {
       setCustomerOrders([]);
       setActiveOrderContractRupees(0);
-      setActiveOrderAllocatedRupees(0);
+      setCustomerTotalPaidRupees(0);
       return;
     }
     try {
       setLoadingOrders(true);
-      const res = await apiClient<any>(`/orders?customerId=${customerId}&limit=50`);
-      const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
+      const [ordersRes, recvRes] = await Promise.all([
+        apiClient<any>(`/orders?customerId=${customerId}&limit=50`).catch(() => null),
+        apiClient<any>(`/payments/receivables/customers/${customerId}`).catch(() => null)
+      ]);
+
+      const items = ordersRes?.items || ordersRes?.data?.items || (Array.isArray(ordersRes) ? ordersRes : ordersRes?.data || []);
       const activeOrders = items.filter((o: any) => o.status !== 'CANCELLED');
       setCustomerOrders(activeOrders);
+
+      const totalPaidPaise = recvRes?.data?.totalPaidPaise ?? recvRes?.totalPaidPaise ?? 0;
+      setCustomerTotalPaidRupees(Math.round(totalPaidPaise / 100));
 
       if (activeOrders.length > 0) {
         const first = activeOrders[0];
         setRecordForm(prev => ({ ...prev, salesOrderId: first._id }));
         const total = Math.round((first.netTotalPaise || first.totalAmountPaise || 0) / 100);
-        const alloc = Math.round((first.allocatedAmountPaise || 0) / 100);
         setActiveOrderContractRupees(total);
-        setActiveOrderAllocatedRupees(alloc);
       } else {
         setActiveOrderContractRupees(0);
-        setActiveOrderAllocatedRupees(0);
       }
     } catch (err) {
-      console.warn('Failed to load customer orders:', err);
-      setCustomerOrders([]);
+      console.warn('Failed to load customer data:', err);
     } finally {
       setLoadingOrders(false);
     }
@@ -251,11 +266,11 @@ export const PaymentsPage: React.FC = () => {
     }));
     setSelectedMilestoneStage('CUSTOM');
     if (customerId) {
-      await loadCustomerOrders(customerId);
+      await loadCustomerData(customerId);
     } else {
       setCustomerOrders([]);
       setActiveOrderContractRupees(0);
-      setActiveOrderAllocatedRupees(0);
+      setCustomerTotalPaidRupees(0);
     }
   };
 
@@ -265,41 +280,38 @@ export const PaymentsPage: React.FC = () => {
     const found = customerOrders.find(o => o._id === orderId);
     if (found) {
       const total = Math.round((found.netTotalPaise || found.totalAmountPaise || 0) / 100);
-      const alloc = Math.round((found.allocatedAmountPaise || 0) / 100);
       setActiveOrderContractRupees(total);
-      setActiveOrderAllocatedRupees(alloc);
       setSelectedMilestoneStage('CUSTOM');
     } else {
       setActiveOrderContractRupees(0);
-      setActiveOrderAllocatedRupees(0);
     }
   };
 
   // 1-Click Milestone Stage Selection
   const applyMilestoneStage = (stage: 'M1' | 'M2' | 'M3' | 'CUSTOM') => {
     setSelectedMilestoneStage(stage);
-    const contract = activeOrderContractRupees || 385000;
+    const contract = effectiveContractRupees;
 
     if (stage === 'M1') {
       const stageAmt = Math.round(contract * 0.2); // 20% Booking Advance
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Milestone 1: Booking Advance (20%) - Upon order confirmation`
+        notes: `Stage 1: Booking Advance (20%) - Order confirmation token`
       }));
     } else if (stage === 'M2') {
       const stageAmt = Math.round(contract * 0.7); // 70% Pre-Dispatch
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Milestone 2: Pre-Dispatch (70%) - Prior to material dispatch from warehouse`
+        notes: `Stage 2: Material Pre-Dispatch (70%) - Prior to warehouse dispatch`
       }));
     } else if (stage === 'M3') {
       const stageAmt = Math.round(contract * 0.1); // 10% Commissioning
       setRecordForm(prev => ({
         ...prev,
         amountRupees: stageAmt.toString(),
-        notes: `Milestone 3: Final Handover & Commissioning (10%) - Post net-metering`
+        notes: `Stage 3: Installation & Commissioning (10%) - Post net-meter test`
       }));
     }
   };
@@ -318,7 +330,7 @@ export const PaymentsPage: React.FC = () => {
     });
     setShowRecordModal(true);
     if (cId) {
-      loadCustomerOrders(cId).then(() => {
+      loadCustomerData(cId).then(() => {
         if (stage) applyMilestoneStage(stage);
       });
     }
@@ -724,12 +736,12 @@ export const PaymentsPage: React.FC = () => {
                   const isReversed = payment.status === 'REVERSED';
 
                   // Extract milestone tag if present
-                  let milestoneLabel = 'General Receipt';
-                  if (payment.notes?.includes('Booking Advance') || payment.notes?.includes('Milestone 1')) {
+                  let milestoneLabel = 'Advance Receipt';
+                  if (payment.notes?.includes('Booking Advance') || payment.notes?.includes('Milestone 1') || payment.notes?.includes('Stage 1')) {
                     milestoneLabel = 'Stage 1: Advance (20%)';
-                  } else if (payment.notes?.includes('Pre-Dispatch') || payment.notes?.includes('Milestone 2')) {
+                  } else if (payment.notes?.includes('Pre-Dispatch') || payment.notes?.includes('Milestone 2') || payment.notes?.includes('Stage 2')) {
                     milestoneLabel = 'Stage 2: Pre-Dispatch (70%)';
-                  } else if (payment.notes?.includes('Commissioning') || payment.notes?.includes('Milestone 3')) {
+                  } else if (payment.notes?.includes('Commissioning') || payment.notes?.includes('Milestone 3') || payment.notes?.includes('Stage 3')) {
                     milestoneLabel = 'Stage 3: Commissioning (10%)';
                   }
 
@@ -743,12 +755,17 @@ export const PaymentsPage: React.FC = () => {
                         <div className="font-semibold text-foreground">
                           {payment.customerId?.name || 'Client'}
                         </div>
+                        {payment.customerId?.primaryPhone && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {payment.customerId.primaryPhone}
+                          </div>
+                        )}
                         {payment.customerId?._id && (
                           <button
                             onClick={() => openCustomerStatement(payment.customerId?._id)}
-                            className="text-[11px] text-amber-600 hover:text-amber-700 font-medium inline-flex items-center gap-0.5 mt-0.5 cursor-pointer"
+                            className="text-[11px] text-amber-600 hover:text-amber-700 font-semibold inline-flex items-center gap-0.5 mt-0.5 cursor-pointer"
                           >
-                            <span>View Ledger</span>
+                            <span>View Ledger &amp; Balance</span>
                             <ArrowUpRight className="w-3 h-3" />
                           </button>
                         )}
@@ -933,18 +950,59 @@ export const PaymentsPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 1-Click Milestone Selector (Standard Solar EPC 3-Stage Billing) */}
-              {activeOrderContractRupees > 0 ? (
-                <div className="p-3 bg-secondary/40 border rounded-xl space-y-2">
+              {/* If no sales order in system, allow specifying Project Contract Target */}
+              {recordForm.customerId && customerOrders.length === 0 && (
+                <div className="p-3 bg-secondary/30 border border-dashed rounded-xl space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-foreground">
-                      Solar EPC 3-Stage Milestone Billing:
-                    </span>
+                    <label className="font-semibold text-foreground text-xs">
+                      Total Solar Project Contract (INR ₹)
+                    </label>
                     <span className="text-[11px] text-muted-foreground font-mono">
-                      Contract: {formatINR(activeOrderContractRupees * 100)} &bull; Paid: {formatINR(activeOrderAllocatedRupees * 100)}
+                      Project Contract Target
                     </span>
                   </div>
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    value={customContractRupees}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value) || 0;
+                      setCustomContractRupees(v);
+                      setSelectedMilestoneStage('CUSTOM');
+                    }}
+                    placeholder="e.g. 100000"
+                    className="w-full px-3 py-1.5 border rounded-lg bg-background font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Project total for tracking 3-stage milestone billing (20% Advance, 70% Pre-Dispatch, 10% Handover).
+                  </p>
+                </div>
+              )}
 
+              {/* 1-Click Milestone Selector & Progress / Balance Tracker */}
+              {recordForm.customerId && (
+                <div className="p-3.5 bg-secondary/40 border rounded-xl space-y-3">
+                  {/* Balance & Progress Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2.5">
+                    <div>
+                      <div className="text-[11px] font-bold uppercase text-foreground flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Solar EPC 3-Stage Milestone Billing</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Contract: <strong className="text-foreground font-mono">{formatINR(effectiveContractRupees * 100)}</strong> &bull; Paid So Far: <strong className="text-emerald-600 font-mono">{formatINR(customerTotalPaidRupees * 100)}</strong>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Remaining Balance:</span>
+                      <div className="text-xs font-mono font-bold text-rose-600">
+                        {formatINR(remainingBalanceRupees * 100)} ({Math.max(0, 100 - percentPaid)}% due)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3 Milestone Buttons */}
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -955,12 +1013,17 @@ export const PaymentsPage: React.FC = () => {
                           : 'bg-card hover:bg-muted/50 border-border'
                       }`}
                     >
-                      <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
-                        Stage 1 (20%)
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
+                          Stage 1 (20%)
+                        </span>
+                        {customerTotalPaidRupees >= Math.round(effectiveContractRupees * 0.2) && (
+                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
+                        )}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(activeOrderContractRupees * 0.2 * 100))}
+                        {formatINR(Math.round(effectiveContractRupees * 0.2 * 100))}
                       </div>
                     </button>
 
@@ -973,12 +1036,17 @@ export const PaymentsPage: React.FC = () => {
                           : 'bg-card hover:bg-muted/50 border-border'
                       }`}
                     >
-                      <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
-                        Stage 2 (70%)
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
+                          Stage 2 (70%)
+                        </span>
+                        {customerTotalPaidRupees >= Math.round(effectiveContractRupees * 0.9) && (
+                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
+                        )}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(activeOrderContractRupees * 0.7 * 100))}
+                        {formatINR(Math.round(effectiveContractRupees * 0.7 * 100))}
                       </div>
                     </button>
 
@@ -991,20 +1059,20 @@ export const PaymentsPage: React.FC = () => {
                           : 'bg-card hover:bg-muted/50 border-border'
                       }`}
                     >
-                      <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">
-                        Stage 3 (10%)
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">
+                          Stage 3 (10%)
+                        </span>
+                        {customerTotalPaidRupees >= effectiveContractRupees && (
+                          <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-600 font-bold">Paid</span>
+                        )}
                       </div>
                       <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
                       <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                        {formatINR(Math.round(activeOrderContractRupees * 0.1 * 100))}
+                        {formatINR(Math.round(effectiveContractRupees * 0.1 * 100))}
                       </div>
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-secondary/30 border border-dashed rounded-xl text-xs flex items-center justify-between text-muted-foreground">
-                  <span className="font-medium text-foreground">Direct Advance / Custom Amount</span>
-                  <span className="text-[11px] font-mono">Enter received amount below</span>
                 </div>
               )}
 
@@ -1019,7 +1087,7 @@ export const PaymentsPage: React.FC = () => {
                     step="0.01"
                     min="1"
                     required
-                    placeholder="e.g. 77052"
+                    placeholder="e.g. 30000"
                     value={recordForm.amountRupees}
                     onChange={e => {
                       setRecordForm(prev => ({ ...prev, amountRupees: e.target.value }));
@@ -1027,6 +1095,16 @@ export const PaymentsPage: React.FC = () => {
                     }}
                     className="w-full px-3 py-2 border rounded-xl bg-background font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
+                  {enteredAmount > 0 && recordForm.customerId && (
+                    <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 mt-1.5 space-y-0.5">
+                      <div>
+                        After receipt: <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Total Paid: {formatINR(projectedPaid * 100)} ({projectedPercent}%)</strong>
+                      </div>
+                      <div className="text-rose-700 dark:text-rose-300">
+                        Remaining to 100%: <strong className="font-mono">{formatINR(projectedRemaining * 100)}</strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1143,10 +1221,10 @@ export const PaymentsPage: React.FC = () => {
               <div>
                 <span className="text-muted-foreground uppercase text-[10px] font-bold">Received From Client:</span>
                 <div className="font-bold text-foreground text-sm mt-0.5">
-                  {receiptData.customerId?.name || 'Customer'}
+                  {receiptData.customer?.name || receiptData.customerId?.name || 'Customer'}
                 </div>
                 <div className="text-muted-foreground text-[11px]">
-                  {receiptData.customerId?.primaryPhone || ''}
+                  {receiptData.customer?.primaryPhone || receiptData.customerId?.primaryPhone || ''}
                 </div>
               </div>
 
@@ -1238,66 +1316,121 @@ export const PaymentsPage: React.FC = () => {
                 <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-amber-500" />
                 <span>Loading customer statement...</span>
               </div>
-            ) : statementData ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3 p-3.5 rounded-xl bg-secondary/40 border text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Total Invoiced Orders</span>
-                    <div className="font-mono font-bold text-foreground text-sm mt-0.5">
-                      {formatINR(statementData.totalInvoicedPaise)}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Total Realized Collections</span>
-                    <div className="font-mono font-bold text-emerald-600 text-sm mt-0.5">
-                      {formatINR(statementData.totalRealizedPaise)}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Net Outstanding Balance</span>
-                    <div className="font-mono font-bold text-rose-600 text-sm mt-0.5">
-                      {formatINR(statementData.netReceivablesPaise)}
-                    </div>
-                  </div>
-                </div>
+            ) : statementData ? (() => {
+              const totalContractPaise = statementData.totalOrderValuePaise ?? statementData.totalInvoicedPaise ?? 0;
+              const totalPaidPaise = statementData.totalPaidPaise ?? statementData.totalRealizedPaise ?? 0;
+              const totalPendingPaise = statementData.totalOutstandingPaise ?? statementData.netReceivablesPaise ?? Math.max(0, totalContractPaise - totalPaidPaise);
+              const percentPaid = totalContractPaise > 0 ? Math.min(100, Math.round((totalPaidPaise / totalContractPaise) * 100)) : (totalPaidPaise > 0 ? 100 : 0);
+              const ordersList = statementData.orders ?? statementData.contractedOrders ?? [];
+              const paymentsList = statementData.payments || [];
 
-                {statementData.contractedOrders?.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-xs text-foreground uppercase tracking-wider">
-                      Contracted Solar Orders
-                    </h3>
-                    <div className="border rounded-xl overflow-hidden">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-muted/40 text-muted-foreground font-semibold">
-                          <tr className="border-b">
-                            <th className="py-2 px-3">Order #</th>
-                            <th className="py-2 px-3">Date</th>
-                            <th className="py-2 px-3 text-right">Order Total</th>
-                            <th className="py-2 px-3 text-right">Allocated</th>
-                            <th className="py-2 px-3 text-right">Outstanding</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y font-mono">
-                          {statementData.contractedOrders.map((o: any) => (
-                            <tr key={o.orderId || o.orderNumber}>
-                              <td className="py-2 px-3 text-amber-600">{o.orderNumber}</td>
-                              <td className="py-2 px-3 font-sans">{formatDate(o.orderDate)}</td>
-                              <td className="py-2 px-3 text-right">{formatINR(o.orderTotalPaise)}</td>
-                              <td className="py-2 px-3 text-right text-emerald-600">
-                                {formatINR(o.allocatedPaise)}
-                              </td>
-                              <td className="py-2 px-3 text-right text-rose-600">
-                                {formatINR(o.outstandingPaise)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              return (
+                <div className="space-y-4">
+                  {/* KPI Summary */}
+                  <div className="grid grid-cols-3 gap-3 p-3.5 rounded-xl bg-secondary/40 border text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Total Invoiced / Contract</span>
+                      <div className="font-mono font-bold text-foreground text-sm mt-0.5">
+                        {formatINR(totalContractPaise)}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Realized Collections</span>
+                      <div className="font-mono font-bold text-emerald-600 text-sm mt-0.5">
+                        {formatINR(totalPaidPaise)} {totalContractPaise > 0 ? `(${percentPaid}%)` : ''}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Outstanding Due</span>
+                      <div className="font-mono font-bold text-rose-600 text-sm mt-0.5">
+                        {formatINR(totalPendingPaise)}
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-            ) : (
+
+                  {/* Payment Receipts History */}
+                  {paymentsList.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-xs text-foreground uppercase tracking-wider flex items-center justify-between">
+                        <span>Realized Payment Receipts</span>
+                        <span className="text-[11px] font-normal text-muted-foreground">
+                          {paymentsList.length} receipt{paymentsList.length !== 1 ? 's' : ''} on record
+                        </span>
+                      </h3>
+                      <div className="border rounded-xl overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-muted/40 text-muted-foreground font-semibold">
+                            <tr className="border-b">
+                              <th className="py-2 px-3">Receipt #</th>
+                              <th className="py-2 px-3">Date</th>
+                              <th className="py-2 px-3">Method</th>
+                              <th className="py-2 px-3">Reference / UTR</th>
+                              <th className="py-2 px-3 text-right">Amount</th>
+                              <th className="py-2 px-3 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y font-mono">
+                            {paymentsList.map((p: any) => (
+                              <tr key={p._id} className="hover:bg-muted/20">
+                                <td className="py-2 px-3 font-bold text-amber-600">{p.receiptNumber}</td>
+                                <td className="py-2 px-3 font-sans">{formatDate(p.paymentDate)}</td>
+                                <td className="py-2 px-3 uppercase text-[10px] font-semibold text-foreground font-sans">
+                                  {p.paymentMethod?.replace(/_/g, ' ')}
+                                </td>
+                                <td className="py-2 px-3 text-muted-foreground">{p.transactionReference || '—'}</td>
+                                <td className="py-2 px-3 text-right font-bold text-emerald-600">{formatINR(p.amountPaise)}</td>
+                                <td className="py-2 px-3 text-center">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                    {p.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contracted Solar Orders */}
+                  {ordersList.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-xs text-foreground uppercase tracking-wider">
+                        Contracted Solar Orders
+                      </h3>
+                      <div className="border rounded-xl overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-muted/40 text-muted-foreground font-semibold">
+                            <tr className="border-b">
+                              <th className="py-2 px-3">Order #</th>
+                              <th className="py-2 px-3">Date</th>
+                              <th className="py-2 px-3 text-right">Order Total</th>
+                              <th className="py-2 px-3 text-right">Allocated</th>
+                              <th className="py-2 px-3 text-right">Outstanding</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y font-mono">
+                            {ordersList.map((o: any) => (
+                              <tr key={o.orderId || o._id || o.orderNumber}>
+                                <td className="py-2 px-3 text-amber-600">{o.orderNumber}</td>
+                                <td className="py-2 px-3 font-sans">{formatDate(o.orderDate)}</td>
+                                <td className="py-2 px-3 text-right">{formatINR(o.orderTotalPaise || o.netTotalPaise)}</td>
+                                <td className="py-2 px-3 text-right text-emerald-600">
+                                  {formatINR(o.allocatedPaise || o.allocatedAmountPaise)}
+                                </td>
+                                <td className="py-2 px-3 text-right text-rose-600">
+                                  {formatINR(o.outstandingPaise || o.outstandingBalancePaise)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 No statement records found.
               </div>
