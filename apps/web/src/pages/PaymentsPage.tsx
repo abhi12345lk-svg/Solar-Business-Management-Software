@@ -23,7 +23,6 @@ import {
   AlertCircle,
   X,
   CreditCard,
-  Layers,
   ArrowUpRight,
   TrendingUp,
   Receipt
@@ -112,14 +111,6 @@ export const PaymentsPage: React.FC = () => {
   // Selected Order Contract Info (for milestone calculations)
   const [activeOrderContractRupees, setActiveOrderContractRupees] = useState<number>(0);
   const [activeOrderAllocatedRupees, setActiveOrderAllocatedRupees] = useState<number>(0);
-
-  // Milestone Overview / Stage Tracker Modal
-  const [showMilestoneTrackerModal, setShowMilestoneTrackerModal] = useState(false);
-  const [trackerCustomerId, setTrackerCustomerId] = useState('');
-  const [trackerOrderId, setTrackerOrderId] = useState('');
-  const [trackerOrders, setTrackerOrders] = useState<OrderItem[]>([]);
-  const [trackerOrderDetails, setTrackerOrderDetails] = useState<any | null>(null);
-  const [loadingTracker, setLoadingTracker] = useState(false);
 
   // Edit Payment Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -506,50 +497,6 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  // Open Milestone Tracker Modal
-  const openMilestoneTracker = async (initCustomerId?: string) => {
-    const cId = initCustomerId || trackerCustomerId || (customersList[0]?._id || '');
-    setTrackerCustomerId(cId);
-    setShowMilestoneTrackerModal(true);
-    if (cId) {
-      loadTrackerOrders(cId);
-    }
-  };
-
-  const loadTrackerOrders = async (cId: string) => {
-    try {
-      setLoadingTracker(true);
-      const res = await apiClient<any>(`/orders?customerId=${cId}&limit=20`);
-      const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
-      const active = items.filter((o: any) => o.status !== 'CANCELLED');
-      setTrackerOrders(active);
-      if (active.length > 0) {
-        setTrackerOrderId(active[0]._id);
-        loadTrackerOrderDetails(active[0]._id);
-      } else {
-        setTrackerOrderId('');
-        setTrackerOrderDetails(null);
-      }
-    } catch (err) {
-      console.warn('Failed to load tracker orders', err);
-    } finally {
-      setLoadingTracker(false);
-    }
-  };
-
-  const loadTrackerOrderDetails = async (oId: string) => {
-    if (!oId) return;
-    try {
-      setLoadingTracker(true);
-      const res = await apiClient<any>(`/payments/receivables/orders/${oId}`);
-      setTrackerOrderDetails(res?.data || res);
-    } catch (err) {
-      console.warn('Failed to load order details', err);
-    } finally {
-      setLoadingTracker(false);
-    }
-  };
-
   // Initial load
   useEffect(() => {
     loadCustomers();
@@ -600,15 +547,6 @@ export const PaymentsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2.5 self-end sm:self-auto shrink-0">
-          <button
-            onClick={() => openMilestoneTracker()}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-            title="View 3-stage billing progress for customer projects"
-          >
-            <Layers className="w-4 h-4 text-solar-600" />
-            <span>Milestone Stage Tracker</span>
-          </button>
-
           <button
             onClick={() => openRecordModal()}
             className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
@@ -996,72 +934,79 @@ export const PaymentsPage: React.FC = () => {
               )}
 
               {/* 1-Click Milestone Selector (Standard Solar EPC 3-Stage Billing) */}
-              <div className="p-3 bg-secondary/40 border rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">
-                    Solar EPC 3-Stage Milestone Billing:
-                  </span>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Contract: {formatINR(activeOrderContractRupees * 100)} &bull; Paid: {formatINR(activeOrderAllocatedRupees * 100)}
-                  </span>
+              {activeOrderContractRupees > 0 ? (
+                <div className="p-3 bg-secondary/40 border rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground">
+                      Solar EPC 3-Stage Milestone Billing:
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Contract: {formatINR(activeOrderContractRupees * 100)} &bull; Paid: {formatINR(activeOrderAllocatedRupees * 100)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => applyMilestoneStage('M1')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        selectedMilestoneStage === 'M1'
+                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
+                          : 'bg-card hover:bg-muted/50 border-border'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
+                        Stage 1 (20%)
+                      </div>
+                      <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
+                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                        {formatINR(Math.round(activeOrderContractRupees * 0.2 * 100))}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMilestoneStage('M2')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        selectedMilestoneStage === 'M2'
+                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
+                          : 'bg-card hover:bg-muted/50 border-border'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
+                        Stage 2 (70%)
+                      </div>
+                      <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
+                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                        {formatINR(Math.round(activeOrderContractRupees * 0.7 * 100))}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMilestoneStage('M3')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        selectedMilestoneStage === 'M3'
+                          ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
+                          : 'bg-card hover:bg-muted/50 border-border'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">
+                        Stage 3 (10%)
+                      </div>
+                      <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
+                      <div className="text-[11px] font-mono font-bold text-foreground mt-1">
+                        {formatINR(Math.round(activeOrderContractRupees * 0.1 * 100))}
+                      </div>
+                    </button>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => applyMilestoneStage('M1')}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      selectedMilestoneStage === 'M1'
-                        ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                        : 'bg-card hover:bg-muted/50 border-border'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
-                      Stage 1 (20%)
-                    </div>
-                    <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
-                    <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                      {formatINR(Math.round(activeOrderContractRupees * 0.2 * 100))}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => applyMilestoneStage('M2')}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      selectedMilestoneStage === 'M2'
-                        ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                        : 'bg-card hover:bg-muted/50 border-border'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
-                      Stage 2 (70%)
-                    </div>
-                    <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
-                    <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                      {formatINR(Math.round(activeOrderContractRupees * 0.7 * 100))}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => applyMilestoneStage('M3')}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      selectedMilestoneStage === 'M3'
-                        ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30'
-                        : 'bg-card hover:bg-muted/50 border-border'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">
-                      Stage 3 (10%)
-                    </div>
-                    <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
-                    <div className="text-[11px] font-mono font-bold text-foreground mt-1">
-                      {formatINR(Math.round(activeOrderContractRupees * 0.1 * 100))}
-                    </div>
-                  </button>
+              ) : (
+                <div className="p-3 bg-secondary/30 border border-dashed rounded-xl text-xs flex items-center justify-between text-muted-foreground">
+                  <span className="font-medium text-foreground">Direct Advance / Custom Amount</span>
+                  <span className="text-[11px] font-mono">Enter received amount below</span>
                 </div>
-              </div>
+              )}
 
               {/* Amount & Date */}
               <div className="grid grid-cols-2 gap-3">
@@ -1165,288 +1110,7 @@ export const PaymentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* =========================================================================
-          MODAL 2: 3-STAGE MILESTONE STAGE TRACKER (READ-ONLY VISUAL PROGRESS)
-         ========================================================================= */}
-      {showMilestoneTrackerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
-          <div className="bg-card border rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-amber-500" />
-                  Solar EPC 3-Stage Milestone Billing Tracker
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Track progress across Booking Advance (20%), Pre-Dispatch (70%), and Commissioning (10%).
-                </p>
-              </div>
-              <button
-                onClick={() => setShowMilestoneTrackerModal(false)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Select Customer */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold mb-1 text-foreground">Select Customer</label>
-                <select
-                  value={trackerCustomerId}
-                  onChange={e => {
-                    const cId = e.target.value;
-                    setTrackerCustomerId(cId);
-                    loadTrackerOrders(cId);
-                  }}
-                  className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500"
-                >
-                  {customersList.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1 text-foreground">Select Solar Order</label>
-                <select
-                  value={trackerOrderId}
-                  onChange={e => {
-                    const oId = e.target.value;
-                    setTrackerOrderId(oId);
-                    loadTrackerOrderDetails(oId);
-                  }}
-                  disabled={trackerOrders.length === 0}
-                  className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
-                >
-                  {trackerOrders.length === 0 ? (
-                    <option value="">No active sales orders</option>
-                  ) : (
-                    trackerOrders.map(o => (
-                      <option key={o._id} value={o._id}>
-                        {o.orderNumber} &bull; {o.systemCapacityKwp || 3} kWp
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
-
-            {loadingTracker ? (
-              <div className="py-12 text-center text-xs text-muted-foreground">
-                <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-amber-500" />
-                <span>Loading order milestone breakdown...</span>
-              </div>
-            ) : trackerOrderDetails ? (
-              <div className="space-y-4 pt-1">
-                {/* Contract Summary Bar */}
-                {(() => {
-                  const contractPaise =
-                    trackerOrderDetails.orderTotalPaise ||
-                    trackerOrderDetails.order?.netTotalPaise ||
-                    38525400;
-                  const collectedPaise = trackerOrderDetails.allocatedAmountPaise || 0;
-                  const pendingPaise = Math.max(0, contractPaise - collectedPaise);
-                  const collectedPercent = Math.min(100, Math.round((collectedPaise / contractPaise) * 100));
-
-                  const m1Target = Math.round(contractPaise * 0.2);
-                  const m2Target = Math.round(contractPaise * 0.7);
-                  const m3Target = Math.round(contractPaise * 0.1);
-
-                  const m1Paid = Math.min(m1Target, collectedPaise);
-                  const m2Paid = Math.min(m2Target, Math.max(0, collectedPaise - m1Target));
-                  const m3Paid = Math.min(m3Target, Math.max(0, collectedPaise - m1Target - m2Target));
-
-                  return (
-                    <>
-                      <div className="grid grid-cols-3 gap-3 p-3.5 rounded-xl bg-secondary/40 border text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Total Contract Value</span>
-                          <div className="font-mono font-bold text-foreground text-sm mt-0.5">
-                            {formatINR(contractPaise)}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Realized Intake</span>
-                          <div className="font-mono font-bold text-emerald-600 text-sm mt-0.5">
-                            {formatINR(collectedPaise)} ({collectedPercent}%)
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Pending Balance</span>
-                          <div className="font-mono font-bold text-rose-600 text-sm mt-0.5">
-                            {formatINR(pendingPaise)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 3 Step Milestone Cards */}
-                      <div className="space-y-3">
-                        {/* Stage 1 */}
-                        <div className="p-3.5 rounded-xl border bg-card flex items-center justify-between gap-3">
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                                m1Paid >= m1Target
-                                  ? 'bg-emerald-500 text-white'
-                                  : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                              }`}
-                            >
-                              {m1Paid >= m1Target ? '✓' : '1'}
-                            </div>
-                            <div>
-                              <div className="font-bold text-foreground text-xs">
-                                Stage 1: Booking Advance (20%)
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                Order confirmation token &bull; Target: {formatINR(m1Target)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-3">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                m1Paid >= m1Target
-                                  ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                                  : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
-                              }`}
-                            >
-                              {m1Paid >= m1Target ? 'Paid' : `Due ${formatINR(m1Target - m1Paid)}`}
-                            </span>
-
-                            {m1Paid < m1Target && (
-                              <button
-                                onClick={() => {
-                                  setShowMilestoneTrackerModal(false);
-                                  openRecordModal(trackerCustomerId, trackerOrderId, 'M1');
-                                }}
-                                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                              >
-                                Record
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Stage 2 */}
-                        <div className="p-3.5 rounded-xl border bg-card flex items-center justify-between gap-3">
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                                m2Paid >= m2Target
-                                  ? 'bg-emerald-500 text-white'
-                                  : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                              }`}
-                            >
-                              {m2Paid >= m2Target ? '✓' : '2'}
-                            </div>
-                            <div>
-                              <div className="font-bold text-foreground text-xs">
-                                Stage 2: Material Pre-Dispatch (70%)
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                Prior to warehouse dispatch &bull; Target: {formatINR(m2Target)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-3">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                m2Paid >= m2Target
-                                  ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                                  : 'bg-blue-500/10 text-blue-700 border border-blue-500/20'
-                              }`}
-                            >
-                              {m2Paid >= m2Target ? 'Paid' : `Due ${formatINR(m2Target - m2Paid)}`}
-                            </span>
-
-                            {m2Paid < m2Target && (
-                              <button
-                                onClick={() => {
-                                  setShowMilestoneTrackerModal(false);
-                                  openRecordModal(trackerCustomerId, trackerOrderId, 'M2');
-                                }}
-                                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                              >
-                                Record
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Stage 3 */}
-                        <div className="p-3.5 rounded-xl border bg-card flex items-center justify-between gap-3">
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                                m3Paid >= m3Target
-                                  ? 'bg-emerald-500 text-white'
-                                  : 'bg-purple-500/10 text-purple-600 border border-purple-500/20'
-                              }`}
-                            >
-                              {m3Paid >= m3Target ? '✓' : '3'}
-                            </div>
-                            <div>
-                              <div className="font-bold text-foreground text-xs">
-                                Stage 3: Installation &amp; Commissioning (10%)
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                Post net-meter test &bull; Target: {formatINR(m3Target)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-3">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                m3Paid >= m3Target
-                                  ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                                  : 'bg-purple-500/10 text-purple-700 border border-purple-500/20'
-                              }`}
-                            >
-                              {m3Paid >= m3Target ? 'Paid' : `Due ${formatINR(m3Target - m3Paid)}`}
-                            </span>
-
-                            {m3Paid < m3Target && (
-                              <button
-                                onClick={() => {
-                                  setShowMilestoneTrackerModal(false);
-                                  openRecordModal(trackerCustomerId, trackerOrderId, 'M3');
-                                }}
-                                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                              >
-                                Record
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                No orders found for this customer.
-              </div>
-            )}
-
-            <div className="flex justify-end pt-3 border-t">
-              <button
-                onClick={() => setShowMilestoneTrackerModal(false)}
-                className="px-4 py-1.5 border rounded-xl hover:bg-muted font-semibold text-xs cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* =========================================================================
           MODAL 3: PRINTABLE OPERATIONAL PAYMENT RECEIPT

@@ -958,7 +958,11 @@ export class PaymentService {
     }
 
     if (filters.paymentMethod) {
-      query.paymentMethod = filters.paymentMethod;
+      if (filters.paymentMethod === 'BANK_TRANSFER') {
+        query.paymentMethod = { $in: ['BANK_TRANSFER', 'NEFT_RTGS', 'IMPS'] };
+      } else {
+        query.paymentMethod = filters.paymentMethod;
+      }
     }
 
     if (filters.startDate || filters.endDate) {
@@ -969,10 +973,23 @@ export class PaymentService {
 
     if (filters.search?.trim()) {
       const term = filters.search.trim();
+      const matchedCustomers = await Customer.find({
+        $or: [
+          { name: { $regex: term, $options: 'i' } },
+          { customerCode: { $regex: term, $options: 'i' } },
+          { primaryPhone: { $regex: term, $options: 'i' } }
+        ]
+      })
+        .select('_id')
+        .lean();
+
+      const custIds = matchedCustomers.map(c => c._id);
+
       query.$or = [
         { receiptNumber: { $regex: term, $options: 'i' } },
         { transactionReference: { $regex: term, $options: 'i' } },
-        { notes: { $regex: term, $options: 'i' } }
+        { notes: { $regex: term, $options: 'i' } },
+        ...(custIds.length > 0 ? [{ customerId: { $in: custIds } }] : [])
       ];
     }
 
