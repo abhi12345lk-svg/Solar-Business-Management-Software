@@ -75,73 +75,73 @@ export const TEMPLATE_OPTIONS: TemplateOption[] = [
   {
     id: 'SOLAR_AGREEMENT',
     aliases: ['ANNEXURE_2_AGREEMENT'],
-    name: 'SOLAR AGREEMENT',
-    docTitle: 'SOLAR AGREEMENT',
+    name: 'SOLAR AGGREMENT',
+    docTitle: 'SOLAR AGGREMENT',
     scheme: 'PM – Surya Ghar Muft Bijli Yojana',
     category: 'SIGNED_CONTRACT',
     desc: 'Annexure 2 – Consumer & Vendor 5-year execution & comprehensive maintenance agreement (2 Pages).',
-    badge: 'Solar Agreement',
-    pdfFilePrefix: 'SOLAR_AGREEMENT',
-    totalPages: 2
-  },
-  {
-    id: 'GRID_CONNECTIVITY_APP',
-    aliases: ['COVER_LETTER'],
-    name: 'APPLICATION FOR GRID CONNECTIVITY',
-    docTitle: 'APPLICATION FOR GRID CONNECTIVITY',
-    scheme: 'CSPDCL Sub-Division',
-    category: 'NET_METERING_DOC',
-    desc: 'Formal application to Assistant Engineer (AE) CSPDCL for rooftop solar grid connection approval (1 Page).',
-    badge: 'Grid Connectivity',
-    pdfFilePrefix: 'APPLICATION_FOR_GRID_CONNECTIVITY',
-    totalPages: 1
-  },
-  {
-    id: 'ANNEXURE_A_DCR',
-    aliases: ['Declaration_for_DCR-Annexure_A'],
-    name: 'ANNEXURE - A',
-    docTitle: 'ANNEXURE - A',
-    scheme: 'MNRE / National Portal',
-    category: 'CUSTOMER_KYC',
-    desc: 'Undertaking/Self-Declaration for Domestic Content Requirement (DCR) fulfillment with serial numbers grid (1 Page).',
-    badge: 'Annexure - A',
-    pdfFilePrefix: 'ANNEXURE_A_DCR_UNDERTAKING',
-    totalPages: 1
-  },
-  {
-    id: 'BANK_LOAN_DISBURSEMENT',
-    aliases: ['Letter_For_Bank'],
-    name: 'BANK LOAN DISBURSEMENT APPLICATION',
-    docTitle: 'BANK LOAN DISBURSEMENT APPLICATION',
-    scheme: 'PM Surya Ghar / Bank Finance',
-    category: 'SUBSIDY_DOC',
-    desc: 'PM Surya Ghar बैंक ऋण की शेष राशि के वितरण (Disbursement) हेतु शाखा प्रबंधक को औपचारिक आवेदन (1 Page).',
-    badge: 'Bank Loan',
-    pdfFilePrefix: 'PM_SURYA_GHAR_BANK_LOAN_DISBURSEMENT',
-    totalPages: 1
-  },
-  {
-    id: 'CSPDCL_PPA_AGREEMENT',
-    aliases: ['Power_Purchase_Agreement'],
-    name: 'POWER PURCHASE AGREEMENT FOR RTS PLANTS',
-    docTitle: 'POWER PURCHASE AGREEMENT FOR RTS PLANTS',
-    scheme: 'CSERC Regulations 2019',
-    category: 'SIGNED_CONTRACT',
-    desc: 'Statutory Power Purchase Agreement with CSPDCL for RTS Plants with Witnesses (2 Pages).',
-    badge: 'CSPDCL PPA',
-    pdfFilePrefix: 'POWER_PURCHASE_AGREEMENT_FOR_RTS_PLANTS',
+    badge: 'SOLAR AGGREMENT',
+    pdfFilePrefix: 'SOLAR_AGGREMENT',
     totalPages: 2
   },
   {
     id: 'WORK_COMPLETION_REPORT',
     aliases: ['Work_Completion_Report'],
-    name: 'WORK COMPLETION REPORT',
-    docTitle: 'WORK COMPLETION REPORT',
+    name: 'Work Completion Report',
+    docTitle: 'Work Completion Report',
     scheme: 'DISCOM / Net-Metering',
     category: 'COMMISSIONING_REPORT',
     desc: 'Joint commissioning report with PV module table, inverter serials, safety checklist, and installer certification (1 Page).',
-    badge: 'Work Completion',
-    pdfFilePrefix: 'WORK_COMPLETION_REPORT',
+    badge: 'Work Completion Report',
+    pdfFilePrefix: 'Work_Completion_Report',
+    totalPages: 1
+  },
+  {
+    id: 'GRID_CONNECTIVITY_APP',
+    aliases: ['COVER_LETTER'],
+    name: 'COVER LETTER',
+    docTitle: 'COVER LETTER',
+    scheme: 'CSPDCL Sub-Division',
+    category: 'NET_METERING_DOC',
+    desc: 'Formal application to Assistant Engineer (AE) CSPDCL for rooftop solar grid connection approval (1 Page).',
+    badge: 'COVER LETTER',
+    pdfFilePrefix: 'COVER_LETTER',
+    totalPages: 1
+  },
+  {
+    id: 'BANK_LOAN_DISBURSEMENT',
+    aliases: ['Letter_For_Bank'],
+    name: 'Letter For Bank',
+    docTitle: 'Letter For Bank',
+    scheme: 'PM Surya Ghar / Bank Finance',
+    category: 'SUBSIDY_DOC',
+    desc: 'PM Surya Ghar बैंक ऋण की शेष राशि के वितरण (Disbursement) हेतु शाखा प्रबंधक को औपचारिक आवेदन (1 Page).',
+    badge: 'Letter For Bank',
+    pdfFilePrefix: 'Letter_For_Bank',
+    totalPages: 1
+  },
+  {
+    id: 'CSPDCL_PPA_AGREEMENT',
+    aliases: ['Power_Purchase_Agreement'],
+    name: 'Power_Purchase_Agreement',
+    docTitle: 'Power_Purchase_Agreement',
+    scheme: 'CSERC Regulations 2019',
+    category: 'SIGNED_CONTRACT',
+    desc: 'Statutory Power Purchase Agreement with CSPDCL for RTS Plants with Witnesses (2 Pages).',
+    badge: 'Power_Purchase_Agreement',
+    pdfFilePrefix: 'Power_Purchase_Agreement',
+    totalPages: 2
+  },
+  {
+    id: 'ANNEXURE_A_DCR',
+    aliases: ['Declaration_for_DCR-Annexure_A'],
+    name: 'Declaration_for_DCR-Annexure A',
+    docTitle: 'Declaration_for_DCR-Annexure A',
+    scheme: 'MNRE / National Portal',
+    category: 'CUSTOMER_KYC',
+    desc: 'Undertaking/Self-Declaration for Domestic Content Requirement (DCR) fulfillment with serial numbers grid (1 Page).',
+    badge: 'Declaration_for_DCR-Annexure A',
+    pdfFilePrefix: 'Declaration_for_DCR-Annexure_A',
     totalPages: 1
   }
 ];
@@ -608,7 +608,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
               >
                 {availableTemplates.map(tpl => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.badge}: {tpl.name} ({tpl.totalPages} {tpl.totalPages === 1 ? 'Page' : 'Pages'})
+                    {tpl.name}
                   </option>
                 ))}
               </select>
@@ -653,8 +653,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
           {/* Active Format Badge */}
           <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 bg-solar-500/10 text-solar-700 dark:text-solar-300 rounded-lg border border-solar-200 dark:border-solar-800 text-[11px] font-bold shrink-0">
-            <span className="text-muted-foreground font-normal">Active Format:</span>
-            <span>{currentTemplate.name} ({currentTemplate.totalPages} Pages)</span>
+            <span className="text-muted-foreground font-normal">Active:</span>
+            <span>{currentTemplate.name}</span>
           </div>
         </div>
 
