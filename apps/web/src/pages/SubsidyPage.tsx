@@ -194,7 +194,9 @@ export const SubsidyPage: React.FC = () => {
 
       // 2. Scheme Filter
       if (schemeFilter) {
-        if (!sub.schemeName?.toLowerCase().includes(schemeFilter.toLowerCase())) {
+        const normalizedScheme = (sub.schemeName || '').toLowerCase().replace(/_/g, ' ');
+        const normalizedFilter = schemeFilter.toLowerCase().replace(/_/g, ' ');
+        if (!normalizedScheme.includes(normalizedFilter)) {
           return false;
         }
       }
@@ -521,9 +523,18 @@ export const SubsidyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Financial Summary KPI Cards (Clean, accounts-focused) */}
+      {/* 3. Financial Summary KPI Cards (Clickable & Accounts-Focused) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('');
+            setSchemeFilter('');
+          }}
+          className={`text-left bg-card border rounded-2xl p-4 shadow-xs space-y-1 cursor-pointer transition hover:border-solar-500/60 ${
+            statusFilter === '' ? 'ring-2 ring-solar-500/30 border-solar-500/50' : ''
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">Total Claims</span>
             <Landmark className="w-4 h-4 text-solar-600" />
@@ -532,9 +543,15 @@ export const SubsidyPage: React.FC = () => {
           <span className="text-[11px] text-muted-foreground">
             Total Value: {formatRupees(totalRequestedPaise)}
           </span>
-        </div>
+        </button>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'PENDING' ? '' : 'PENDING')}
+          className={`text-left bg-card border rounded-2xl p-4 shadow-xs space-y-1 cursor-pointer transition hover:border-amber-500/60 ${
+            statusFilter === 'PENDING' ? 'ring-2 ring-amber-500/40 border-amber-500/50 bg-amber-500/5' : ''
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">Pending / In Process</span>
             <Clock className="w-4 h-4 text-amber-600" />
@@ -543,9 +560,15 @@ export const SubsidyPage: React.FC = () => {
             {subsidies.filter(s => !['SANCTIONED', 'PARTIALLY_DISBURSED', 'FULLY_DISBURSED', 'REJECTED'].includes(s.status)).length}
           </p>
           <span className="text-[11px] text-muted-foreground">Awaiting DISCOM Sanction</span>
-        </div>
+        </button>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'SANCTIONED' ? '' : 'SANCTIONED')}
+          className={`text-left bg-card border rounded-2xl p-4 shadow-xs space-y-1 cursor-pointer transition hover:border-blue-500/60 ${
+            statusFilter === 'SANCTIONED' ? 'ring-2 ring-blue-500/40 border-blue-500/50 bg-blue-500/5' : ''
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">Sanctioned Amount</span>
             <TrendingUp className="w-4 h-4 text-blue-600" />
@@ -554,9 +577,15 @@ export const SubsidyPage: React.FC = () => {
             {formatRupees(totalSanctionedPaise)}
           </p>
           <span className="text-[11px] text-muted-foreground">Approved by MNRE/Govt</span>
-        </div>
+        </button>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'FULLY_DISBURSED' ? '' : 'FULLY_DISBURSED')}
+          className={`text-left bg-card border rounded-2xl p-4 shadow-xs space-y-1 cursor-pointer transition hover:border-emerald-500/60 ${
+            statusFilter === 'FULLY_DISBURSED' ? 'ring-2 ring-emerald-500/40 border-emerald-500/50 bg-emerald-500/5' : ''
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">DBT Credited to Clients</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -565,7 +594,7 @@ export const SubsidyPage: React.FC = () => {
             {formatRupees(totalDisbursedPaise)}
           </p>
           <span className="text-[11px] text-muted-foreground">Transferred to Bank Accounts</span>
-        </div>
+        </button>
       </div>
 
       {/* 4. Unified Simple Filter Bar (No clutter, No confusing tabs) */}
@@ -617,6 +646,22 @@ export const SubsidyPage: React.FC = () => {
             <option value="PM Surya">PM Surya Ghar Yojana</option>
             <option value="State">State Rooftop Subsidy</option>
           </select>
+
+          {(statusFilter || schemeFilter || searchTerm) && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('');
+                setSchemeFilter('');
+                setSearchTerm('');
+              }}
+              className="px-2.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10 border border-destructive/20 rounded-xl transition cursor-pointer flex items-center space-x-1"
+              title="Reset all filters"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
 
           <button
             type="button"
