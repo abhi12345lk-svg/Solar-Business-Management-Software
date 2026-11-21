@@ -12,11 +12,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Landmark,
   Search,
-  Filter,
-  IndianRupee,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
@@ -24,9 +21,7 @@ import {
   RefreshCw,
   Clock,
   Plus,
-  FileCheck,
-  Building2,
-  UserCheck
+  FileCheck
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -97,7 +92,6 @@ export const SubsidyPage: React.FC = () => {
 
   // Data for Register Modal
   const [customersList, setCustomersList] = useState<any[]>([]);
-  const [projectsList, setProjectsList] = useState<any[]>([]);
   const [loadingRegisterData, setLoadingRegisterData] = useState(false);
 
   // Register Form State
@@ -217,11 +211,6 @@ export const SubsidyPage: React.FC = () => {
       const custRes = await apiClient<any>('/customers?limit=100');
       const customers = custRes?.data || custRes?.customers || (Array.isArray(custRes) ? custRes : []);
       setCustomersList(customers);
-
-      // 2. Fetch Projects (if any)
-      const projRes = await apiClient<any>('/projects?limit=100');
-      const projects = projRes?.projects || projRes?.data || (Array.isArray(projRes) ? projRes : []);
-      setProjectsList(projects);
 
       // Select default customer if exists
       const firstCustomer = customers[0];
@@ -673,7 +662,7 @@ export const SubsidyPage: React.FC = () => {
                   const isSanctioned = ['SANCTIONED', 'PARTIALLY_DISBURSED', 'FULLY_DISBURSED'].includes(sub.status);
                   const isDisbursed = sub.status === 'FULLY_DISBURSED';
                   const dbtRecords = sub.disbursements || [];
-                  const latestUtr = dbtRecords.length > 0 ? dbtRecords[dbtRecords.length - 1].disbursementReference : null;
+                  const latestUtr = dbtRecords.length > 0 ? dbtRecords[dbtRecords.length - 1]?.disbursementReference : null;
 
                   return (
                     <tr key={sub._id} className="hover:bg-muted/30 transition-colors">
