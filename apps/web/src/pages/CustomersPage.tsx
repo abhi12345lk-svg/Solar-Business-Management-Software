@@ -964,25 +964,14 @@ export const CustomersPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {!isInstaller && (
-            <>
-              <Link
-                to="/create-document"
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-card border border-border hover:bg-muted text-foreground shadow-2xs transition"
-              >
-                <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
-                <span>Create Document</span>
-              </Link>
-              {canCreateCustomer && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Register New Customer</span>
-                </button>
-              )}
-            </>
+          {!isInstaller && canCreateCustomer && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Register New Customer</span>
+            </button>
           )}
         </div>
       </div>
