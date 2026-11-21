@@ -87,7 +87,9 @@ const MANDATORY_SOLAR_SLOTS = [
 ];
 
 export const CustomersPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, hasPermission } = useAuth();
+  const canCreateCustomer = isAdmin || hasPermission('customer:create');
+
   const activePanel: PanelType = user?.role
     ? getDefaultPanelForRole(user.role, user.department)
     : PanelType.ADMIN;
@@ -927,13 +929,15 @@ export const CustomersPage: React.FC = () => {
                 <FilePlus2 className="w-3.5 h-3.5 text-solar-600" />
                 <span>Create Document</span>
               </Link>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Register New Customer</span>
-              </button>
+              {canCreateCustomer && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Register New Customer</span>
+                </button>
+              )}
             </>
           )}
         </div>

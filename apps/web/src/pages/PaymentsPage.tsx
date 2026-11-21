@@ -30,6 +30,7 @@ import {
   Check
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
 
 interface CustomerPaymentRecord {
   _id: string;
@@ -72,6 +73,12 @@ interface OrderItem {
 }
 
 export const PaymentsPage: React.FC = () => {
+  const { isAdmin, hasPermission } = useAuth();
+  const canRecordPayment = isAdmin || hasPermission('payment:create');
+  const canVerifyPayment = isAdmin || hasPermission('payment:verify');
+  const canReversePayment = isAdmin || hasPermission('payment:reverse');
+  const canEditPayment = isAdmin || hasPermission('payment:create');
+
   const [searchParams] = useSearchParams();
   const paramOrderId = searchParams.get('orderId');
   const paramCustomerId = searchParams.get('customerId');
@@ -650,15 +657,22 @@ export const PaymentsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2.5 self-end sm:self-auto shrink-0">
-          <button
-            onClick={() => openRecordModal()}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Record Payment</span>
-          </button>
-        </div>
+        {canRecordPayment ? (
+          <div className="flex items-center space-x-2.5 self-end sm:self-auto shrink-0">
+            <button
+              onClick={() => openRecordModal()}
+              className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Record Payment</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary/80 border text-[11px] text-muted-foreground self-end sm:self-auto">
+            <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>Read-Only Ledger (Accounts Protected)</span>
+          </div>
+        )}
       </div>
 
       {/* =========================================================================
@@ -918,8 +932,8 @@ export const PaymentsPage: React.FC = () => {
                             <Printer className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Edit */}
-                          {!isReversed && (
+                          {/* Edit (Accounts / Admin Only) */}
+                          {canEditPayment && !isReversed && (
                             <button
                               onClick={() => handleOpenEdit(payment)}
                               className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-amber-600 cursor-pointer"
@@ -929,8 +943,8 @@ export const PaymentsPage: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Verify (if pending) */}
-                          {isRecorded && (
+                          {/* Verify (if pending - Accounts / Admin Only) */}
+                          {canVerifyPayment && isRecorded && (
                             <button
                               onClick={() => handleVerifyDirect(payment._id)}
                               className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold cursor-pointer"
@@ -940,8 +954,8 @@ export const PaymentsPage: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Reverse */}
-                          {!isReversed && (
+                          {/* Reverse (Accounts / Admin Only) */}
+                          {canReversePayment && !isReversed && (
                             <button
                               onClick={() => handleOpenReverse(payment)}
                               className="p-1.5 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-600 rounded-lg cursor-pointer"
@@ -990,7 +1004,7 @@ export const PaymentsPage: React.FC = () => {
           MODAL 1: UNIFIED RECORD PAYMENT MODAL (WITH 1-CLICK 3-STAGE MILESTONES)
          ========================================================================= */}
       {showRecordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
           <div className="bg-card border rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
@@ -1546,7 +1560,7 @@ export const PaymentsPage: React.FC = () => {
           </div>
 
           {/* On-Screen Modal Dialog (Hidden during print) */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 print:hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 print:hidden !mt-0 !m-0">
             <div className="bg-card border rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl max-h-[95vh] overflow-y-auto space-y-5">
               {/* Header */}
               <div className="flex items-start justify-between border-b pb-4">
@@ -1650,7 +1664,7 @@ export const PaymentsPage: React.FC = () => {
           MODAL 4: CUSTOMER RECEIVABLES LEDGER / STATEMENT
          ========================================================================= */}
       {showStatementModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
           <div className="bg-card border rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
@@ -1808,7 +1822,7 @@ export const PaymentsPage: React.FC = () => {
           MODAL 5: EDIT PAYMENT REFERENCE & DATE
          ========================================================================= */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
           <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -1896,7 +1910,7 @@ export const PaymentsPage: React.FC = () => {
           MODAL 6: REVERSE / VOID PAYMENT MODAL
          ========================================================================= */}
       {showReverseModal && selectedReversePayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
           <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b pb-3">
               <h2 className="text-base font-bold text-rose-600 flex items-center gap-2">

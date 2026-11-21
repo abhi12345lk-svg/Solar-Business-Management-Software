@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AuthUserDto, Permission, UserRole, Department, LoginInput } from '@ins-solar/shared';
+import { AuthUserDto, Permission, UserRole, Department, LoginInput, ROLE_DEFAULT_PERMISSIONS } from '@ins-solar/shared';
 import { apiClient } from '../lib/api.js';
 
 interface MfaChallengeState {
@@ -12,6 +12,8 @@ interface AuthContextType {
   user: AuthUserDto | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
   mfaChallenge: MfaChallengeState | null;
   login: (credentials: LoginInput) => Promise<{ requiresMfa?: boolean }>;
   loginDemo: (role?: UserRole) => void;
@@ -157,6 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dept = Department.OPERATIONS;
     }
 
+    const roleDefaults = ROLE_DEFAULT_PERMISSIONS[role] ? [...ROLE_DEFAULT_PERMISSIONS[role]] : [];
     const demoUser: AuthUserDto = {
       id: `workstation-${role.toLowerCase()}-001`,
       employeeCode: empCode,
@@ -166,7 +169,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       phone: '+919876500000',
       department: dept,
       role,
-      permissions: [],
+      permissions: roleDefaults,
       isActive: true,
       mfaEnabled: false
     };
@@ -195,15 +198,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await logoutMutation.mutateAsync();
   };
 
+  const isSuperAdmin = user?.role === UserRole.SUPERADMIN;
+  const isAdmin = user?.role === UserRole.SUPERADMIN || user?.role === UserRole.ADMIN;
+
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
-    if (user.role === UserRole.SUPERADMIN) return true;
-    return (user.permissions || []).includes(permission);
+    // SuperAdmin and Admin have full permissions across all standard operational modules
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) return true;
+    const effectivePerms = (user.permissions && user.permissions.length > 0)
+      ? user.permissions
+      : (ROLE_DEFAULT_PERMISSIONS[user.role] || []);
+    return effectivePerms.includes(permission);
   };
 
   const hasRole = (roles: UserRole[]): boolean => {
     if (!user) return false;
-    if (user.role === UserRole.SUPERADMIN) return true;
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) return true;
     return roles.includes(user.role);
   };
 
@@ -213,6 +223,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         user: user ?? null,
         isLoading,
         isAuthenticated: !!user,
+        isSuperAdmin,
+        isAdmin,
         mfaChallenge,
         login,
         loginDemo,

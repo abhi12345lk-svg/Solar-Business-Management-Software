@@ -23,6 +23,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
 
 interface StockBalanceItem {
   _id: string;
@@ -107,6 +108,10 @@ interface CatalogProductItem {
 }
 
 export const InventoryPage: React.FC = () => {
+  const { isAdmin, hasPermission } = useAuth();
+  const canManageStock = isAdmin || hasPermission('inv:receive') || hasPermission('inv:issue') || hasPermission('inv:transfer');
+  const canAddProduct = isAdmin || hasPermission('catalog:create');
+
   const [activeTab, setActiveTab] = useState<
     'balances' | 'products' | 'movements' | 'serials' | 'warehouses'
   >('balances');
@@ -405,65 +410,73 @@ export const InventoryPage: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setModalType('receipt');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
-          >
-            <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />
-            Receive Stock
-          </button>
-          <button
-            onClick={() => {
-              setModalType('issue');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium transition-colors"
-          >
-            <ArrowUpFromLine className="w-3.5 h-3.5 mr-1" />
-            Issue Material
-          </button>
-          <button
-            onClick={() => {
-              setModalType('transfer');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
-          >
-            <ArrowRightLeft className="w-3.5 h-3.5 mr-1" />
-            Transfer
-          </button>
-          <button
-            onClick={() => {
-              setModalType('return');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5 mr-1" />
-            Return
-          </button>
-          <button
-            onClick={() => {
-              setModalType('serials');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-colors"
-          >
-            <QrCode className="w-3.5 h-3.5 mr-1" />
-            Register Serials
-          </button>
-          <button
-            onClick={() => {
-              setModalType('opening');
-              setFormError(null);
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-muted border hover:bg-muted/80 text-foreground text-xs font-medium transition-colors"
-          >
-            Opening Stock
-          </button>
+          {canManageStock ? (
+            <>
+              <button
+                onClick={() => {
+                  setModalType('receipt');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />
+                Receive Stock
+              </button>
+              <button
+                onClick={() => {
+                  setModalType('issue');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                <ArrowUpFromLine className="w-3.5 h-3.5 mr-1" />
+                Issue Material
+              </button>
+              <button
+                onClick={() => {
+                  setModalType('transfer');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5 mr-1" />
+                Transfer
+              </button>
+              <button
+                onClick={() => {
+                  setModalType('return');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                Return
+              </button>
+              <button
+                onClick={() => {
+                  setModalType('serials');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5 mr-1" />
+                Register Serials
+              </button>
+              <button
+                onClick={() => {
+                  setModalType('opening');
+                  setFormError(null);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-muted border hover:bg-muted/80 text-foreground text-xs font-medium transition-colors cursor-pointer"
+              >
+                Opening Stock
+              </button>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground px-3 py-1.5 bg-secondary/80 rounded-lg border font-medium">
+              Stock Balances Ledger (Read-Only)
+            </span>
+          )}
         </div>
       </div>
 
@@ -644,13 +657,15 @@ export const InventoryPage: React.FC = () => {
                 className="w-full pl-9 pr-4 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
               />
             </div>
-            <button
-              onClick={() => setShowAddProductModal(true)}
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-semibold shadow-sm transition"
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              <span>Add New Product / Item</span>
-            </button>
+            {canAddProduct && (
+              <button
+                onClick={() => setShowAddProductModal(true)}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span>Add New Product / Item</span>
+              </button>
+            )}
           </div>
 
           <div className="border rounded-xl bg-card overflow-hidden">

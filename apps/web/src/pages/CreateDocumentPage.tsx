@@ -1722,10 +1722,10 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
               </div>
 
               {/* Formatted A4 Document Canvas */}
-              <div className="bg-slate-900/60 p-3 sm:p-5 rounded-2xl border border-slate-800 overflow-auto max-h-[85vh] shadow-2xl flex justify-center">
+              <div className="bg-slate-100/90 dark:bg-zinc-900/60 p-4 sm:p-8 rounded-2xl border border-border/80 flex justify-center">
                 <div
                   ref={documentPrintRef}
-                  className="bg-white text-slate-900 w-full max-w-[800px] p-6 sm:p-8 rounded-lg shadow-xl text-[11.5px] leading-relaxed font-serif"
+                  className="bg-white text-slate-900 w-full max-w-[700px] p-8 sm:p-10 rounded-sm shadow-md border border-slate-200/90 text-[11px] leading-relaxed font-sans"
                 >
                   {/* ===================================================== */}
                   {/* FORMAT 1: ANNEXURE 2 MODEL AGREEMENT                  */}
@@ -2358,37 +2358,37 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                   {/* FORMAT 6: BANK LOAN DISBURSEMENT APPLICATION (HINDI) */}
                   {/* ===================================================== */}
                   {selectedTemplateId === 'BANK_LOAN_DISBURSEMENT' && (
-                    <div className="space-y-5 font-sans">
+                    <div className="space-y-4 font-sans">
                       {/* Document Header */}
-                      <div className="text-center space-y-1 mb-5 border-b-2 border-slate-900 pb-3">
-                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-950">
+                      <div className="text-center space-y-1 mb-4 border-b-2 border-slate-900 pb-2.5">
+                        <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-950">
                           PM Surya Ghar योजना के अंतर्गत स्वीकृत ऋण की शेष राशि के वितरण (Disbursement) हेतु आवेदन।
                         </h2>
-                        <p className="text-[11px] text-slate-600 font-semibold">
+                        <p className="text-[10px] text-slate-600 font-semibold">
                           (शाखा प्रबंधक को परियोजना पूर्णता एवं अंतिम ऋण वितरण हेतु औपचारिक पत्र)
                         </p>
                       </div>
 
                       {/* To: Branch Manager */}
-                      <div className="space-y-1 text-xs">
+                      <div className="space-y-0.5 text-[11px]">
                         <p className="font-bold">सेवा में,</p>
                         <p className="pl-4 font-bold text-slate-900">शाखा प्रबंधक महोदय,</p>
-                        <p className="pl-4 font-semibold text-slate-800">{tplLoanBankName}</p>
-                        <p className="pl-4 text-slate-700">{tplLoanBranchName}</p>
+                        <p className="pl-4 font-semibold text-slate-800">{tplLoanBankName || 'STATE BANK OF INDIA'}</p>
+                        <p className="pl-4 text-slate-700">{tplLoanBranchName || 'MAIN BRANCH'}</p>
                       </div>
 
                       {/* Subject */}
-                      <div className="bg-slate-100 p-3 rounded-md border border-slate-300">
-                        <p className="font-bold text-xs leading-snug">
+                      <div className="bg-slate-50 p-2.5 rounded border border-slate-300">
+                        <p className="font-bold text-[11px] leading-snug">
                           विषय: PM Surya Ghar योजना के अंतर्गत स्वीकृत ऋण की शेष राशि के वितरण (Disbursement) हेतु आवेदन।
                         </p>
                       </div>
 
                       {/* Body Letter in Hindi */}
-                      <div className="space-y-3.5 text-justify leading-relaxed text-xs">
+                      <div className="space-y-2 text-justify leading-relaxed text-[11px]">
                         <p className="font-bold">महोदय,</p>
                         <p>
-                          सविनय निवेदन है कि मैं <strong>{tplLoanApplicantName}</strong> आपके बैंक का ग्राहक एवं PM Surya Ghar योजना के अंतर्गत ऋणधारक हूँ। मेरे स्वीकृत ऋण की <strong>{tplLoanDisbursedPercent}</strong> राशि का वितरण पहले ही किया जा चुका है। परियोजना का कार्य पूर्ण हो चुका है।
+                          सविनय निवेदन है कि मैं <strong>{tplLoanApplicantName || '__________'}</strong> आपके बैंक का ग्राहक एवं PM Surya Ghar योजना के अंतर्गत ऋणधारक हूँ। मेरे स्वीकृत ऋण की <strong>{tplLoanDisbursedPercent || '100%'}</strong> राशि का वितरण पहले ही किया जा चुका है। परियोजना का कार्य पूर्ण हो चुका है।
                         </p>
                         <p>
                           अतः आपसे विनम्र अनुरोध है कि आवश्यक अभिलेखों एवं औपचारिकताओं का निरीक्षण कर सकते हैं।
@@ -2397,32 +2397,32 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       </div>
 
                       {/* Applicant & Contractor Verification */}
-                      <div className="pt-8 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-xs mb-4">
+                      <div className="pt-4 mt-4 border-t-2 border-slate-300 grid grid-cols-2 gap-6 text-[11px]">
                         {/* Applicant Details */}
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           <p className="font-bold uppercase text-slate-900">भवदीय,</p>
-                          <div className="space-y-1 pt-1 text-[11px]">
-                            <p><strong>नाम: -</strong> {tplLoanApplicantName}</p>
-                            <p><strong>मोबाइल नंबर: -</strong> {tplLoanMobile}</p>
+                          <div className="space-y-0.5 pt-0.5 text-[10.5px]">
+                            <p><strong>नाम: -</strong> {tplLoanApplicantName || '____________________'}</p>
+                            <p><strong>मोबाइल नंबर: -</strong> {tplLoanMobile || '____________________'}</p>
                             <p><strong>दिनांक: -</strong> {tplAgreementDate}</p>
-                            <p className="pt-4"><strong>हस्ताक्षर:</strong> ____________________</p>
+                            <p className="pt-3"><strong>हस्ताक्षर:</strong> ____________________</p>
                           </div>
                         </div>
 
                         {/* Installer Verification Seal */}
-                        <div className="space-y-2 text-right">
-                          <p className="font-bold text-xs uppercase">Certified Solar Vendor</p>
-                          <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
+                        <div className="space-y-1 text-right">
+                          <p className="font-bold text-[11px] uppercase">Certified Solar Vendor</p>
+                          <p className="text-[10px] text-slate-600">For {tplVendorName}</p>
 
                           <div className="flex justify-end py-1">
                             <img
                               src={RAREBOX_STAMP_BASE64}
                               alt="Rarebox LLP Stamp & Signature"
-                              className="w-32 h-32 object-contain filter contrast-125"
+                              className="w-24 h-24 sm:w-28 sm:h-28 object-contain filter contrast-125"
                             />
                           </div>
 
-                          <div className="text-[11px] space-y-0.5 text-right font-medium">
+                          <div className="text-[10px] space-y-0.5 text-right font-medium">
                             <p><strong>Signatory:</strong> {tplVendorSignatory}</p>
                             <p><strong>Phone:</strong> {tplVendorPhone}</p>
                           </div>

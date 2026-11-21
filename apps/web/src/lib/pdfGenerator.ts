@@ -139,12 +139,22 @@ export async function generatePdfFromElement(
     return { pdf, blob, objectUrl };
   }
 
+  // Ensure full unclipped element capture regardless of viewport scroll or container bounds
+  const fullHeight = Math.max(element.scrollHeight, element.offsetHeight, element.clientHeight);
+  const fullWidth = Math.max(element.scrollWidth, element.offsetWidth, element.clientWidth);
+
   // Render element to high-res canvas (scale 2 for crisp text and official stamps)
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     logging: false,
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    scrollY: 0,
+    scrollX: 0,
+    windowWidth: fullWidth + 100,
+    windowHeight: fullHeight + 500,
+    width: fullWidth,
+    height: fullHeight
   });
 
   const masterWidth = canvas.width;
@@ -160,9 +170,9 @@ export async function generatePdfFromElement(
   // Calculate max printable height per page in canvas pixel units
   const maxPageCanvasHeight = Math.floor((masterWidth * maxContentHeightMm) / contentWidthMm);
 
-  // If document fits on 1 single page without overflow
-  if (masterHeight <= maxPageCanvasHeight) {
-    const fitHeightMm = (masterHeight * contentWidthMm) / masterWidth;
+  // If document fits on 1 single page without overflow (allow a 5% tolerance so single-page letters fit 100%)
+  if (masterHeight <= maxPageCanvasHeight * 1.05) {
+    const fitHeightMm = Math.min((masterHeight * contentWidthMm) / masterWidth, maxContentHeightMm);
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', marginMm, marginMm, contentWidthMm, fitHeightMm);
 
     const blob = pdf.output('blob');

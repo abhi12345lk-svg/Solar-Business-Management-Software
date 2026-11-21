@@ -12,9 +12,13 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
 import { LeadDto, LeadStatus, LeadSource, LeadPriority, SolarRequirement } from '@ins-solar/shared';
 
 export const LeadsPage: React.FC = () => {
+  const { isAdmin, hasPermission } = useAuth();
+  const canCreateLead = isAdmin || hasPermission('lead:create');
+
   const [leads, setLeads] = useState<LeadDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -313,13 +317,15 @@ export const LeadsPage: React.FC = () => {
           </p>
         </div>
         <div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-solar-600 text-white font-medium hover:bg-solar-700 transition shadow-sm hover:shadow cursor-pointer"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            <span>Add Lead</span>
-          </button>
+          {canCreateLead && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-solar-600 text-white font-medium hover:bg-solar-700 transition shadow-sm hover:shadow cursor-pointer"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              <span>Add Lead</span>
+            </button>
+          )}
         </div>
       </div>
 

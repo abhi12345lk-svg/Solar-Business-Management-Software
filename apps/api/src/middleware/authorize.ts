@@ -209,13 +209,8 @@ export function requirePermission(permission: Permission): RequestHandler {
       return next(new AppError(401, 'Authentication required.', ErrorCode.AUTHENTICATION_REQUIRED));
     }
 
-    // Superadmin and Admin bypass permission checks
+    // Superadmin and Admin bypass permission checks (unrestricted operational access)
     if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
-      return next();
-    }
-
-    // In non-production/development mode, permit staff/employee operations to ensure smooth developer & admin workflows
-    if (process.env.NODE_ENV !== 'production' && user) {
       return next();
     }
 
@@ -234,7 +229,7 @@ export function requirePermission(permission: Permission): RequestHandler {
     return next(
       new AppError(
         403,
-        `Missing required permission: '${permission}'.`,
+        `Access Denied: Role '${user.role}' lacks required permission '${permission}'.`,
         ErrorCode.PERMISSION_DENIED
       )
     );
