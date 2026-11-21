@@ -20,6 +20,41 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { downloadElementAsPdf, generatePdfFromElement } from '../lib/pdfGenerator.js';
 import { RAREBOX_STAMP_BASE64 } from '../assets/rareboxStampBase64.js';
+import { RAREBOX_LOGO_BASE64, RAREBOX_WATERMARK_BASE64 } from '../assets/rareboxAssetsBase64.js';
+
+
+const RareboxLetterhead: React.FC = () => (
+  <div className="relative z-10 w-full mb-3 pb-2 border-b-2 border-red-600">
+    <div className="flex items-center justify-between">
+      <img
+        src={RAREBOX_LOGO_BASE64}
+        alt="Rarebox Solar Logo"
+        className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0"
+      />
+      <div className="text-center flex-1 px-2">
+        <h1 className="text-3xl font-serif font-black tracking-wider text-[#d01e1e] leading-none mb-1">
+          RAREBOX <span className="text-[#002060]">LLP</span>
+        </h1>
+        <p className="text-[12px] font-serif text-slate-800 tracking-wide font-medium">
+          Mahadev Ghat Road, Ashwani Nagar, Raipur (C.G.)
+        </p>
+        <p className="text-[12px] font-serif text-slate-800 tracking-wide font-medium">
+          GSTIN: 22ABEFR6253M1ZZ &nbsp;&nbsp; Mo. No. 9630131550
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+const RareboxWatermark: React.FC = () => (
+  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.08] z-0 select-none">
+    <img
+      src={RAREBOX_WATERMARK_BASE64}
+      alt="Watermark"
+      className="w-[440px] h-[440px] object-contain"
+    />
+  </div>
+);
 
 interface CustomerOption {
   _id?: string;
@@ -1713,7 +1748,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
               <div className="bg-slate-200/70 dark:bg-zinc-950 p-4 sm:p-6 rounded-2xl border border-border/80 flex flex-col items-center overflow-x-auto">
                 <div
                   ref={documentPrintRef}
-                  className="w-full max-w-[760px] flex flex-col items-center space-y-8"
+                  style={{ width: '794px' }}
+                  className="flex flex-col items-center space-y-8 py-2 mx-auto shrink-0"
                 >
                   {/* ===================================================== */}
                   {/* TEMPLATE 1: SOLAR AGREEMENT (2 PAGES)                 */}
@@ -1734,8 +1770,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       {/* PAGE 1 CONTENT SHEET */}
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-11 shadow-lg border border-slate-300 text-[12px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -1828,8 +1869,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       {/* PAGE 2 CONTENT SHEET */}
                       <div
                         data-pdf-page="2"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-11 shadow-lg border border-slate-300 text-[12px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-3.5">
                           {/* Mini Header */}
@@ -1956,7 +2002,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div className="w-full flex items-center justify-between px-2 text-xs font-bold text-slate-600 dark:text-slate-400">
                         <span className="flex items-center gap-1.5">
                           <FileText className="w-4 h-4 text-solar-600" />
-                          <span>APPLICATION FOR GRID CONNECTIVITY — Page 1 of 1</span>
+                          <span>COVER LETTER — Page 1 of 1</span>
                         </span>
                         <span className="text-[11px] px-2 py-0.5 rounded bg-slate-300/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono font-semibold">
                           1 Page A4 Formatted
@@ -1965,80 +2011,130 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-12 shadow-lg border border-slate-300 text-[12.5px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
-                        <div className="space-y-6">
-                          {/* Date */}
-                          <div className="flex justify-between items-center text-[12px] border-b border-slate-200 pb-2">
-                            <span className="font-mono font-semibold text-slate-700">Ref: CSPDCL/GRID-CONN/{tplConsumerNumber}</span>
-                            <span>Date: <strong>{tplAgreementDate}</strong></span>
+                        <RareboxWatermark />
+
+                        <div className="space-y-4 relative z-10">
+                          {/* Official Rarebox Letterhead */}
+                          <RareboxLetterhead />
+
+                          {/* Shaded Date Box at top right */}
+                          <div className="flex justify-end text-[12.5px] font-serif mb-2">
+                            <span className="bg-slate-200/90 text-slate-900 px-3 py-1 font-semibold rounded-xs">
+                              Date: {tplAgreementDate}
+                            </span>
                           </div>
 
-                          {/* Addressed to */}
-                          <div className="space-y-1 text-[12.5px]">
+                          {/* Addressed To CSPDCL */}
+                          <div className="space-y-0.5 text-[12.5px] font-serif">
                             <p className="font-bold">To,</p>
-                            <p className="pl-4 font-bold text-slate-900">Sub Division AE</p>
-                            <p className="pl-4 font-semibold text-slate-800">C S P D C L</p>
-                            <p className="pl-4 text-slate-700">{tplDiscomSubDivAE}</p>
-                          </div>
-
-                          {/* Subject */}
-                          <div className="bg-slate-100 p-3.5 rounded-md border border-slate-300">
-                            <p className="font-bold text-[13px] leading-snug">
-                              Subject: Application for Grid Connectivity Rooftop {tplCapacityKwp} KW SP Solar Power plant.
+                            <p className="pl-6 font-bold text-slate-900">Sub Division AE</p>
+                            <p className="pl-6 font-bold text-slate-800">C S P D C L</p>
+                            <p className="pl-6 font-bold">
+                              <span className="bg-slate-200/90 px-2 py-0.5 rounded-xs">
+                                Sub Division AE Sub. Div. {tplDiscomSubDivAE}
+                              </span>
                             </p>
                           </div>
 
-                          {/* Body */}
-                          <div className="space-y-4 text-justify leading-relaxed">
+                          {/* Subject Line */}
+                          <div className="my-3 font-serif font-bold text-[13px]">
+                            <p>
+                              Subject: Application for Grid Connectivity Rooftop{' '}
+                              <span className="bg-slate-200/90 px-1 rounded-xs">
+                                {tplCapacityKwp} KW
+                              </span>{' '}
+                              SP Solar Power plant.
+                            </p>
+                          </div>
+
+                          {/* Body Text */}
+                          <div className="space-y-3 font-serif text-[12.5px] leading-relaxed text-justify">
                             <p className="font-bold">Respected Sir,</p>
                             <p>
-                              We would like to inform you that installed <strong>{tplCapacityKwp} KW</strong> Grid Connected Solar Power Plant at home building Roof Top to <strong>{tplConsumerName}</strong>, at <strong>{tplAddress}</strong>, District: <strong>{tplDistrict}</strong>, State: <strong>{tplState}</strong>. Details of Roof Top SPV to be installed in as under:
+                              We would like to inform you that installed{' '}
+                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
+                                {tplCapacityKwp} KW
+                              </span>{' '}
+                              Grid Connected Solar Power Plant at home building Roof Top to{' '}
+                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
+                                {tplConsumerName}
+                              </span>
+                              , at{' '}
+                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
+                                {tplAddress}
+                              </span>
+                              , District:{' '}
+                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
+                                {tplDistrict}
+                              </span>
+                              , State:{' '}
+                              <span className="bg-slate-200/90 px-1.5 py-0.5 rounded-xs">
+                                {tplState}
+                              </span>
+                              . Details of Roof Top SPV to be installed in as under:
                             </p>
 
-                            <div className="bg-slate-50 border border-slate-300 p-4 rounded-md space-y-1.5 text-[12px]">
-                              <p><strong>Name –</strong> {tplConsumerName}</p>
-                              <p><strong>Address –</strong> {tplAddress}</p>
-                              <p><strong>District:</strong> {tplDistrict}, <strong>State:</strong> {tplState}.</p>
-                              <p><strong>MOB –</strong> {tplMobile}</p>
-                              <p><strong>BP –</strong> {tplConsumerNumber}</p>
+                            <div className="my-3 pl-4 space-y-1.5 text-[12.5px]">
+                              <p>
+                                <span className="font-bold">Name-</span> &nbsp;&nbsp;
+                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
+                                  {tplConsumerName}
+                                </span>
+                              </p>
+                              <p>
+                                <span className="font-bold">Address –</span> &nbsp;
+                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
+                                  {tplAddress}
+                                </span>
+                              </p>
+                              <p>
+                                <span className="font-bold">District:</span> &nbsp;
+                                <span className="bg-slate-200/90 px-2 py-0.5 rounded-xs">
+                                  {tplDistrict}, State: {tplState}.
+                                </span>
+                              </p>
+                              <p>
+                                <span className="font-bold">MOB –</span> &nbsp;
+                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
+                                  {tplMobile}
+                                </span>
+                              </p>
+                              <p>
+                                <span className="font-bold">BP-</span> &nbsp;&nbsp;
+                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
+                                  {tplConsumerNumber}
+                                </span>
+                              </p>
                             </div>
 
                             <p>
                               We are submitting all required documents, certificates, etc related to our SPV. We request you to permit us to connect to the Grid (LV Connection).
                             </p>
 
-                            <p className="pt-2 font-medium">Thanking You,</p>
-                          </div>
-
-                          {/* Signature with Rarebox Stamp */}
-                          <div className="pt-6 border-t-2 border-slate-300 flex justify-end">
-                            <div className="space-y-1 text-right">
-                              <p className="font-bold text-xs uppercase">For, RAREBOX LLP</p>
-                              <p className="text-[11px] text-slate-600">Authorized Signatory</p>
-
-                              <div className="flex justify-end py-1">
-                                <img
-                                  src={RAREBOX_STAMP_BASE64}
-                                  alt="Rarebox LLP Stamp & Signature"
-                                  className="w-32 h-32 object-contain filter contrast-125"
-                                />
-                              </div>
-
-                              <div className="text-[11px] space-y-0.5 text-right font-medium">
-                                <p><strong>Name:</strong> {tplVendorSignatory}</p>
-                                <p><strong>Office:</strong> {tplVendorOffice}</p>
-                                <p><strong>Contact:</strong> {tplVendorPhone}</p>
-                              </div>
-                            </div>
+                            <p className="pt-2 font-bold">Thanking You,</p>
                           </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500 font-serif">
-                          <span>CSPDCL Low-Voltage (LV) Grid Connectivity Request • Rarebox LLP</span>
-                          <span className="font-bold">Page 1 of 1</span>
+                        {/* Authorized Signatory with Official Rarebox Stamp */}
+                        <div className="flex justify-between items-end mt-6 pt-4 relative z-10">
+                          <div></div>
+                          <div className="flex flex-col items-center text-center">
+                            <img
+                              src={RAREBOX_STAMP_BASE64}
+                              alt="Rarebox LLP Stamp & Signature"
+                              className="w-36 h-24 object-contain mb-1 filter contrast-125"
+                            />
+                            <p className="font-serif font-bold text-[12px] text-slate-900">For, RAREBOX LLP</p>
+                            <p className="font-serif text-[11px] text-slate-700">Authorized Signatory</p>
+                          </div>
                         </div>
                       </div>
                     </>
@@ -2062,8 +2158,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-12 shadow-lg border border-slate-300 text-[12.5px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -2182,8 +2283,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-12 shadow-lg border border-slate-300 text-[12.5px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-5 font-sans">
                           {/* Document Header */}
@@ -2286,8 +2392,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       {/* PAGE 1 CONTENT SHEET */}
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-11 shadow-lg border border-slate-300 text-[11.5px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-2.5">
                           {/* CSPDCL Header */}
@@ -2381,8 +2492,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       {/* PAGE 2 CONTENT SHEET */}
                       <div
                         data-pdf-page="2"
-                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-11 shadow-lg border border-slate-300 text-[12px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
                         <div className="space-y-6">
                           {/* Mini Header */}
@@ -2484,205 +2600,210 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
                       <div
                         data-pdf-page="1"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                        className="bg-white text-slate-950 w-full p-8 sm:p-11 shadow-lg border border-slate-300 text-[12px] leading-relaxed relative flex flex-col justify-between rounded-lg min-h-[1020px]"
+                        style={{
+                          width: '794px',
+                          minHeight: '1123px',
+                          boxSizing: 'border-box',
+                          fontFamily: '"Times New Roman", Times, serif'
+                        }}
+                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
                       >
-                        <div className="space-y-3.5">
-                          {/* Document Header */}
-                          <div className="text-center space-y-0.5 mb-3 border-b-2 border-slate-900 pb-2.5">
-                            <h2 className="text-xl font-bold tracking-tight uppercase">Work Completion Report</h2>
-                            <p className="text-[11px] text-slate-600 font-medium">
-                              Rooftop Solar PV Installation &amp; Technical Commissioning Joint Certificate
+                        <RareboxWatermark />
+
+                        <div className="space-y-3 relative z-10">
+                          {/* Official Rarebox Letterhead */}
+                          <RareboxLetterhead />
+
+                          {/* Document Title matching docx */}
+                          <div className="text-center my-1.5">
+                            <h2 className="text-lg font-serif font-bold tracking-wide uppercase text-slate-900 underline decoration-1 underline-offset-4">
+                              Work Completion Report
+                            </h2>
+                          </div>
+
+                          {/* Applicant Particulars matching docx */}
+                          <div className="space-y-0.5 font-serif text-[11.5px] my-1 text-slate-900">
+                            <p>
+                              <span className="font-bold">Name of Applicant:</span> &nbsp;&nbsp;
+                              <span className="font-bold">{tplConsumerName}</span>
+                            </p>
+                            <p>
+                              <span className="font-bold">Application Registration No.: -</span> &nbsp;&nbsp;
+                              <span className="font-mono font-bold">{tplApplicationNo}</span>
+                            </p>
+                            <p>
+                              <span className="font-bold">BP No.:</span> &nbsp;&nbsp;
+                              <span className="font-mono font-bold">{tplConsumerNumber}</span>
+                            </p>
+                            <p>
+                              <span className="font-bold">Mob. No.:</span> &nbsp;&nbsp;
+                              <span className="font-mono font-bold">{tplMobile}</span>
                             </p>
                           </div>
 
-                          {/* Applicant Particulars */}
-                          <div className="bg-slate-50 border border-slate-300 p-3 rounded-md text-[11px] space-y-0.5">
-                            <p><strong>Name of Applicant:</strong> &nbsp;<span className="font-bold">{tplConsumerName}</span></p>
-                            <p><strong>Application Registration No.:</strong> &nbsp;<span className="font-mono font-semibold">{tplApplicationNo}</span></p>
-                            <p><strong>BP No.:</strong> &nbsp;<span className="font-mono font-bold">{tplConsumerNumber}</span></p>
-                            <p><strong>Mob. No.:</strong> &nbsp;<span className="font-mono">{tplMobile}</span></p>
-                          </div>
-
-                          {/* Table 1: Solar PV System Module Detail */}
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-xs uppercase border-b border-slate-300 pb-0.5">
+                          {/* Section 1: Solar PV System Module Detail */}
+                          <div className="space-y-0.5">
+                            <h3 className="font-serif font-bold text-[12px] text-slate-900">
                               Solar PV System Module Detail
-                            </h4>
-                            <table className="w-full border-collapse border border-slate-400 text-left text-[11px]">
+                            </h3>
+                            <table className="w-full border-collapse border border-slate-700 text-left font-serif text-[11px] bg-transparent">
                               <tbody>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold w-1/2 bg-slate-50">Name of manufacturer with address</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold">{tplWcrModuleManufacturer}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold w-1/2">Name of manufacturer with address</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrModuleManufacturer}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Capacity of each Module (Wp)</td>
-                                  <td className="border border-slate-300 px-3 py-1">{tplWcrModuleWattage}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Capacity of each Module (Wp)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrModuleWattage}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">No. of Modules</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold">{tplWcrModuleCount}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">No. of Modules</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrModuleCount}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Total Capacity (kWp)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-solar-600">{tplCapacityKwp} kw</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Total Capacity (kWp)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplCapacityKwp} kw</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Date of installation</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono">{tplWcrInstallDate}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Date of installation</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInstallDate}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Any other information</td>
-                                  <td className="border border-slate-300 px-3 py-1">No</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Any other information</td>
+                                  <td className="border border-slate-700 px-3 py-0.5">No</td>
                                 </tr>
                               </tbody>
                             </table>
                           </div>
 
-                          {/* Table 2: Inverter Installed Detail */}
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-xs uppercase border-b border-slate-300 pb-0.5">
+                          {/* Section 2: Inverter Installed Detail */}
+                          <div className="space-y-0.5">
+                            <h3 className="font-serif font-bold text-[12px] text-slate-900">
                               Inverter Installed Detail
-                            </h4>
-                            <table className="w-full border-collapse border border-slate-400 text-left text-[11px]">
+                            </h3>
+                            <table className="w-full border-collapse border border-slate-700 text-left font-serif text-[11px] bg-transparent">
                               <tbody>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold w-1/2 bg-slate-50">Name of manufacturer with address</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold">{tplWcrInverterManufacturer}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold w-1/2">Name of manufacturer with address</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterManufacturer}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Make of the inverter</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold">{tplWcrInverterManufacturer}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Make of the inverter</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterManufacturer}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">AC capacity of individual inverter (KVA)</td>
-                                  <td className="border border-slate-300 px-3 py-1">{tplWcrInverterCapacity}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">AC capacity of individual inverter (KVA)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterCapacity}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">No. of inverters installed</td>
-                                  <td className="border border-slate-300 px-3 py-1">{tplWcrInverterCount}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">No. of inverters installed</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterCount}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Total AC capacity of inverter (KVA)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold">{tplWcrInverterCapacity}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Total AC capacity of inverter (KVA)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterCapacity}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Serial Nos.</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono font-bold text-slate-900">{tplWcrInverterSerial}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Serial Nos.</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-mono font-bold text-[10.5px]">{tplWcrInverterSerial}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Applicable Standard (BIS/IEC)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold">{tplWcrInverterStandard}</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Applicable Standard (BIS/IEC)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">{tplWcrInverterStandard}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-semibold bg-slate-50">Any other information</td>
-                                  <td className="border border-slate-300 px-3 py-1">NO</td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center text-slate-400">•</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Any other information</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-bold">NO</td>
                                 </tr>
                               </tbody>
                             </table>
                           </div>
 
-                          {/* Table 3: Other Details Checklist */}
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-xs uppercase border-b border-slate-300 pb-0.5">
-                              Other Technical Details
-                            </h4>
-                            <table className="w-full border-collapse border border-slate-400 text-left text-[11px]">
+                          {/* Section 3: Other Details */}
+                          <div className="space-y-0.5">
+                            <h3 className="font-serif font-bold text-[12px] text-slate-900">
+                              Other Details
+                            </h3>
+                            <table className="w-full border-collapse border border-slate-700 text-left font-serif text-[11px] bg-transparent">
                               <tbody>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono w-12 text-center">a)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">ACDB &amp; DCDB</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center w-16">
-                                    {wcrAcdb ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">a)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold w-1/2">ACDB &amp; DCDB</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrAcdb ? '✅' : '—'}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono text-center">b)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">LA Earthing Cable</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center">
-                                    {wcrLaEarthing ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">b)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">LA Earthing Cable</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrLaEarthing ? '✅' : '—'}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono text-center">c)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">AC Cable</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center">
-                                    {wcrAcCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">c)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">AC Cable</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrAcCable ? '✅' : '—'}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono text-center">d)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">DC Cable</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center">
-                                    {wcrDcCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">d)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">DC Cable</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrDcCable ? '✅' : '—'}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono text-center">e)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">METER BOARD</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center">
-                                    {wcrMeterBoard ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">e)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">METER BOARD</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrMeterBoard ? '✅' : '—'}</td>
                                 </tr>
-                                <tr>
-                                  <td className="border border-slate-300 px-3 py-1 font-mono text-center">f)</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-medium">Earthing Cable – ISI Mark</td>
-                                  <td className="border border-slate-300 px-3 py-1 font-bold text-center">
-                                    {wcrEarthingCable ? <span className="text-emerald-600">✅</span> : <span className="text-slate-400">❌</span>}
-                                  </td>
+                                <tr className="border border-slate-700">
+                                  <td className="border border-slate-700 px-2 py-0.5 w-8 text-center font-bold">f)</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 font-semibold">Earthing Cable – ISI Mark</td>
+                                  <td className="border border-slate-700 px-3 py-0.5 text-center font-bold text-emerald-600 text-[13px]">{wcrEarthingCable ? '✅' : '—'}</td>
                                 </tr>
                               </tbody>
                             </table>
                           </div>
 
                           {/* Notes & Certification */}
-                          <div className="space-y-1 text-[11px] pt-1 text-justify">
-                            <p className="text-slate-700">
-                              <strong>Note: -</strong> The contractor also provides to the consumer Operation and Maintenance Manual at site &amp; the detail of caution signage.
+                          <div className="space-y-1 font-serif text-[10.5px] text-slate-800 leading-snug text-justify mt-1.5">
+                            <p>
+                              <span className="font-bold">Note: -</span> The contractor also provides to the consumer Operation and Maintenance Manual at site &amp; the detail of caution signage.
                             </p>
-                            <p className="font-semibold text-slate-900 border-l-2 border-slate-500 pl-3 py-0.5">
+                            <p>
                               Certified that the above information for installed Solar Roof Top PV System under net metering arrangement and the equipment used comply with the Technical and Safety standards as specified by the Nigam under net metering system.
                             </p>
                           </div>
-
-                          {/* Signatures & Seal */}
-                          <div className="pt-4 border-t-2 border-slate-300 grid grid-cols-2 gap-8 mb-2">
-                            <div className="space-y-6">
-                              <div>
-                                <p className="font-bold text-xs uppercase">Signature of the Customer</p>
-                                <p className="text-[11px] text-slate-600">Consumer / Applicant Acceptance</p>
-                              </div>
-                              <div className="border-b border-slate-400 w-44 h-6"></div>
-                              <div className="text-[11px]">
-                                <p><strong>Customer Name:</strong> {tplConsumerName}</p>
-                                <p><strong>Mobile:</strong> {tplMobile}</p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <p className="font-bold text-xs uppercase">Signature of the Installer</p>
-                              <p className="text-[11px] text-slate-600">For {tplVendorName}</p>
-
-                              <div className="py-0.5">
-                                <img
-                                  src={RAREBOX_STAMP_BASE64}
-                                  alt="Rarebox LLP Stamp & Signature"
-                                  className="w-28 h-28 object-contain filter contrast-125"
-                                />
-                              </div>
-
-                              <div className="text-[11px] space-y-0.5">
-                                <p><strong>Authorized Signatory:</strong> {tplVendorSignatory}</p>
-                                <p><strong>Designation:</strong> {tplVendorDesignation}</p>
-                              </div>
-                            </div>
-                          </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500 font-sans">
-                          <span>DISCOM Work Completion Report &amp; Joint Inspection Handover</span>
-                          <span className="font-bold">Page 1 of 1</span>
+                        {/* Signatures & Seal */}
+                        <div className="flex justify-between items-end mt-4 pt-2 font-serif relative z-10">
+                          <div className="text-center">
+                            <div className="h-12 flex items-end justify-center">
+                              <div className="border-b border-slate-600 w-40 mb-1" />
+                            </div>
+                            <p className="font-bold text-[11.5px] text-slate-900">Signature of the Customer</p>
+                            <p className="text-[10px] text-slate-600">{tplConsumerName}</p>
+                          </div>
+
+                          <div className="text-center flex flex-col items-center">
+                            <img
+                              src={RAREBOX_STAMP_BASE64}
+                              alt="Rarebox LLP Stamp & Signature"
+                              className="w-32 h-20 object-contain mb-1 filter contrast-125"
+                            />
+                            <p className="font-bold text-[11.5px] text-slate-900">Signature of the Installer</p>
+                            <p className="text-[10px] text-slate-700">For M/S RAREBOX LLP RAIPUR</p>
+                          </div>
                         </div>
                       </div>
                     </>

@@ -118,10 +118,9 @@ export async function generatePdfFromElement(
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      const imgHeightMm = (canvas.height * contentWidthMm) / canvas.width;
-      const fitHeightMm = Math.min(imgHeightMm, maxContentHeightMm);
-
-      pdf.addImage(imgData, 'JPEG', marginMm, marginMm, contentWidthMm, fitHeightMm);
+      // For elements formatted as authentic A4 sheets (794px x 1123px),
+      // render 1:1 onto the exact A4 page without double margins or distortion
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
     }
 
     const totalPages = pdf.getNumberOfPages();
@@ -130,8 +129,8 @@ export async function generatePdfFromElement(
         pdf.setPage(p);
         pdf.setFontSize(8);
         pdf.setTextColor(140, 140, 140);
-        pdf.text(`Page ${p} of ${totalPages}`, pageWidthMm - marginMm - 18, pageHeightMm - 5);
-        pdf.text('PM Surya Ghar • Official EPC Document', marginMm, pageHeightMm - 5);
+        pdf.text(`Page ${p} of ${totalPages}`, pageWidthMm - 18, pageHeightMm - 5);
+        pdf.text('PM Surya Ghar • Official EPC Document', 12, pageHeightMm - 5);
       }
     }
 
