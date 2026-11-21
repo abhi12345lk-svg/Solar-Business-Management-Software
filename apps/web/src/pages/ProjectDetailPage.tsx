@@ -832,8 +832,18 @@ export const ProjectDetailPage: React.FC = () => {
               Installation Progression Pipeline (5 Master Milestones)
             </h3>
           </div>
-          <span className="text-xs font-semibold text-solar-600 bg-solar-50 px-2.5 py-0.5 rounded-full border border-solar-200 dark:bg-solar-950/40 dark:border-solar-800">
-            {FIVE_STAGES[currentStageIndex]?.fullName || project.currentStage}
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+            project.status === 'CANCELLED'
+              ? 'text-red-700 bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800'
+              : project.status === 'COMPLETED'
+                ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800'
+                : 'text-solar-600 bg-solar-50 border-solar-200 dark:bg-solar-950/40 dark:border-solar-800'
+          }`}>
+            {project.status === 'CANCELLED'
+              ? 'Project Status: CANCELLED'
+              : project.status === 'COMPLETED'
+                ? 'All 5 Stages Completed (Commissioned)'
+                : (FIVE_STAGES[currentStageIndex]?.fullName || project.currentStage)}
           </span>
         </div>
 
@@ -841,16 +851,22 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="overflow-x-auto py-2">
           <div className="flex items-center min-w-[650px] justify-between">
             {FIVE_STAGES.map((s, idx) => {
-              const isPast = idx < currentStageIndex;
-              const isCurrent = idx === currentStageIndex;
-              const isNext = idx === currentStageIndex + 1;
+              const isCompleted = project.status === 'COMPLETED';
+              const isCancelled = project.status === 'CANCELLED';
+              const isPast = isCompleted ? true : idx < currentStageIndex;
+              const isCurrent = isCompleted || isCancelled ? false : idx === currentStageIndex;
+              const isNext = isCompleted || isCancelled ? false : idx === currentStageIndex + 1;
               return (
                 <div key={s.key} className="flex-1 flex flex-col items-center relative group">
                   {/* Connecting Line */}
                   {idx > 0 && (
                     <div
                       className={`absolute top-4 -left-1/2 w-full h-1 -z-0 ${
-                        isPast ? 'bg-solar-600' : 'bg-muted'
+                        isCancelled
+                          ? 'bg-muted/80'
+                          : isPast
+                            ? 'bg-solar-600'
+                            : 'bg-muted'
                       }`}
                     />
                   )}
@@ -863,16 +879,20 @@ export const ProjectDetailPage: React.FC = () => {
                         : `Jump to ${s.fullName} tab`
                     }
                     className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-all shadow-sm cursor-pointer hover:scale-105 ${
-                      isPast
-                        ? 'bg-solar-600 text-white'
-                        : isCurrent
-                          ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
-                          : isNext
-                            ? 'bg-solar-500/20 border-2 border-solar-500 text-solar-700 dark:text-solar-300 hover:bg-solar-500 hover:text-white ring-2 ring-solar-500/10 animate-pulse'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      isCancelled
+                        ? 'bg-muted text-muted-foreground border border-red-300 dark:border-red-900/40'
+                        : isCompleted
+                          ? 'bg-emerald-600 text-white'
+                          : isPast
+                            ? 'bg-solar-600 text-white'
+                            : isCurrent
+                              ? 'bg-solar-500 text-white ring-4 ring-solar-500/20'
+                              : isNext
+                                ? 'bg-solar-500/20 border-2 border-solar-500 text-solar-700 dark:text-solar-300 hover:bg-solar-500 hover:text-white ring-2 ring-solar-500/10 animate-pulse'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
-                    {isPast ? <Check className="w-5 h-5" /> : s.step}
+                    {isCompleted || isPast ? <Check className="w-5 h-5" /> : s.step}
                   </div>
                   <span
                     onClick={() => handleStageNodeClick(s.key, idx)}
@@ -880,7 +900,7 @@ export const ProjectDetailPage: React.FC = () => {
                     className={`mt-2 text-xs text-center font-medium line-clamp-1 max-w-[120px] hover:underline cursor-pointer ${
                       isCurrent
                         ? 'text-solar-600 font-bold'
-                        : isPast
+                        : isPast || isCompleted
                           ? 'text-foreground font-semibold'
                           : isNext
                             ? 'text-solar-600 dark:text-solar-400 font-semibold'
@@ -896,6 +916,33 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
 
         {/* Operational Guidance Banner depending on status & stage */}
+        {project.status === 'CANCELLED' && (
+          <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-xs mt-2">
+            <XCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <div>
+              <span className="font-bold text-red-900 dark:text-red-200">
+                Project Execution Cancelled
+              </span>
+              <p className="text-red-700 dark:text-red-300 text-[11px] mt-0.5">
+                This project has been cancelled. All installation and field activities are halted.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {project.status === 'COMPLETED' && (
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-xs mt-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                Project Successfully Commissioned &amp; Handed Over
+              </span>
+              <p className="text-emerald-700 dark:text-emerald-300 text-[11px] mt-0.5">
+                All 5 stages (Design, Dispatch, Physical Installation, Net Metering &amp; Handover) are complete.
+              </p>
+            </div>
+          </div>
+        )}
         {project.status === 'PLANNING' && (
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mt-2">
             <div className="flex items-start sm:items-center space-x-2.5">

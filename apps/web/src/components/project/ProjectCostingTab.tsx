@@ -276,10 +276,9 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
             <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 text-sm flex items-start space-x-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold block">Incomplete Financial Data Notice</span>
+                <span className="font-bold block">Standalone Project Notice</span>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Profitability metrics represent recorded entries only. The following data points
-                  are missing:
+                  Financial metrics reflect currently recorded project vouchers. Note:
                 </p>
                 <ul className="list-disc list-inside text-xs mt-1 text-amber-800">
                   {report.dataCompletenessNotes.map((note, idx) => (

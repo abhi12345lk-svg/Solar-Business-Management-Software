@@ -369,20 +369,16 @@ export function ProjectsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FolderKanban className="w-7 h-7 text-primary" />
-            <span>Project Management</span>
-            <span className="text-xs px-2.5 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
-              5-Stage EPC Pipeline
-            </span>
+            <FolderKanban className="w-6 h-6 text-solar-600" />
+            <span>Projects</span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track solar rooftop installations, 5-stage execution milestones, field execution,
-            checklist gates, and commissioning.
+            Track and manage solar rooftop installation projects.
           </p>
         </div>
         <button
           onClick={openNewProjectModal}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity shadow-sm self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-solar-600 text-white font-medium text-sm hover:bg-solar-700 transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           New Project

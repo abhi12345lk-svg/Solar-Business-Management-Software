@@ -98,7 +98,11 @@ catalogRouter.get(
     try {
       const filter = ProductFilterSchema.parse(req.query);
       const result = await CatalogService.listProducts(filter);
-      sendSuccess(req, res, result);
+      sendSuccess(req, res, {
+        items: result.data,
+        data: result.data,
+        pagination: result.pagination
+      });
     } catch (err) {
       next(err);
     }

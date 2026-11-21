@@ -18,7 +18,11 @@ warehouseRouter.get(
     try {
       const filter = WarehouseFilterSchema.parse(req.query);
       const result = await WarehouseService.listWarehouses(filter);
-      sendSuccess(req, res, result);
+      sendSuccess(req, res, {
+        items: result.data,
+        data: result.data,
+        pagination: result.pagination
+      });
     } catch (err) {
       next(err);
     }
