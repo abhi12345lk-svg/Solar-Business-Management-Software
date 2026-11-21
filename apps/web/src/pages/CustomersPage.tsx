@@ -1967,24 +1967,35 @@ export const CustomersPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 shrink-0">
-                  {!isInstaller && (
+                  {isInstaller ? (
                     <Link
-                      to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                      to={`/site-photos?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
                       className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                      title="Generate RTS Agreement or Subsidy Form"
+                      title="Open Site Photos Workstation"
                     >
-                      <FilePlus2 className="w-3.5 h-3.5" />
-                      <span>+ Create Document</span>
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Open Site Photos &rarr;</span>
                     </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                        className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                        title="Generate RTS Agreement or Subsidy Form"
+                      >
+                        <FilePlus2 className="w-3.5 h-3.5" />
+                        <span>+ Create Document</span>
+                      </Link>
+                      <Link
+                        to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                        className="hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
+                        title="Open Full Central Vault"
+                      >
+                        <span>Central Vault</span>
+                        <ExternalLink className="w-3 h-3 ml-0.5" />
+                      </Link>
+                    </>
                   )}
-                  <Link
-                    to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
-                    className="hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
-                    title="Open Full Central Vault"
-                  >
-                    <span>Central Vault</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </Link>
                   <button
                     type="button"
                     onClick={() => fetchVaultDocuments(vaultCustomer.id)}
@@ -2030,30 +2041,40 @@ export const CustomersPage: React.FC = () => {
 
                 {/* Mobile action bar for small screens */}
                 <div className="flex sm:hidden items-center justify-between gap-2 bg-muted/40 p-2.5 rounded-xl border">
-                  {!isInstaller && (
+                  {isInstaller ? (
                     <Link
-                      to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                      to={`/site-photos?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
                       className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-solar-600 text-white"
                     >
-                      <FilePlus2 className="w-3.5 h-3.5" />
-                      <span>Create Doc</span>
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Site Photos &rarr;</span>
                     </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-solar-600 text-white"
+                      >
+                        <FilePlus2 className="w-3.5 h-3.5" />
+                        <span>Create Doc</span>
+                      </Link>
+                      <Link
+                        to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground"
+                      >
+                        <span>Central Vault</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground border"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload</span>
+                      </button>
+                    </>
                   )}
-                  <Link
-                    to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground"
-                  >
-                    <span>Central Vault</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground border"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload</span>
-                  </button>
                 </div>
 
                 {/* Custom Upload Form Collapsible */}
@@ -2208,14 +2229,24 @@ export const CustomersPage: React.FC = () => {
                           : 'Direct KYC, Consumer Bills, Ownership, Passbook & Rooftop Photos for DISCOM & PM Surya Ghar Subsidy'}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
-                      className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border transition shadow-xs cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-solar-600" />
-                      <span>{vaultUploadOpen ? 'Close Form' : '+ Custom Document'}</span>
-                    </button>
+                    {isInstaller ? (
+                      <Link
+                        to={`/site-photos?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                        className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Open Site Photos Workstation &rarr;</span>
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setVaultUploadOpen(!vaultUploadOpen)}
+                        className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border transition shadow-xs cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-solar-600" />
+                        <span>{vaultUploadOpen ? 'Close Form' : '+ Custom Document'}</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2323,6 +2354,14 @@ export const CustomersPage: React.FC = () => {
                                   </button>
                                 </div>
                               </>
+                            ) : isInstaller && slot.key === 'SITE_PHOTOS' ? (
+                              <Link
+                                to={`/site-photos?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                                className="w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-solar-600 hover:bg-solar-700 text-white shadow-xs"
+                              >
+                                <Camera className="w-3.5 h-3.5" />
+                                <span>Capture in Site Photos &rarr;</span>
+                              </Link>
                             ) : (
                               <label className={`w-full py-1.5 px-2.5 rounded-lg text-center text-xs font-semibold cursor-pointer transition flex items-center justify-center space-x-1.5 ${
                                 isUploading

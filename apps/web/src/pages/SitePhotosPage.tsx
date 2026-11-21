@@ -1086,6 +1086,7 @@ export const SitePhotosPage: React.FC<SitePhotosPageProps> = () => {
             fileSizeBytes: Math.max(blob.size, 1024),
             customerId: custId,
             metadata: {
+              source: 'SITE_PHOTOS_WORKSTATION',
               documentType: 'SITE_PHOTOS_REPORT',
               consumerNumber: tplConsumerNumber,
               consumerName: tplConsumerName,

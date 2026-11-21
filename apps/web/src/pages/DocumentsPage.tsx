@@ -247,12 +247,15 @@ export const DocumentsPage: React.FC = () => {
 
             if (validPhotosCount === 0) continue;
 
-            // Check if this customer already has a SITE_PHOTOS document in list
+            // Check if this customer already has an official SITE_PHOTOS report in list
             const existingDoc = list.find(d => {
               const dCustId = d.customerId?._id || (d.customerId as any);
+              const isCustMatch = dCustId === custId || (dCustId && dCustId.toString() === custId.toString());
+              if (!isCustMatch) return false;
               return (
-                (dCustId === custId || (dCustId && dCustId.toString() === custId.toString())) &&
-                (d.category === 'SITE_PHOTOS' || d.safeDisplayName?.toLowerCase().includes('site inspection'))
+                (d as any).metadata?.documentType === 'SITE_PHOTOS_REPORT' ||
+                (d.originalFilename || '').toUpperCase().startsWith('SITE_PHOTOS_') ||
+                (d.safeDisplayName || '').toLowerCase().includes('site inspection photos')
               );
             });
 
@@ -704,35 +707,16 @@ export const DocumentsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Buttons: Installer gets Upload Document & Capture Site Photos */}
+        {/* Action Buttons: Installer only gets Capture Site Photos */}
         <div className="flex items-center space-x-2.5 shrink-0">
           {effectivePanel === PanelType.INSTALLER ? (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setFormError(null);
-                  setSelectedFile(null);
-                  setUploadFilename('');
-                  setUploadDisplayName('');
-                  setUploadCustomerId(customerFilter || '');
-                  setUploadCategory('SITE_PHOTOS');
-                  setUploadModalOpen(true);
-                }}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
-              >
-                <UploadCloud className="w-4 h-4 text-solar-600" />
-                <span>Upload Document</span>
-              </button>
-
-              <Link
-                to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Capture Site Photos &rarr;</span>
-              </Link>
-            </>
+            <Link
+              to={`/site-photos${customerFilter ? '?customerId=' + customerFilter : ''}`}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Capture Site Photos &rarr;</span>
+            </Link>
           ) : effectivePanel === PanelType.ACCOUNTS ? (
             <button
               onClick={() => {
@@ -1091,26 +1075,26 @@ export const DocumentsPage: React.FC = () => {
                 : 'No files match your current filter criteria.'}
             </p>
             <div className="flex items-center justify-center gap-2 pt-2">
-              {isInstaller && (
+              {isInstaller ? (
                 <Link
                   to="/site-photos"
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Open Site Photos Workstation</span>
+                  <span>Open Site Photos Workstation &rarr;</span>
                 </Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    setUploadModalOpen(true);
+                    setUploadCustomerId(customerFilter || '');
+                  }}
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Upload First Document</span>
+                </button>
               )}
-              <button
-                onClick={() => {
-                  setUploadModalOpen(true);
-                  setUploadCustomerId(customerFilter || '');
-                  if (isInstaller) setUploadCategory('SITE_PHOTOS');
-                }}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-              >
-                <UploadCloud className="w-4 h-4" />
-                <span>{isInstaller ? 'Upload Site Document' : 'Upload First Document'}</span>
-              </button>
             </div>
           </div>
         ) : (
