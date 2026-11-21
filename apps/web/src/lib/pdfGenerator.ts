@@ -114,7 +114,14 @@ export async function generatePdfFromElement(
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: 1024,
+        onclone: (_doc, clonedEl) => {
+          clonedEl.style.width = '794px';
+          clonedEl.style.maxWidth = '794px';
+          clonedEl.style.minHeight = '1123px';
+          clonedEl.style.padding = '48px';
+        }
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);

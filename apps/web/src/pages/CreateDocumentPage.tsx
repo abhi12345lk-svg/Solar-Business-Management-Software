@@ -25,20 +25,20 @@ import { RAREBOX_LOGO_BASE64, RAREBOX_WATERMARK_BASE64 } from '../assets/rarebox
 
 const RareboxLetterhead: React.FC = () => (
   <div className="relative z-10 w-full mb-3 pb-2 border-b-2 border-red-600">
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2 sm:gap-4">
       <img
         src={RAREBOX_LOGO_BASE64}
         alt="Rarebox Solar Logo"
-        className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0"
+        className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain shrink-0"
       />
-      <div className="text-center flex-1 px-2">
-        <h1 className="text-3xl font-serif font-black tracking-wider text-[#d01e1e] leading-none mb-1">
+      <div className="text-center flex-1 min-w-0">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-black tracking-wider text-[#d01e1e] leading-none mb-1 whitespace-nowrap">
           RAREBOX <span className="text-[#002060]">LLP</span>
         </h1>
-        <p className="text-[12px] font-serif text-slate-800 tracking-wide font-medium">
+        <p className="text-[10px] sm:text-[11.5px] md:text-[12px] font-serif text-slate-800 tracking-wide font-medium">
           Mahadev Ghat Road, Ashwani Nagar, Raipur (C.G.)
         </p>
-        <p className="text-[12px] font-serif text-slate-800 tracking-wide font-medium">
+        <p className="text-[10px] sm:text-[11.5px] md:text-[12px] font-serif text-slate-800 tracking-wide font-medium">
           GSTIN: 22ABEFR6253M1ZZ &nbsp;&nbsp; Mo. No. 9630131550
         </p>
       </div>
@@ -1711,7 +1711,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
           {/* ========================================================= */}
           {/* RIGHT COLUMN: LIVE AUTHENTIC MULTI-PAGE DOCUMENT CANVAS   */}
           {/* ========================================================= */}
-          <div className="lg:col-span-7 space-y-4">
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
             <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
               {/* Header Info Banner */}
               <div className="flex items-center justify-between border-b border-border pb-3">
@@ -1748,8 +1748,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
               <div className="bg-slate-200/70 dark:bg-zinc-950 p-4 sm:p-6 rounded-2xl border border-border/80 flex flex-col items-center overflow-x-auto">
                 <div
                   ref={documentPrintRef}
-                  style={{ width: '794px' }}
-                  className="flex flex-col items-center space-y-8 py-2 mx-auto shrink-0"
+                  className="w-full max-w-[794px] flex flex-col items-center space-y-8 py-2 mx-auto"
                 >
                   {/* ===================================================== */}
                   {/* TEMPLATE 1: SOLAR AGREEMENT (2 PAGES)                 */}
@@ -1771,12 +1770,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -1870,12 +1866,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="2"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-3.5">
                           {/* Mini Header */}
@@ -2012,12 +2005,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <RareboxWatermark />
 
@@ -2159,12 +2149,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-4">
                           {/* Document Header */}
@@ -2284,12 +2271,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-5 font-sans">
                           {/* Document Header */}
@@ -2393,12 +2377,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-2.5">
                           {/* CSPDCL Header */}
@@ -2493,12 +2474,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="2"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <div className="space-y-6">
                           {/* Mini Header */}
@@ -2601,12 +2579,9 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                       <div
                         data-pdf-page="1"
                         style={{
-                          width: '794px',
-                          minHeight: '1123px',
-                          boxSizing: 'border-box',
                           fontFamily: '"Times New Roman", Times, serif'
                         }}
-                        className="bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-10 sm:p-12 relative flex flex-col justify-between shrink-0 mx-auto"
+                        className="w-full max-w-[794px] bg-white text-slate-950 shadow-2xl border border-slate-300 rounded-lg p-6 sm:p-10 md:p-12 relative flex flex-col justify-between mx-auto min-h-[960px] md:min-h-[1080px]"
                       >
                         <RareboxWatermark />
 
