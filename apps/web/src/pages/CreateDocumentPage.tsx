@@ -593,34 +593,6 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
-        {/* Top 1-Click Template Selector Pills Bar */}
-        <div className="bg-card border border-border rounded-xl p-2.5 shadow-2xs">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            {availableTemplates.map(tpl => {
-              const isSelected = selectedTemplateId === tpl.id || (tpl.id === 'SOLAR_AGREEMENT' && isSolarAgreement);
-              return (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => setSelectedTemplateId(tpl.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 border ${
-                    isSelected
-                      ? 'bg-solar-600 text-white border-solar-600 shadow-xs'
-                      : 'bg-background hover:bg-muted text-foreground border-border'
-                  }`}
-                >
-                  <span>{tpl.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {tpl.totalPages} {tpl.totalPages === 1 ? 'Page' : 'Pages'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Horizontal Toolbar Card: Template Dropdown & Customer Selector */}
         <div className="bg-card border border-border rounded-xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">

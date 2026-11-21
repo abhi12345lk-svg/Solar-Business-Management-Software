@@ -8,7 +8,6 @@ import { LoginPage } from './pages/LoginPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
 import { CustomersPage } from './pages/CustomersPage.js';
-import { FollowUpsPage } from './pages/FollowUpsPage.js';
 import { SolarDesignPage } from './pages/SolarDesignPage.js';
 import { QuotationsPage } from './pages/QuotationsPage.js';
 import { QuotationDetailPage } from './pages/QuotationDetailPage.js';
@@ -109,7 +108,7 @@ export const App: React.FC = () => {
             path="follow-ups"
             element={
               <ProtectedRoute>
-                <FollowUpsPage />
+                <Navigate to="/leads" replace />
               </ProtectedRoute>
             }
           />

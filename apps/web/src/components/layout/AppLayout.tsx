@@ -19,7 +19,6 @@ import {
   LifeBuoy,
   Menu,
   X,
-  Bell,
   CreditCard,
   TrendingUp,
   PanelLeftClose,
@@ -101,7 +100,6 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
-      { to: '/follow-ups', label: 'Follow-ups & Reminders', icon: Bell },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
       { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
     ]
@@ -164,7 +162,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
     return { section: 'Commercial', title: 'Customer Directory' };
   }
-  if (pathname.startsWith('/follow-ups')) return { section: 'Commercial', title: 'Follow-ups & Reminders' };
+  if (pathname.startsWith('/follow-ups')) return { section: 'Commercial', title: 'Lead Management' };
   if (pathname.startsWith('/solar-designs'))
     return {
       section: panel === PanelType.SALES ? 'Estimation' : 'Engineering',
