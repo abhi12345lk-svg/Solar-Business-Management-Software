@@ -41,7 +41,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     queryKey: ['accountsPayments'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/payments?limit=150');
+        const res = await apiClient<any>('/payments?limit=100');
         return res;
       } catch {
         return { items: [] };
@@ -58,7 +58,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     queryKey: ['accountsVendorInvoices'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/vendor-invoices?limit=150');
+        const res = await apiClient<any>('/vendor-invoices?limit=100');
         return res;
       } catch {
         return [];
@@ -80,7 +80,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     queryKey: ['accountsSubsidies'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/subsidies?limit=150');
+        const res = await apiClient<any>('/subsidies?limit=100');
         return res;
       } catch {
         return [];
@@ -102,7 +102,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     queryKey: ['accountsExpenses'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>('/expenses?limit=150');
+        const res = await apiClient<any>('/expenses?limit=100');
         return res;
       } catch {
         return [];

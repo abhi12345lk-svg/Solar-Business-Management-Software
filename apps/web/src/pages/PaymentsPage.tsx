@@ -328,7 +328,7 @@ export const PaymentsPage: React.FC = () => {
   // Load customer master list
   const loadCustomers = async () => {
     try {
-      const res = await apiClient<any>('/customers?limit=150');
+      const res = await apiClient<any>('/customers?limit=100');
       const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : res?.data || []);
       setCustomersList(
         items.map((c: any) => ({

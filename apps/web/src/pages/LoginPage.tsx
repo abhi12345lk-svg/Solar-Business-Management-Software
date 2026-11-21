@@ -192,7 +192,7 @@ export const LoginPage: React.FC = () => {
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-1.5 hover:border-amber-500/40 transition-colors">
               <div className="flex items-center space-x-2 text-amber-400 font-semibold text-xs uppercase tracking-wider">
                 <Layers className="w-4 h-4" />
-                <span>10-Stage Project EPC</span>
+                <span>5-Stage Project EPC</span>
               </div>
               <p className="text-xs text-slate-400 leading-normal">
                 BOM dispatch gate-checks, 5-category installation audits, and commissioning.

@@ -594,11 +594,11 @@ export const SurveysPage: React.FC = () => {
                         )}
                       </button>
                       <Link
-                        to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                        to={`/quotations?leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}&capacity=${srv.proposedCapacityKw || 5}&action=new`}
                         className="inline-flex items-center text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-md border border-emerald-500/30 transition cursor-pointer"
                       >
-                        <Sun className="w-3.5 h-3.5 mr-1" />
-                        <span>PV Sizing →</span>
+                        <FileText className="w-3.5 h-3.5 mr-1" />
+                        <span>Quotation →</span>
                       </Link>
                     </div>
                   </div>
@@ -702,12 +702,12 @@ export const SurveysPage: React.FC = () => {
                               )}
                             </button>
                             <Link
-                              to={`/solar-designs?surveyId=${(srv as any)._id || srv.id}&capacity=${srv.proposedCapacityKw || 5}&leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}`}
+                              to={`/quotations?leadId=${(srv as any).leadId?._id || srv.leadId || ''}&customerId=${(srv as any).customerId?._id || (srv as any).customerId || ''}&capacity=${srv.proposedCapacityKw || 5}&action=new`}
                               className="inline-flex items-center text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded-md border border-emerald-500/30 transition cursor-pointer"
-                              title="Proceed to Solar PV CAD & Sizing"
+                              title="Proceed to Quotation Proposal"
                             >
-                              <Sun className="w-3.5 h-3.5 mr-1" />
-                              <span>PV Sizing →</span>
+                              <FileText className="w-3.5 h-3.5 mr-1" />
+                              <span>Quotation →</span>
                             </Link>
                           </div>
                         </td>
@@ -1447,11 +1447,11 @@ export const SurveysPage: React.FC = () => {
                 Close
               </button>
               <Link
-                to={`/solar-designs?surveyId=${(activeSurvey as any)._id || activeSurvey.id}&capacity=${activeSurvey.proposedCapacityKw || 5}&leadId=${(activeSurvey as any).leadId?._id || activeSurvey.leadId || ''}&customerId=${(activeSurvey as any).customerId?._id || (activeSurvey as any).customerId || ''}`}
+                to={`/quotations?leadId=${(activeSurvey as any).leadId?._id || activeSurvey.leadId || ''}&customerId=${(activeSurvey as any).customerId?._id || (activeSurvey as any).customerId || ''}&capacity=${activeSurvey.proposedCapacityKw || 5}&action=new`}
                 className="px-4 py-2 bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold rounded-lg shadow-sm transition inline-flex items-center space-x-1.5 cursor-pointer"
               >
-                <Sun className="w-3.5 h-3.5" />
-                <span>Proceed to PV Sizing (CAD) →</span>
+                <FileText className="w-3.5 h-3.5" />
+                <span>Create Quotation Proposal →</span>
               </Link>
             </div>
           </div>

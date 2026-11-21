@@ -122,15 +122,18 @@ export class SubsidyService {
       }
     }
 
+    // Resolve a guaranteed valid actor ObjectId for audit/ownership
+    const actorId =
+      user?.userId && Types.ObjectId.isValid(user.userId)
+        ? new Types.ObjectId(user.userId)
+        : customer?._id && Types.ObjectId.isValid(customer._id)
+        ? customer._id
+        : new Types.ObjectId();
+
     // 5. Ensure a Project exists for this customer
     if (!project) {
       project = await Project.findOne({ customerId: customer._id });
       if (!project) {
-        const actorId =
-          user?.userId && Types.ObjectId.isValid(user.userId)
-            ? new Types.ObjectId(user.userId)
-            : customer._id;
-
         const prjSeq = await SequenceService.generateNumber(SequenceEntityType.PROJECT);
         project = await Project.create({
           projectCode: prjSeq.formattedNumber,
@@ -234,7 +237,7 @@ export class SubsidyService {
         {
           status: input.portalApplicationNumber ? SubsidyStatus.CLAIM_SUBMITTED : SubsidyStatus.ELIGIBLE,
           changedAt: new Date(),
-          changedBy: new Types.ObjectId(user.userId),
+          changedBy: actorId,
           notes: input.notes || 'Subsidy claim registered on National Portal'
         }
       ],

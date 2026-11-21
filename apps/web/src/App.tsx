@@ -8,7 +8,6 @@ import { LoginPage } from './pages/LoginPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
 import { CustomersPage } from './pages/CustomersPage.js';
-import { SolarDesignPage } from './pages/SolarDesignPage.js';
 import { QuotationsPage } from './pages/QuotationsPage.js';
 import { QuotationDetailPage } from './pages/QuotationDetailPage.js';
 import { OrdersPage } from './pages/OrdersPage.js';
@@ -118,11 +117,11 @@ export const App: React.FC = () => {
             path="solar-designs"
             element={
               <ProtectedRoute>
-                <SolarDesignPage />
+                <Navigate to="/projects" replace />
               </ProtectedRoute>
             }
           />
-          <Route path="solar-design" element={<Navigate to="/solar-designs" replace />} />
+          <Route path="solar-design" element={<Navigate to="/projects" replace />} />
           <Route path="customer" element={<Navigate to="/customers" replace />} />
           <Route path="lead" element={<Navigate to="/leads" replace />} />
           <Route path="quotation" element={<Navigate to="/quotations" replace />} />

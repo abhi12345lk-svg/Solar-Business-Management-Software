@@ -8,7 +8,6 @@ import {
   Mail,
   MapPin,
   Building2,
-  Sun,
   FileSpreadsheet,
   FolderKanban,
   AlertCircle,
@@ -1444,25 +1443,14 @@ export const CustomersPage: React.FC = () => {
                   <span>Direct Workflow Launch:</span>
                   <span className="text-[11px] text-muted-foreground font-normal">Pre-filled with customer details</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  <Link
-                    to={`/solar-designs?customerId=${selectedCustomer.id}&customerName=${encodeURIComponent(selectedCustomer.name)}`}
-                    className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
-                  >
-                    <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
-                      <Sun className="w-3.5 h-3.5" />
-                      <span>1. Solar CAD</span>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">PV sizing simulation</span>
-                  </Link>
-
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Link
                     to={`/quotations?customerId=${selectedCustomer.id}`}
                     className="p-2.5 bg-card hover:bg-muted/50 border rounded-lg transition shadow-xs flex flex-col items-start space-y-1 group"
                   >
                     <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
                       <FileSpreadsheet className="w-3.5 h-3.5" />
-                      <span>2. Quotation</span>
+                      <span>1. Quotation</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">Draft proposal & BOM</span>
                   </Link>
@@ -1473,7 +1461,7 @@ export const CustomersPage: React.FC = () => {
                   >
                     <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      <span>3. Sales Order</span>
+                      <span>2. Sales Order</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">Billing & payments</span>
                   </Link>
@@ -1484,7 +1472,7 @@ export const CustomersPage: React.FC = () => {
                   >
                     <div className="flex items-center space-x-1.5 text-solar-600 font-semibold text-xs">
                       <FolderKanban className="w-3.5 h-3.5" />
-                      <span>4. 10-Stage EPC</span>
+                      <span>3. Projects</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">Installation tracker</span>
                   </Link>
@@ -1500,7 +1488,7 @@ export const CustomersPage: React.FC = () => {
                   >
                     <div className="flex items-center space-x-1.5 text-blue-600 font-semibold text-xs">
                       <FolderLock className="w-3.5 h-3.5" />
-                      <span>5. Document Vault</span>
+                      <span>4. Document Vault</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">KYC, Bills & Proofs</span>
                   </button>

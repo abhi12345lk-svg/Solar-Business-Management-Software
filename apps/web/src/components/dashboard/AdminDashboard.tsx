@@ -239,24 +239,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
     o => o.status === 'CONFIRMED' && (!o.reservationStatus || o.reservationStatus === 'NONE')
   ).length;
 
-  // 10-Stage Project Execution Breakdown
+  // 5-Stage Master Project Execution Breakdown
   const standardStages = [
-    { num: '01', name: 'Design & Engineering', stageKey: 'STAGE_1_ENGINEERING_DESIGN' },
-    { num: '02', name: 'Net Metering Apply', stageKey: 'STAGE_2_NET_METERING_APPLY' },
-    { num: '03', name: 'Material Dispatch', stageKey: 'STAGE_3_MATERIAL_DISPATCH' },
-    { num: '04', name: 'Civil Structure', stageKey: 'STAGE_4_CIVIL_STRUCTURE' },
-    { num: '05', name: 'DC Cabling & Wiring', stageKey: 'STAGE_5_MODULE_DC_CABLING' },
-    { num: '06', name: 'Inverter & ACDB', stageKey: 'STAGE_6_INVERTER_ACDB' },
-    { num: '07', name: 'Earthing & Protection', stageKey: 'STAGE_7_EARTHING_LIGHTNING' },
-    { num: '08', name: 'Pre-Commission Test', stageKey: 'STAGE_8_TESTING_PRE_COMMISSION' },
-    { num: '09', name: 'DISCOM Meter Install', stageKey: 'STAGE_9_DISCOM_METER_INSTALL' },
-    { num: '10', name: 'Handover & COD', stageKey: 'STAGE_10_COMMISSION_HANDOVER' }
+    { num: '01', name: 'Design & Approval', stageKey: 'STAGE_1_DESIGN_APPROVAL' },
+    { num: '02', name: 'Material Dispatch', stageKey: 'STAGE_2_MATERIAL_DISPATCH' },
+    { num: '03', name: 'Site Installation', stageKey: 'STAGE_3_SITE_INSTALLATION' },
+    { num: '04', name: 'Net Meter Sync', stageKey: 'STAGE_4_NET_METER_SYNC' },
+    { num: '05', name: 'Handover & COD', stageKey: 'STAGE_5_HANDOVER_COMMISSIONING' }
   ];
 
-  // Map active projects to stages (Active sites remain visible across all stages)
+  // Map active projects to 5 stages (Aggregating legacy stages cleanly)
   const stageCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    standardStages.forEach(s => (counts[s.stageKey] = 0));
+    const counts: Record<string, number> = {
+      STAGE_1_DESIGN_APPROVAL: 0,
+      STAGE_2_MATERIAL_DISPATCH: 0,
+      STAGE_3_SITE_INSTALLATION: 0,
+      STAGE_4_NET_METER_SYNC: 0,
+      STAGE_5_HANDOVER_COMMISSIONING: 0
+    };
 
     // Pipeline reflects current active sites; fallback to all active or within date filter
     const pipelineProjects = dateRange === 'ALL'
@@ -264,13 +264,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
       : projects.filter(p => p.status === 'PLANNING' || p.status === 'IN_PROGRESS' || isWithinDateRange(p.createdAt, dateRange));
 
     pipelineProjects.forEach(p => {
-      const stage = p.currentStage || 'STAGE_1_ENGINEERING_DESIGN';
-      if (counts[stage] !== undefined) {
-        counts[stage] = (counts[stage] ?? 0) + 1;
-      } else {
-        counts['STAGE_1_ENGINEERING_DESIGN'] =
-          (counts['STAGE_1_ENGINEERING_DESIGN'] ?? 0) + 1;
+      const stage = p.currentStage || 'STAGE_1_DESIGN_APPROVAL';
+      let target = 'STAGE_1_DESIGN_APPROVAL';
+      switch (stage) {
+        case 'STAGE_1_ENGINEERING_DESIGN':
+        case 'STAGE_1_DESIGN_APPROVAL':
+        case 'STAGE_2_NET_METERING_APPLY':
+          target = 'STAGE_1_DESIGN_APPROVAL';
+          break;
+        case 'STAGE_3_MATERIAL_DISPATCH':
+        case 'STAGE_2_MATERIAL_DISPATCH':
+          target = 'STAGE_2_MATERIAL_DISPATCH';
+          break;
+        case 'STAGE_4_CIVIL_STRUCTURE':
+        case 'STAGE_5_MODULE_DC_CABLING':
+        case 'STAGE_6_INVERTER_ACDB':
+        case 'STAGE_7_EARTHING_LIGHTNING':
+        case 'STAGE_8_TESTING_PRE_COMMISSION':
+        case 'STAGE_3_SITE_INSTALLATION':
+          target = 'STAGE_3_SITE_INSTALLATION';
+          break;
+        case 'STAGE_9_DISCOM_METER_INSTALL':
+        case 'STAGE_4_NET_METER_SYNC':
+          target = 'STAGE_4_NET_METER_SYNC';
+          break;
+        case 'STAGE_10_COMMISSION_HANDOVER':
+        case 'STAGE_5_HANDOVER_COMMISSIONING':
+          target = 'STAGE_5_HANDOVER_COMMISSIONING';
+          break;
+        default:
+          target = 'STAGE_1_DESIGN_APPROVAL';
       }
+      counts[target] = (counts[target] ?? 0) + 1;
     });
     return counts;
   }, [projects, dateRange]);
@@ -391,18 +416,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
       </div>
 
       {/* =========================================================================
-          PART 2: 10-STAGE EPC PROJECT EXECUTION PIPELINE
+          PART 2: 5-STAGE EPC PROJECT EXECUTION PIPELINE
          ========================================================================= */}
       <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
           <div>
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <FolderKanban className="w-4 h-4 text-solar-600" />
-              Standard 10-Stage EPC Project Execution Pipeline
+              Standard 5-Stage EPC Project Execution Pipeline
             </h2>
             <p className="text-xs text-muted-foreground">
-              Linear milestone gating and quality oversight from engineering survey to COD
-              handover.
+              Linear milestone gating and quality oversight from design approval to COD handover.
             </p>
           </div>
           <Link
@@ -414,8 +438,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
           </Link>
         </div>
 
-        {/* 10 Stages Stepper Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-10 gap-2.5 pt-1">
+        {/* 5 Stages Stepper Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
           {standardStages.map(stg => {
             const count = stageCounts[stg.stageKey] || 0;
             const hasProjects = count > 0;

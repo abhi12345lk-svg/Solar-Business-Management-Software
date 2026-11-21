@@ -312,7 +312,7 @@ export const OrderDetailPage: React.FC = () => {
           plannedStartDate: today,
           targetCompletionDate: targetDate,
           priority: 'HIGH',
-          notes: `10-Stage EPC Project initiated from confirmed sales order ${order.orderNumber}`
+          notes: `EPC Project initiated from confirmed sales order ${order.orderNumber}`
         })
       });
       setShowCreateProjectModal(false);
@@ -1154,12 +1154,12 @@ export const OrderDetailPage: React.FC = () => {
               )}
             </div>
 
-            {/* 2. 10-Stage EPC Project Item */}
+            {/* 2. EPC Project Item */}
             <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="w-4 h-4 text-solar-500" />
-                  <span className="text-xs font-bold text-foreground">10-Stage EPC Project</span>
+                  <span className="text-xs font-bold text-foreground">EPC Project</span>
                 </div>
                 {linkedProject ? (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
@@ -1197,7 +1197,7 @@ export const OrderDetailPage: React.FC = () => {
                     className="w-full py-1.5 px-3 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <FolderKanban className="w-3.5 h-3.5" />
-                    <span>Launch 10-Stage EPC Project →</span>
+                    <span>Launch EPC Project →</span>
                   </button>
                 )
               )}
@@ -1312,7 +1312,7 @@ export const OrderDetailPage: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  Launch 10-Stage EPC Project Execution
+                  Launch EPC Project Execution
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Initialize linear engineering, Net Metering DISCOM liaison, material dispatch, and

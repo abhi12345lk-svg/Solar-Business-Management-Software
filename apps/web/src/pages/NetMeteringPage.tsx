@@ -453,7 +453,7 @@ export const NetMeteringPage: React.FC = () => {
                         <Link
                           to={`/projects/${app.projectId._id}`}
                           className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border transition-colors"
-                          title="Open 10-Stage EPC Project"
+                          title="Open EPC Project"
                         >
                           <span>Open Project</span>
                           <ExternalLink className="w-3 h-3 text-solar-500" />

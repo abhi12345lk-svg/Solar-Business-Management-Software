@@ -66,7 +66,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Projects',
     items: [
-      { to: '/solar-designs', label: 'Solar Designs', icon: Sun },
       { to: '/projects', label: 'Projects', icon: FolderKanban },
       { to: '/site-photos', label: 'Site Photos', icon: Camera },
       { to: '/net-metering', label: 'Net Metering', icon: Zap }
@@ -162,11 +161,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Sales', title: 'Customers' };
   }
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
-  if (pathname.startsWith('/solar-designs'))
-    return {
-      section: 'Projects',
-      title: 'Solar Designs'
-    };
   if (pathname.startsWith('/quotations')) return { section: 'Sales', title: 'Quotations' };
   if (pathname.startsWith('/orders')) return { section: 'Sales', title: 'Orders' };
   if (pathname.startsWith('/projects')) {

@@ -435,13 +435,6 @@ export const LeadDetailPage: React.FC = () => {
                 <FileText className="w-3.5 h-3.5" />
                 <span>Mark Proposal Delivered →</span>
               </button>
-              <Link
-                to={`/solar-designs?leadId=${lead.id}&prospectName=${encodeURIComponent(lead.prospectName)}`}
-                className="px-3 py-2 text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition border border-border flex items-center space-x-1"
-              >
-                <Sun className="w-3.5 h-3.5 text-solar-500" />
-                <span>Solar PV CAD</span>
-              </Link>
             </div>
           )}
 

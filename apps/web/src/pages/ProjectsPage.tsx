@@ -193,7 +193,7 @@ export function ProjectsPage() {
       setLoading(true);
       setError(null);
       const res = await apiClient<{ projects: ProjectListItem[]; total: number }>(
-        '/projects?limit=200'
+        '/projects?limit=100'
       );
       setAllProjects(res?.projects || []);
     } catch (err: any) {
