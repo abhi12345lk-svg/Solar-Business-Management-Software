@@ -22,14 +22,11 @@ import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
 import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
 import { NetMeteringPage } from './pages/NetMeteringPage.js';
 import { SubsidyPage } from './pages/SubsidyPage.js';
-import { ServiceHubPage } from './pages/ServiceHubPage.js';
 import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
 import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
 import { ExpensesPage } from './pages/ExpensesPage.js';
-import { EmployeesPage } from './pages/EmployeesPage.js';
-import { TeamsPage } from './pages/TeamsPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
 import { SitePhotosPage } from './pages/SitePhotosPage.js';
@@ -245,43 +242,23 @@ export const App: React.FC = () => {
           />
           <Route
             path="service"
-            element={
-              <ProtectedRoute>
-                <ServiceHubPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="complaints"
-            element={
-              <ProtectedRoute>
-                <Navigate to="/service?tab=tickets" replace />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="warranties"
-            element={
-              <ProtectedRoute>
-                <Navigate to="/service?tab=warranties" replace />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="amc"
-            element={
-              <ProtectedRoute>
-                <Navigate to="/service?tab=amc" replace />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="service-visits"
-            element={
-              <ProtectedRoute>
-                <Navigate to="/service?tab=visits" replace />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="customer-portal/service"
@@ -333,19 +310,11 @@ export const App: React.FC = () => {
           />
           <Route
             path="employees"
-            element={
-              <ProtectedRoute>
-                <EmployeesPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="teams"
-            element={
-              <ProtectedRoute>
-                <TeamsPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="tasks"

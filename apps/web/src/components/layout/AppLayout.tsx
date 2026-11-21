@@ -16,7 +16,6 @@ import {
   FolderKanban,
   Zap,
   Landmark,
-  LifeBuoy,
   Menu,
   X,
   CreditCard,
@@ -86,13 +85,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
       { to: '/subsidies', label: 'Subsidies', icon: Landmark },
       { to: '/vendor-invoices', label: 'Vendor Bills', icon: Receipt },
       { to: '/expenses', label: 'Expenses', icon: TrendingUp }
-    ]
-  },
-  {
-    title: 'Service & Team',
-    items: [
-      { to: '/service', label: 'Service & AMC', icon: LifeBuoy },
-      { to: '/employees', label: 'Employees', icon: Users }
     ]
   }
 ];
@@ -195,13 +187,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
       section: panel === PanelType.ACCOUNTS ? 'Bills & Expenses' : 'Finance & Accounts',
       title: 'Expenses'
     };
-  if (pathname.startsWith('/service')) return { section: 'Service & Team', title: 'Service & AMC' };
-  if (pathname.startsWith('/complaints')) return { section: 'Service & Team', title: 'Service Tickets' };
-  if (pathname.startsWith('/warranties')) return { section: 'Service & Team', title: 'Warranties' };
-  if (pathname.startsWith('/amc')) return { section: 'Service & Team', title: 'AMC Contracts' };
-  if (pathname.startsWith('/service-visits')) return { section: 'Service & Team', title: 'Service Visits' };
-  if (pathname.startsWith('/employees')) return { section: 'Service & Team', title: 'Employees' };
-  if (pathname.startsWith('/teams')) return { section: 'Service & Team', title: 'Teams' };
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'Sales', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {

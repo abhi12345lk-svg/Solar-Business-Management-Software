@@ -36,7 +36,6 @@ import {
   Truck,
   ClipboardCheck,
   Landmark,
-  LifeBuoy,
   IndianRupee
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
@@ -44,7 +43,6 @@ import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.j
 import { InstallationChecklistTab } from '../components/project/InstallationChecklistTab.js';
 import { NetMeteringTab } from '../components/project/NetMeteringTab.js';
 import { SubsidyTab } from '../components/project/SubsidyTab.js';
-import { ServiceAmcTab } from '../components/project/ServiceAmcTab.js';
 import { ProjectCostingTab } from '../components/project/ProjectCostingTab.js';
 
 interface ProjectDetail {
@@ -252,8 +250,8 @@ export const ProjectDetailPage: React.FC = () => {
   const [complianceSubTab, setComplianceSubTab] = useState<'net-metering' | 'subsidy'>(
     urlTab === 'subsidy' ? 'subsidy' : 'net-metering'
   );
-  const [financialsSubTab, setFinancialsSubTab] = useState<'costing' | 'service-amc' | 'history'>(
-    urlTab === 'service-amc' ? 'service-amc' : urlTab === 'history' ? 'history' : 'costing'
+  const [financialsSubTab, setFinancialsSubTab] = useState<'costing' | 'history'>(
+    urlTab === 'history' ? 'history' : 'costing'
   );
 
   // Status transition modal
@@ -364,9 +362,6 @@ export const ProjectDetailPage: React.FC = () => {
     } else if (urlTab === 'costing') {
       setActiveTab('financials');
       setFinancialsSubTab('costing');
-    } else if (urlTab === 'service-amc') {
-      setActiveTab('financials');
-      setFinancialsSubTab('service-amc');
     } else if (urlTab === 'history') {
       setActiveTab('financials');
       setFinancialsSubTab('history');
@@ -799,16 +794,6 @@ export const ProjectDetailPage: React.FC = () => {
             >
               <PlayCircle className="w-4 h-4" /> Resume Project
             </button>
-          )}
-
-          {project.status === 'COMPLETED' && (
-            <Link
-              to={`/service?tab=warranties&projectId=${project._id}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs"
-            >
-              <LifeBuoy className="w-4 h-4" />
-              <span>Plant Commissioned — After-Sales Hub</span>
-            </Link>
           )}
 
           {!isTerminal && (
@@ -1444,17 +1429,6 @@ export const ProjectDetailPage: React.FC = () => {
               <span>Costing & Profitability</span>
             </button>
             <button
-              onClick={() => setFinancialsSubTab('service-amc')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                financialsSubTab === 'service-amc'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <LifeBuoy className="w-3.5 h-3.5 text-solar-600" />
-              <span>Service & AMC</span>
-            </button>
-            <button
               onClick={() => setFinancialsSubTab('history')}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 financialsSubTab === 'history'
@@ -1469,10 +1443,6 @@ export const ProjectDetailPage: React.FC = () => {
 
           {financialsSubTab === 'costing' && (
             <ProjectCostingTab projectId={project._id} />
-          )}
-
-          {financialsSubTab === 'service-amc' && (
-            <ServiceAmcTab projectId={project._id} isTerminal={isTerminal} />
           )}
 
           {financialsSubTab === 'history' && (
