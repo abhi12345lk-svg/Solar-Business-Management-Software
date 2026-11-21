@@ -169,7 +169,8 @@ export const reconcileVendorInvoiceSchema = z.object({
 export const vendorInvoiceFilterSchema = PaginationQuerySchema.extend({
   vendorId: z.string().optional(),
   purchaseOrderId: z.string().optional(),
-  status: z.nativeEnum(VendorInvoiceStatus).optional(),
+  status: z.string().optional(),
+  paymentStatus: z.string().optional(),
   search: z.string().optional()
 });
 

@@ -148,3 +148,31 @@ vendorInvoiceRouter.post(
     }
   }
 );
+
+/**
+ * DELETE /api/v1/vendor-invoices/:id
+ * Delete or cancel a vendor invoice (permitted only if no payments disbursed).
+ */
+vendorInvoiceRouter.delete(
+  '/:id',
+  requirePermission('vendor_invoice:update'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      await VendorInvoiceService.deleteVendorInvoice(
+        req.params.id as string,
+        user,
+        context
+      );
+      return sendSuccess(req, res, { message: 'Vendor invoice deleted successfully.' });
+    } catch (err) {
+      return next(err);
+    }
+  }
+);

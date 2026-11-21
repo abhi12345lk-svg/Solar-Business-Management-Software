@@ -4,10 +4,11 @@
  * Operational expense ledger:
  * - Expense intake with atomic EXP sequence numbers and integer-paise financial precision
  * - Configurable company approval thresholds (> ₹5,000 mandates manager approval)
- * - Anti-self-approval enforcement
+ * - Anti-self-approval enforcement with clear UI guards
  * - Category-level allocation (Labor, Freight, Crane, Civil, Liaison, Consumables, Overhead)
- * - Payment disbursement recording
- * - Audited cancellation workflow
+ * - Integrated Registered Vendor Directory & Solar Project linking
+ * - Payment disbursement recording with multi-mode auditing
+ * - Audited cancellation workflow and CSV export
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -28,9 +29,11 @@ import {
   Clock,
   ShieldCheck,
   Ban,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
 
 interface ExpenseRecord {
   _id: string;
@@ -81,6 +84,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const ExpensesPage: React.FC = () => {
+  const { user } = useAuth();
+
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,13 +109,18 @@ export const ExpensesPage: React.FC = () => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [activeExpense, setActiveExpense] = useState<ExpenseRecord | null>(null);
 
-  // Form State: Record Expense
+  // Reference Lists
   const [projectsList, setProjectsList] = useState<Array<{ _id: string; projectCode: string; name: string }>>([]);
+  const [vendorsList, setVendorsList] = useState<Array<{ _id: string; companyName: string }>>([]);
+
+  // Form State: Record Expense
   const [recordForm, setRecordForm] = useState({
     category: 'INSTALLATION_LABOR',
+    expenseDate: new Date().toISOString().split('T')[0],
     description: '',
     amountRupees: '',
     taxAmountRupees: '0',
+    vendorId: '',
     payeeName: '',
     projectId: '',
     notes: '',
@@ -160,11 +170,19 @@ export const ExpensesPage: React.FC = () => {
     fetchExpenses();
   }, [fetchExpenses]);
 
+  // Load Projects and Vendors for clean selection
   useEffect(() => {
     apiClient<any>('/projects?limit=100')
       .then(res => {
         const list = res?.projects || res?.data?.projects || res?.items || res?.data?.items || (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
         setProjectsList(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {});
+
+    apiClient<any>('/vendors?limit=100&isActive=true')
+      .then(res => {
+        const list = res?.vendors || res?.data?.vendors || res?.items || res?.data?.items || (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
+        setVendorsList(Array.isArray(list) ? list : []);
       })
       .catch(() => {});
   }, []);
@@ -214,9 +232,11 @@ export const ExpensesPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           category: recordForm.category,
-          description: recordForm.description,
+          expenseDate: recordForm.expenseDate ? new Date(recordForm.expenseDate) : undefined,
+          description: recordForm.description.trim(),
           amountPaise,
           taxAmountPaise: isNaN(taxAmountPaise) ? 0 : taxAmountPaise,
+          vendorId: recordForm.vendorId.trim() || undefined,
           payeeName: recordForm.payeeName.trim() || undefined,
           projectId: recordForm.projectId.trim() || undefined,
           notes: recordForm.notes.trim() || undefined,
@@ -228,9 +248,11 @@ export const ExpensesPage: React.FC = () => {
       setRecordModalOpen(false);
       setRecordForm({
         category: 'INSTALLATION_LABOR',
+        expenseDate: new Date().toISOString().split('T')[0],
         description: '',
         amountRupees: '',
         taxAmountRupees: '0',
+        vendorId: '',
         payeeName: '',
         projectId: '',
         notes: '',
@@ -296,9 +318,22 @@ export const ExpensesPage: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
+      const remainingPaise = activeExpense.totalAmountPaise - (activeExpense.paidAmountPaise || 0);
       const paidPaise = paymentForm.paidAmountRupees
         ? Math.round(parseFloat(paymentForm.paidAmountRupees) * 100)
-        : activeExpense.totalAmountPaise - (activeExpense.paidAmountPaise || 0);
+        : remainingPaise;
+
+      if (isNaN(paidPaise) || paidPaise <= 0) {
+        throw new Error('Please enter a valid disbursement amount greater than ₹0.');
+      }
+
+      if (paidPaise > remainingPaise) {
+        throw new Error(`Disbursement amount cannot exceed remaining balance of ${formatPaise(remainingPaise)}.`);
+      }
+
+      if (!paymentForm.paymentReference.trim()) {
+        throw new Error('Payment reference (UTR / Cheque / Transaction ID) is required.');
+      }
 
       await apiClient(`/expenses/${activeExpense._id}/pay`, {
         method: 'POST',
@@ -310,7 +345,7 @@ export const ExpensesPage: React.FC = () => {
         })
       });
 
-      setSuccessMsg(`Payment recorded against ${activeExpense.expenseNumber}.`);
+      setSuccessMsg(`Payment of ${formatPaise(paidPaise)} recorded against ${activeExpense.expenseNumber}.`);
       setPayModalOpen(false);
       setPaymentForm({
         paymentMode: 'BANK_TRANSFER',
@@ -351,6 +386,63 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    if (expenses.length === 0) {
+      setError('No expense records available to export.');
+      return;
+    }
+
+    const headers = [
+      'Expense #',
+      'Expense Date',
+      'Category',
+      'Payee / Vendor',
+      'Project Code',
+      'Project Name',
+      'Description',
+      'Base Amount (INR)',
+      'GST / Tax (INR)',
+      'Total Amount (INR)',
+      'Paid Amount (INR)',
+      'Remaining Balance (INR)',
+      'Approval Status',
+      'Disbursement Status',
+      'Payment Mode',
+      'Reference / UTR',
+      'Notes'
+    ];
+
+    const rows = expenses.map(exp => [
+      `"${exp.expenseNumber || ''}"`,
+      `"${new Date(exp.expenseDate).toLocaleDateString('en-IN')}"`,
+      `"${CATEGORY_LABELS[exp.category] || exp.category}"`,
+      `"${(exp.payeeName || exp.vendorId?.companyName || 'Direct').replace(/"/g, '""')}"`,
+      `"${exp.projectId?.projectCode || 'N/A'}"`,
+      `"${(exp.projectId?.name || 'General Overhead').replace(/"/g, '""')}"`,
+      `"${(exp.description || '').replace(/"/g, '""')}"`,
+      ((exp.amountPaise || 0) / 100).toFixed(2),
+      ((exp.taxAmountPaise || 0) / 100).toFixed(2),
+      ((exp.totalAmountPaise || 0) / 100).toFixed(2),
+      ((exp.paidAmountPaise || 0) / 100).toFixed(2),
+      (((exp.totalAmountPaise || 0) - (exp.paidAmountPaise || 0)) / 100).toFixed(2),
+      `"${exp.status}"`,
+      `"${exp.paymentStatus}"`,
+      `"${exp.paymentMode || ''}"`,
+      `"${(exp.paymentReference || '').replace(/"/g, '""')}"`,
+      `"${(exp.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `Expenses_Register_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setSuccessMsg('Expense register exported to CSV successfully.');
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -368,7 +460,7 @@ export const ExpensesPage: React.FC = () => {
       case 'PAID':
         return (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-            Paid
+            Paid / Settled
           </span>
         );
       case 'REJECTED':
@@ -392,7 +484,7 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
-  const getPaymentStatusBadge = (paymentStatus: string) => {
+  const getPaymentStatusBadge = (paymentStatus: string, paidAmountPaise?: number) => {
     switch (paymentStatus) {
       case 'PAID':
         return (
@@ -403,7 +495,7 @@ export const ExpensesPage: React.FC = () => {
       case 'PARTIALLY_PAID':
         return (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            Partial
+            Partial {paidAmountPaise ? `(${formatPaise(paidAmountPaise)})` : ''}
           </span>
         );
       default:
@@ -414,6 +506,12 @@ export const ExpensesPage: React.FC = () => {
         );
     }
   };
+
+  // Live financial preview in modal
+  const basePaisePreview = Math.round((parseFloat(recordForm.amountRupees) || 0) * 100);
+  const taxPaisePreview = Math.round((parseFloat(recordForm.taxAmountRupees) || 0) * 100);
+  const totalPaisePreview = basePaisePreview + taxPaisePreview;
+  const isAboveThreshold = basePaisePreview > 500000;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -428,24 +526,31 @@ export const ExpensesPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Track project budgets, direct site expenses, civil works, and profitability
-            disbursements.
+            Track project budgets, direct site expenses, civil works, and profitability disbursements.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             onClick={() => fetchExpenses()}
             disabled={loading}
-            className="p-2 border rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
-            title="Refresh"
+            className="p-2 border rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="Refresh Data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => setRecordModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-solar-600 text-white rounded-lg text-sm font-medium hover:bg-solar-700 shadow-sm"
+            onClick={handleExportCSV}
+            disabled={expenses.length === 0}
+            className="inline-flex items-center px-3 py-2 border rounded-lg text-sm font-medium hover:bg-muted text-foreground transition-colors disabled:opacity-40 cursor-pointer"
+            title="Export filtered expense register to CSV"
           >
-            <Plus className="w-4 h-4 mr-2" /> Record Expense
+            <Download className="w-4 h-4 mr-1.5 text-muted-foreground" /> Export CSV
+          </button>
+          <button
+            onClick={() => setRecordModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-solar-600 text-white rounded-lg text-sm font-medium hover:bg-solar-700 shadow-sm transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4 mr-1.5" /> Record Expense
           </button>
         </div>
       </div>
@@ -457,18 +562,18 @@ export const ExpensesPage: React.FC = () => {
             <AlertCircle className="w-5 h-5 mr-2 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="font-bold ml-2">
+          <button onClick={() => setError(null)} className="font-bold ml-2 cursor-pointer">
             ×
           </button>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 text-sm flex items-center justify-between">
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-sm flex items-center justify-between">
           <div className="flex items-center">
             <CheckCircle2 className="w-5 h-5 mr-2 shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="font-bold ml-2">
+          <button onClick={() => setSuccessMsg(null)} className="font-bold ml-2 cursor-pointer">
             ×
           </button>
         </div>
@@ -476,7 +581,7 @@ export const ExpensesPage: React.FC = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
+        <div className="bg-card border rounded-xl p-5 shadow-xs space-y-1">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Total Recorded Expenses
           </span>
@@ -484,37 +589,37 @@ export const ExpensesPage: React.FC = () => {
           <p className="text-xs text-muted-foreground">{totalCount} total entries</p>
         </div>
 
-        <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
+        <div className="bg-card border rounded-xl p-5 shadow-xs space-y-1">
           <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider flex items-center">
             <Clock className="w-3.5 h-3.5 mr-1" /> Pending Approval
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(pendingApprovalPaise)}</p>
-          <p className="text-xs text-amber-700 font-medium">
+          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
             {pendingApprovalCount} pending manager action
           </p>
         </div>
 
-        <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
+        <div className="bg-card border rounded-xl p-5 shadow-xs space-y-1">
           <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider flex items-center">
             <IndianRupee className="w-3.5 h-3.5 mr-1" /> Approved & Unpaid
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(approvedUnpaidPaise)}</p>
-          <p className="text-xs text-blue-700 font-medium">
+          <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">
             {approvedUnpaidCount} ready for disbursement
           </p>
         </div>
 
-        <div className="bg-card border rounded-xl p-5 shadow-sm space-y-1">
+        <div className="bg-card border rounded-xl p-5 shadow-xs space-y-1">
           <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider flex items-center">
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Disbursed / Paid
           </span>
           <p className="text-2xl font-bold text-foreground">{formatPaise(paidPaise)}</p>
-          <p className="text-xs text-emerald-700 font-medium">{paidCount} transactions completed</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">{paidCount} transactions completed</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-card border rounded-xl p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+      {/* Filters Bar */}
+      <div className="bg-card border rounded-xl p-4 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
           <input
@@ -525,18 +630,20 @@ export const ExpensesPage: React.FC = () => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-background text-foreground"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-solar-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Category Filter */}
           <select
             value={selectedCategory}
             onChange={e => {
               setSelectedCategory(e.target.value);
               setPage(1);
             }}
-            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+            title="Filter by operational category"
           >
             <option value="">All Categories</option>
             {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -546,34 +653,38 @@ export const ExpensesPage: React.FC = () => {
             ))}
           </select>
 
+          {/* Approval Status Filter */}
           <select
             value={selectedStatus}
             onChange={e => {
               setSelectedStatus(e.target.value);
               setPage(1);
             }}
-            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+            title="Filter by approval status"
           >
-            <option value="">All Statuses</option>
+            <option value="">All Approval Statuses</option>
             <option value="PENDING_APPROVAL">Pending Approval</option>
-            <option value="APPROVED">Approved</option>
-            <option value="PAID">Paid</option>
+            <option value="APPROVED">Approved (Awaiting Payment)</option>
+            <option value="PAID">Paid / Completed</option>
             <option value="REJECTED">Rejected</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
 
+          {/* Disbursement Status Filter */}
           <select
             value={selectedPaymentStatus}
             onChange={e => {
               setSelectedPaymentStatus(e.target.value);
               setPage(1);
             }}
-            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+            className="text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+            title="Filter by disbursement status"
           >
-            <option value="">All Payment States</option>
-            <option value="UNPAID">Unpaid</option>
+            <option value="">All Disbursement States</option>
+            <option value="UNPAID">Unpaid (₹0 paid)</option>
             <option value="PARTIALLY_PAID">Partially Paid</option>
-            <option value="PAID">Paid</option>
+            <option value="PAID">Fully Disbursed</option>
           </select>
 
           {(searchTerm || selectedCategory || selectedStatus || selectedPaymentStatus) && (
@@ -585,19 +696,19 @@ export const ExpensesPage: React.FC = () => {
                 setSelectedPaymentStatus('');
                 setPage(1);
               }}
-              className="px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              className="px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground border rounded-lg hover:bg-muted transition-colors cursor-pointer"
             >
-              Reset
+              Reset Filters
             </button>
           )}
         </div>
       </div>
 
       {/* Expense Register Table */}
-      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-card border rounded-xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto -mx-1 sm:mx-0">
-          <table className="w-full text-left text-sm text-foreground min-w-[750px]">
-            <thead className="bg-muted/50 border-b text-xs uppercase tracking-wider text-muted-foreground">
+          <table className="w-full text-left text-sm text-foreground min-w-[800px]">
+            <thead className="bg-muted/50 border-b text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
                 <th className="py-3 px-4">Expense #</th>
                 <th className="py-3 px-4">Date</th>
@@ -626,139 +737,156 @@ export const ExpensesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                expenses.map(exp => (
-                  <tr key={exp._id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono font-semibold text-solar-600">
-                      {exp.expenseNumber}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(exp.expenseDate).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="inline-flex items-center text-xs font-medium bg-muted px-2 py-0.5 rounded">
-                        <Tag className="w-3 h-3 mr-1 text-muted-foreground" />
-                        {CATEGORY_LABELS[exp.category] || exp.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 max-w-xs">
-                      <div className="font-medium truncate">
-                        {exp.payeeName || 'Direct Expense'}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {exp.description}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {exp.projectId ? (
-                        <div className="text-xs">
-                          <Link
-                            to={`/projects/${(exp.projectId as any)._id || exp.projectId}?tab=costing`}
-                            className="font-mono font-semibold text-solar-600 hover:text-solar-700 hover:underline inline-flex items-center gap-1"
-                            title="Open Project Costing & Profitability Tab"
-                          >
-                            <span>{exp.projectId.projectCode}</span>
-                            <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                          </Link>
-                          <span className="block text-muted-foreground truncate max-w-[140px]">
-                            {exp.projectId.name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">
-                          General Overhead
+                expenses.map(exp => {
+                  const isSubmitter = !!(user && exp.submittedBy && (
+                    exp.submittedBy._id === user.id || exp.submittedBy._id === (user as any).userId
+                  ));
+
+                  return (
+                    <tr key={exp._id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4 font-mono font-semibold text-solar-600 whitespace-nowrap">
+                        {exp.expenseNumber}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(exp.expenseDate).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center text-xs font-medium bg-muted px-2 py-0.5 rounded whitespace-nowrap">
+                          <Tag className="w-3 h-3 mr-1 text-muted-foreground" />
+                          {CATEGORY_LABELS[exp.category] || exp.category}
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <div className="font-bold text-foreground">
-                        {formatPaise(exp.totalAmountPaise)}
-                      </div>
-                      {exp.taxAmountPaise > 0 && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Base: {formatPaise(exp.amountPaise)} + Tax:{' '}
-                          {formatPaise(exp.taxAmountPaise)}
+                      </td>
+                      <td className="py-3 px-4 max-w-xs">
+                        <div className="font-semibold text-foreground truncate">
+                          {exp.payeeName || exp.vendorId?.companyName || 'Direct Expense'}
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">{getStatusBadge(exp.status)}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {getPaymentStatusBadge(exp.paymentStatus)}
-                    </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end space-x-1">
-                        <button
-                          onClick={() => {
-                            setActiveExpense(exp);
-                            setDetailModalOpen(true);
-                          }}
-                          className="px-2 py-1 text-xs border rounded hover:bg-muted font-medium"
-                        >
-                          View
-                        </button>
-
-                        {exp.status === 'PENDING_APPROVAL' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setActiveExpense(exp);
-                                setApproveModalOpen(true);
-                              }}
-                              className="px-2 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium"
+                        <div className="text-xs text-muted-foreground truncate">
+                          {exp.description}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {exp.projectId ? (
+                          <div className="text-xs">
+                            <Link
+                              to={`/projects/${(exp.projectId as any)._id || exp.projectId}?tab=costing`}
+                              className="font-mono font-semibold text-solar-600 hover:text-solar-700 hover:underline inline-flex items-center gap-1"
+                              title="Open Project Costing & Profitability Tab"
                             >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveExpense(exp);
-                                setRejectModalOpen(true);
-                              }}
-                              className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 font-medium"
-                            >
-                              Reject
-                            </button>
-                          </>
+                              <span>{exp.projectId.projectCode || 'PROJ'}</span>
+                              <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                            </Link>
+                            <span className="block text-muted-foreground truncate max-w-[140px]">
+                              {exp.projectId.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">
+                            General Overhead
+                          </span>
                         )}
-
-                        {exp.status === 'APPROVED' && exp.paymentStatus !== 'PAID' && (
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="font-bold text-foreground">
+                          {formatPaise(exp.totalAmountPaise)}
+                        </div>
+                        {exp.taxAmountPaise > 0 && (
+                          <div className="text-[11px] text-muted-foreground font-mono">
+                            Base: {formatPaise(exp.amountPaise)} + Tax: {formatPaise(exp.taxAmountPaise)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">{getStatusBadge(exp.status)}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {getPaymentStatusBadge(exp.paymentStatus, exp.paidAmountPaise)}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end space-x-1.5">
                           <button
                             onClick={() => {
                               setActiveExpense(exp);
-                              setPaymentForm({
-                                paymentMode: 'BANK_TRANSFER',
-                                paymentReference: '',
-                                paidAmountRupees: (
-                                  (exp.totalAmountPaise - (exp.paidAmountPaise || 0)) /
-                                  100
-                                ).toString(),
-                                notes: ''
-                              });
-                              setPayModalOpen(true);
+                              setDetailModalOpen(true);
                             }}
-                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                            className="px-2.5 py-1 text-xs border rounded-lg hover:bg-muted font-medium transition-colors cursor-pointer"
                           >
-                            Disburse
+                            View
                           </button>
-                        )}
 
-                        {exp.paymentStatus !== 'PAID' && exp.status !== 'CANCELLED' && (
-                          <button
-                            onClick={() => {
-                              setActiveExpense(exp);
-                              setCancelModalOpen(true);
-                            }}
-                            className="px-2 py-1 text-xs border border-destructive/30 text-destructive rounded hover:bg-destructive/10 font-medium"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {exp.status === 'PENDING_APPROVAL' && (
+                            <>
+                              {isSubmitter ? (
+                                <span
+                                  className="px-2 py-1 text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded font-medium cursor-not-allowed"
+                                  title="Anti-self-approval rule: An employee cannot approve their own expense submission. Another manager or admin must approve."
+                                >
+                                  Awaiting Peer
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setActiveExpense(exp);
+                                    setApproveModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors cursor-pointer"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setActiveExpense(exp);
+                                  setRejectModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 text-xs bg-rose-600 text-white rounded-lg hover:bg-rose-700 font-medium transition-colors cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+
+                          {exp.status === 'APPROVED' && exp.paymentStatus !== 'PAID' && (
+                            <button
+                              onClick={() => {
+                                setActiveExpense(exp);
+                                setPaymentForm({
+                                  paymentMode: 'BANK_TRANSFER',
+                                  paymentReference: '',
+                                  paidAmountRupees: (
+                                    (exp.totalAmountPaise - (exp.paidAmountPaise || 0)) /
+                                    100
+                                  ).toString(),
+                                  notes: ''
+                                });
+                                setPayModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors cursor-pointer"
+                            >
+                              Disburse
+                            </button>
+                          )}
+
+                          {exp.status !== 'PAID' &&
+                            exp.paymentStatus !== 'PAID' &&
+                            exp.status !== 'CANCELLED' &&
+                            exp.status !== 'REJECTED' && (
+                              <button
+                                onClick={() => {
+                                  setActiveExpense(exp);
+                                  setCancelModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 text-xs border border-destructive/30 text-destructive rounded-lg hover:bg-destructive/10 font-medium transition-colors cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -769,55 +897,85 @@ export const ExpensesPage: React.FC = () => {
           <span>
             Showing {expenses.length} of {totalCount} records
           </span>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setPage(p => Math.max(p - 1, 1))}
-              disabled={page <= 1}
-              className="p-1 border rounded hover:bg-muted disabled:opacity-40"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="font-semibold text-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-              disabled={page >= totalPages}
-              className="p-1 border rounded hover:bg-muted disabled:opacity-40"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(p - 1, 1))}
+                disabled={page <= 1}
+                className="p-1 border rounded hover:bg-muted disabled:opacity-40 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="font-semibold text-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages}
+                className="p-1 border rounded hover:bg-muted disabled:opacity-40 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* MODAL: Record Expense */}
+      {/* =========================================================================
+          MODAL 1: RECORD EXPENSE (WITH LIVE THRESHOLD & VENDOR SELECTION)
+         ========================================================================= */}
       {recordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-foreground flex items-center">
-              <Receipt className="w-5 h-5 mr-2 text-solar-600" /> Record New Expense
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Amounts greater than ₹5,000 will automatically route to manager approval.
-            </p>
-
-            <form onSubmit={handleRecordExpense} className="space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0 overflow-y-auto">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="border-b pb-3 flex items-start justify-between">
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">
-                  Category <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={recordForm.category}
-                  onChange={e => setRecordForm({ ...recordForm, category: e.target.value })}
-                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+                <h3 className="text-lg font-bold text-foreground flex items-center">
+                  <Receipt className="w-5 h-5 mr-2 text-solar-600" /> Record New Expense
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Record operational, site, civil, or vendor expenses with automatic threshold auditing.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecordModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground font-bold p-1 rounded-lg hover:bg-muted cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordExpense} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Category <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    value={recordForm.category}
+                    onChange={e => setRecordForm({ ...recordForm, category: e.target.value })}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Expense Date <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={recordForm.expenseDate}
+                    onChange={e => setRecordForm({ ...recordForm, expenseDate: e.target.value })}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-mono"
+                  />
+                </div>
               </div>
 
               <div>
@@ -869,75 +1027,128 @@ export const ExpensesPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Live Financial & Approval Summary Card */}
+              <div className="p-3 bg-muted/40 border rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Base: <strong className="text-foreground">{formatPaise(basePaisePreview)}</strong></span>
+                  <span>GST: <strong className="text-foreground">{formatPaise(taxPaisePreview)}</strong></span>
+                  <span>Total: <strong className="text-solar-600 font-bold text-sm">{formatPaise(totalPaisePreview)}</strong></span>
+                </div>
+                <div className="pt-1.5 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Routing Threshold:</span>
+                  {basePaisePreview <= 0 ? (
+                    <span className="text-[11px] text-muted-foreground italic">Enter amount to preview approval route</span>
+                  ) : isAboveThreshold ? (
+                    <span className="inline-flex items-center text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                      Routes to Manager Approval (&gt; ₹5,000 threshold)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      Auto-Approved on Submit (≤ ₹5,000 threshold)
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
-                    Payee Name / Vendor
+                    Registered Vendor (Optional)
+                  </label>
+                  <select
+                    value={recordForm.vendorId}
+                    onChange={e => {
+                      const vId = e.target.value;
+                      const matched = vendorsList.find(v => v._id === vId);
+                      setRecordForm(prev => ({
+                        ...prev,
+                        vendorId: vId,
+                        payeeName: matched ? matched.companyName : prev.payeeName
+                      }));
+                    }}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+                  >
+                    <option value="">Direct Contractor / Ad-hoc Payee</option>
+                    {vendorsList.map(v => (
+                      <option key={v._id} value={v._id}>
+                        {v.companyName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Payee / Individual Name
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Metro Crane Services"
+                    placeholder="e.g. Metro Crane Services or Raju Sharma"
                     value={recordForm.payeeName}
                     onChange={e => setRecordForm({ ...recordForm, payeeName: e.target.value })}
                     className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
-                    Linked Solar Project (Optional)
-                  </label>
-                  <select
-                    value={recordForm.projectId}
-                    onChange={e => setRecordForm({ ...recordForm, projectId: e.target.value })}
-                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
-                  >
-                    <option value="">General Overhead (Company / Office)</option>
-                    {projectsList.map(p => (
-                      <option key={p._id} value={p._id}>
-                        {p.projectCode} • {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">
-                  Receipt / Voucher Reference (Optional)
+                  Linked Solar Project (Optional)
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. VOUCHER-2026-089 or Cash Bill Ref"
-                  value={recordForm.evidenceKey}
-                  onChange={e => setRecordForm({ ...recordForm, evidenceKey: e.target.value })}
-                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
-                />
+                <select
+                  value={recordForm.projectId}
+                  onChange={e => setRecordForm({ ...recordForm, projectId: e.target.value })}
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
+                >
+                  <option value="">General Overhead (Company / Office)</option>
+                  {projectsList.map(p => (
+                    <option key={p._id} value={p._id}>
+                      {p.projectCode} • {p.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Notes</label>
-                <input
-                  type="text"
-                  placeholder="Additional context or bill reference..."
-                  value={recordForm.notes}
-                  onChange={e => setRecordForm({ ...recordForm, notes: e.target.value })}
-                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Receipt / Voucher Reference
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. VOUCHER-2026-089 or Cash Bill Ref"
+                    value={recordForm.evidenceKey}
+                    onChange={e => setRecordForm({ ...recordForm, evidenceKey: e.target.value })}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">Notes / Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="Additional context or bill reference..."
+                    value={recordForm.notes}
+                    onChange={e => setRecordForm({ ...recordForm, notes: e.target.value })}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-3 border-t">
                 <button
                   type="button"
                   onClick={() => setRecordModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                  className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-solar-600 text-white rounded-lg text-sm font-medium hover:bg-solar-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-solar-600 text-white rounded-xl text-sm font-semibold hover:bg-solar-700 disabled:opacity-50 cursor-pointer shadow-xs"
                 >
                   {submitting ? 'Recording...' : 'Submit Expense'}
                 </button>
@@ -947,10 +1158,12 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Approve Expense */}
+      {/* =========================================================================
+          MODAL 2: APPROVE EXPENSE
+         ========================================================================= */}
       {approveModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center">
               <ShieldCheck className="w-5 h-5 mr-2 text-emerald-600" /> Approve Expense
             </h3>
@@ -983,7 +1196,7 @@ export const ExpensesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setApproveModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
               >
                 Cancel
               </button>
@@ -991,7 +1204,7 @@ export const ExpensesPage: React.FC = () => {
                 type="button"
                 disabled={submitting}
                 onClick={handleApprove}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {submitting ? 'Approving...' : 'Confirm Approval'}
               </button>
@@ -1000,11 +1213,13 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Reject Expense */}
+      {/* =========================================================================
+          MODAL 3: REJECT EXPENSE
+         ========================================================================= */}
       {rejectModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-foreground flex items-center text-red-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-foreground flex items-center text-rose-600">
               <Ban className="w-5 h-5 mr-2" /> Reject Expense
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -1012,7 +1227,7 @@ export const ExpensesPage: React.FC = () => {
               <span className="font-mono font-bold text-foreground">
                 {activeExpense.expenseNumber}
               </span>
-              . A documented reason is required.
+              . A documented reason is required for audit trail.
             </p>
 
             <div>
@@ -1033,7 +1248,7 @@ export const ExpensesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRejectModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
               >
                 Cancel
               </button>
@@ -1041,7 +1256,7 @@ export const ExpensesPage: React.FC = () => {
                 type="button"
                 disabled={submitting || !rejectionReason.trim()}
                 onClick={handleReject}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                className="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {submitting ? 'Rejecting...' : 'Reject Expense'}
               </button>
@@ -1050,20 +1265,32 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Disburse / Pay Expense */}
+      {/* =========================================================================
+          MODAL 4: DISBURSE / PAY EXPENSE
+         ========================================================================= */}
       {payModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-foreground flex items-center">
-              <CreditCard className="w-5 h-5 mr-2 text-blue-600" /> Disburse Payment
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Record bank transfer, UPI or cash payment against{' '}
-              <span className="font-mono font-bold text-foreground">
-                {activeExpense.expenseNumber}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="border-b pb-3">
+              <h3 className="text-lg font-bold text-foreground flex items-center">
+                <CreditCard className="w-5 h-5 mr-2 text-blue-600" /> Disburse Payment
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Record bank transfer, UPI, cheque, or cash disbursement against{' '}
+                <span className="font-mono font-bold text-foreground">
+                  {activeExpense.expenseNumber}
+                </span>
+                .
+              </p>
+            </div>
+
+            {/* Balance Card */}
+            <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-xl flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Remaining Unpaid Balance:</span>
+              <span className="font-bold text-blue-700 dark:text-blue-400 font-mono text-sm">
+                {formatPaise(activeExpense.totalAmountPaise - (activeExpense.paidAmountPaise || 0))}
               </span>
-              .
-            </p>
+            </div>
 
             <div className="space-y-3">
               <div>
@@ -1073,9 +1300,9 @@ export const ExpensesPage: React.FC = () => {
                 <select
                   value={paymentForm.paymentMode}
                   onChange={e => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
-                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground font-medium"
                 >
-                  <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
+                  <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS / IMPS)</option>
                   <option value="UPI">UPI / QR Code</option>
                   <option value="CHEQUE">Cheque</option>
                   <option value="CASH">Cash</option>
@@ -1105,6 +1332,7 @@ export const ExpensesPage: React.FC = () => {
                 <input
                   type="number"
                   step="0.01"
+                  min="1"
                   placeholder="Full remaining balance"
                   value={paymentForm.paidAmountRupees}
                   onChange={e =>
@@ -1115,7 +1343,7 @@ export const ExpensesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">Notes</label>
+                <label className="text-xs font-semibold text-foreground block mb-1">Notes / Bank Remarks</label>
                 <input
                   type="text"
                   placeholder="e.g. Paid from HDFC current account"
@@ -1126,11 +1354,11 @@ export const ExpensesPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t">
+            <div className="flex justify-end space-x-2 pt-3 border-t">
               <button
                 type="button"
                 onClick={() => setPayModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
               >
                 Cancel
               </button>
@@ -1138,7 +1366,7 @@ export const ExpensesPage: React.FC = () => {
                 type="button"
                 disabled={submitting || !paymentForm.paymentReference.trim()}
                 onClick={handleRecordPayment}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {submitting ? 'Recording...' : 'Record Disbursement'}
               </button>
@@ -1147,10 +1375,12 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Cancel Expense */}
+      {/* =========================================================================
+          MODAL 5: CANCEL EXPENSE
+         ========================================================================= */}
       {cancelModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
-          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground flex items-center text-destructive">
               <XCircle className="w-5 h-5 mr-2" /> Cancel Expense
             </h3>
@@ -1159,7 +1389,7 @@ export const ExpensesPage: React.FC = () => {
               <span className="font-mono font-bold text-foreground">
                 {activeExpense.expenseNumber}
               </span>
-              . This action is permanent and preserved in audit logs.
+              . This action is permanent and recorded in the audit logs.
             </p>
 
             <div>
@@ -1180,7 +1410,7 @@ export const ExpensesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
               >
                 Back
               </button>
@@ -1188,7 +1418,7 @@ export const ExpensesPage: React.FC = () => {
                 type="button"
                 disabled={submitting || !cancellationReason.trim()}
                 onClick={handleCancel}
-                className="px-4 py-2 bg-destructive text-white rounded-lg text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
+                className="px-4 py-2 bg-destructive text-white rounded-xl text-sm font-semibold hover:bg-destructive/90 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {submitting ? 'Cancelling...' : 'Confirm Cancellation'}
               </button>
@@ -1197,27 +1427,29 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: Detail & Audit History */}
+      {/* =========================================================================
+          MODAL 6: DETAIL & AUDIT HISTORY
+         ========================================================================= */}
       {detailModalOpen && activeExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0 overflow-y-auto">
+          <div className="bg-card border rounded-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
                 <span className="font-mono font-bold text-lg text-solar-600">
                   {activeExpense.expenseNumber}
                 </span>
-                <span className="ml-2">{getStatusBadge(activeExpense.status)}</span>
+                <span className="ml-2.5">{getStatusBadge(activeExpense.status)}</span>
               </div>
               <button
                 onClick={() => setDetailModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground font-bold"
+                className="text-muted-foreground hover:text-foreground font-bold p-1 rounded-lg hover:bg-muted cursor-pointer"
               >
                 ×
               </button>
             </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="space-y-3.5 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-muted-foreground block">Category</span>
                   <span className="font-semibold text-foreground">
@@ -1227,60 +1459,68 @@ export const ExpensesPage: React.FC = () => {
                 <div>
                   <span className="text-muted-foreground block">Expense Date</span>
                   <span className="font-semibold text-foreground">
-                    {new Date(activeExpense.expenseDate).toLocaleDateString('en-IN')}
+                    {new Date(activeExpense.expenseDate).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Payee / Vendor</span>
                   <span className="font-semibold text-foreground">
-                    {activeExpense.payeeName || activeExpense.vendorId?.companyName || 'None'}
+                    {activeExpense.payeeName || activeExpense.vendorId?.companyName || 'Direct'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Project</span>
+                  <span className="text-muted-foreground block">Project Allocation</span>
                   <span className="font-semibold text-foreground">
-                    {activeExpense.projectId ? activeExpense.projectId.projectCode : 'Overhead'}
+                    {activeExpense.projectId ? (
+                      activeExpense.projectId.projectCode || activeExpense.projectId.name || 'Project'
+                    ) : (
+                      'General Overhead'
+                    )}
                   </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+              <div className="p-3 bg-muted/40 rounded-xl space-y-1">
                 <span className="text-xs text-muted-foreground block">Description</span>
                 <p className="font-medium text-foreground">{activeExpense.description}</p>
               </div>
 
-              <div className="border rounded-lg p-3 grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="border rounded-xl p-3 grid grid-cols-3 gap-2 text-center text-xs">
                 <div>
                   <span className="text-muted-foreground block">Base Amount</span>
-                  <span className="font-bold text-foreground">
+                  <span className="font-bold text-foreground font-mono">
                     {formatPaise(activeExpense.amountPaise)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Tax (GST)</span>
-                  <span className="font-bold text-foreground">
+                  <span className="font-bold text-foreground font-mono">
                     {formatPaise(activeExpense.taxAmountPaise)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Total Amount</span>
-                  <span className="font-bold text-solar-600 text-sm">
+                  <span className="font-bold text-solar-600 text-sm font-mono">
                     {formatPaise(activeExpense.totalAmountPaise)}
                   </span>
                 </div>
               </div>
 
               {activeExpense.paymentReference && (
-                <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg text-xs space-y-1 text-blue-900">
-                  <span className="font-bold block">Disbursement Metadata</span>
+                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-xl text-xs space-y-1 text-blue-900 dark:text-blue-300">
+                  <span className="font-bold block text-blue-950 dark:text-blue-200">Disbursement Metadata</span>
                   <div>Mode: {activeExpense.paymentMode}</div>
-                  <div>Reference / UTR: {activeExpense.paymentReference}</div>
-                  <div>Paid: {formatPaise(activeExpense.paidAmountPaise)}</div>
+                  <div>Reference / UTR: <span className="font-mono font-bold">{activeExpense.paymentReference}</span></div>
+                  <div>Paid to Date: {formatPaise(activeExpense.paidAmountPaise)}</div>
                 </div>
               )}
 
               {activeExpense.evidenceKey && (
-                <div className="p-2 border rounded text-xs flex items-center justify-between">
+                <div className="p-2.5 border rounded-xl text-xs flex items-center justify-between">
                   <span className="font-mono text-muted-foreground truncate max-w-[280px]">
                     {activeExpense.evidenceKey}
                   </span>
@@ -1292,13 +1532,13 @@ export const ExpensesPage: React.FC = () => {
 
               {/* Status History */}
               {activeExpense.statusHistory && activeExpense.statusHistory.length > 0 && (
-                <div className="border-t pt-2 space-y-1">
-                  <span className="text-xs font-bold text-foreground block">Audit History</span>
-                  <div className="space-y-1 max-h-32 overflow-y-auto text-xs">
+                <div className="border-t pt-2.5 space-y-1.5">
+                  <span className="text-xs font-bold text-foreground block">Audit Trail</span>
+                  <div className="space-y-1 max-h-36 overflow-y-auto text-xs">
                     {activeExpense.statusHistory.map((h, idx) => (
                       <div
                         key={idx}
-                        className="p-1.5 bg-muted/30 rounded flex justify-between text-[11px]"
+                        className="p-2 bg-muted/30 rounded-lg flex justify-between text-[11px]"
                       >
                         <div>
                           <span className="font-semibold text-foreground">
@@ -1308,8 +1548,8 @@ export const ExpensesPage: React.FC = () => {
                             <span className="text-muted-foreground ml-1">({h.notes})</span>
                           )}
                         </div>
-                        <span className="text-muted-foreground shrink-0">
-                          {new Date(h.changedAt).toLocaleDateString()}
+                        <span className="text-muted-foreground shrink-0 ml-2">
+                          {new Date(h.changedAt).toLocaleDateString('en-IN')}
                         </span>
                       </div>
                     ))}
@@ -1318,11 +1558,11 @@ export const ExpensesPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 border-t">
               <button
                 type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                className="px-4 py-2 border rounded-xl text-sm font-medium hover:bg-muted cursor-pointer"
               >
                 Close
               </button>

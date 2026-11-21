@@ -2,7 +2,6 @@ import { Types } from 'mongoose';
 import {
   CreateVendorInvoiceInput,
   ReconcileVendorInvoiceInput,
-  VendorInvoiceFilter,
   VendorInvoiceStatus,
   AuditAction,
   AuditOutcome,
@@ -155,9 +154,9 @@ export class VendorInvoiceService {
   /**
    * Query invoices with pagination and filters.
    */
-  public static async getVendorInvoices(filter: VendorInvoiceFilter) {
+  public static async getVendorInvoices(filter: any) {
     const page = filter.page || 1;
-    const limit = filter.limit || 20;
+    const limit = filter.limit || 50;
     const skip = (page - 1) * limit;
 
     const query: any = {};
@@ -168,11 +167,36 @@ export class VendorInvoiceService {
     if (filter.purchaseOrderId) {
       query.purchaseOrderId = new Types.ObjectId(filter.purchaseOrderId);
     }
-    if (filter.status) {
-      query.status = filter.status;
+
+    // Flexible status filtering (by audit status or payment status)
+    if (filter.status && filter.status !== 'ALL') {
+      if (filter.status === 'UNPAID') {
+        query.balancePayablePaise = { $gt: 0 };
+      } else if (filter.status === 'PAID') {
+        query.balancePayablePaise = 0;
+      } else {
+        query.status = filter.status;
+      }
     }
+
+    if (filter.paymentStatus) {
+      if (filter.paymentStatus === 'UNPAID') {
+        query.balancePayablePaise = { $gt: 0 };
+      } else if (filter.paymentStatus === 'PAID') {
+        query.balancePayablePaise = 0;
+      }
+    }
+
     if (filter.search && filter.search.trim()) {
-      query.vendorInvoiceNumber = { $regex: filter.search.trim(), $options: 'i' };
+      const searchRegex = new RegExp(filter.search.trim(), 'i');
+      const matchedVendors = await Vendor.find({ name: searchRegex }).select('_id').lean();
+      const vendorIds = matchedVendors.map(v => v._id);
+
+      query.$or = [
+        { vendorInvoiceNumber: searchRegex },
+        { vendorId: { $in: vendorIds } },
+        { notes: searchRegex }
+      ];
     }
 
     const sortField = filter.sortBy || 'createdAt';
@@ -198,6 +222,42 @@ export class VendorInvoiceService {
         totalPages: Math.ceil(total / limit)
       }
     };
+  }
+
+  /**
+   * Delete or void a Vendor Invoice (only if no payments disbursed).
+   */
+  public static async deleteVendorInvoice(
+    id: string,
+    user: { userId: string; role: UserRole },
+    context: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw AppError.validation('Invalid Vendor Invoice ID.');
+    }
+    const invoice = await VendorInvoice.findById(id);
+    if (!invoice) {
+      throw AppError.notFound('Vendor Invoice not found.');
+    }
+    if ((invoice.paidAmountPaise || 0) > 0) {
+      throw AppError.validation('Cannot delete an invoice with recorded payment disbursements.');
+    }
+
+    await VendorInvoice.findByIdAndDelete(id);
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.VENDOR_INVOICE_RECORDED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      correlationId: context.correlationId || 'vinv-delete',
+      details: {
+        vendorInvoiceNumber: invoice.vendorInvoiceNumber,
+        action: 'DELETED'
+      }
+    });
   }
 
   /**

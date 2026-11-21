@@ -164,7 +164,7 @@ subsidyRouter.patch(
  * Record official sanction with approved amount invariant verification.
  */
 subsidyRouter.post(
-  '/:id/sanction',
+  ['/:id/sanction', '/:id/sanctions'],
   requirePermission('subsidy:update'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
