@@ -1,20 +1,18 @@
 /**
- * INS Solar Business Management Software — Subsidy Register Page
+ * INS Solar Business Management Software — Subsidy Registry Page
  *
- * Enterprise register for Central & State solar subsidies (PM Surya Ghar Muft Bijli Yojana):
- * - Financial summary in INR (Requested, Sanctioned, Disbursed, Remaining)
- * - Sanction & Direct Benefit Transfer (DBT) progression
- * - Bounded filters by scheme, status, and portal registration numbers
- * - Stage progression: Register -> Document Checklist -> DISCOM Sanction -> DBT Disbursement
+ * Accounts & Financial ledger for Government Solar Subsidies (PM Surya Ghar Muft Bijli Yojana & State Subsidies):
+ * - Clean financial summary in INR (Total Claims, In-Process, Sanctioned, DBT Credited)
+ * - Direct benefit transfer (DBT) progression: Claim Registered -> Sanction Approved -> DBT Credited
+ * - Streamlined, non-bloated table for Accounts Officers
+ * - Seamless Register, Sanction, and DBT Disbursal flows
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Landmark,
   Search,
   Filter,
-  Clock,
   IndianRupee,
   CheckCircle2,
   AlertCircle,
@@ -24,24 +22,32 @@ import {
   TrendingUp,
   X,
   RefreshCw,
-  AlertTriangle,
-  RotateCcw,
-  Check
+  Clock,
+  Plus,
+  FileCheck,
+  Building2,
+  UserCheck
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
 interface SubsidyRecord {
   _id: string;
   applicationNumber: string;
-  projectId: {
+  projectId?: {
     _id: string;
     projectCode: string;
     name: string;
   };
-  customerId: {
+  customerId?: {
     _id: string;
     name: string;
     phone: string;
+    primaryPhone?: string;
+    customerCode?: string;
+    billingAddress?: {
+      city?: string;
+      state?: string;
+    };
   };
   schemeName: string;
   schemeVersion?: string;
@@ -54,18 +60,22 @@ interface SubsidyRecord {
   status: string;
   sanctionReference?: string;
   sanctionDate?: string;
+  disbursements?: Array<{
+    disbursementId: string;
+    disbursementReference: string;
+    amountPaise: number;
+    disbursedAt: string;
+    paymentMode: string;
+    recipientAccount: string;
+  }>;
+  notes?: string;
   createdAt: string;
 }
-
-type PipelineTab = 'ALL' | 'PENDING' | 'SUBMITTED' | 'SANCTIONED' | 'DISBURSED' | 'REJECTED';
 
 export const SubsidyPage: React.FC = () => {
   const [subsidies, setSubsidies] = useState<SubsidyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Workflow Pipeline Tab
-  const [pipelineTab, setPipelineTab] = useState<PipelineTab>('ALL');
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,31 +85,28 @@ export const SubsidyPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const limit = 25;
 
-  // Selected Subsidy for Modals
+  // Selected Subsidy & Alerts
   const [selectedSubsidy, setSelectedSubsidy] = useState<SubsidyRecord | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Detail & Audit Modal State
-  const [selectedSubsidyDetail, setSelectedSubsidyDetail] = useState<any | null>(null);
+  // Modals
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isSanctionModalOpen, setIsSanctionModalOpen] = useState(false);
+  const [isDisburseModalOpen, setIsDisburseModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Register New Claim Modal State
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [projectsError, setProjectsError] = useState<string | null>(null);
-  const [projectsList, setProjectsList] = useState<
-    Array<{
-      _id: string;
-      projectCode: string;
-      name: string;
-      systemCapacityKwp?: number;
-      capacityKw?: number;
-      customerId?: any;
-    }>
-  >([]);
+  // Data for Register Modal
+  const [customersList, setCustomersList] = useState<any[]>([]);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [loadingRegisterData, setLoadingRegisterData] = useState(false);
+
+  // Register Form State
   const [registerForm, setRegisterForm] = useState({
+    customerId: '',
     projectId: '',
-    schemeName: 'PM_SURYA_GHAR_MUFT_BIJLI_YOJANA',
+    consumerName: '',
+    consumerNumber: '',
+    schemeName: 'PM Surya Ghar Muft Bijli Yojana',
     portalApplicationNumber: '',
     systemCapacityKw: 3.0,
     requestedAmountRupees: 78000,
@@ -107,8 +114,7 @@ export const SubsidyPage: React.FC = () => {
   });
   const [submittingRegister, setSubmittingRegister] = useState(false);
 
-  // Record Sanction Modal State
-  const [isSanctionModalOpen, setIsSanctionModalOpen] = useState(false);
+  // Record Sanction Form State
   const [sanctionForm, setSanctionForm] = useState({
     sanctionReference: '',
     sanctionDate: new Date().toISOString().split('T')[0],
@@ -117,22 +123,12 @@ export const SubsidyPage: React.FC = () => {
   });
   const [submittingSanction, setSubmittingSanction] = useState(false);
 
-  // Record Status Update Modal State
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [statusForm, setStatusForm] = useState({
-    status: 'CLAIM_SUBMITTED',
-    rejectionReason: '',
-    notes: ''
-  });
-  const [submittingStatus, setSubmittingStatus] = useState(false);
-
-  // DBT Disbursement Modal State
-  const [isDisburseModalOpen, setIsDisburseModalOpen] = useState(false);
+  // Record DBT Credit Form State
   const [disburseForm, setDisburseForm] = useState({
-    amountRupees: '',
     disbursementReference: '',
-    recipientAccount: '',
+    amountRupees: 78000,
     disbursedAt: new Date().toISOString().split('T')[0],
+    recipientAccount: '',
     notes: ''
   });
   const [submittingDisburse, setSubmittingDisburse] = useState(false);
@@ -147,31 +143,7 @@ export const SubsidyPage: React.FC = () => {
     }).format(rupees);
   };
 
-  // Status Badge Helper
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      ELIGIBLE: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-      DOCUMENTS_PENDING: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700',
-      APPLIED: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700',
-      CLAIM_SUBMITTED: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-700',
-      SANCTIONED: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700',
-      PARTIALLY_DISBURSED: 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-700',
-      FULLY_DISBURSED: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700',
-      REJECTED: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700',
-      CANCELLED: 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
-    };
-    return (
-      <span
-        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-          styles[status] || styles.ELIGIBLE
-        }`}
-      >
-        {status.replace(/_/g, ' ')}
-      </span>
-    );
-  };
-
-  // Calculate PM Surya Ghar Slab Amount
+  // Helper for PM Surya Ghar Slab Amount
   const calculatePmSuryaGharSlab = (capacityKw: number): number => {
     if (capacityKw <= 0) return 0;
     if (capacityKw <= 1) return 30000;
@@ -179,7 +151,7 @@ export const SubsidyPage: React.FC = () => {
     return 78000; // Flat maximum cap for 3kW or higher under PM Surya Ghar
   };
 
-  // Fetch Subsidies
+  // Fetch Subsidies from API
   const fetchSubsidies = useCallback(async () => {
     try {
       setLoading(true);
@@ -189,8 +161,8 @@ export const SubsidyPage: React.FC = () => {
       if (schemeFilter) query += `&schemeName=${encodeURIComponent(schemeFilter)}`;
 
       const res = await apiClient<any>(query);
-      const list = res.applications || res.data?.applications || [];
-      const count = res.total ?? res.data?.total ?? list.length;
+      const list = res?.applications || res?.data?.applications || (Array.isArray(res) ? res : []);
+      const count = res?.total ?? res?.data?.total ?? list.length;
       setSubsidies(list);
       setTotal(count);
     } catch (err: any) {
@@ -204,199 +176,181 @@ export const SubsidyPage: React.FC = () => {
     fetchSubsidies();
   }, [fetchSubsidies]);
 
-  // Client-side Instant Filter & Tab Splitting
+  // Client-side Instant Search Filtering
   const filteredSubsidies = useMemo(() => {
+    if (!searchTerm.trim()) return subsidies;
+    const q = searchTerm.toLowerCase();
     return subsidies.filter(sub => {
-      // 1. Pipeline Tab Filter
-      if (pipelineTab === 'PENDING' && !['ELIGIBLE', 'DOCUMENTS_PENDING', 'APPLIED'].includes(sub.status)) {
-        return false;
-      }
-      if (pipelineTab === 'SUBMITTED' && sub.status !== 'CLAIM_SUBMITTED') {
-        return false;
-      }
-      if (pipelineTab === 'SANCTIONED' && sub.status !== 'SANCTIONED') {
-        return false;
-      }
-      if (pipelineTab === 'DISBURSED' && !['PARTIALLY_DISBURSED', 'FULLY_DISBURSED'].includes(sub.status)) {
-        return false;
-      }
-      if (pipelineTab === 'REJECTED' && !['REJECTED', 'CANCELLED'].includes(sub.status)) {
-        return false;
-      }
+      const appNo = sub.applicationNumber?.toLowerCase() || '';
+      const portalNo = sub.portalApplicationNumber?.toLowerCase() || '';
+      const sanctionRef = sub.sanctionReference?.toLowerCase() || '';
+      const custName = sub.customerId?.name?.toLowerCase() || '';
+      const custPhone = (sub.customerId?.phone || sub.customerId?.primaryPhone || '').toLowerCase();
+      const projCode = sub.projectId?.projectCode?.toLowerCase() || '';
+      const dbtUtr = (sub.disbursements || []).map(d => d.disbursementReference.toLowerCase()).join(' ');
 
-      // 2. Instant Search Filter
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        const appNo = sub.applicationNumber?.toLowerCase() || '';
-        const portalNo = sub.portalApplicationNumber?.toLowerCase() || '';
-        const sanctionRef = sub.sanctionReference?.toLowerCase() || '';
-        const custName = sub.customerId?.name?.toLowerCase() || '';
-        const projName = sub.projectId?.name?.toLowerCase() || '';
-        const projCode = sub.projectId?.projectCode?.toLowerCase() || '';
-        if (
-          !appNo.includes(q) &&
-          !portalNo.includes(q) &&
-          !sanctionRef.includes(q) &&
-          !custName.includes(q) &&
-          !projName.includes(q) &&
-          !projCode.includes(q)
-        ) {
-          return false;
-        }
-      }
-
-      return true;
+      return (
+        appNo.includes(q) ||
+        portalNo.includes(q) ||
+        sanctionRef.includes(q) ||
+        custName.includes(q) ||
+        custPhone.includes(q) ||
+        projCode.includes(q) ||
+        dbtUtr.includes(q)
+      );
     });
-  }, [subsidies, pipelineTab, searchTerm]);
-
-  // Tab Counts
-  const counts = useMemo(() => {
-    return {
-      all: subsidies.length,
-      pending: subsidies.filter(s => ['ELIGIBLE', 'DOCUMENTS_PENDING', 'APPLIED'].includes(s.status)).length,
-      submitted: subsidies.filter(s => s.status === 'CLAIM_SUBMITTED').length,
-      sanctioned: subsidies.filter(s => s.status === 'SANCTIONED').length,
-      disbursed: subsidies.filter(s => ['PARTIALLY_DISBURSED', 'FULLY_DISBURSED'].includes(s.status)).length,
-      rejected: subsidies.filter(s => ['REJECTED', 'CANCELLED'].includes(s.status)).length
-    };
-  }, [subsidies]);
+  }, [subsidies, searchTerm]);
 
   // Financial aggregates
+  const totalClaimsCount = subsidies.length;
   const totalRequestedPaise = subsidies.reduce((sum, s) => sum + (s.requestedAmountPaise || 0), 0);
-  const totalApprovedPaise = subsidies.reduce((sum, s) => sum + (s.approvedAmountPaise || 0), 0);
+  const totalSanctionedPaise = subsidies.reduce((sum, s) => sum + (s.approvedAmountPaise || 0), 0);
   const totalDisbursedPaise = subsidies.reduce((sum, s) => sum + (s.disbursedAmountPaise || 0), 0);
 
-  // -------------------------------------------------------------
-  // HANDLERS FOR WORKFLOW ACTIONS
-  // -------------------------------------------------------------
-
-  // 1. Open Register Modal
+  // Open Register Modal & Pre-fetch Customers/Projects
   const handleOpenRegisterModal = async () => {
-    setProjectsError(null);
     setIsRegisterModalOpen(true);
-    setLoadingProjects(true);
+    setLoadingRegisterData(true);
 
     try {
-      const res = await apiClient<any>('/projects?limit=100');
-      const list = res?.projects || res?.data || (Array.isArray(res) ? res : []);
-      setProjectsList(list);
+      // 1. Fetch Customers
+      const custRes = await apiClient<any>('/customers?limit=100');
+      const customers = custRes?.data || custRes?.customers || (Array.isArray(custRes) ? custRes : []);
+      setCustomersList(customers);
 
-      if (list.length > 0) {
-        const first = list[0];
-        const cap = Number(first.systemCapacityKwp || first.capacityKw) || 3.0;
-        const est = calculatePmSuryaGharSlab(cap);
-        setRegisterForm({
-          projectId: first._id,
-          schemeName: 'PM_SURYA_GHAR_MUFT_BIJLI_YOJANA',
-          portalApplicationNumber: `PMSG-CG-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
-          systemCapacityKw: cap,
-          requestedAmountRupees: est,
-          notes: 'Subsidy claim initiated under PM Surya Ghar national portal'
-        });
-      }
+      // 2. Fetch Projects (if any)
+      const projRes = await apiClient<any>('/projects?limit=100');
+      const projects = projRes?.projects || projRes?.data || (Array.isArray(projRes) ? projRes : []);
+      setProjectsList(projects);
+
+      // Select default customer if exists
+      const firstCustomer = customers[0];
+      const initialCustomerId = firstCustomer?._id || '';
+      const initialCustomerName = firstCustomer?.name || '';
+
+      const defaultCap = 3.0;
+      const defaultAmount = calculatePmSuryaGharSlab(defaultCap);
+      const defaultPortalApp = `PMSG-CG-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      setRegisterForm({
+        customerId: initialCustomerId,
+        projectId: '',
+        consumerName: initialCustomerName,
+        consumerNumber: '',
+        schemeName: 'PM Surya Ghar Muft Bijli Yojana',
+        portalApplicationNumber: defaultPortalApp,
+        systemCapacityKw: defaultCap,
+        requestedAmountRupees: defaultAmount,
+        notes: 'National Rooftop Solar Portal Claim'
+      });
     } catch (err: any) {
-      console.warn('Projects load notice:', err);
-      setProjectsError(err.message || 'Could not fetch projects list');
+      console.warn('Error loading customers for register modal:', err);
     } finally {
-      setLoadingProjects(false);
+      setLoadingRegisterData(false);
     }
   };
 
-  const handleProjectSelectForRegister = (pId: string) => {
-    const proj = projectsList.find(p => p._id === pId);
-    const cap = Number(proj?.systemCapacityKwp || proj?.capacityKw) || 3.0;
-    const est = calculatePmSuryaGharSlab(cap);
-    setRegisterForm(prev => ({
-      ...prev,
-      projectId: pId,
-      systemCapacityKw: cap,
-      requestedAmountRupees: est
-    }));
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!registerForm.projectId) {
-      alert('Please select a solar project.');
+  // Handle Customer Selection in Register Form
+  const handleCustomerChange = (customerId: string) => {
+    if (customerId === 'CUSTOM') {
+      setRegisterForm(prev => ({
+        ...prev,
+        customerId: '',
+        consumerName: '',
+        consumerNumber: ''
+      }));
       return;
     }
+
+    const selected = customersList.find(c => c._id === customerId);
+    if (selected) {
+      setRegisterForm(prev => ({
+        ...prev,
+        customerId: selected._id,
+        consumerName: selected.name || '',
+        consumerNumber: selected.customerCode || ''
+      }));
+    }
+  };
+
+  // Submit New Subsidy Claim
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingRegister(true);
+
     try {
-      setSubmittingRegister(true);
-      const reqPaise = Math.round(Number(registerForm.requestedAmountRupees) * 100);
+      const payload: any = {
+        schemeName: registerForm.schemeName,
+        portalApplicationNumber: registerForm.portalApplicationNumber.trim(),
+        systemCapacityKw: Number(registerForm.systemCapacityKw),
+        estimatedAmountPaise: Math.round(Number(registerForm.requestedAmountRupees) * 100),
+        requestedAmountPaise: Math.round(Number(registerForm.requestedAmountRupees) * 100),
+        submissionDate: new Date().toISOString(),
+        notes: registerForm.notes.trim() || undefined
+      };
+
+      if (registerForm.customerId) {
+        payload.customerId = registerForm.customerId;
+      }
+      if (registerForm.projectId) {
+        payload.projectId = registerForm.projectId;
+      }
+      if (registerForm.consumerName) {
+        payload.consumerName = registerForm.consumerName;
+      }
+      if (registerForm.consumerNumber) {
+        payload.consumerNumber = registerForm.consumerNumber;
+      }
+
       await apiClient('/subsidies', {
         method: 'POST',
-        body: JSON.stringify({
-          projectId: registerForm.projectId,
-          schemeName: registerForm.schemeName,
-          portalApplicationNumber: registerForm.portalApplicationNumber.trim() || undefined,
-          systemCapacityKw: Number(registerForm.systemCapacityKw),
-          estimatedAmountPaise: reqPaise,
-          requestedAmountPaise: reqPaise,
-          notes: registerForm.notes.trim() || undefined
-        })
+        body: JSON.stringify(payload)
       });
 
-      setActionSuccess('Government subsidy claim registered successfully!');
+      setActionSuccess(`Subsidy claim registered successfully for ${registerForm.consumerName || 'consumer'}!`);
       setIsRegisterModalOpen(false);
       fetchSubsidies();
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to register subsidy: ${err.message || 'Error'}`);
+      alert(`Failed to register subsidy claim: ${err.message || 'Error occurred'}`);
     } finally {
       setSubmittingRegister(false);
     }
   };
 
-  // 2. Open Record Sanction Modal
+  // Open Record Sanction Modal
   const handleOpenSanctionModal = (sub: SubsidyRecord) => {
     setSelectedSubsidy(sub);
-    const reqRupees = sub.requestedAmountPaise ? Math.round(sub.requestedAmountPaise / 100) : 78000;
+    const requestedRupees = (sub.requestedAmountPaise || 7800000) / 100;
     setSanctionForm({
-      sanctionReference:
-        sub.sanctionReference ||
-        `REC-PMSG-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`,
+      sanctionReference: `MNRE/PMSG/${new Date().getFullYear()}/${sub.portalApplicationNumber || Math.floor(100000 + Math.random() * 900000)}`,
       sanctionDate: new Date().toISOString().split('T')[0],
-      approvedAmountRupees: sub.approvedAmountPaise
-        ? Math.round(sub.approvedAmountPaise / 100)
-        : reqRupees,
-      notes: 'Subsidy sanction approved by DISCOM / National Portal.'
+      approvedAmountRupees: requestedRupees,
+      notes: 'Sanction letter issued on National Solar Portal'
     });
     setIsSanctionModalOpen(true);
   };
 
-  const handleSubmitSanction = async (e: React.FormEvent) => {
+  // Submit Record Sanction
+  const handleSanctionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubsidy) return;
+    setSubmittingSanction(true);
+
     try {
-      setSubmittingSanction(true);
-      setError(null);
-      const approvedPaise = Math.round(Number(sanctionForm.approvedAmountRupees) * 100);
-      if (isNaN(approvedPaise) || approvedPaise <= 0) {
-        alert('Please enter a valid sanctioned amount.');
-        return;
-      }
-      if (approvedPaise > selectedSubsidy.requestedAmountPaise) {
-        alert(
-          `Approved amount cannot exceed requested amount of ${formatRupees(
-            selectedSubsidy.requestedAmountPaise
-          )}.`
-        );
-        return;
-      }
+      const payload = {
+        sanctionReference: sanctionForm.sanctionReference.trim(),
+        sanctionDate: sanctionForm.sanctionDate,
+        approvedAmountPaise: Math.round(Number(sanctionForm.approvedAmountRupees) * 100),
+        notes: sanctionForm.notes.trim() || undefined
+      };
 
       await apiClient(`/subsidies/${selectedSubsidy._id}/sanction`, {
         method: 'POST',
-        body: JSON.stringify({
-          sanctionReference: sanctionForm.sanctionReference.trim(),
-          sanctionDate: new Date(sanctionForm.sanctionDate || Date.now()),
-          approvedAmountPaise: approvedPaise,
-          notes: sanctionForm.notes.trim() || undefined
-        })
+        body: JSON.stringify(payload)
       });
 
-      setActionSuccess(
-        `Official Sanction of ₹${sanctionForm.approvedAmountRupees} recorded! Status is now SANCTIONED.`
-      );
+      setActionSuccess(`Sanction recorded! Approved amount: ₹${sanctionForm.approvedAmountRupees.toLocaleString('en-IN')}`);
       setIsSanctionModalOpen(false);
       setSelectedSubsidy(null);
       fetchSubsidies();
@@ -408,152 +362,136 @@ export const SubsidyPage: React.FC = () => {
     }
   };
 
-  // 3. Open Status Update Modal
-  const handleOpenStatusModal = (sub: SubsidyRecord) => {
-    setSelectedSubsidy(sub);
-    let next = sub.status;
-    if (sub.status === 'ELIGIBLE' || sub.status === 'DOCUMENTS_PENDING') next = 'APPLIED';
-    else if (sub.status === 'APPLIED') next = 'CLAIM_SUBMITTED';
-    else if (sub.status === 'CLAIM_SUBMITTED') next = 'SANCTIONED';
-
-    setStatusForm({
-      status: next,
-      rejectionReason: '',
-      notes: ''
-    });
-    setIsStatusModalOpen(true);
-  };
-
-  const handleSubmitStatus = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSubsidy) return;
-    try {
-      setSubmittingStatus(true);
-      setError(null);
-      await apiClient(`/subsidies/${selectedSubsidy._id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: statusForm.status,
-          rejectionReason: statusForm.rejectionReason.trim() || undefined,
-          notes: statusForm.notes.trim() || undefined
-        })
-      });
-
-      setActionSuccess(
-        `Application ${selectedSubsidy.applicationNumber} updated to ${statusForm.status.replace(
-          /_/g,
-          ' '
-        )}!`
-      );
-      setIsStatusModalOpen(false);
-      setSelectedSubsidy(null);
-      fetchSubsidies();
-      setTimeout(() => setActionSuccess(null), 5000);
-    } catch (err: any) {
-      alert(`Failed to update status: ${err.message || 'Error'}`);
-    } finally {
-      setSubmittingStatus(false);
-    }
-  };
-
-  // 4. Open DBT Disbursement Modal
+  // Open Record DBT Disbursal Modal
   const handleOpenDisburseModal = (sub: SubsidyRecord) => {
     setSelectedSubsidy(sub);
-    const approved = sub.approvedAmountPaise || sub.requestedAmountPaise || 0;
-    const remaining = Math.max(0, approved - (sub.disbursedAmountPaise || 0));
+    const approvedRupees = ((sub.approvedAmountPaise || sub.requestedAmountPaise || 7800000) - (sub.disbursedAmountPaise || 0)) / 100;
+    const recipient = sub.customerId?.name ? `${sub.customerId.name} Bank A/C` : 'Consumer DBT Account';
     setDisburseForm({
-      amountRupees: remaining > 0 ? (remaining / 100).toFixed(2) : (approved / 100).toFixed(2),
-      disbursementReference: `DBT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
-      recipientAccount: `Beneficiary Account • ${sub.customerId?.name || 'Consumer'}`,
+      disbursementReference: `UTR${Date.now().toString().slice(-8)}`,
+      amountRupees: approvedRupees > 0 ? approvedRupees : 78000,
       disbursedAt: new Date().toISOString().split('T')[0],
-      notes: 'PM Surya Ghar DBT subsidy credited directly to consumer bank account.'
+      recipientAccount: recipient,
+      notes: 'Direct Benefit Transfer (DBT) credited by Central Government'
     });
     setIsDisburseModalOpen(true);
   };
 
-  const handleSubmitDisbursement = async (e: React.FormEvent) => {
+  // Submit DBT Disbursal
+  const handleDisburseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubsidy) return;
+    setSubmittingDisburse(true);
+
     try {
-      setSubmittingDisburse(true);
-      setError(null);
-      const amountPaise = Math.round(parseFloat(disburseForm.amountRupees) * 100);
-      if (isNaN(amountPaise) || amountPaise <= 0) {
-        alert('Please enter a valid disbursement amount.');
-        return;
-      }
+      const payload = {
+        disbursementReference: disburseForm.disbursementReference.trim(),
+        amountPaise: Math.round(Number(disburseForm.amountRupees) * 100),
+        disbursedAt: disburseForm.disbursedAt,
+        recipientAccount: disburseForm.recipientAccount.trim(),
+        idempotencyKey: `dbt-${selectedSubsidy._id}-${Date.now()}`,
+        notes: disburseForm.notes.trim() || undefined
+      };
 
       await apiClient(`/subsidies/${selectedSubsidy._id}/disbursements`, {
         method: 'POST',
-        body: JSON.stringify({
-          disbursementReference: disburseForm.disbursementReference.trim(),
-          amountPaise,
-          disbursedAt: new Date(disburseForm.disbursedAt || Date.now()),
-          paymentMode: 'DIRECT_BENEFIT_TRANSFER',
-          recipientAccount: disburseForm.recipientAccount.trim(),
-          idempotencyKey: `dbt-${selectedSubsidy._id}-${Date.now()}`,
-          notes: disburseForm.notes.trim() || undefined
-        })
+        body: JSON.stringify(payload)
       });
 
-      setActionSuccess(`DBT Disbursement of ₹${disburseForm.amountRupees} recorded successfully!`);
+      setActionSuccess(`DBT transfer recorded successfully! UTR: ${disburseForm.disbursementReference}`);
       setIsDisburseModalOpen(false);
       setSelectedSubsidy(null);
       fetchSubsidies();
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to record disbursement: ${err.message || 'Error'}`);
+      alert(`Failed to record DBT credit: ${err.message || 'Error'}`);
     } finally {
       setSubmittingDisburse(false);
     }
   };
 
-  // 5. Open Full Application Details Modal
-  const handleOpenDetailModal = async (sub: SubsidyRecord) => {
-    try {
-      const res = await apiClient<any>(`/subsidies/${sub._id}`);
-      setSelectedSubsidyDetail(res || sub);
-    } catch {
-      setSelectedSubsidyDetail(sub);
-    }
+  // Open Detail Modal
+  const handleOpenDetailModal = (sub: SubsidyRecord) => {
+    setSelectedSubsidy(sub);
     setIsDetailModalOpen(true);
   };
 
+  // Format Status Badge
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case 'FULLY_DISBURSED':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>DBT Credited</span>
+          </span>
+        );
+      case 'PARTIALLY_DISBURSED':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Partially Credited</span>
+          </span>
+        );
+      case 'SANCTIONED':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+            <FileCheck className="w-3.5 h-3.5" />
+            <span>Sanctioned (Govt Approved)</span>
+          </span>
+        );
+      case 'REJECTED':
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-700">
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span>Rejected</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+            <Clock className="w-3.5 h-3.5" />
+            <span>In Process / Applied</span>
+          </span>
+        );
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-lg bg-solar-500/10 text-solar-600 border border-solar-500/20">
+            <div className="p-2 rounded-xl bg-solar-500/10 text-solar-600 border border-solar-500/20">
               <Landmark className="w-5 h-5" />
-            </span>
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
-              Government Subsidies &amp; DBT Registry
+            </div>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+              Government Subsidy &amp; DBT Registry
             </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              PM Surya Ghar DBT
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              Accounts &amp; DBT
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            National Rooftop Solar Portal claims, DISCOM feasibility, subsidy sanctions, and Direct
-            Benefit Transfer (DBT) verification.
+            Track PM Surya Ghar Muft Bijli Yojana &amp; State Rooftop Subsidies, DISCOM sanctions, and Direct Benefit Transfer (DBT) credits.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={handleOpenRegisterModal}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-sm transition cursor-pointer"
-          >
-            <span>+ Register Subsidy Claim</span>
-          </button>
-        </div>
+
+        <button
+          type="button"
+          onClick={handleOpenRegisterModal}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-md transition cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Register Subsidy Claim</span>
+        </button>
       </div>
 
-      {/* Action Success Alert */}
+      {/* 2. Success Alert */}
       {actionSuccess && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs flex items-center justify-between shadow-2xs animate-fadeIn">
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span className="font-semibold">{actionSuccess}</span>
@@ -564,156 +502,62 @@ export const SubsidyPage: React.FC = () => {
         </div>
       )}
 
-      {/* Financial Metrics Cards */}
+      {/* 3. Financial Summary KPI Cards (Clean, accounts-focused) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
+        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">Total Claims</span>
             <Landmark className="w-4 h-4 text-solar-600" />
           </div>
-          <p className="text-2xl font-black text-foreground tracking-tight">{total}</p>
-          <span className="text-[11px] text-muted-foreground">Registered on portal</span>
+          <p className="text-2xl font-black text-foreground tracking-tight">{totalClaimsCount}</p>
+          <span className="text-[11px] text-muted-foreground">
+            Total Value: {formatRupees(totalRequestedPaise)}
+          </span>
         </div>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
+        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold">Total Requested</span>
-            <IndianRupee className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-semibold">Pending / In Process</span>
+            <Clock className="w-4 h-4 text-amber-600" />
           </div>
-          <p className="text-2xl font-black text-blue-700 dark:text-blue-400 tracking-tight">
-            {formatRupees(totalRequestedPaise)}
+          <p className="text-2xl font-black text-amber-700 dark:text-amber-400 tracking-tight">
+            {subsidies.filter(s => !['SANCTIONED', 'PARTIALLY_DISBURSED', 'FULLY_DISBURSED', 'REJECTED'].includes(s.status)).length}
           </p>
-          <span className="text-[11px] text-muted-foreground">Submitted claim value</span>
+          <span className="text-[11px] text-muted-foreground">Awaiting DISCOM Sanction</span>
         </div>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
+        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold">Sanctioned Amount</span>
-            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <TrendingUp className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-black text-indigo-700 dark:text-indigo-400 tracking-tight">
-            {formatRupees(totalApprovedPaise)}
+          <p className="text-2xl font-black text-blue-700 dark:text-blue-400 tracking-tight">
+            {formatRupees(totalSanctionedPaise)}
           </p>
-          <span className="text-[11px] text-muted-foreground">Approved by MNRE / DISCOM</span>
+          <span className="text-[11px] text-muted-foreground">Approved by MNRE/Govt</span>
         </div>
 
-        <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
+        <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold">Actually Disbursed</span>
+            <span className="text-xs font-semibold">DBT Credited to Clients</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">
             {formatRupees(totalDisbursedPaise)}
           </p>
-          <span className="text-[11px] text-muted-foreground">Credited via DBT to clients</span>
+          <span className="text-[11px] text-muted-foreground">Transferred to Bank Accounts</span>
         </div>
       </div>
 
-      {/* Pipeline Lifecycle Navigation Tabs */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 border-b border-border">
-        <button
-          type="button"
-          onClick={() => {
-            setPipelineTab('ALL');
-            setStatusFilter('');
-          }}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'ALL'
-              ? 'bg-solar-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>All Claims</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.all}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPipelineTab('PENDING')}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'PENDING'
-              ? 'bg-amber-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>Pending Submission</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.pending}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPipelineTab('SUBMITTED')}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'SUBMITTED'
-              ? 'bg-purple-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>Under DISCOM Review</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.submitted}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPipelineTab('SANCTIONED')}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'SANCTIONED'
-              ? 'bg-indigo-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>Sanctioned (Ready for DBT)</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.sanctioned}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPipelineTab('DISBURSED')}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'DISBURSED'
-              ? 'bg-emerald-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>DBT Credited</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.disbursed}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPipelineTab('REJECTED')}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap flex items-center space-x-1.5 ${
-            pipelineTab === 'REJECTED'
-              ? 'bg-rose-600 text-white shadow-2xs'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <span>Rejected / Queries</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/15 font-mono">
-            {counts.rejected}
-          </span>
-        </button>
-      </div>
-
-      {/* Filters & Instant Search */}
-      <div className="bg-card border rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      {/* 4. Unified Simple Filter Bar (No clutter, No confusing tabs) */}
+      <div className="bg-card border rounded-2xl p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search by application #, portal reg #, sanction ref, or client name..."
+            placeholder="Search consumer name, application #, portal reg #, or UTR..."
             className="w-full pl-9 pr-3 py-2 text-xs bg-background border rounded-xl focus:outline-none focus:ring-2 focus:ring-solar-500/20 text-foreground"
           />
           {searchTerm && (
@@ -727,7 +571,6 @@ export const SubsidyPage: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
           <select
             value={statusFilter}
             onChange={e => {
@@ -737,13 +580,9 @@ export const SubsidyPage: React.FC = () => {
             className="px-3 py-2 text-xs bg-background border rounded-xl focus:outline-none text-foreground font-medium"
           >
             <option value="">All Statuses</option>
-            <option value="ELIGIBLE">Eligible</option>
-            <option value="DOCUMENTS_PENDING">Documents Pending</option>
-            <option value="APPLIED">Applied</option>
-            <option value="CLAIM_SUBMITTED">Claim Submitted</option>
-            <option value="SANCTIONED">Sanctioned</option>
-            <option value="PARTIALLY_DISBURSED">Partially Disbursed</option>
-            <option value="FULLY_DISBURSED">Fully Disbursed</option>
+            <option value="APPLIED">Pending Sanction / In Process</option>
+            <option value="SANCTIONED">Sanctioned (Approved)</option>
+            <option value="FULLY_DISBURSED">DBT Credited</option>
             <option value="REJECTED">Rejected</option>
           </select>
 
@@ -756,173 +595,203 @@ export const SubsidyPage: React.FC = () => {
             className="px-3 py-2 text-xs bg-background border rounded-xl focus:outline-none text-foreground font-medium"
           >
             <option value="">All Schemes</option>
-            <option value="PM_SURYA_GHAR_MUFT_BIJLI_YOJANA">PM Surya Ghar Yojana</option>
-            <option value="STATE_ROOFTOP_SUBSIDY">State Rooftop Subsidy</option>
-            <option value="CENTRAL_FINANCIAL_ASSISTANCE">CFA</option>
+            <option value="PM Surya Ghar Muft Bijli Yojana">PM Surya Ghar Yojana</option>
+            <option value="State Rooftop Subsidy">State Rooftop Subsidy</option>
           </select>
 
-          {(searchTerm || statusFilter || schemeFilter || pipelineTab !== 'ALL') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('');
-                setSchemeFilter('');
-                setPipelineTab('ALL');
-              }}
-              title="Reset All Filters"
-              className="p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={fetchSubsidies}
+            title="Refresh"
+            className="p-2 rounded-xl border bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Error state */}
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 rounded-xl text-xs flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+      {/* 5. Subsidies Table */}
+      <div className="bg-card border rounded-2xl shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-muted-foreground text-xs flex items-center justify-center space-x-2">
-            <Clock className="w-5 h-5 animate-spin text-solar-500" />
+          <div className="p-12 text-center text-xs text-muted-foreground flex flex-col items-center justify-center space-y-2">
+            <RefreshCw className="w-5 h-5 animate-spin text-solar-500" />
             <span>Loading subsidy claims...</span>
           </div>
+        ) : error ? (
+          <div className="p-8 text-center text-xs text-destructive">
+            <p className="font-semibold">{error}</p>
+            <button
+              onClick={fetchSubsidies}
+              className="mt-2 text-xs text-solar-600 underline cursor-pointer"
+            >
+              Try Again
+            </button>
+          </div>
         ) : filteredSubsidies.length === 0 ? (
-          <div className="p-12 text-center space-y-2">
-            <Landmark className="w-10 h-10 text-muted-foreground/40 mx-auto" />
-            <p className="text-sm font-semibold text-foreground">No subsidy records match your filter</p>
-            <p className="text-xs text-muted-foreground">
-              Adjust search keywords or switch to another lifecycle tab.
-            </p>
+          <div className="p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-solar-500/10 text-solar-600 mx-auto flex items-center justify-center font-bold">
+              <Landmark className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">No subsidy claims found</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {searchTerm || statusFilter || schemeFilter
+                  ? 'No records match your active search or filter.'
+                  : 'Get started by registering a new PM Surya Ghar subsidy claim for a customer.'}
+              </p>
+            </div>
+            {!searchTerm && !statusFilter && !schemeFilter && (
+              <button
+                type="button"
+                onClick={handleOpenRegisterModal}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Register First Claim</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/50 border-b text-muted-foreground font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Application #</th>
-                  <th className="py-3.5 px-4">Project &amp; Beneficiary</th>
-                  <th className="py-3.5 px-4">Scheme &amp; Portal Ref</th>
-                  <th className="py-3.5 px-4">Capacity</th>
-                  <th className="py-3.5 px-4">Requested</th>
-                  <th className="py-3.5 px-4">Sanctioned</th>
-                  <th className="py-3.5 px-4">Disbursed (DBT)</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Lifecycle Actions</th>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b bg-muted/40 text-muted-foreground font-semibold">
+                  <th className="py-3 px-4">Consumer &amp; Site</th>
+                  <th className="py-3 px-4">Portal Application #</th>
+                  <th className="py-3 px-4">Capacity</th>
+                  <th className="py-3 px-4">Claimed Subsidy</th>
+                  <th className="py-3 px-4">Sanction Status</th>
+                  <th className="py-3 px-4">DBT Disbursal</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {filteredSubsidies.map(sub => (
-                  <tr key={sub._id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDetailModal(sub)}
-                        className="text-solar-600 hover:text-solar-700 hover:underline cursor-pointer font-bold"
-                        title="Click to view full application & DBT audit"
-                      >
-                        {sub.applicationNumber}
-                      </button>
-                    </td>
+              <tbody className="divide-y divide-border">
+                {filteredSubsidies.map(sub => {
+                  const customerName = sub.customerId?.name || 'Consumer (Solar Project)';
+                  const customerPhone = sub.customerId?.phone || sub.customerId?.primaryPhone || '';
+                  const city = sub.customerId?.billingAddress?.city || 'Raipur';
+                  const isSanctioned = ['SANCTIONED', 'PARTIALLY_DISBURSED', 'FULLY_DISBURSED'].includes(sub.status);
+                  const isDisbursed = sub.status === 'FULLY_DISBURSED';
+                  const dbtRecords = sub.disbursements || [];
+                  const latestUtr = dbtRecords.length > 0 ? dbtRecords[dbtRecords.length - 1].disbursementReference : null;
 
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-foreground">
-                        {sub.customerId?.name || 'Consumer Client'}
-                      </div>
-                      <span className="text-muted-foreground text-[11px] font-mono">
-                        {sub.projectId?.projectCode || 'Solar Project'} • {sub.customerId?.phone || ''}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={sub._id} className="hover:bg-muted/30 transition-colors">
+                      {/* Consumer & Site */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-foreground">{customerName}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {customerPhone && <span>{customerPhone} • </span>}
+                          <span>{city}</span>
+                        </div>
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-foreground">
-                        {sub.schemeName === 'PM_SURYA_GHAR_MUFT_BIJLI_YOJANA'
-                          ? 'PM Surya Ghar'
-                          : sub.schemeName.replace(/_/g, ' ')}
-                      </div>
-                      <span className="text-muted-foreground text-[11px] font-mono block">
-                        {sub.portalApplicationNumber || 'Not Registered'}
-                      </span>
-                    </td>
+                      {/* Portal Application # */}
+                      <td className="py-3 px-4">
+                        <div className="font-mono font-bold text-foreground">
+                          {sub.portalApplicationNumber || sub.applicationNumber}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                          {sub.schemeName?.replace(/_/g, ' ')}
+                        </div>
+                      </td>
 
-                    <td className="py-3.5 px-4 font-bold text-foreground">
-                      {sub.systemCapacityKw} kWp
-                    </td>
+                      {/* Capacity */}
+                      <td className="py-3 px-4 font-mono font-semibold text-foreground">
+                        {sub.systemCapacityKw || 3} kWp
+                      </td>
 
-                    <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                      {formatRupees(sub.requestedAmountPaise)}
-                    </td>
+                      {/* Claimed Subsidy */}
+                      <td className="py-3 px-4">
+                        <span className="font-black text-foreground">
+                          {formatRupees(sub.requestedAmountPaise)}
+                        </span>
+                      </td>
 
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-700 dark:text-indigo-400">
-                      {sub.approvedAmountPaise > 0 ? formatRupees(sub.approvedAmountPaise) : '—'}
-                    </td>
+                      {/* Sanction Status */}
+                      <td className="py-3 px-4">
+                        {isSanctioned ? (
+                          <div>
+                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Approved {formatRupees(sub.approvedAmountPaise || sub.requestedAmountPaise)}</span>
+                            </span>
+                            {sub.sanctionReference && (
+                              <div className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                                Ref: {sub.sanctionReference}
+                              </div>
+                            )}
+                          </div>
+                        ) : sub.status === 'REJECTED' ? (
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
+                            Rejected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            <Clock className="w-3 h-3" />
+                            <span>Pending Sanction</span>
+                          </span>
+                        )}
+                      </td>
 
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                      {sub.disbursedAmountPaise > 0 ? formatRupees(sub.disbursedAmountPaise) : '—'}
-                    </td>
+                      {/* DBT Disbursal */}
+                      <td className="py-3 px-4">
+                        {isDisbursed ? (
+                          <div>
+                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Credited {formatRupees(sub.disbursedAmountPaise || sub.approvedAmountPaise)}</span>
+                            </span>
+                            {latestUtr && (
+                              <div className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                                UTR: {latestUtr}
+                              </div>
+                            )}
+                          </div>
+                        ) : isSanctioned ? (
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300">
+                            Ready for DBT
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px]">—</span>
+                        )}
+                      </td>
 
-                    <td className="py-3.5 px-4">{getStatusBadge(sub.status)}</td>
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          {!isSanctioned && sub.status !== 'REJECTED' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSanctionModal(sub)}
+                              className="px-2.5 py-1 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
+                            >
+                              Record Sanction
+                            </button>
+                          )}
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end space-x-1.5">
-                        {/* 1. Record Sanction Button (if pending sanction) */}
-                        {['APPLIED', 'CLAIM_SUBMITTED', 'DOCUMENTS_PENDING'].includes(sub.status) && (
+                          {isSanctioned && !isDisbursed && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDisburseModal(sub)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
+                            >
+                              Record DBT Credit
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => handleOpenSanctionModal(sub)}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                            title="Record DISCOM / MNRE Official Sanction Letter"
+                            onClick={() => handleOpenDetailModal(sub)}
+                            className="px-2.5 py-1 rounded-lg border bg-muted/60 hover:bg-muted text-foreground font-semibold text-xs transition cursor-pointer"
                           >
-                            <TrendingUp className="w-3 h-3" />
-                            <span>Record Sanction</span>
+                            Details
                           </button>
-                        )}
-
-                        {/* 2. Record DBT Button (if sanctioned or partially disbursed) */}
-                        {['SANCTIONED', 'PARTIALLY_DISBURSED'].includes(sub.status) && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDisburseModal(sub)}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                            title="Record Direct Benefit Transfer (DBT) Subsidy Credit"
-                          >
-                            <IndianRupee className="w-3 h-3" />
-                            <span>Record DBT</span>
-                          </button>
-                        )}
-
-                        {/* 3. Stage Advance / Status Update */}
-                        {sub.status !== 'FULLY_DISBURSED' && sub.status !== 'CANCELLED' && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenStatusModal(sub)}
-                            className="inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground font-semibold text-xs border transition-colors cursor-pointer"
-                            title="Update Claim Status"
-                          >
-                            <span>Update</span>
-                          </button>
-                        )}
-
-                        {/* 4. Full Details Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDetailModal(sub)}
-                          className="inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border transition-colors cursor-pointer"
-                          title="View Full Application & DBT Audit History"
-                        >
-                          <span>Details</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -930,7 +799,7 @@ export const SubsidyPage: React.FC = () => {
 
         {/* Pagination */}
         {total > limit && (
-          <div className="p-4 border-t flex items-center justify-between text-xs text-muted-foreground">
+          <div className="p-3 border-t flex items-center justify-between text-xs text-muted-foreground">
             <span>
               Showing {filteredSubsidies.length} of {total} claims
             </span>
@@ -938,7 +807,7 @@ export const SubsidyPage: React.FC = () => {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
-                className="p-1.5 rounded-lg border hover:bg-muted disabled:opacity-50 cursor-pointer"
+                className="p-1 rounded-lg border hover:bg-muted disabled:opacity-50 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -946,7 +815,7 @@ export const SubsidyPage: React.FC = () => {
               <button
                 disabled={page * limit >= total}
                 onClick={() => setPage(p => p + 1)}
-                className="p-1.5 rounded-lg border hover:bg-muted disabled:opacity-50 cursor-pointer"
+                className="p-1 rounded-lg border hover:bg-muted disabled:opacity-50 cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -956,11 +825,11 @@ export const SubsidyPage: React.FC = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* 1. REGISTER NEW SUBSIDY CLAIM MODAL                       */}
+      {/* 1. REGISTER SUBSIDY CLAIM MODAL                          */}
       {/* ========================================================= */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-lg bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
@@ -969,7 +838,7 @@ export const SubsidyPage: React.FC = () => {
                 <div>
                   <h3 className="text-base font-bold text-foreground">Register Subsidy Claim</h3>
                   <p className="text-[11px] text-muted-foreground">
-                    PM Surya Ghar Muft Bijli Yojana Central DBT Claim Registration
+                    PM Surya Ghar Muft Bijli Yojana Central DBT Claim Entry
                   </p>
                 </div>
               </div>
@@ -981,52 +850,60 @@ export const SubsidyPage: React.FC = () => {
               </button>
             </div>
 
-            {loadingProjects ? (
+            {loadingRegisterData ? (
               <div className="p-8 text-center text-xs text-muted-foreground flex items-center justify-center space-x-2">
                 <Clock className="w-4 h-4 animate-spin text-solar-500" />
-                <span>Fetching eligible solar projects...</span>
+                <span>Loading customer registry...</span>
               </div>
             ) : (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
-                {projectsError && (
-                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs flex items-center space-x-1.5">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{projectsError}</span>
-                  </div>
-                )}
-
+              <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
+                {/* Select Customer */}
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Select Completed / Commissioned Solar Project <span className="text-destructive">*</span>
+                    Select Customer / Consumer <span className="text-destructive">*</span>
                   </label>
-                  {projectsList.length > 0 ? (
+                  {customersList.length > 0 ? (
                     <select
-                      required
-                      value={registerForm.projectId}
-                      onChange={e => handleProjectSelectForRegister(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-background border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground"
+                      value={registerForm.customerId || (registerForm.consumerName ? 'CUSTOM' : '')}
+                      onChange={e => handleCustomerChange(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-background border rounded-xl focus:ring-2 focus:ring-solar-500 text-foreground font-medium"
                     >
-                      <option value="">-- Choose Project --</option>
-                      {projectsList.map(p => (
-                        <option key={p._id} value={p._id}>
-                          {p.projectCode} • {p.name || 'Solar Project'} (
-                          {p.systemCapacityKwp || p.capacityKw || 3} kWp)
-                          {p.customerId?.name ? ` — ${p.customerId.name}` : ''}
+                      {customersList.map(c => (
+                        <option key={c._id} value={c._id}>
+                          {c.name} ({c.primaryPhone || c.phone || 'No Phone'}) — {c.billingAddress?.city || 'Raipur'}
                         </option>
                       ))}
+                      <option value="CUSTOM">+ Enter Custom Consumer Details</option>
                     </select>
-                  ) : (
-                    <input
-                      type="text"
-                      required
-                      placeholder="Paste Project MongoDB ID"
-                      value={registerForm.projectId}
-                      onChange={e => setRegisterForm({ ...registerForm, projectId: e.target.value })}
-                      className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono text-foreground"
-                    />
+                  ) : null}
+
+                  {/* If custom or no customer in DB, let them type consumer name/number */}
+                  {(!registerForm.customerId || customersList.length === 0) && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Consumer Full Name"
+                          value={registerForm.consumerName}
+                          onChange={e => setRegisterForm({ ...registerForm, consumerName: e.target.value })}
+                          className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Consumer BP / Service #"
+                          value={registerForm.consumerNumber}
+                          onChange={e => setRegisterForm({ ...registerForm, consumerNumber: e.target.value })}
+                          className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono text-foreground"
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
 
+                {/* Scheme & Capacity */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-foreground mb-1">
@@ -1037,9 +914,8 @@ export const SubsidyPage: React.FC = () => {
                       onChange={e => setRegisterForm({ ...registerForm, schemeName: e.target.value })}
                       className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-solar-500"
                     >
-                      <option value="PM_SURYA_GHAR_MUFT_BIJLI_YOJANA">PM Surya Ghar Yojana</option>
-                      <option value="STATE_ROOFTOP_SUBSIDY">State Rooftop Subsidy</option>
-                      <option value="CENTRAL_FINANCIAL_ASSISTANCE">CFA Scheme</option>
+                      <option value="PM Surya Ghar Muft Bijli Yojana">PM Surya Ghar Yojana (DBT)</option>
+                      <option value="State Rooftop Subsidy">State Rooftop Subsidy</option>
                     </select>
                   </div>
 
@@ -1067,15 +943,16 @@ export const SubsidyPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Portal Application Number & Requested Amount */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-foreground mb-1">
-                      Portal Application Number
+                      Portal Application Number <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. PMSG-CG-2026-449102"
+                      placeholder="e.g. 874788 or PMSG-CG-2026-..."
                       value={registerForm.portalApplicationNumber}
                       onChange={e =>
                         setRegisterForm({
@@ -1089,7 +966,7 @@ export const SubsidyPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-foreground mb-1">
-                      Requested Subsidy (₹)
+                      Requested Subsidy (₹) <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="number"
@@ -1104,44 +981,41 @@ export const SubsidyPage: React.FC = () => {
                       }
                       className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
                     />
-                    <span className="text-[10px] text-muted-foreground block mt-0.5 font-medium">
-                      PM Surya Ghar: ₹30k/kW (≤2kW), ₹78k max cap.
+                    <span className="text-[10px] text-muted-foreground">
+                      PM Surya Ghar: ₹30k/kW (max ₹78,000 cap).
                     </span>
                   </div>
                 </div>
 
+                {/* Notes */}
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Claim Notes &amp; Portal Directives
+                    Claim Notes &amp; Verification Remarks
                   </label>
                   <textarea
                     rows={2}
                     value={registerForm.notes}
                     onChange={e => setRegisterForm({ ...registerForm, notes: e.target.value })}
-                    placeholder="e.g. Uploaded DISCOM inspection report and joint commission certificate."
+                    placeholder="e.g. Net meter installed, commissioning report submitted on national portal"
                     className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
 
-                <div className="flex items-center justify-end space-x-2.5 pt-3 border-t">
+                {/* Actions */}
+                <div className="flex items-center justify-end space-x-2 pt-3 border-t">
                   <button
                     type="button"
                     onClick={() => setIsRegisterModalOpen(false)}
-                    className="px-4 py-2 text-xs text-muted-foreground hover:bg-muted rounded-xl cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl border text-muted-foreground hover:bg-muted text-xs cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submittingRegister}
-                    className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
                   >
-                    {submittingRegister ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Landmark className="w-3.5 h-3.5" />
-                    )}
-                    <span>{submittingRegister ? 'Submitting...' : 'Register Subsidy'}</span>
+                    {submittingRegister ? 'Registering...' : 'Register Subsidy Claim'}
                   </button>
                 </div>
               </form>
@@ -1151,22 +1025,17 @@ export const SubsidyPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
-      {/* 2. RECORD OFFICIAL SANCTION MODAL                         */}
+      {/* 2. RECORD SANCTION MODAL                                 */}
       {/* ========================================================= */}
       {isSanctionModalOpen && selectedSubsidy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Record Official Sanction</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    DISCOM &amp; National Portal subsidy approval verification
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Record Subsidy Sanction</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Confirm approval from MNRE / State DISCOM Portal
+                </p>
               </div>
               <button
                 onClick={() => setIsSanctionModalOpen(false)}
@@ -1176,58 +1045,41 @@ export const SubsidyPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Application Overview */}
-            <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Application #:</span>
-                <span className="font-mono font-bold text-foreground">
-                  {selectedSubsidy.applicationNumber}
-                </span>
+            <form onSubmit={handleSanctionSubmit} className="space-y-3.5 text-xs">
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-300">
+                <div className="font-bold">
+                  {selectedSubsidy.customerId?.name || 'Consumer'} • {selectedSubsidy.portalApplicationNumber}
+                </div>
+                <div className="text-[11px] mt-0.5">
+                  Requested: {formatRupees(selectedSubsidy.requestedAmountPaise)} ({selectedSubsidy.systemCapacityKw || 3} kWp)
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Beneficiary Client:</span>
-                <span className="font-semibold text-foreground">
-                  {selectedSubsidy.customerId?.name || 'Consumer Client'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Requested Amount:</span>
-                <span className="font-mono font-bold text-blue-600">
-                  {formatRupees(selectedSubsidy.requestedAmountPaise)}
-                </span>
-              </div>
-            </div>
 
-            <form onSubmit={handleSubmitSanction} className="space-y-3 text-xs">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Sanction Reference / LOA Letter Number <span className="text-destructive">*</span>
+                  Sanction Reference Number <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. REC-PMSG-2026-9042"
                   value={sanctionForm.sanctionReference}
-                  onChange={e =>
-                    setSanctionForm({ ...sanctionForm, sanctionReference: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-indigo-500"
+                  onChange={e => setSanctionForm({ ...sanctionForm, sanctionReference: e.target.value })}
+                  placeholder="e.g. MNRE/PMSG/2026/..."
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Sanction Date <span className="text-destructive">*</span>
+                    Sanction Date
                   </label>
                   <input
                     type="date"
                     required
                     value={sanctionForm.sanctionDate}
-                    onChange={e =>
-                      setSanctionForm({ ...sanctionForm, sanctionDate: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => setSanctionForm({ ...sanctionForm, sanctionDate: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground font-mono"
                   />
                 </div>
 
@@ -1238,7 +1090,6 @@ export const SubsidyPage: React.FC = () => {
                   <input
                     type="number"
                     min="1"
-                    max={Math.round(selectedSubsidy.requestedAmountPaise / 100)}
                     required
                     value={sanctionForm.approvedAmountRupees}
                     onChange={e =>
@@ -1247,43 +1098,38 @@ export const SubsidyPage: React.FC = () => {
                         approvedAmountRupees: Number(e.target.value) || 0
                       })
                     }
-                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Sanction Remarks &amp; Conditions
+                  Sanction Notes
                 </label>
-                <textarea
-                  rows={2}
+                <input
+                  type="text"
                   value={sanctionForm.notes}
                   onChange={e => setSanctionForm({ ...sanctionForm, notes: e.target.value })}
-                  placeholder="e.g. Inspection verified; net-meter testing passed; ready for central DBT release."
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. Approved under PM Surya Ghar National Portal"
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2.5 pt-3 border-t">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
                 <button
                   type="button"
                   onClick={() => setIsSanctionModalOpen(false)}
-                  className="px-4 py-2 text-xs text-muted-foreground hover:bg-muted rounded-xl cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border text-muted-foreground hover:bg-muted text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingSanction}
-                  className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submittingSanction ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <TrendingUp className="w-3.5 h-3.5" />
-                  )}
-                  <span>{submittingSanction ? 'Saving...' : 'Confirm Sanction'}</span>
+                  {submittingSanction ? 'Recording...' : 'Confirm Sanction'}
                 </button>
               </div>
             </form>
@@ -1292,22 +1138,17 @@ export const SubsidyPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
-      {/* 3. RECORD DBT DISBURSEMENT MODAL                          */}
+      {/* 3. RECORD DBT DISBURSAL MODAL                            */}
       {/* ========================================================= */}
       {isDisburseModalOpen && selectedSubsidy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
-                  <IndianRupee className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Record DBT Subsidy Credit</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    PM Surya Ghar Muft Bijli Yojana direct benefit transfer
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Record DBT Credit</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Direct Benefit Transfer credited to consumer's bank account
+                </p>
               </div>
               <button
                 onClick={() => setIsDisburseModalOpen(false)}
@@ -1317,208 +1158,73 @@ export const SubsidyPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Beneficiary Summary */}
-            <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Application #:</span>
-                <span className="font-mono font-bold text-foreground">
-                  {selectedSubsidy.applicationNumber}
-                </span>
+            <form onSubmit={handleDisburseSubmit} className="space-y-3.5 text-xs">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                <div className="font-bold">
+                  {selectedSubsidy.customerId?.name || 'Consumer'} • Sanction Ref: {selectedSubsidy.sanctionReference || 'Govt Sanction'}
+                </div>
+                <div className="text-[11px] mt-0.5">
+                  Sanctioned Amount: {formatRupees(selectedSubsidy.approvedAmountPaise || selectedSubsidy.requestedAmountPaise)}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Beneficiary Client:</span>
-                <span className="font-semibold text-foreground">
-                  {selectedSubsidy.customerId?.name || 'Consumer Client'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Portal Scheme:</span>
-                <span className="font-medium text-foreground">
-                  {selectedSubsidy.schemeName.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Approved Amount:</span>
-                <span className="font-mono font-bold text-indigo-600">
-                  {formatRupees(selectedSubsidy.approvedAmountPaise)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Already Credited:</span>
-                <span className="font-mono font-bold text-emerald-600">
-                  {formatRupees(selectedSubsidy.disbursedAmountPaise)}
-                </span>
-              </div>
-            </div>
 
-            <form onSubmit={handleSubmitDisbursement} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  DBT UTR / Bank Reference No. <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={disburseForm.disbursementReference}
+                  onChange={e => setDisburseForm({ ...disburseForm, disbursementReference: e.target.value })}
+                  placeholder="e.g. UTR9845661234 or CMS..."
+                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Disbursed Amount (₹) <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    value={disburseForm.amountRupees}
-                    onChange={e =>
-                      setDisburseForm({ ...disburseForm, amountRupees: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Disbursement Date <span className="text-destructive">*</span>
+                    Credited Date
                   </label>
                   <input
                     type="date"
                     required
                     value={disburseForm.disbursedAt}
-                    onChange={e =>
-                      setDisburseForm({ ...disburseForm, disbursedAt: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-sm bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-emerald-500"
+                    onChange={e => setDisburseForm({ ...disburseForm, disbursedAt: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground font-mono"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Bank UTR / Transaction Reference <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. UTR-SBI-202611-89104"
-                  value={disburseForm.disbursementReference}
-                  onChange={e =>
-                    setDisburseForm({ ...disburseForm, disbursementReference: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Recipient Bank Account / Account Details <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. SBI A/c ending 4589"
-                  value={disburseForm.recipientAccount}
-                  onChange={e =>
-                    setDisburseForm({ ...disburseForm, recipientAccount: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Disbursement Remarks &amp; Audit Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={disburseForm.notes}
-                  onChange={e => setDisburseForm({ ...disburseForm, notes: e.target.value })}
-                  placeholder="e.g. Verified from PM Surya Ghar national portal DBT confirmation sheet"
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end space-x-2.5 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setIsDisburseModalOpen(false)}
-                  className="px-4 py-2 text-xs text-muted-foreground hover:bg-muted rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingDisburse}
-                  className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {submittingDisburse ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <IndianRupee className="w-3.5 h-3.5" />
-                  )}
-                  <span>{submittingDisburse ? 'Recording...' : 'Confirm DBT Credit'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* 4. UPDATE CLAIM STATUS / REJECTION MODAL                  */}
-      {/* ========================================================= */}
-      {isStatusModalOpen && selectedSubsidy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-base font-bold text-foreground">Update Claim Lifecycle Status</h3>
-              <button
-                onClick={() => setIsStatusModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3 rounded-xl bg-muted/40 border text-xs">
-              <p className="font-mono font-bold">{selectedSubsidy.applicationNumber}</p>
-              <p className="text-muted-foreground">Current: {selectedSubsidy.status.replace(/_/g, ' ')}</p>
-            </div>
-
-            <form onSubmit={handleSubmitStatus} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Target Status <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={statusForm.status}
-                  onChange={e => setStatusForm({ ...statusForm, status: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground font-semibold"
-                >
-                  <option value="DOCUMENTS_PENDING">Documents Pending</option>
-                  <option value="APPLIED">Applied on Portal</option>
-                  <option value="CLAIM_SUBMITTED">Claim Submitted for DISCOM Review</option>
-                  <option value="SANCTIONED">Sanctioned</option>
-                  <option value="REJECTED">Rejected (Query from DISCOM)</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-              </div>
-
-              {statusForm.status === 'REJECTED' && (
                 <div>
-                  <label className="block text-xs font-semibold text-destructive mb-1">
-                    Rejection Reason / Query Description <span className="text-destructive">*</span>
+                  <label className="block text-xs font-semibold text-foreground mb-1">
+                    Amount Credited (₹) <span className="text-destructive">*</span>
                   </label>
-                  <textarea
-                    rows={2}
+                  <input
+                    type="number"
+                    min="1"
                     required
-                    value={statusForm.rejectionReason}
-                    onChange={e => setStatusForm({ ...statusForm, rejectionReason: e.target.value })}
-                    placeholder="e.g. Bank passbook name mismatch, non-DCR modules or incorrect meter serial"
-                    className="w-full px-3 py-2 text-xs bg-background border border-destructive/40 rounded-xl text-foreground"
+                    value={disburseForm.amountRupees}
+                    onChange={e =>
+                      setDisburseForm({
+                        ...disburseForm,
+                        amountRupees: Number(e.target.value) || 0
+                      })
+                    }
+                    className="w-full px-3 py-2 text-xs bg-background border rounded-xl font-mono font-bold text-foreground focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
-              )}
+              </div>
 
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Audit Notes</label>
-                <textarea
-                  rows={2}
-                  value={statusForm.notes}
-                  onChange={e => setStatusForm({ ...statusForm, notes: e.target.value })}
-                  placeholder="Notes for company audit trail"
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Consumer Account / Remarks
+                </label>
+                <input
+                  type="text"
+                  value={disburseForm.recipientAccount}
+                  onChange={e => setDisburseForm({ ...disburseForm, recipientAccount: e.target.value })}
+                  placeholder="e.g. Credited via PFMS to Aadhaar-linked Bank A/C"
                   className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground"
                 />
               </div>
@@ -1526,18 +1232,17 @@ export const SubsidyPage: React.FC = () => {
               <div className="flex items-center justify-end space-x-2 pt-3 border-t">
                 <button
                   type="button"
-                  onClick={() => setIsStatusModalOpen(false)}
-                  className="px-4 py-2 text-xs text-muted-foreground hover:bg-muted rounded-xl cursor-pointer"
+                  onClick={() => setIsDisburseModalOpen(false)}
+                  className="px-3 py-1.5 rounded-xl border text-muted-foreground hover:bg-muted text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingStatus}
-                  className="px-4 py-2 text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                  disabled={submittingDisburse}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submittingStatus ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  <span>{submittingStatus ? 'Updating...' : 'Save Status'}</span>
+                  {submittingDisburse ? 'Saving...' : 'Confirm DBT Credit'}
                 </button>
               </div>
             </form>
@@ -1546,27 +1251,17 @@ export const SubsidyPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
-      {/* 5. CLAIM DETAILS & DBT AUDIT HISTORY MODAL                */}
+      {/* 4. APPLICATION DETAILS MODAL                             */}
       {/* ========================================================= */}
-      {isDetailModalOpen && selectedSubsidyDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-card border rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+      {isDetailModalOpen && selectedSubsidy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-card border rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold">
-                  <Landmark className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-base font-bold text-foreground">
-                      {selectedSubsidyDetail.applicationNumber}
-                    </h3>
-                    {getStatusBadge(selectedSubsidyDetail.status)}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    PM Surya Ghar DBT Subsidy Application &amp; Audit Trail
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Subsidy Claim Details</h3>
+                <p className="text-[11px] font-mono text-muted-foreground">
+                  {selectedSubsidy.applicationNumber} • {selectedSubsidy.portalApplicationNumber}
+                </p>
               </div>
               <button
                 onClick={() => setIsDetailModalOpen(false)}
@@ -1576,228 +1271,106 @@ export const SubsidyPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Financial Overview Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-              <div className="p-2.5 rounded-xl border bg-muted/30">
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-                  Requested
-                </span>
-                <span className="font-mono font-bold text-foreground text-sm">
-                  {formatRupees(selectedSubsidyDetail.requestedAmountPaise)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl border bg-indigo-500/5 border-indigo-500/20">
-                <span className="text-[10px] text-indigo-700 dark:text-indigo-400 uppercase font-semibold block">
-                  Sanctioned
-                </span>
-                <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300 text-sm">
-                  {formatRupees(selectedSubsidyDetail.approvedAmountPaise)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl border bg-emerald-500/5 border-emerald-500/20">
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold block">
-                  Disbursed (DBT)
-                </span>
-                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-sm">
-                  {formatRupees(selectedSubsidyDetail.disbursedAmountPaise)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl border bg-amber-500/5 border-amber-500/20">
-                <span className="text-[10px] text-amber-700 dark:text-amber-400 uppercase font-semibold block">
-                  Balance Pending
-                </span>
-                <span className="font-mono font-bold text-amber-700 dark:text-amber-300 text-sm">
-                  {formatRupees(
-                    Math.max(
-                      0,
-                      (selectedSubsidyDetail.approvedAmountPaise ||
-                        selectedSubsidyDetail.requestedAmountPaise ||
-                        0) - (selectedSubsidyDetail.disbursedAmountPaise || 0)
-                    )
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {/* Beneficiary & Portal Reference Table */}
-            <div className="p-3.5 rounded-xl border bg-card space-y-2 text-xs">
-              <h4 className="font-bold text-foreground text-xs uppercase tracking-wider border-b pb-1">
-                Beneficiary &amp; Scheme Identifiers
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-4 text-xs">
+              {/* Status Banner */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Client / Beneficiary:</span>
-                  <span className="font-semibold text-foreground">
-                    {selectedSubsidyDetail.customerId?.name || 'Consumer Client'}
-                  </span>
-                  {selectedSubsidyDetail.customerId?.phone && (
-                    <span className="block text-[11px] text-muted-foreground font-mono">
-                      {selectedSubsidyDetail.customerId.phone}
+                  <span className="text-[11px] text-muted-foreground block">Current Status</span>
+                  {renderStatusBadge(selectedSubsidy.status)}
+                </div>
+                <div className="text-right">
+                  <span className="text-[11px] text-muted-foreground block">System Capacity</span>
+                  <span className="font-bold font-mono text-sm">{selectedSubsidy.systemCapacityKw || 3} kWp</span>
+                </div>
+              </div>
+
+              {/* Financial Ledger Breakdown */}
+              <div className="border rounded-xl p-3 space-y-2">
+                <span className="font-bold text-xs text-foreground block">Subsidy Financial Ledger</span>
+                <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                  <div className="p-2 bg-muted/40 rounded-lg">
+                    <span className="text-[10px] text-muted-foreground block">Claimed (Requested)</span>
+                    <span className="font-black text-xs text-foreground">
+                      {formatRupees(selectedSubsidy.requestedAmountPaise)}
                     </span>
+                  </div>
+                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-700 dark:text-blue-400">
+                    <span className="text-[10px] block opacity-80">Govt Approved</span>
+                    <span className="font-black text-xs">
+                      {formatRupees(selectedSubsidy.approvedAmountPaise)}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-700 dark:text-emerald-400">
+                    <span className="text-[10px] block opacity-80">DBT Credited</span>
+                    <span className="font-black text-xs">
+                      {formatRupees(selectedSubsidy.disbursedAmountPaise)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Consumer & Portal Details */}
+              <div className="border rounded-xl p-3 space-y-2">
+                <span className="font-bold text-xs text-foreground block">Consumer &amp; Portal Information</span>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-muted-foreground block">Consumer Name:</span>
+                    <span className="font-semibold">{selectedSubsidy.customerId?.name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">Phone:</span>
+                    <span className="font-semibold">{selectedSubsidy.customerId?.phone || selectedSubsidy.customerId?.primaryPhone || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">Portal Reg #:</span>
+                    <span className="font-mono font-semibold">{selectedSubsidy.portalApplicationNumber || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">Scheme:</span>
+                    <span className="font-semibold">{selectedSubsidy.schemeName}</span>
+                  </div>
+                  {selectedSubsidy.sanctionReference && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block">Sanction Reference:</span>
+                      <span className="font-mono font-semibold">{selectedSubsidy.sanctionReference}</span>
+                    </div>
                   )}
                 </div>
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Linked Solar Project:</span>
-                  <span className="font-semibold text-foreground">
-                    {selectedSubsidyDetail.projectId?.name ||
-                      selectedSubsidyDetail.projectId?.projectCode ||
-                      'EPC Project'}
-                  </span>
-                  <span className="block text-[11px] font-mono text-solar-600">
-                    Capacity: {selectedSubsidyDetail.systemCapacityKw} kWp
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">
-                    National Portal Registration:
-                  </span>
-                  <span className="font-mono font-bold text-foreground">
-                    {selectedSubsidyDetail.portalApplicationNumber || 'Not Registered on National Portal'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Sanction Approval Ref:</span>
-                  <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">
-                    {selectedSubsidyDetail.sanctionReference || 'Pending Sanction Letter'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Document Checklist Requirements */}
-            <div className="p-3.5 rounded-xl border bg-card space-y-2 text-xs">
-              <h4 className="font-bold text-foreground text-xs uppercase tracking-wider border-b pb-1 flex items-center justify-between">
-                <span>National Portal Required Documents</span>
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  PM Surya Ghar DBT Compliance
-                </span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/40">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Consumer Aadhaar Card Copy</span>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/40">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Bank Passbook / Cancelled Cheque</span>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/40">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Recent Electricity Bill</span>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/40">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Work Completion &amp; Commissioning (WCR/JCR)</span>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/40 sm:col-span-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Vendor DCR Undertaking (Annexure A - Sameer Sahu, Rarebox LLP)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Direct Benefit Transfer (DBT) Credits History */}
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between border-b pb-1">
-                <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Realized DBT Bank Credits ({selectedSubsidyDetail.disbursements?.length || 0})</span>
-                </h4>
-                {selectedSubsidyDetail.status !== 'FULLY_DISBURSED' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDetailModalOpen(false);
-                      handleOpenDisburseModal(selectedSubsidyDetail);
-                    }}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs cursor-pointer"
-                  >
-                    <IndianRupee className="w-3 h-3" />
-                    <span>+ Record DBT</span>
-                  </button>
-                )}
               </div>
 
-              {!selectedSubsidyDetail.disbursements ||
-              selectedSubsidyDetail.disbursements.length === 0 ? (
-                <div className="p-4 rounded-xl border border-dashed text-center text-muted-foreground text-xs">
-                  No Direct Benefit Transfer credits recorded yet. Click &apos;+ Record DBT&apos; once
-                  the subsidy is credited into the consumer bank account.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/50 text-muted-foreground font-semibold border-b">
-                      <tr>
-                        <th className="py-2 px-3">Disbursement Ref / UTR</th>
-                        <th className="py-2 px-3">Credit Date</th>
-                        <th className="py-2 px-3">Recipient Account</th>
-                        <th className="py-2 px-3 text-right">Amount Credited</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {selectedSubsidyDetail.disbursements.map((d: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-muted/20">
-                          <td className="py-2.5 px-3 font-mono font-bold text-foreground">
-                            {d.disbursementReference || d.disbursementId || `DBT-${idx + 1}`}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            {d.disbursedAt
-                              ? new Date(d.disbursedAt).toLocaleDateString('en-IN')
-                              : '—'}
-                          </td>
-                          <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground">
-                            {d.recipientAccount || 'Beneficiary A/c'}
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600">
-                            ₹{((d.amountPaise || 0) / 100).toLocaleString('en-IN')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* DBT Disbursal Transactions */}
+              {selectedSubsidy.disbursements && selectedSubsidy.disbursements.length > 0 && (
+                <div className="border rounded-xl p-3 space-y-2">
+                  <span className="font-bold text-xs text-foreground block">DBT Disbursal Ledger</span>
+                  <div className="space-y-1.5">
+                    {selectedSubsidy.disbursements.map((d, idx) => (
+                      <div key={idx} className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                        <div>
+                          <div className="font-mono font-bold text-emerald-800 dark:text-emerald-300">
+                            UTR: {d.disbursementReference}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {new Date(d.disbursedAt).toLocaleDateString()} • {d.recipientAccount || 'DBT Account'}
+                          </div>
+                        </div>
+                        <span className="font-black text-emerald-700 dark:text-emerald-400">
+                          {formatRupees(d.amountPaise)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex items-center justify-between pt-3 border-t">
-              <div className="flex items-center space-x-2">
-                {selectedSubsidyDetail.projectId?._id && (
-                  <Link
-                    to={`/projects/${selectedSubsidyDetail.projectId._id}?tab=subsidy`}
-                    className="inline-flex items-center space-x-1.5 text-xs font-semibold text-solar-600 hover:text-solar-700 hover:underline"
-                  >
-                    <span>View Project Subsidy Tab</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                {['APPLIED', 'CLAIM_SUBMITTED', 'DOCUMENTS_PENDING'].includes(
-                  selectedSubsidyDetail.status
-                ) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDetailModalOpen(false);
-                      handleOpenSanctionModal(selectedSubsidyDetail);
-                    }}
-                    className="px-3 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-2xs cursor-pointer"
-                  >
-                    + Record Sanction
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground rounded-xl cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
+            <div className="pt-3 border-t text-right">
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-xs cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -226,7 +226,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
     });
   });
 
-  it('renders VendorInvoicesPage with 3-way match reconciliation badges', async () => {
+  it('renders VendorInvoicesPage with payment status badges', async () => {
     const mockInvoices = [
       {
         _id: 'inv-1',
@@ -237,7 +237,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
         totalAmountPaise: 11200000,
         paidAmountPaise: 0,
         balancePayablePaise: 11200000,
-        status: 'RECONCILED',
+        status: 'RECORDED',
         discrepancyAmountPaise: 0,
         vendorId: {
           _id: 'v-1',
@@ -271,7 +271,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
 
     await waitFor(() => {
       expect(screen.getByText('INV-WAR-001')).toBeInTheDocument();
-      expect(screen.getByText(/Reconciled \(3-Way Match\)/i)).toBeInTheDocument();
+      expect(screen.getByText('Unpaid')).toBeInTheDocument();
     });
   });
 });

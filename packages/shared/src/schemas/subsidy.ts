@@ -24,8 +24,10 @@ export const disbursementSchema = z.object({
 });
 
 export const createSubsidySchema = z.object({
-  projectId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Project ID'),
+  projectId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Project ID').optional(),
   customerId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Customer ID').optional(),
+  consumerNumber: z.string().trim().max(100).optional(),
+  consumerName: z.string().trim().max(150).optional(),
   netMeteringApplicationId: z
     .string()
     .regex(OBJECT_ID_REGEX, 'Invalid Net Metering Application ID')
