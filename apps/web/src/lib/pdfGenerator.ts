@@ -93,8 +93,20 @@ export async function generatePdfFromElement(
   const contentWidthMm = pageWidthMm - marginMm * 2;
   const maxContentHeightMm = pageHeightMm - marginMm * 2;
 
-  // Check if element defines explicit individual A4 pages via [data-pdf-page]
-  const explicitPages = Array.from(element.querySelectorAll<HTMLElement>('[data-pdf-page]'));
+  // Temporarily reset any CSS zoom or transform to normal so html2canvas computes EXACT 1:1 unzoomed font metrics
+  const originalZoom = element.style.zoom;
+  const originalTransform = element.style.transform;
+  element.style.zoom = 'normal';
+  element.style.transform = 'none';
+
+  // Wait for all document fonts to be 100% loaded before html2canvas calculates text glyphs
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    await document.fonts.ready;
+  }
+
+  try {
+    // Check if element defines explicit individual A4 pages via [data-pdf-page]
+    const explicitPages = Array.from(element.querySelectorAll<HTMLElement>('[data-pdf-page]'));
 
   if (explicitPages.length > 0) {
     const pdf = new jsPDF({
@@ -116,11 +128,16 @@ export async function generatePdfFromElement(
         logging: false,
         backgroundColor: '#ffffff',
         windowWidth: 1024,
-        onclone: (_doc, clonedEl) => {
+        onclone: (clonedDoc, clonedEl) => {
+          if (clonedDoc.documentElement) clonedDoc.documentElement.style.zoom = 'normal';
+          if (clonedDoc.body) clonedDoc.body.style.zoom = 'normal';
+          clonedDoc.querySelectorAll('*').forEach(n => {
+            const el = n as HTMLElement;
+            if (el.style && el.style.zoom) el.style.zoom = 'normal';
+          });
           clonedEl.style.width = '794px';
-          clonedEl.style.maxWidth = '794px';
           clonedEl.style.minHeight = '1123px';
-          clonedEl.style.padding = '48px';
+          clonedEl.style.boxSizing = 'border-box';
         }
       });
 
@@ -284,6 +301,10 @@ export async function generatePdfFromElement(
   const blob = pdf.output('blob');
   const objectUrl = URL.createObjectURL(blob);
   return { pdf, blob, objectUrl };
+  } finally {
+    element.style.zoom = originalZoom;
+    element.style.transform = originalTransform;
+  }
 }
 
 /**

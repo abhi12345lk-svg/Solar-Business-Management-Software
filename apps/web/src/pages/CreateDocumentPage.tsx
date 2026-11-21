@@ -2076,92 +2076,57 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                           <RareboxLetterhead />
 
                           {/* Shaded Date Box at top right */}
-                          <div className="flex justify-end text-[12.5px] font-serif mb-2">
-                            <span className="bg-slate-200/90 text-slate-900 px-3 py-1 font-semibold rounded-xs">
-                              Date: {tplAgreementDate}
-                            </span>
+                          <div className="flex justify-end text-[13px] font-serif mb-2">
+                            <div className="border border-slate-300 bg-slate-100/90 px-3 py-1 font-semibold text-slate-900 rounded-xs">
+                              Date: &nbsp;{tplAgreementDate}
+                            </div>
                           </div>
 
                           {/* Addressed To CSPDCL */}
-                          <div className="space-y-0.5 text-[12.5px] font-serif">
+                          <div className="space-y-1 text-[13px] font-serif">
                             <p className="font-bold">To,</p>
                             <p className="pl-6 font-bold text-slate-900">Sub Division AE</p>
                             <p className="pl-6 font-bold text-slate-800">C S P D C L</p>
-                            <p className="pl-6 font-bold">
-                              <span className="bg-slate-200/90 px-2 py-0.5 rounded-xs">
-                                Sub Division AE Sub. Div. {tplDiscomSubDivAE}
-                              </span>
+                            <p className="pl-6 font-bold text-slate-900">
+                              Sub Division AE {tplDiscomSubDivAE.startsWith('Sub. Div.') ? tplDiscomSubDivAE : `Sub. Div. ${tplDiscomSubDivAE}`}
                             </p>
                           </div>
 
                           {/* Subject Line */}
-                          <div className="my-3 font-serif font-bold text-[13px]">
+                          <div className="my-3 font-serif font-bold text-[13.5px]">
                             <p>
                               Subject: Application for Grid Connectivity Rooftop{' '}
-                              <span className="bg-slate-200/90 px-1 rounded-xs">
-                                {tplCapacityKwp} KW
-                              </span>{' '}
-                              SP Solar Power plant.
+                              <strong>{tplCapacityKwp} KW</strong> SP Solar Power plant.
                             </p>
                           </div>
 
                           {/* Body Text */}
-                          <div className="space-y-3 font-serif text-[12.5px] leading-relaxed text-justify">
+                          <div className="space-y-3 font-serif text-[13px] leading-relaxed text-justify">
                             <p className="font-bold">Respected Sir,</p>
                             <p>
-                              We would like to inform you that installed{' '}
-                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
-                                {tplCapacityKwp} KW
-                              </span>{' '}
-                              Grid Connected Solar Power Plant at home building Roof Top to{' '}
-                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
-                                {tplConsumerName}
-                              </span>
-                              , at{' '}
-                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
-                                {tplAddress}
-                              </span>
-                              , District:{' '}
-                              <span className="bg-slate-200/90 font-bold px-1.5 py-0.5 rounded-xs">
-                                {tplDistrict}
-                              </span>
-                              , State:{' '}
-                              <span className="bg-slate-200/90 px-1.5 py-0.5 rounded-xs">
-                                {tplState}
-                              </span>
-                              . Details of Roof Top SPV to be installed in as under:
+                              We would like to inform you that installed <strong>{tplCapacityKwp} KW</strong> Grid Connected Solar Power Plant at home building Roof Top to <strong>{tplConsumerName}</strong>, at <strong>{tplAddress}</strong>, District: <strong>{tplDistrict}</strong>, State: <strong>{tplState}</strong>. Details of Roof Top SPV to be installed in as under:
                             </p>
 
-                            <div className="my-3 pl-4 space-y-1.5 text-[12.5px]">
+                            <div className="my-3 pl-6 space-y-1.5 text-[13px]">
                               <p>
                                 <span className="font-bold">Name-</span> &nbsp;&nbsp;
-                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
-                                  {tplConsumerName}
-                                </span>
+                                <strong>{tplConsumerName}</strong>
                               </p>
                               <p>
                                 <span className="font-bold">Address –</span> &nbsp;
-                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
-                                  {tplAddress}
-                                </span>
+                                <strong>{tplAddress}</strong>
                               </p>
                               <p>
                                 <span className="font-bold">District:</span> &nbsp;
-                                <span className="bg-slate-200/90 px-2 py-0.5 rounded-xs">
-                                  {tplDistrict}, State: {tplState}.
-                                </span>
+                                <span>{tplDistrict}, State: {tplState}.</span>
                               </p>
                               <p>
                                 <span className="font-bold">MOB –</span> &nbsp;
-                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
-                                  {tplMobile}
-                                </span>
+                                <strong>{tplMobile}</strong>
                               </p>
                               <p>
                                 <span className="font-bold">BP-</span> &nbsp;&nbsp;
-                                <span className="bg-slate-200/90 font-bold px-2 py-0.5 rounded-xs">
-                                  {tplConsumerNumber}
-                                </span>
+                                <strong>{tplConsumerNumber}</strong>
                               </p>
                             </div>
 
@@ -2174,7 +2139,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                         </div>
 
                         {/* Authorized Signatory with Official Rarebox Stamp */}
-                        <div className="flex justify-between items-end mt-6 pt-4 relative z-10">
+                        <div className="flex justify-between items-end mt-8 pt-4 relative z-10">
                           <div></div>
                           <div className="flex flex-col items-center text-center">
                             <img
@@ -2182,8 +2147,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                               alt="Rarebox LLP Stamp & Signature"
                               className="w-36 h-24 object-contain mb-1 filter contrast-125"
                             />
-                            <p className="font-serif font-bold text-[12px] text-slate-900">For, RAREBOX LLP</p>
-                            <p className="font-serif text-[11px] text-slate-700">Authorized Signatory</p>
+                            <p className="font-serif font-bold text-[12.5px] text-slate-900">For, RAREBOX LLP</p>
+                            <p className="font-serif text-[11.5px] text-slate-700">Authorized Signatory</p>
                           </div>
                         </div>
                       </div>
