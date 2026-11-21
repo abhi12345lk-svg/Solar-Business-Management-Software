@@ -100,20 +100,15 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
 
 const SALES_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Commercial Pipeline',
+    title: 'Commercial & Sales',
     items: [
       { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
-      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 },
       { to: '/customers', label: 'Customer Directory', icon: UserCheck },
-      { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
-    ]
-  },
-  {
-    title: 'Proposals & Sales Orders',
-    items: [
       { to: '/quotations', label: 'Quotation Proposals', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart }
+      { to: '/orders', label: 'Confirmed Sales Orders', icon: ShoppingCart },
+      { to: '/create-document', label: 'Generate Document', icon: FilePlus2 },
+      { to: '/documents', label: 'Document Vault & KYC', icon: FolderLock }
     ]
   }
 ];
