@@ -635,83 +635,23 @@ export const PaymentsPage: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* =========================================================================
-          SOLAR EPC ACCOUNTS WORKFLOW STRIP (Shows Step-by-Step Flow)
-         ========================================================================= */}
-      <div className="bg-secondary/40 border rounded-2xl p-3.5 sm:p-4 text-xs">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 mb-2.5">
-          <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Solar Financial Flow: Step-by-Step Architecture</span>
-          </span>
-          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-            Active: Step 1 &amp; Step 3 (Customer Inflow)
-          </span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {/* Step 1: Customer Advance (Active on this page) */}
-          <div className="p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 flex items-center gap-2.5 shadow-xs">
-            <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black flex items-center justify-center text-xs shrink-0">
-              1
-            </span>
-            <div className="min-w-0">
-              <div className="font-bold text-foreground text-xs truncate">Customer Advance (20%)</div>
-              <div className="text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold truncate">Inflow: Booking collection</div>
-            </div>
-          </div>
-
-          {/* Step 2: Vendor Material Bills (Outflow at /vendor-invoices) */}
-          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center text-xs shrink-0">
-              2
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-foreground text-xs truncate">Vendor Purchase Bills</div>
-              <div className="text-[10px] text-muted-foreground truncate">Outflow at /vendor-invoices</div>
-            </div>
-          </div>
-
-          {/* Step 3: Material Delivery & Handover (Active on this page) */}
-          <div className="p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 flex items-center gap-2.5 shadow-xs">
-            <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black flex items-center justify-center text-xs shrink-0">
-              3
-            </span>
-            <div className="min-w-0">
-              <div className="font-bold text-foreground text-xs truncate">Dispatch &amp; Handover (80%)</div>
-              <div className="text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold truncate">Inflow: 70% delivery + 10% final</div>
-            </div>
-          </div>
-
-          {/* Step 4: Govt Subsidy DBT */}
-          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs shrink-0">
-              4
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-foreground text-xs truncate">Govt Subsidy (DBT)</div>
-              <div className="text-[10px] text-muted-foreground truncate">Portal claim at /subsidies</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          PAGE HEADER: Title, Purpose, & 2 Clean Actions
+          PAGE HEADER: Title, Subtitle, & Primary Action Button
          ========================================================================= */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs">
         <div>
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
               <Banknote className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <span>Customer Payment Collections</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                  Customer Inflow (+)
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-secondary border text-muted-foreground">
+                  Accounts
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Collect advance and milestone payments from rooftop solar customers, issue official money receipts, and track contract receivables.
+                Record customer advance payments, milestone billing receipts, and bank realizations.
               </p>
             </div>
           </div>
@@ -721,10 +661,10 @@ export const PaymentsPage: React.FC = () => {
           <div className="flex items-center space-x-2.5 self-end sm:self-auto shrink-0">
             <button
               onClick={() => openRecordModal()}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>+ Collect Customer Payment</span>
+              <span>Record Payment</span>
             </button>
           </div>
         ) : (

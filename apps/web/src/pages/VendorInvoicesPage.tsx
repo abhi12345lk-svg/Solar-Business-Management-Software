@@ -20,8 +20,7 @@ import {
   X,
   CreditCard,
   Calculator,
-  Clock,
-  TrendingDown
+  Clock
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -445,66 +444,6 @@ export function VendorInvoicesPage() {
   return (
     <div className="space-y-5">
       {/* =========================================================================
-          SOLAR EPC ACCOUNTS WORKFLOW STRIP (Shows Step-by-Step Flow)
-         ========================================================================= */}
-      <div className="bg-secondary/40 border rounded-2xl p-3.5 sm:p-4 text-xs">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 mb-2.5">
-          <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <TrendingDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Solar Financial Flow: Step-by-Step Architecture</span>
-          </span>
-          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-            Active: Step 2 (Supplier Outflow)
-          </span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {/* Step 1: Customer Advance (Payments) */}
-          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
-              1
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-foreground text-xs truncate">Customer Advance (20%)</div>
-              <div className="text-[10px] text-muted-foreground truncate">Inflow at /payments</div>
-            </div>
-          </div>
-
-          {/* Step 2: Vendor Material Bills (Active Page) */}
-          <div className="p-2.5 rounded-xl border-2 border-amber-500 bg-amber-500/10 flex items-center gap-2.5 shadow-xs">
-            <span className="w-6 h-6 rounded-lg bg-amber-500 text-white font-black flex items-center justify-center text-xs shrink-0">
-              2
-            </span>
-            <div className="min-w-0">
-              <div className="font-bold text-foreground text-xs truncate">Vendor Purchase Bills</div>
-              <div className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold truncate">Outflow: Panels, Inverters</div>
-            </div>
-          </div>
-
-          {/* Step 3: Material Delivery & Handover (Payments) */}
-          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs shrink-0">
-              3
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-foreground text-xs truncate">Dispatch &amp; Handover (80%)</div>
-              <div className="text-[10px] text-muted-foreground truncate">Inflow at /payments</div>
-            </div>
-          </div>
-
-          {/* Step 4: Govt Subsidy DBT */}
-          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs shrink-0">
-              4
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-foreground text-xs truncate">Govt Subsidy (DBT)</div>
-              <div className="text-[10px] text-muted-foreground truncate">Portal claim at /subsidies</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================================
           PAGE HEADER: Title, Purpose, & Action Button
          ========================================================================= */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs">
@@ -515,13 +454,13 @@ export function VendorInvoicesPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>Vendor Invoices &amp; Payables</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-                  Supplier Outflow (-)
+                <span>Vendor Invoices &amp; Bills</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-secondary border text-muted-foreground">
+                  Accounts Payable
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Record material purchase bills (Solar Panels, Inverters, Structures) and disburse bank payments to equipment vendors.
+                Record supplier equipment bills and monitor accounts payable clearance.
               </p>
             </div>
           </div>
@@ -549,7 +488,7 @@ export function VendorInvoicesPage() {
               className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>+ Record Supplier Bill</span>
+              <span>Add Vendor Bill</span>
             </button>
           )}
         </div>
@@ -765,7 +704,7 @@ export function VendorInvoicesPage() {
                             className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>+ Record First Supplier Bill</span>
+                            <span>Add First Vendor Bill</span>
                           </button>
                         </div>
                       )}
@@ -850,7 +789,7 @@ export function VendorInvoicesPage() {
                               title="Pay / Disburse to supplier"
                             >
                               <CreditCard className="w-3 h-3" />
-                              <span>Disburse</span>
+                              <span>Pay Bill</span>
                             </button>
                           )}
 

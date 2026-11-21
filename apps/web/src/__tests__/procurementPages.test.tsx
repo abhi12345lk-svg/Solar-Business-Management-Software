@@ -266,7 +266,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /Vendor Invoices & Payables/i
+      /Vendor Invoices/i
     );
 
     await waitFor(() => {
