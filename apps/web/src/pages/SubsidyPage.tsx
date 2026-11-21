@@ -150,9 +150,7 @@ export const SubsidyPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      let query = `/subsidies?page=${page}&limit=${limit}`;
-      if (statusFilter) query += `&status=${encodeURIComponent(statusFilter)}`;
-      if (schemeFilter) query += `&schemeName=${encodeURIComponent(schemeFilter)}`;
+      const query = `/subsidies?page=${page}&limit=${limit}`;
 
       const res = await apiClient<any>(query);
       const list = res?.applications || res?.data?.applications || (Array.isArray(res) ? res : []);
@@ -164,36 +162,68 @@ export const SubsidyPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, schemeFilter]);
+  }, [page]);
 
   useEffect(() => {
     fetchSubsidies();
   }, [fetchSubsidies]);
 
-  // Client-side Instant Search Filtering
+  // Client-side Instant Search & Status/Scheme Filtering
   const filteredSubsidies = useMemo(() => {
-    if (!searchTerm.trim()) return subsidies;
-    const q = searchTerm.toLowerCase();
     return subsidies.filter(sub => {
-      const appNo = sub.applicationNumber?.toLowerCase() || '';
-      const portalNo = sub.portalApplicationNumber?.toLowerCase() || '';
-      const sanctionRef = sub.sanctionReference?.toLowerCase() || '';
-      const custName = sub.customerId?.name?.toLowerCase() || '';
-      const custPhone = (sub.customerId?.phone || sub.customerId?.primaryPhone || '').toLowerCase();
-      const projCode = sub.projectId?.projectCode?.toLowerCase() || '';
-      const dbtUtr = (sub.disbursements || []).map(d => d.disbursementReference.toLowerCase()).join(' ');
+      // 1. Status Filter
+      if (statusFilter) {
+        if (statusFilter === 'PENDING') {
+          if (['SANCTIONED', 'PARTIALLY_DISBURSED', 'FULLY_DISBURSED', 'REJECTED', 'CANCELLED'].includes(sub.status)) {
+            return false;
+          }
+        } else if (statusFilter === 'SANCTIONED') {
+          if (!['SANCTIONED', 'PARTIALLY_DISBURSED'].includes(sub.status)) {
+            return false;
+          }
+        } else if (statusFilter === 'FULLY_DISBURSED') {
+          if (sub.status !== 'FULLY_DISBURSED') {
+            return false;
+          }
+        } else if (statusFilter === 'REJECTED') {
+          if (!['REJECTED', 'CANCELLED'].includes(sub.status)) {
+            return false;
+          }
+        }
+      }
 
-      return (
-        appNo.includes(q) ||
-        portalNo.includes(q) ||
-        sanctionRef.includes(q) ||
-        custName.includes(q) ||
-        custPhone.includes(q) ||
-        projCode.includes(q) ||
-        dbtUtr.includes(q)
-      );
+      // 2. Scheme Filter
+      if (schemeFilter) {
+        if (!sub.schemeName?.toLowerCase().includes(schemeFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 3. Search Term Filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const appNo = sub.applicationNumber?.toLowerCase() || '';
+        const portalNo = sub.portalApplicationNumber?.toLowerCase() || '';
+        const sanctionRef = sub.sanctionReference?.toLowerCase() || '';
+        const custName = sub.customerId?.name?.toLowerCase() || '';
+        const custPhone = (sub.customerId?.phone || sub.customerId?.primaryPhone || '').toLowerCase();
+        const projCode = sub.projectId?.projectCode?.toLowerCase() || '';
+        const dbtUtr = (sub.disbursements || []).map(d => d.disbursementReference.toLowerCase()).join(' ');
+
+        return (
+          appNo.includes(q) ||
+          portalNo.includes(q) ||
+          sanctionRef.includes(q) ||
+          custName.includes(q) ||
+          custPhone.includes(q) ||
+          projCode.includes(q) ||
+          dbtUtr.includes(q)
+        );
+      }
+
+      return true;
     });
-  }, [subsidies, searchTerm]);
+  }, [subsidies, statusFilter, schemeFilter, searchTerm]);
 
   // Financial aggregates
   const totalClaimsCount = subsidies.length;
@@ -569,7 +599,7 @@ export const SubsidyPage: React.FC = () => {
             className="px-3 py-2 text-xs bg-background border rounded-xl focus:outline-none text-foreground font-medium"
           >
             <option value="">All Statuses</option>
-            <option value="APPLIED">Pending Sanction / In Process</option>
+            <option value="PENDING">Pending Sanction / In Process</option>
             <option value="SANCTIONED">Sanctioned (Approved)</option>
             <option value="FULLY_DISBURSED">DBT Credited</option>
             <option value="REJECTED">Rejected</option>
@@ -584,8 +614,8 @@ export const SubsidyPage: React.FC = () => {
             className="px-3 py-2 text-xs bg-background border rounded-xl focus:outline-none text-foreground font-medium"
           >
             <option value="">All Schemes</option>
-            <option value="PM Surya Ghar Muft Bijli Yojana">PM Surya Ghar Yojana</option>
-            <option value="State Rooftop Subsidy">State Rooftop Subsidy</option>
+            <option value="PM Surya">PM Surya Ghar Yojana</option>
+            <option value="State">State Rooftop Subsidy</option>
           </select>
 
           <button

@@ -126,6 +126,11 @@ export class SubsidyService {
     if (!project) {
       project = await Project.findOne({ customerId: customer._id });
       if (!project) {
+        const actorId =
+          user?.userId && Types.ObjectId.isValid(user.userId)
+            ? new Types.ObjectId(user.userId)
+            : customer._id;
+
         const prjSeq = await SequenceService.generateNumber(SequenceEntityType.PROJECT);
         project = await Project.create({
           projectCode: prjSeq.formattedNumber,
@@ -141,11 +146,12 @@ export class SubsidyService {
             {
               stage: ProjectStage.STAGE_10_COMMISSION_HANDOVER,
               changedAt: new Date(),
-              changedBy: new Types.ObjectId(user.userId),
+              changedBy: actorId,
               notes: 'Auto-initialized for PM Surya Ghar Subsidy tracking'
             }
           ],
-          teamMemberIds: [new Types.ObjectId(user.userId)]
+          teamMemberIds: [actorId],
+          createdBy: actorId
         });
       }
     }
@@ -219,17 +225,17 @@ export class SubsidyService {
       requestedAmountPaise: input.requestedAmountPaise,
       approvedAmountPaise: 0,
       disbursedAmountPaise: 0,
-      status: SubsidyStatus.ELIGIBLE,
-      eligibilityVerified: false,
+      status: input.portalApplicationNumber ? SubsidyStatus.CLAIM_SUBMITTED : SubsidyStatus.ELIGIBLE,
+      eligibilityVerified: true,
       assignedUserId: input.assignedUserId ? new Types.ObjectId(input.assignedUserId) : undefined,
       documents: defaultDocuments,
       disbursements: [],
       statusHistory: [
         {
-          status: SubsidyStatus.ELIGIBLE,
+          status: input.portalApplicationNumber ? SubsidyStatus.CLAIM_SUBMITTED : SubsidyStatus.ELIGIBLE,
           changedAt: new Date(),
           changedBy: new Types.ObjectId(user.userId),
-          notes: input.notes || 'Subsidy application record initiated'
+          notes: input.notes || 'Subsidy claim registered on National Portal'
         }
       ],
       notes: input.notes?.trim()
