@@ -1,8 +1,10 @@
 /**
  * INS Solar ERP — Accounts Panel Dashboard (Financial & Billing Workspace)
- * Tailored for Accounts Officers, Billing Executives, and CFOs.
- * Focuses on Customer Receivables, Bank Realizations, Aging Analysis, 3-Way Vendor Matching,
- * DBT Govt Subsidies, and Solar EPC Gross Profitability.
+ * Strictly mapped to the actual operational modules of the Accounts Panel:
+ * 1. Customer Billing & Milestone Inflow (/payments)
+ * 2. Govt Subsidy DBT Inflow (/subsidies)
+ * 3. Equipment Purchase Bills Outflow (/vendor-invoices)
+ * 4. Site Expenses & Labor Outflow (/expenses)
  */
 
 import React, { useMemo } from 'react';
@@ -12,20 +14,22 @@ import {
   CreditCard,
   Banknote,
   Receipt,
-  Building2,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
+  Landmark,
   ArrowRight,
   Plus,
-  Landmark,
-  FileText,
-  PackageCheck
+  Clock,
+  CheckCircle2,
+  Zap
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
 import { DashboardKpiCard } from './DashboardKpiCard.js';
-import { DateFilterRange, isWithinDateRange, formatPaiseToInr } from './dashboardUtils.js';
+import {
+  DateFilterRange,
+  isWithinDateRange,
+  formatPaiseToInr,
+  formatShortDate
+} from './dashboardUtils.js';
 
 interface AccountsDashboardProps {
   dateRange: DateFilterRange;
@@ -49,41 +53,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
     return paymentsData?.items || paymentsData?.data?.items || paymentsData?.data || [];
   }, [paymentsData]);
 
-  // 2. Fetch Sales Orders (for contract billing & receivables)
-  const { data: ordersData } = useQuery<any>({
-    queryKey: ['accountsOrders'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/orders?limit=150');
-        return res;
-      } catch {
-        return [];
-      }
-    }
-  });
-  const orders: any[] = useMemo(() => {
-    if (Array.isArray(ordersData)) return ordersData;
-    return ordersData?.items || ordersData?.data?.items || ordersData?.data || [];
-  }, [ordersData]);
-
-  // 3. Fetch Operational Expenses
-  const { data: expensesData } = useQuery<any>({
-    queryKey: ['accountsExpenses'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/expenses?limit=150');
-        return res;
-      } catch {
-        return [];
-      }
-    }
-  });
-  const expenses: any[] = useMemo(() => {
-    if (Array.isArray(expensesData)) return expensesData;
-    return expensesData?.data?.data || expensesData?.data || expensesData?.items || [];
-  }, [expensesData]);
-
-  // 4. Fetch Vendor Invoices
+  // 2. Fetch Vendor Invoices
   const { data: vendorInvoicesData } = useQuery<any>({
     queryKey: ['accountsVendorInvoices'],
     queryFn: async () => {
@@ -97,10 +67,15 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
   });
   const vendorInvoices: any[] = useMemo(() => {
     if (Array.isArray(vendorInvoicesData)) return vendorInvoicesData;
-    return vendorInvoicesData?.items || vendorInvoicesData?.data?.items || vendorInvoicesData?.data || [];
+    return (
+      vendorInvoicesData?.items ||
+      vendorInvoicesData?.data?.items ||
+      vendorInvoicesData?.data ||
+      []
+    );
   }, [vendorInvoicesData]);
 
-  // 5. Fetch Subsidies
+  // 3. Fetch Subsidies
   const { data: subsidiesData } = useQuery<any>({
     queryKey: ['accountsSubsidies'],
     queryFn: async () => {
@@ -114,21 +89,57 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
   });
   const subsidies: any[] = useMemo(() => {
     if (Array.isArray(subsidiesData)) return subsidiesData;
-    return subsidiesData?.applications || subsidiesData?.items || subsidiesData?.data || [];
+    return (
+      subsidiesData?.applications ||
+      subsidiesData?.items ||
+      subsidiesData?.data ||
+      []
+    );
   }, [subsidiesData]);
+
+  // 4. Fetch Site Expenses
+  const { data: expensesData } = useQuery<any>({
+    queryKey: ['accountsExpenses'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient<any>('/expenses?limit=150');
+        return res;
+      } catch {
+        return [];
+      }
+    }
+  });
+  const expenses: any[] = useMemo(() => {
+    if (Array.isArray(expensesData)) return expensesData;
+    return (
+      expensesData?.data?.data ||
+      expensesData?.data ||
+      expensesData?.items ||
+      []
+    );
+  }, [expensesData]);
 
   // Date Filtering
   const filteredPayments = useMemo(
     () => payments.filter(p => isWithinDateRange(p.paymentDate || p.createdAt, dateRange)),
     [payments, dateRange]
   );
-  const filteredOrders = useMemo(
+
+  const filteredVendorInvoices = useMemo(
     () =>
-      orders.filter(
-        o => o.status !== 'CANCELLED' && isWithinDateRange(o.orderDate || o.createdAt, dateRange)
+      vendorInvoices.filter(
+        vi =>
+          vi.status !== 'CANCELLED' &&
+          isWithinDateRange(vi.invoiceDate || vi.createdAt, dateRange)
       ),
-    [orders, dateRange]
+    [vendorInvoices, dateRange]
   );
+
+  const filteredSubsidies = useMemo(
+    () => subsidies.filter(s => isWithinDateRange(s.createdAt || s.updatedAt, dateRange)),
+    [subsidies, dateRange]
+  );
+
   const filteredExpenses = useMemo(
     () =>
       expenses.filter(
@@ -139,171 +150,76 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
       ),
     [expenses, dateRange]
   );
-  const filteredVendorInvoices = useMemo(
-    () =>
-      vendorInvoices.filter(
-        vi => vi.status !== 'CANCELLED' && isWithinDateRange(vi.invoiceDate || vi.createdAt, dateRange)
-      ),
-    [vendorInvoices, dateRange]
-  );
-  const filteredSubsidies = useMemo(
-    () => subsidies.filter(s => isWithinDateRange(s.createdAt || s.updatedAt, dateRange)),
-    [subsidies, dateRange]
-  );
 
-  // Financial KPI Calculations (integer paise)
-  const totalBilledContractPaise = filteredOrders.reduce(
-    (sum, o) => sum + (o.netTotalPaise || o.totalAmountPaise || 0),
-    0
+  // Financial Calculations (integer paise precision)
+  const verifiedPayments = filteredPayments.filter(
+    p => (p.status || '').toUpperCase() === 'VERIFIED'
   );
-
-  const verifiedPayments = filteredPayments.filter(p => p.status === 'VERIFIED');
-  const recordedPayments = filteredPayments.filter(p => p.status === 'RECORDED');
+  const pendingPayments = filteredPayments.filter(
+    p =>
+      (p.status || '').toUpperCase() === 'RECORDED' ||
+      (p.status || '').toUpperCase() === 'PENDING'
+  );
 
   const realizedCollectionsPaise = verifiedPayments.reduce(
-    (sum, p) => sum + (p.amountPaise || 0),
+    (sum, p) => sum + (p.amountPaise || (p.amount ? Math.round(p.amount * 100) : 0) || 0),
     0
   );
-  const pendingVerificationPaise = recordedPayments.reduce(
-    (sum, p) => sum + (p.amountPaise || 0),
-    0
-  );
-
-  // MTD Collections
-  const mtdCollectionsPaise = useMemo(() => {
-    return payments
-      .filter(
-        p =>
-          p.status === 'VERIFIED' && isWithinDateRange(p.paymentDate || p.createdAt, 'THIS_MONTH')
-      )
-      .reduce((sum, p) => sum + (p.amountPaise || 0), 0);
-  }, [payments]);
-
-  // Total Customer Receivables
-  const totalReceivablesPaise = Math.max(0, totalBilledContractPaise - realizedCollectionsPaise);
-
-  // Total Operational Expenses
-  const totalExpensesPaise = filteredExpenses.reduce((sum, e) => sum + (e.amountPaise || 0), 0);
-
-  // Vendor Outflow & Payables
-  const totalVendorPayablesPaise = filteredVendorInvoices.reduce(
-    (sum, vi) =>
-      sum +
-      (vi.balancePayablePaise !== undefined
-        ? vi.balancePayablePaise
-        : Math.max(0, (vi.totalAmountPaise || 0) - (vi.paidAmountPaise || 0))),
-    0
-  );
-
-  const totalVendorPaidPaise = filteredVendorInvoices.reduce(
-    (sum, vi) => sum + (vi.paidAmountPaise || 0),
-    0
-  );
-
-  const unreconciledInvoicesCount = filteredVendorInvoices.filter(
-    vi => vi.status !== 'RECONCILED' && vi.status !== 'PAID'
-  ).length;
 
   // Govt DBT Subsidies
   const totalSubsidyDisbursedPaise = filteredSubsidies.reduce(
-    (sum, s) => sum + (s.disbursedAmountPaise || 0),
+    (sum, s) =>
+      sum + (s.disbursedAmountPaise || (s.disbursedAmount ? Math.round(s.disbursedAmount * 100) : 0) || 0),
     0
   );
 
-  const totalSubsidyPendingPaise = filteredSubsidies
-    .filter(s => s.status !== 'DISBURSED' && s.status !== 'REJECTED')
-    .reduce(
-      (sum, s) =>
-        sum +
-        Math.max(
-          0,
-          (s.approvedAmountPaise || s.requestedAmountPaise || 0) - (s.disbursedAmountPaise || 0)
-        ),
-      0
-    );
+  const pendingSubsidies = filteredSubsidies.filter(
+    s => (s.status || '').toUpperCase() !== 'DISBURSED' && (s.status || '').toUpperCase() !== 'REJECTED'
+  );
 
-  // Solar EPC Gross Realized Margin: Inflow (Collections + Disbursed Subsidy) - Outflow (Expenses + Paid Vendor Bills)
+  const totalSubsidyPendingPaise = pendingSubsidies.reduce((sum, s) => {
+    const requested = s.approvedAmountPaise || s.requestedAmountPaise || 0;
+    const disbursed = s.disbursedAmountPaise || 0;
+    return sum + Math.max(0, requested - disbursed);
+  }, 0);
+
+  // Vendor Outflows & Payables
+  const totalVendorPaidPaise = filteredVendorInvoices.reduce(
+    (sum, vi) =>
+      sum + (vi.paidAmountPaise || (vi.paidAmount ? Math.round(vi.paidAmount * 100) : 0) || 0),
+    0
+  );
+
+  const totalVendorPayablesPaise = filteredVendorInvoices.reduce((sum, vi) => {
+    if (vi.balancePayablePaise !== undefined) return sum + vi.balancePayablePaise;
+    const tot = vi.totalAmountPaise || (vi.totalAmount ? Math.round(vi.totalAmount * 100) : 0) || 0;
+    const paid = vi.paidAmountPaise || (vi.paidAmount ? Math.round(vi.paidAmount * 100) : 0) || 0;
+    return sum + Math.max(0, tot - paid);
+  }, 0);
+
+  const pendingVendorBillsCount = filteredVendorInvoices.filter(
+    vi => (vi.status || '').toUpperCase() !== 'PAID' && (vi.status || '').toUpperCase() !== 'RECONCILED'
+  ).length;
+
+  // Site Expenses
+  const totalExpensesPaise = filteredExpenses.reduce(
+    (sum, e) => sum + (e.amountPaise || (e.amount ? Math.round(e.amount * 100) : 0) || 0),
+    0
+  );
+
+  // Net Cash Flow: Inflow (Customer Collections + Disbursed Subsidy) - Outflow (Vendor Paid + Site Expenses)
   const totalInflowPaise = realizedCollectionsPaise + totalSubsidyDisbursedPaise;
-  const totalOutflowPaise = totalExpensesPaise + totalVendorPaidPaise;
-  const grossMarginPaise = totalInflowPaise - totalOutflowPaise;
+  const totalOutflowPaise = totalVendorPaidPaise + totalExpensesPaise;
+  const netCashFlowPaise = totalInflowPaise - totalOutflowPaise;
 
-  // Receivables Aging Breakdown (0-30, 31-60, 61-90, 90+ days)
-  const agingBuckets = useMemo(() => {
-    const buckets = {
-      current0To30: 0,
-      overdue31To60: 0,
-      overdue61To90: 0,
-      overdueAbove90: 0
-    };
-
-    const nowTime = new Date().getTime();
-
-    filteredOrders.forEach(o => {
-      const orderDate = new Date(o.orderDate || o.createdAt || nowTime).getTime();
-      const ageDays = Math.floor((nowTime - orderDate) / (1000 * 60 * 60 * 24));
-      const orderTotal = o.netTotalPaise || o.totalAmountPaise || 0;
-      const orderAllocated = o.allocatedAmountPaise || 0;
-      const orderOutstanding = Math.max(0, orderTotal - orderAllocated);
-
-      if (ageDays <= 30) {
-        buckets.current0To30 += orderOutstanding;
-      } else if (ageDays <= 60) {
-        buckets.overdue31To60 += orderOutstanding;
-      } else if (ageDays <= 90) {
-        buckets.overdue61To90 += orderOutstanding;
-      } else {
-        buckets.overdueAbove90 += orderOutstanding;
-      }
-    });
-
-    return buckets;
-  }, [filteredOrders]);
-
-  const overdueReceivablesPaise =
-    agingBuckets.overdue31To60 + agingBuckets.overdue61To90 + agingBuckets.overdueAbove90;
-
-  // Payment Collection Channels
-  const channelBreakdown = useMemo(() => {
-    const channels: Record<string, { paise: number; count: number }> = {
-      UPI: { paise: 0, count: 0 },
-      NEFT_RTGS: { paise: 0, count: 0 },
-      BANK_TRANSFER: { paise: 0, count: 0 },
-      CASH: { paise: 0, count: 0 },
-      CHEQUE: { paise: 0, count: 0 },
-      GATEWAY: { paise: 0, count: 0 }
-    };
-
-    verifiedPayments.forEach(p => {
-      const method = (p.paymentMethod || 'BANK_TRANSFER').toUpperCase();
-      const mapped =
-        method === 'NEFT' || method === 'RTGS' || method === 'NEFT_RTGS'
-          ? 'NEFT_RTGS'
-          : method === 'UPI'
-            ? 'UPI'
-            : method === 'CASH'
-              ? 'CASH'
-              : method === 'CHEQUE'
-                ? 'CHEQUE'
-                : method === 'GATEWAY' || method === 'PAYMENT_GATEWAY'
-                  ? 'GATEWAY'
-                  : 'BANK_TRANSFER';
-
-      if (channels[mapped]) {
-        channels[mapped].paise += p.amountPaise || 0;
-        channels[mapped].count++;
-      }
-    });
-
-    return channels;
-  }, [verifiedPayments]);
-
-  // Operational Expenses by Category
+  // Expenses Categorization
   const expenseCategories = useMemo(() => {
     const cats: Record<string, { paise: number; count: number }> = {};
     filteredExpenses.forEach(e => {
-      const cat = e.category || 'GENERAL_OPERATIONAL';
+      const cat = e.category || 'OPERATIONAL_SITE_LABOR';
       if (!cats[cat]) cats[cat] = { paise: 0, count: 0 };
-      cats[cat].paise += e.amountPaise || 0;
+      cats[cat].paise +=
+        e.amountPaise || (e.amount ? Math.round(e.amount * 100) : 0) || 0;
       cats[cat].count++;
     });
     return Object.entries(cats).sort((a, b) => b[1].paise - a[1].paise);
@@ -312,7 +228,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          PART 1: ACCOUNTS QUICK ACTION BAR
+          PART 1: ACCOUNTS QUICK ACTION LAUNCHPAD (Strictly Accounts Modules)
          ========================================================================= */}
       <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-2xl bg-card border shadow-xs">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
@@ -326,317 +242,431 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <span>Record Customer Payment</span>
         </Link>
         <Link
-          to="/expenses"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <Receipt className="w-3.5 h-3.5 text-rose-500" />
-          <span>Record Expense Voucher</span>
-        </Link>
-        <Link
           to="/vendor-invoices"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
-          <FileText className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Register Vendor Invoice</span>
+          <Receipt className="w-3.5 h-3.5 text-purple-500" />
+          <span>Equipment Purchase Bills</span>
         </Link>
         <Link
           to="/subsidies"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
           <Landmark className="w-3.5 h-3.5 text-amber-500" />
-          <span>Govt Subsidy (DBT) Claims</span>
+          <span>Govt Subsidy (DBT)</span>
+        </Link>
+        <Link
+          to="/expenses"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
+        >
+          <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+          <span>Site Expenses &amp; Labor</span>
         </Link>
       </div>
 
       {/* =========================================================================
-          PART 2: 10 FINANCIAL & BILLING KPIS (5 REVENUE & 5 OUTFLOW/MARGIN)
+          PART 2: 5 CORE FINANCIAL HEALTH KPIS (Inflow, Outflow & Net Balance)
          ========================================================================= */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <CreditCard className="w-3.5 h-3.5 text-emerald-500" />
-            Financial Health & Treasury Overview
+            Treasury &amp; Cash Flow Overview
           </h2>
           <span className="text-[11px] text-muted-foreground font-mono">
-            Range: {dateRange} &bull; Exact Integer Paise Precision
+            Range: {dateRange} &bull; Exact Rupee Precision
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          {/* 1. Customer Receivables */}
+          {/* 1. Customer Collections (Inflow) */}
           <DashboardKpiCard
-            title="Total Receivables"
-            value={formatPaiseToInr(totalReceivablesPaise, { compact: true })}
-            subtitle="Order contract balance"
-            icon={CreditCard}
-            to="/payments"
-            color="rose"
-          />
-
-          {/* 2. Realized Bank Collections */}
-          <DashboardKpiCard
-            title="Realized Collections"
+            title="Customer Collections"
             value={formatPaiseToInr(realizedCollectionsPaise, { compact: true })}
-            subtitle="Verified bank intake"
+            subtitle={
+              pendingPayments.length > 0
+                ? `${pendingPayments.length} receipts pending verification`
+                : 'All receipts verified'
+            }
             icon={Banknote}
             to="/payments"
             color="emerald"
+            badge={pendingPayments.length > 0 ? `${pendingPayments.length} Due` : undefined}
           />
 
-          {/* 3. Pending Verification */}
+          {/* 2. Govt Subsidy DBT (Inflow) */}
           <DashboardKpiCard
-            title="Pending Verification"
-            value={formatPaiseToInr(pendingVerificationPaise, { compact: true })}
-            subtitle={`${recordedPayments.length} unverified receipts`}
-            icon={Clock}
-            to="/payments"
-            color="amber"
-            badge={recordedPayments.length > 0 ? `${recordedPayments.length} Due` : undefined}
-          />
-
-          {/* 4. Overdue Receivables (>30d) */}
-          <DashboardKpiCard
-            title="Overdue Receivables"
-            value={formatPaiseToInr(overdueReceivablesPaise, { compact: true })}
-            subtitle="Aging > 30 calendar days"
-            icon={AlertTriangle}
-            to="/payments"
-            color={overdueReceivablesPaise > 0 ? 'rose' : 'emerald'}
-          />
-
-          {/* 5. Govt Subsidy DBT Inflow */}
-          <DashboardKpiCard
-            title="Govt Subsidy Disbursed"
+            title="Govt Subsidy (DBT)"
             value={formatPaiseToInr(totalSubsidyDisbursedPaise, { compact: true })}
-            subtitle={`${filteredSubsidies.filter(s => s.status === 'DISBURSED').length} claims disbursed`}
+            subtitle={
+              pendingSubsidies.length > 0
+                ? `${pendingSubsidies.length} claims pending portal`
+                : 'All DBT claims settled'
+            }
             icon={Landmark}
             to="/subsidies"
             color="amber"
           />
 
-          {/* 6. MTD Collections */}
+          {/* 3. Vendor Equipment Bills (Outflow) */}
           <DashboardKpiCard
-            title="MTD Collections"
-            value={formatPaiseToInr(mtdCollectionsPaise, { compact: true })}
-            subtitle="Current calendar month"
-            icon={TrendingUp}
-            to="/payments"
-            color="sky"
+            title="Vendor Purchase Bills"
+            value={formatPaiseToInr(totalVendorPaidPaise, { compact: true })}
+            subtitle={`Due: ${formatPaiseToInr(totalVendorPayablesPaise, { compact: true })} (${pendingVendorBillsCount} bills)`}
+            icon={Receipt}
+            to="/vendor-invoices"
+            color="purple"
+            badge={pendingVendorBillsCount > 0 ? 'Payable Due' : 'Cleared'}
           />
 
-          {/* 7. Total Operational Expenses */}
+          {/* 4. Site Expenses & Labor (Outflow) */}
           <DashboardKpiCard
-            title="Operational Expenses"
+            title="Site Expenses &amp; Labor"
             value={formatPaiseToInr(totalExpensesPaise, { compact: true })}
             subtitle={`${filteredExpenses.length} approved vouchers`}
-            icon={Receipt}
+            icon={TrendingUp}
             to="/expenses"
             color="orange"
           />
 
-          {/* 8. Vendor Payables */}
+          {/* 5. Net Cash Flow */}
           <DashboardKpiCard
-            title="Vendor Payables"
-            value={formatPaiseToInr(totalVendorPayablesPaise, { compact: true })}
-            subtitle="Outstanding supplier dues"
-            icon={Building2}
-            to="/vendor-invoices"
-            color="purple"
-          />
-
-          {/* 9. Unreconciled Invoices */}
-          <DashboardKpiCard
-            title="Unreconciled Invoices"
-            value={unreconciledInvoicesCount}
-            subtitle="Pending 3-way bill audit"
-            icon={FileText}
-            to="/vendor-invoices"
-            color="cyan"
-            badge={unreconciledInvoicesCount > 0 ? 'Audit Pending' : 'Reconciled'}
-          />
-
-          {/* 10. Gross Realized Margin */}
-          <DashboardKpiCard
-            title="Net Realized Margin"
-            value={formatPaiseToInr(grossMarginPaise, { compact: true })}
-            subtitle="Inflow - Outflow"
-            icon={TrendingUp}
-            to="/expenses"
-            color={grossMarginPaise >= 0 ? 'emerald' : 'rose'}
+            title="Net Cash Flow"
+            value={formatPaiseToInr(netCashFlowPaise, { compact: true })}
+            subtitle="Total Inflow minus Outflow"
+            icon={CreditCard}
+            to="/payments"
+            color={netCashFlowPaise >= 0 ? 'teal' : 'rose'}
           />
         </div>
       </div>
 
       {/* =========================================================================
-          PART 3: RECEIVABLES AGING STATEMENT & PAYMENT CHANNELS
+          PART 3: SOLAR FINANCIAL FLOW: STEP-BY-STEP ARCHITECTURE BANNER
          ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left (2 cols): 4-Bucket Receivables Aging Breakdown */}
-        <div className="lg:col-span-2 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+      <div className="bg-card border rounded-2xl p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Zap className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Solar Financial Flow: Step-By-Step Architecture
+            </span>
+          </div>
+          <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            Treasury Synchronization
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <Link
+            to="/payments"
+            className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all text-left flex items-start space-x-3 group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0">
+              1
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-foreground group-hover:text-emerald-600 truncate">
+                Customer Advance (20%)
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                Inflow: Booking collection at /payments
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/vendor-invoices"
+            className="p-3 rounded-xl border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 transition-all text-left flex items-start space-x-3 group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-purple-500 text-white font-black text-xs flex items-center justify-center shrink-0">
+              2
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-foreground group-hover:text-purple-600 truncate">
+                Vendor Purchase Bills
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                Outflow: Material &amp; BOS at /vendor-invoices
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/payments"
+            className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all text-left flex items-start space-x-3 group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0">
+              3
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-foreground group-hover:text-emerald-600 truncate">
+                Dispatch &amp; Handover (80%)
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                Inflow: 70% delivery + 10% commissioning
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/subsidies"
+            className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-all text-left flex items-start space-x-3 group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0">
+              4
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-foreground group-hover:text-amber-600 truncate">
+                Govt Subsidy (DBT)
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                Inflow: Portal claim at /subsidies
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          PART 4: TWO OPERATIONAL SECTIONS: CUSTOMER INFLOW VS VENDOR OUTFLOW
+         ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Customer Payments & Collections (/payments) */}
+        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600" />
-                Customer Receivables Aging Schedule
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                Customer Receipts &amp; Milestone Collections
               </h2>
               <p className="text-xs text-muted-foreground">
-                Maturity and collection risk buckets calculated from sales order execution dates.
+                Inflow receipts linked to customer project milestones (Advance, Dispatch, Handover).
               </p>
             </div>
             <Link
               to="/payments"
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center self-start sm:self-auto shrink-0"
+              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center shrink-0"
             >
-              <span>Detailed Aging Ledger</span>
+              <span>View All Receipts</span>
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20">
-              <span className="text-[11px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
-                Current (0 - 30 Days)
-              </span>
-              <div className="text-lg font-black text-emerald-700 dark:text-emerald-200 mt-1">
-                {formatPaiseToInr(agingBuckets.current0To30)}
-              </div>
-              <span className="text-[10px] text-emerald-600 opacity-90">Healthy credit period</span>
+          {filteredPayments.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground space-y-2">
+              <Banknote className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+              <p>No customer payment receipts recorded yet.</p>
+              <Link
+                to="/payments"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-600 hover:underline"
+              >
+                <span>+ Record Customer Receipt</span>
+              </Link>
             </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredPayments.slice(0, 5).map((p: any) => {
+                const recNum = p.receiptNumber || p.paymentNumber || 'REC-2026';
+                const custName =
+                  p.customerName ||
+                  p.customerId?.legalName ||
+                  p.customerId?.name ||
+                  'Customer';
+                const stage =
+                  p.milestoneStage ||
+                  p.stage ||
+                  (p.paymentType === 'ADVANCE' ? 'Advance Receipt' : 'Milestone Payment');
+                const isVerified = (p.status || '').toUpperCase() === 'VERIFIED';
+                const amountPaise =
+                  p.amountPaise || (p.amount ? Math.round(p.amount * 100) : 0) || 0;
 
-            <div className="p-3.5 rounded-xl border bg-amber-500/10 border-amber-500/20">
-              <span className="text-[11px] font-bold uppercase text-amber-700 dark:text-amber-300">
-                Overdue (31 - 60 Days)
-              </span>
-              <div className="text-lg font-black text-amber-700 dark:text-amber-200 mt-1">
-                {formatPaiseToInr(agingBuckets.overdue31To60)}
-              </div>
-              <span className="text-[10px] text-amber-600 opacity-90">Follow-up reminder due</span>
-            </div>
+                return (
+                  <div
+                    key={p._id || p.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors gap-2.5"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-xs text-emerald-700 dark:text-emerald-400">
+                          {recNum}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                            isVerified
+                              ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-700 border-amber-500/20'
+                          }`}
+                        >
+                          {isVerified ? 'Verified' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-foreground truncate">
+                        {custName}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-foreground">{stage}</span>
+                        <span>&bull;</span>
+                        <span>{p.paymentMethod || 'BANK TRANSFER'}</span>
+                        <span>&bull;</span>
+                        <span>{formatShortDate(p.paymentDate || p.createdAt)}</span>
+                      </div>
+                    </div>
 
-            <div className="p-3.5 rounded-xl border bg-orange-500/10 border-orange-500/20">
-              <span className="text-[11px] font-bold uppercase text-orange-700 dark:text-orange-300">
-                Overdue (61 - 90 Days)
-              </span>
-              <div className="text-lg font-black text-orange-700 dark:text-orange-200 mt-1">
-                {formatPaiseToInr(agingBuckets.overdue61To90)}
-              </div>
-              <span className="text-[10px] text-orange-600 opacity-90">Formal notice required</span>
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0">
+                      <div className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
+                        +{formatPaiseToInr(amountPaise)}
+                      </div>
+                      <Link
+                        to="/payments"
+                        className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline inline-flex items-center mt-0.5"
+                      >
+                        <span>Receipt</span>
+                        <ArrowRight className="w-3 h-3 ml-0.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="p-3.5 rounded-xl border bg-rose-500/10 border-rose-500/20">
-              <span className="text-[11px] font-bold uppercase text-rose-700 dark:text-rose-300">
-                Critical (90+ Days)
-              </span>
-              <div className="text-lg font-black text-rose-700 dark:text-rose-200 mt-1">
-                {formatPaiseToInr(agingBuckets.overdueAbove90)}
-              </div>
-              <span className="text-[10px] text-rose-600 opacity-90">High credit risk</span>
-            </div>
-          </div>
-
-          {/* Visual Aging Bar */}
-          <div className="space-y-1 pt-1">
-            <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
-              <span>Aging Distribution</span>
-              <span>Total: {formatPaiseToInr(totalReceivablesPaise)}</span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2.5 flex overflow-hidden">
-              <div
-                className="bg-emerald-500 h-2.5 transition-all"
-                style={{
-                  width: `${totalReceivablesPaise > 0 ? (agingBuckets.current0To30 / totalReceivablesPaise) * 100 : 25}%`
-                }}
-                title="Current 0-30 Days"
-              />
-              <div
-                className="bg-amber-500 h-2.5 transition-all"
-                style={{
-                  width: `${totalReceivablesPaise > 0 ? (agingBuckets.overdue31To60 / totalReceivablesPaise) * 100 : 25}%`
-                }}
-                title="Overdue 31-60 Days"
-              />
-              <div
-                className="bg-orange-500 h-2.5 transition-all"
-                style={{
-                  width: `${totalReceivablesPaise > 0 ? (agingBuckets.overdue61To90 / totalReceivablesPaise) * 100 : 25}%`
-                }}
-                title="Overdue 61-90 Days"
-              />
-              <div
-                className="bg-rose-500 h-2.5 transition-all"
-                style={{
-                  width: `${totalReceivablesPaise > 0 ? (agingBuckets.overdueAbove90 / totalReceivablesPaise) * 100 : 25}%`
-                }}
-                title="Critical 90+ Days"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Right (1 col): Payment Collection Channels */}
-        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="border-b pb-3">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Banknote className="w-4 h-4 text-emerald-600" />
-              Realized Channels Breakdown
-            </h2>
-            <p className="text-xs text-muted-foreground">Collections by banking instrument.</p>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            {Object.entries(channelBreakdown).map(([chKey, data]) => {
-              const label =
-                chKey === 'NEFT_RTGS'
-                  ? 'NEFT / RTGS'
-                  : chKey === 'BANK_TRANSFER'
-                    ? 'Bank Transfer / IMPS'
-                    : chKey;
-
-              const percent =
-                realizedCollectionsPaise > 0
-                  ? Math.round((data.paise / realizedCollectionsPaise) * 100)
-                  : 0;
-
-              return (
-                <div key={chKey} className="p-2.5 rounded-xl bg-secondary/30 border space-y-1">
-                  <div className="flex items-center justify-between font-semibold">
-                    <span className="text-foreground">{label}</span>
-                    <span className="font-mono font-bold text-emerald-600">
-                      {formatPaiseToInr(data.paise)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>{data.count} Payments</span>
-                    <span>{percent}% share</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          PART 4: VENDOR BILLS AUDIT & OPERATIONAL EXPENSE LEDGER
-         ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vendor Invoices & Bill Audit Health */}
+        {/* Right Column: Vendor Purchase Bills (/vendor-invoices) */}
         <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-indigo-600" />
-                Vendor Bills &amp; Payment Audit
+                <Receipt className="w-4 h-4 text-purple-600" />
+                Equipment Purchase Bills &amp; Supplier Dues
               </h2>
               <p className="text-xs text-muted-foreground">
-                Verification of supplier equipment invoices, tax compliance, and payment clearance.
+                Outflow bills for solar panels, inverters, structures &amp; BOS components.
               </p>
             </div>
             <Link
               to="/vendor-invoices"
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 inline-flex items-center shrink-0"
+              className="text-xs font-semibold text-purple-600 hover:text-purple-700 inline-flex items-center shrink-0"
             >
               <span>View All Bills</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
+          </div>
+
+          {filteredVendorInvoices.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground space-y-2">
+              <Receipt className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+              <p>No vendor purchase bills recorded yet.</p>
+              <Link
+                to="/vendor-invoices"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-purple-600 hover:underline"
+              >
+                <span>+ Register Vendor Invoice</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredVendorInvoices.slice(0, 5).map((vi: any) => {
+                const invNum = vi.invoiceNumber || 'INV-VEND';
+                const vendName =
+                  vi.vendorName ||
+                  vi.vendorId?.name ||
+                  vi.vendorId?.companyName ||
+                  'Solar Supplier';
+                const status = (vi.status || 'VERIFIED').toUpperCase();
+                const totalPaise =
+                  vi.totalAmountPaise ||
+                  (vi.totalAmount ? Math.round(vi.totalAmount * 100) : 0) ||
+                  0;
+                const paidPaise =
+                  vi.paidAmountPaise ||
+                  (vi.paidAmount ? Math.round(vi.paidAmount * 100) : 0) ||
+                  0;
+                const balancePaise =
+                  vi.balancePayablePaise !== undefined
+                    ? vi.balancePayablePaise
+                    : Math.max(0, totalPaise - paidPaise);
+
+                const statusColor =
+                  status === 'PAID' || status === 'RECONCILED'
+                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                    : status === 'PARTIALLY_PAID'
+                      ? 'bg-blue-500/10 text-blue-700 border-blue-500/20'
+                      : 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+
+                return (
+                  <div
+                    key={vi._id || vi.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors gap-2.5"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-xs text-purple-700 dark:text-purple-400">
+                          {invNum}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${statusColor}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-foreground truncate">
+                        {vendName}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        <span>Total: {formatPaiseToInr(totalPaise)}</span>
+                        <span>&bull;</span>
+                        <span>{formatShortDate(vi.invoiceDate || vi.createdAt)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0">
+                      <div className="text-xs font-bold font-mono">
+                        {balancePaise > 0 ? (
+                          <span className="text-rose-600 dark:text-rose-400">
+                            Due: {formatPaiseToInr(balancePaise)}
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400">Paid In Full</span>
+                        )}
+                      </div>
+                      <Link
+                        to="/vendor-invoices"
+                        className="text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:underline inline-flex items-center mt-0.5"
+                      >
+                        <span>Bill Details</span>
+                        <ArrowRight className="w-3 h-3 ml-0.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          PART 5: SECONDARY FINANCIAL MODULES: GOVT SUBSIDIES & SITE EXPENSES
+         ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* PM Surya Ghar Govt Subsidies Status (/subsidies) */}
+        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-amber-600" />
+                Govt Subsidy (DBT) Claims Status
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Central Financial Assistance (CFA) claims under PM Surya Ghar Muft Bijli Yojana.
+              </p>
+            </div>
+            <Link
+              to="/subsidies"
+              className="text-xs font-semibold text-amber-600 hover:text-amber-700 inline-flex items-center shrink-0"
+            >
+              <span>View Subsidy Ledger</span>
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </div>
@@ -644,67 +674,51 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
-                <PackageCheck className="w-4 h-4 text-indigo-500" />
-                <span className="font-medium">Total Vendor Invoices Logged</span>
+                <Landmark className="w-4 h-4 text-amber-500" />
+                <span className="font-medium">Total DBT Subsidy Applications</span>
               </div>
-              <span className="font-bold text-foreground">{vendorInvoices.length} Bills</span>
+              <span className="font-bold text-foreground">{subsidies.length} Claims</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="font-medium">Fully Reconciled &amp; Paid</span>
+                <span className="font-medium">Direct DBT Disbursed Inflow</span>
               </div>
               <span className="font-bold text-emerald-600">
-                {
-                  vendorInvoices.filter(vi => vi.status === 'RECONCILED' || vi.status === 'PAID')
-                    .length
-                }{' '}
-                Invoices ({formatPaiseToInr(totalVendorPaidPaise, { compact: true })})
+                {formatPaiseToInr(totalSubsidyDisbursedPaise)}
               </span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
               <div className="flex items-center space-x-2.5">
                 <Clock className="w-4 h-4 text-amber-500" />
-                <span className="font-medium">Pending Audit &amp; Balance Dues</span>
+                <span className="font-medium">Pending Claims With DISCOM / Portal</span>
               </div>
               <span className="font-bold text-amber-600">
-                {unreconciledInvoicesCount} Invoices ({formatPaiseToInr(totalVendorPayablesPaise, { compact: true })})
+                {pendingSubsidies.length} Claims ({formatPaiseToInr(totalSubsidyPendingPaise)})
               </span>
             </div>
-
-            {subsidies.length > 0 && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border">
-                <div className="flex items-center space-x-2.5">
-                  <Landmark className="w-4 h-4 text-amber-500" />
-                  <span className="font-medium">Govt Subsidy DBT Claims</span>
-                </div>
-                <span className="font-bold text-amber-600">
-                  {subsidies.length} Claims ({formatPaiseToInr(totalSubsidyPendingPaise, { compact: true })} Pending)
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Operational Expenses by Category */}
+        {/* Site Installation & Labor Expenses (/expenses) */}
         <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-rose-600" />
-                Operational Expenses by Category
+                <TrendingUp className="w-4 h-4 text-orange-600" />
+                Site Expenses &amp; Labor Vouchers
               </h2>
               <p className="text-xs text-muted-foreground">
-                Incurred site installation, logistics, and engineering costs.
+                Breakdown of project installation labor, equipment logistics &amp; site charges.
               </p>
             </div>
             <Link
               to="/expenses"
-              className="text-xs font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center shrink-0"
+              className="text-xs font-semibold text-orange-600 hover:text-orange-700 inline-flex items-center shrink-0"
             >
-              <span>Expense Vouchers</span>
+              <span>View All Expenses</span>
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </div>
@@ -724,7 +738,7 @@ export const AccountsDashboard: React.FC<AccountsDashboardProps> = ({ dateRange 
                     <span className="font-bold text-foreground">{cat.replace(/_/g, ' ')}</span>
                     <div className="text-[10px] text-muted-foreground">{data.count} vouchers</div>
                   </div>
-                  <span className="font-mono font-bold text-rose-600">
+                  <span className="font-mono font-bold text-orange-600 dark:text-orange-400">
                     {formatPaiseToInr(data.paise)}
                   </span>
                 </div>

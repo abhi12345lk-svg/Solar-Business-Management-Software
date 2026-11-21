@@ -48,18 +48,89 @@ interface ProjectListItem {
   }>;
 }
 
-const STAGE_LABELS: Record<string, { step: number; label: string }> = {
-  STAGE_1_ENGINEERING_DESIGN: { step: 1, label: 'Design & Engineering' },
-  STAGE_2_NET_METERING_APPLY: { step: 2, label: 'Net Metering Application' },
-  STAGE_3_MATERIAL_DISPATCH: { step: 3, label: 'Material Dispatch' },
-  STAGE_4_CIVIL_STRUCTURE: { step: 4, label: 'Civil & Roof Structure' },
-  STAGE_5_MODULE_DC_CABLING: { step: 5, label: 'Module & DC Cabling' },
-  STAGE_6_INVERTER_ACDB: { step: 6, label: 'Inverter & ACDB/DCDB' },
-  STAGE_7_EARTHING_LIGHTNING: { step: 7, label: 'Earthing & Lightning' },
-  STAGE_8_TESTING_PRE_COMMISSION: { step: 8, label: 'Pre-Commission Testing' },
-  STAGE_9_DISCOM_METER_INSTALL: { step: 9, label: 'DISCOM Meter Sync' },
-  STAGE_10_COMMISSION_HANDOVER: { step: 10, label: 'Commissioning & Handover' }
-};
+export interface SimplifiedStageInfo {
+  step: number;
+  key: string;
+  shortLabel: string;
+  label: string;
+  fullName: string;
+  description: string;
+}
+
+export const FIVE_STAGES: SimplifiedStageInfo[] = [
+  {
+    step: 1,
+    key: 'STAGE_1_DESIGN_APPROVAL',
+    shortLabel: 'Design & Approval',
+    label: 'Design & DISCOM Approval',
+    fullName: 'Stage 1: Engineering Design & DISCOM Approval',
+    description: 'Site layout, electrical SLD, and DISCOM net-metering portal application'
+  },
+  {
+    step: 2,
+    key: 'STAGE_2_MATERIAL_DISPATCH',
+    shortLabel: 'Material Dispatch',
+    label: 'Material Dispatch',
+    fullName: 'Stage 2: BOM & Hardware Site Dispatch',
+    description: 'Dispatch solar modules, string inverter, mounting structure & BOS from warehouse'
+  },
+  {
+    step: 3,
+    key: 'STAGE_3_SITE_INSTALLATION',
+    shortLabel: 'Site Installation',
+    label: 'Site Installation & Wiring',
+    fullName: 'Stage 3: Physical Rooftop Installation, Cabling & Earthing',
+    description: 'Civil structure mounting, panel clamping, inverter installation, DC/AC cabling & earthing'
+  },
+  {
+    step: 4,
+    key: 'STAGE_4_NET_METER_SYNC',
+    shortLabel: 'DISCOM Net Meter',
+    label: 'DISCOM Net Meter Sync',
+    fullName: 'Stage 4: DISCOM Inspection & Bi-Directional Meter Installation',
+    description: 'DISCOM site inspection, solar bi-directional net meter installation & utility grid synchronization'
+  },
+  {
+    step: 5,
+    key: 'STAGE_5_HANDOVER_COMMISSIONING',
+    shortLabel: 'Handover & COD',
+    label: 'Commissioning & Handover',
+    fullName: 'Stage 5: Plant Commissioning, Customer Handover & Subsidy Claim',
+    description: 'Plant energization, customer Joint Commissioning Report (JCR) sign-off & PM Surya Ghar subsidy claim'
+  }
+];
+
+export function getSimplifiedStage(stageKey: string): SimplifiedStageInfo {
+  switch (stageKey) {
+    case 'STAGE_1_ENGINEERING_DESIGN':
+    case 'STAGE_1_DESIGN_APPROVAL':
+    case 'STAGE_2_NET_METERING_APPLY':
+      return FIVE_STAGES[0]!;
+
+    case 'STAGE_3_MATERIAL_DISPATCH':
+    case 'STAGE_2_MATERIAL_DISPATCH':
+      return FIVE_STAGES[1]!;
+
+    case 'STAGE_4_CIVIL_STRUCTURE':
+    case 'STAGE_5_MODULE_DC_CABLING':
+    case 'STAGE_6_INVERTER_ACDB':
+    case 'STAGE_7_EARTHING_LIGHTNING':
+    case 'STAGE_8_TESTING_PRE_COMMISSION':
+    case 'STAGE_3_SITE_INSTALLATION':
+      return FIVE_STAGES[2]!;
+
+    case 'STAGE_9_DISCOM_METER_INSTALL':
+    case 'STAGE_4_NET_METER_SYNC':
+      return FIVE_STAGES[3]!;
+
+    case 'STAGE_10_COMMISSION_HANDOVER':
+    case 'STAGE_5_HANDOVER_COMMISSIONING':
+      return FIVE_STAGES[4]!;
+
+    default:
+      return FIVE_STAGES[0]!;
+  }
+}
 
 export function ProjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -286,12 +357,12 @@ export function ProjectsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <FolderKanban className="w-7 h-7 text-primary" />
             <span>Project Management</span>
-            <span className="text-xs px-2 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
-              10-Stage Pipeline
+            <span className="text-xs px-2.5 py-0.5 rounded font-semibold bg-solar-500/10 text-solar-700 dark:text-solar-400 border border-solar-500/20">
+              5-Stage EPC Pipeline
             </span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track solar rooftop installations, 10-stage execution milestones, field execution,
+            Track solar rooftop installations, 5-stage execution milestones, field execution,
             checklist gates, and commissioning.
           </p>
         </div>
@@ -387,17 +458,12 @@ export function ProjectsPage() {
                 : 'border-border/80 bg-background text-foreground'
             }`}
           >
-            <option value="ALL">All 10 Stages</option>
-            <option value="STAGE_1_ENGINEERING_DESIGN">Stage 01: Design & Engineering</option>
-            <option value="STAGE_2_NET_METERING_APPLY">Stage 02: Net Metering Apply</option>
-            <option value="STAGE_3_MATERIAL_DISPATCH">Stage 03: Material Dispatch</option>
-            <option value="STAGE_4_CIVIL_STRUCTURE">Stage 04: Civil Structure</option>
-            <option value="STAGE_5_MODULE_DC_CABLING">Stage 05: DC Cabling & Wiring</option>
-            <option value="STAGE_6_INVERTER_ACDB">Stage 06: Inverter & ACDB</option>
-            <option value="STAGE_7_EARTHING_LIGHTNING">Stage 07: Earthing & Protection</option>
-            <option value="STAGE_8_TESTING_PRE_COMMISSION">Stage 08: Pre-Commission Test</option>
-            <option value="STAGE_9_DISCOM_METER_INSTALL">Stage 09: DISCOM Meter Install</option>
-            <option value="STAGE_10_COMMISSION_HANDOVER">Stage 10: Handover & COD</option>
+            <option value="ALL">All 5 Stages</option>
+            <option value="STAGE_1_DESIGN_APPROVAL">Stage 1: Design & Approval</option>
+            <option value="STAGE_2_MATERIAL_DISPATCH">Stage 2: Material Dispatch</option>
+            <option value="STAGE_3_SITE_INSTALLATION">Stage 3: Site Installation & Wiring</option>
+            <option value="STAGE_4_NET_METER_SYNC">Stage 4: DISCOM Net Meter Sync</option>
+            <option value="STAGE_5_HANDOVER_COMMISSIONING">Stage 5: Commissioning & Handover</option>
           </select>
 
           <select
@@ -420,14 +486,14 @@ export function ProjectsPage() {
           <div className="flex items-center space-x-2 text-solar-900 dark:text-solar-200">
             <Layers className="w-4 h-4 text-solar-600 shrink-0" />
             <span>
-              Showing projects in <strong className="font-bold">{STAGE_LABELS[stageFilter]?.label || stageFilter}</strong> (Stage {STAGE_LABELS[stageFilter]?.step || '?'}/10)
+              Showing projects in <strong className="font-bold">{getSimplifiedStage(stageFilter).label}</strong> (Milestone {getSimplifiedStage(stageFilter).step}/5)
             </span>
           </div>
           <button
             onClick={() => handleStageFilterChange('ALL')}
             className="text-xs font-bold text-solar-700 dark:text-solar-300 hover:underline cursor-pointer inline-flex items-center"
           >
-            Clear Filter (Show All 10 Stages) &times;
+            Clear Filter (Show All 5 Stages) &times;
           </button>
         </div>
       )}
@@ -471,11 +537,8 @@ export function ProjectsPage() {
               </thead>
               <tbody className="divide-y divide-border text-sm">
                 {projects.map(proj => {
-                  const stageInfo = STAGE_LABELS[proj.currentStage] || {
-                    step: 1,
-                    label: proj.currentStage
-                  };
-                  const percent = Math.round((stageInfo.step / 10) * 100);
+                  const stageInfo = getSimplifiedStage(proj.currentStage);
+                  const percent = Math.round((stageInfo.step / 5) * 100);
 
                   return (
                     <tr key={proj._id} className="hover:bg-muted/30 transition-colors">
@@ -514,11 +577,11 @@ export function ProjectsPage() {
                       </td>
                       <td className="py-3.5 px-4 min-w-[180px]">
                         <div className="flex items-center justify-between text-[11px] mb-1">
-                          <span className="font-medium text-foreground truncate max-w-[130px]">
-                            {stageInfo.label}
+                          <span className="font-semibold text-foreground truncate max-w-[130px]">
+                            {stageInfo.shortLabel}
                           </span>
-                          <span className="text-muted-foreground font-mono">
-                            {stageInfo.step}/10
+                          <span className="text-muted-foreground font-mono font-bold">
+                            {stageInfo.step}/5
                           </span>
                         </div>
                         <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
@@ -621,7 +684,7 @@ export function ProjectsPage() {
               <div>
                 <h3 className="font-bold text-foreground text-lg">Create New Project</h3>
                 <p className="text-xs text-muted-foreground">
-                  Initialize a new installation project with 10 standard milestone planning
+                  Initialize a new installation project with 5 standard milestone planning
                   templates.
                 </p>
               </div>
@@ -817,7 +880,7 @@ export function ProjectsPage() {
                   }
                   className="rounded border-input text-primary focus:ring-primary w-4 h-4"
                 />
-                <span>Automatically initialize 10 standard installation milestones</span>
+                <span>Automatically initialize standard installation milestones</span>
               </label>
 
               {/* Submit Buttons */}

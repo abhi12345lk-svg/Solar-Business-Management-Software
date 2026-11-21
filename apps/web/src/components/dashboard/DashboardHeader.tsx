@@ -54,7 +54,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       badgeColor: 'bg-blue-500/20 text-blue-200 border-blue-400/30',
       gradient: 'from-blue-950 via-slate-900 to-indigo-950 border-blue-500/30',
       title: 'Commercial & Sales Pipeline Workspace',
-      desc: 'Lead qualification, prospect follow-ups, PV engineering sizing, quotation conversion, and sales order intake.',
+      desc: 'Lead management, customer accounts, quotation proposals, confirmed sales orders, and official agreement documents.',
       icon: TrendingUp
     },
     [PanelType.ACCOUNTS]: {
@@ -62,7 +62,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       badgeColor: 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30',
       gradient: 'from-emerald-950 via-slate-900 to-teal-950 border-emerald-500/30',
       title: 'Financial & Billing Workspace',
-      desc: 'Customer receivables, collection receipts, 3-way vendor match, project costing, and operational expenses.',
+      desc: 'Customer milestone collections, equipment purchase bills, Govt DBT subsidies, and site installation expenses.',
       icon: Landmark
     },
     [PanelType.INSTALLER]: {

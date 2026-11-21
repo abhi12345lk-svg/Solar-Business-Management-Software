@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.js';
+import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
 import {
   Minus,
   Plus,
@@ -188,6 +190,16 @@ interface CreateDocumentPageProps {
 }
 
 export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultTemplate }) => {
+  const { user } = useAuth();
+  const activePanel: PanelType = user?.role
+    ? getDefaultPanelForRole(user.role, user.department)
+    : PanelType.ADMIN;
+
+  // Prevent installers from generating legal/sales/bank contracts
+  if (activePanel === PanelType.INSTALLER) {
+    return <Navigate to="/site-photos" replace />;
+  }
+
   const [searchParams] = useSearchParams();
 
   const availableTemplates = TEMPLATE_OPTIONS;
@@ -483,6 +495,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
       });
 
       const custId = selectedCustomer._id || selectedCustomer.id;
+      const validCustId = (custId && /^[0-9a-fA-F]{24}$/.test(custId)) ? custId : undefined;
+      const validProjectId = (selectedProjectId && /^[0-9a-fA-F]{24}$/.test(selectedProjectId)) ? selectedProjectId : undefined;
 
       // 2. Register Document in DB
       const docPayload = {
@@ -492,10 +506,10 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
         accessClassification: 'CUSTOMER_VISIBLE',
         mimeType: 'application/pdf',
         fileSizeBytes: blob.size,
-        customerId: custId,
-        projectId: selectedProjectId || undefined,
+        customerId: validCustId,
+        projectId: validProjectId,
         relatedEntityType: 'Customer',
-        relatedEntityId: custId,
+        relatedEntityId: validCustId,
         metadata: {
           templateId: currentTemplate.id,
           scheme: currentTemplate.scheme,
@@ -623,7 +637,10 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({ defaultT
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{vaultSaveSuccess}</span>
               </div>
-              <Link to="/documents" className="font-bold underline hover:text-emerald-900 ml-3">
+              <Link
+                to={`/documents?customerId=${selectedCustomer?._id || selectedCustomer?.id || ''}`}
+                className="font-bold underline hover:text-emerald-900 ml-3"
+              >
                 View in Vault →
               </Link>
             </div>

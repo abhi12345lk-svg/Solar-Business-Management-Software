@@ -35,13 +35,24 @@ import {
   ZoomOut,
   RotateCw,
   FilePlus2,
-  RefreshCw
+  RefreshCw,
+  FileCheck2,
+  ShieldCheck
 } from 'lucide-react';
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { CustomerDto, CustomerType, CustomerStatus, PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
+import { isDocVisibleInPanel } from '../lib/documentVisibility.js';
 
-const MANDATORY_SOLAR_SLOTS = [
+interface VaultSlotConfig {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: any;
+  matchCategory: (c: string) => boolean;
+}
+
+const MANDATORY_SOLAR_SLOTS: VaultSlotConfig[] = [
   {
     key: 'ELECTRICITY_BILL',
     title: 'Electricity Bill',
@@ -83,6 +94,37 @@ const MANDATORY_SOLAR_SLOTS = [
     subtitle: 'Rooftop Layout & Meter Box',
     icon: Camera,
     matchCategory: (c: string) => c === 'SITE_PHOTOS' || c === 'INSTALLATION_QUALITY'
+  }
+];
+
+const INSTALLER_SITE_SLOTS: VaultSlotConfig[] = [
+  {
+    key: 'SITE_PHOTOS',
+    title: 'Site & Rooftop Photos',
+    subtitle: '4-Point Inspection & Meter Box',
+    icon: Camera,
+    matchCategory: (c: string) => c === 'SITE_PHOTOS' || c === 'INSTALLATION_QUALITY'
+  },
+  {
+    key: 'SITE_GEOTAG_LOCATION',
+    title: 'GPS Site Geotag Location',
+    subtitle: 'Verified Lat/Long Coordinates',
+    icon: Compass,
+    matchCategory: (c: string) => c === 'SITE_GEOTAG_LOCATION'
+  },
+  {
+    key: 'COMMISSIONING_REPORT',
+    title: 'Joint Commissioning Report (JCR)',
+    subtitle: 'Plant Synchronization & Test Report',
+    icon: FileCheck2,
+    matchCategory: (c: string) => c === 'COMMISSIONING_REPORT'
+  },
+  {
+    key: 'WARRANTY_CERTIFICATE',
+    title: 'Equipment Warranty & Serials',
+    subtitle: 'Module & Inverter Barcodes',
+    icon: ShieldCheck,
+    matchCategory: (c: string) => c === 'WARRANTY_CERTIFICATE'
   }
 ];
 
@@ -347,7 +389,8 @@ export const CustomersPage: React.FC = () => {
       if (docId) {
         try {
           const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
-          await fetch(`/api/v1/documents/${docId}/content`, {
+          const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
+          await fetch(uploadUrl, {
             method: 'PUT',
             credentials: 'include',
             headers: {
@@ -515,7 +558,8 @@ export const CustomersPage: React.FC = () => {
       if (selectedFile && docId) {
         try {
           const csrfToken = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'))?.[2];
-          await fetch(`/api/v1/documents/${docId}/content`, {
+          const uploadUrl = getFullApiUrl(`/documents/${docId}/content`);
+          await fetch(uploadUrl, {
             method: 'PUT',
             credentials: 'include',
             headers: {
@@ -1878,13 +1922,16 @@ export const CustomersPage: React.FC = () => {
 
       {/* Customer Document Vault Modal */}
       {vaultCustomer && (() => {
-        const uploadedCount = MANDATORY_SOLAR_SLOTS.filter(slot =>
+        const activeSlots: VaultSlotConfig[] = isInstaller ? INSTALLER_SITE_SLOTS : MANDATORY_SOLAR_SLOTS;
+        const uploadedCount = activeSlots.filter((slot: VaultSlotConfig) =>
           vaultDocuments.some(d => slot.matchCategory(d.category))
         ).length;
 
-        const otherDocuments = vaultDocuments.filter(
-          doc => !MANDATORY_SOLAR_SLOTS.some(slot => slot.matchCategory(doc.category))
-        );
+        const otherDocuments = vaultDocuments.filter(doc => {
+          const isSlotDoc = activeSlots.some((slot: VaultSlotConfig) => slot.matchCategory(doc.category));
+          if (isSlotDoc) return false;
+          return isDocVisibleInPanel(doc as any, activePanel);
+        });
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
@@ -1898,7 +1945,7 @@ export const CustomersPage: React.FC = () => {
                   <div className="min-w-0">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
-                        Document Vault: {vaultCustomer.name}
+                        {isInstaller ? 'Site Document Vault' : 'Document Vault'}: {vaultCustomer.name}
                       </h3>
                       <span className="font-mono text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground shrink-0">
                         {vaultCustomer.customerCode}
@@ -1906,7 +1953,7 @@ export const CustomersPage: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-0.5">
                       <span className="font-medium">
-                        {uploadedCount}/6 Mandatory Solar Slots Ready
+                        {uploadedCount}/{activeSlots.length} Mandatory {isInstaller ? 'Site' : 'Solar'} Slots Ready
                       </span>
                       <span>•</span>
                       <span>Total Documents: {vaultDocuments.length}</span>
@@ -1920,16 +1967,18 @@ export const CustomersPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 shrink-0">
+                  {!isInstaller && (
+                    <Link
+                      to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                      className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
+                      title="Generate RTS Agreement or Subsidy Form"
+                    >
+                      <FilePlus2 className="w-3.5 h-3.5" />
+                      <span>+ Create Document</span>
+                    </Link>
+                  )}
                   <Link
-                    to={`/create-document?customerId=${vaultCustomer.id}`}
-                    className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-solar-600 hover:bg-solar-700 text-white shadow-xs transition cursor-pointer"
-                    title="Generate RTS Agreement or Subsidy Form"
-                  >
-                    <FilePlus2 className="w-3.5 h-3.5" />
-                    <span>+ Create Document</span>
-                  </Link>
-                  <Link
-                    to={`/documents?customerId=${vaultCustomer.id}`}
+                    to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
                     className="hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-secondary-foreground transition cursor-pointer"
                     title="Open Full Central Vault"
                   >
@@ -1981,15 +2030,17 @@ export const CustomersPage: React.FC = () => {
 
                 {/* Mobile action bar for small screens */}
                 <div className="flex sm:hidden items-center justify-between gap-2 bg-muted/40 p-2.5 rounded-xl border">
+                  {!isInstaller && (
+                    <Link
+                      to={`/create-document?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
+                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-solar-600 text-white"
+                    >
+                      <FilePlus2 className="w-3.5 h-3.5" />
+                      <span>Create Doc</span>
+                    </Link>
+                  )}
                   <Link
-                    to={`/create-document?customerId=${vaultCustomer.id}`}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-solar-600 text-white"
-                  >
-                    <FilePlus2 className="w-3.5 h-3.5" />
-                    <span>Create Doc</span>
-                  </Link>
-                  <Link
-                    to={`/documents?customerId=${vaultCustomer.id}`}
+                    to={`/documents?customerId=${vaultCustomer.id || (vaultCustomer as any)._id}`}
                     className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs bg-secondary text-secondary-foreground"
                   >
                     <span>Central Vault</span>
@@ -2029,17 +2080,29 @@ export const CustomersPage: React.FC = () => {
                           onChange={e => setNewDocCategory(e.target.value)}
                           className="w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                         >
-                          <option value="ELECTRICITY_BILL">⚡ Electricity Bill (Consumer Proof)</option>
-                          <option value="AADHAAR_CARD">🪪 Aadhaar Card (Applicant KYC)</option>
-                          <option value="PAN_CARD">💳 PAN Card (Financial / Tax ID)</option>
-                          <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / House Tax Receipt (Roof Ownership)</option>
-                          <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque (PM Surya Ghar DBT Subsidy)</option>
-                          <option value="SITE_PHOTOS">📸 Site & Rooftop Photos (Roof & Meter Box)</option>
-                          <option value="QUOTATION_PROPOSAL">📋 Solar Quotation & Technical Proposal</option>
-                          <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
-                          <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
-                          <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
-                          <option value="OTHER">📄 Other Client Document</option>
+                          {isInstaller ? (
+                            <>
+                              <option value="SITE_PHOTOS">📸 Site &amp; Rooftop Photos (Roof &amp; Meter Box)</option>
+                              <option value="SITE_GEOTAG_LOCATION">📍 GPS Site Geotag Coordinates</option>
+                              <option value="COMMISSIONING_REPORT">📋 Joint Commissioning Report (JCR)</option>
+                              <option value="WARRANTY_CERTIFICATE">📜 Equipment Warranty &amp; Serials</option>
+                              <option value="OTHER">📁 Other Field Record</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="ELECTRICITY_BILL">⚡ Electricity Bill (Consumer Proof)</option>
+                              <option value="AADHAAR_CARD">🪪 Aadhaar Card (Applicant KYC)</option>
+                              <option value="PAN_CARD">💳 PAN Card (Financial / Tax ID)</option>
+                              <option value="PROPERTY_TAX_RECEIPT">🏛️ Property / House Tax Receipt (Roof Ownership)</option>
+                              <option value="BANK_PASSBOOK">🏦 Bank Passbook / Cheque (PM Surya Ghar DBT Subsidy)</option>
+                              <option value="SITE_PHOTOS">📸 Site &amp; Rooftop Photos (Roof &amp; Meter Box)</option>
+                              <option value="QUOTATION_PROPOSAL">📋 Solar Quotation &amp; Technical Proposal</option>
+                              <option value="SIGNED_CONTRACT">✍️ Signed EPC Contract / Agreement</option>
+                              <option value="NET_METERING_DOC">🔌 Net Metering Feasibility / DISCOM Sanction</option>
+                              <option value="SUBSIDY_DOC">🏛️ PM Surya Ghar Govt Subsidy (DBT)</option>
+                              <option value="OTHER">📄 Other Client Document</option>
+                            </>
+                          )}
                         </select>
                       </div>
 
@@ -2127,16 +2190,22 @@ export const CustomersPage: React.FC = () => {
                   </form>
                 )}
 
-                {/* SECTION 1: MANDATORY SOLAR EPC SLOTS (Self-contained, no duplication) */}
+                {/* SECTION 1: MANDATORY EPC / SITE SLOTS */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
                         <FolderLock className="w-4 h-4 text-solar-500" />
-                        <span>Mandatory Solar EPC Dossier (6 Standard Slots)</span>
+                        <span>
+                          {isInstaller
+                            ? 'Mandatory Site Installation Dossier (4 Technical Slots)'
+                            : 'Mandatory Solar EPC Dossier (6 Standard Slots)'}
+                        </span>
                       </h4>
                       <p className="text-[11px] text-muted-foreground">
-                        Direct KYC, Consumer Bills, Ownership, Passbook & Rooftop Photos for DISCOM & PM Surya Ghar Subsidy
+                        {isInstaller
+                          ? 'Direct rooftop inspection photos, GPS coordinates geotag, joint commissioning report & equipment serials'
+                          : 'Direct KYC, Consumer Bills, Ownership, Passbook & Rooftop Photos for DISCOM & PM Surya Ghar Subsidy'}
                       </p>
                     </div>
                     <button
@@ -2150,7 +2219,7 @@ export const CustomersPage: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {MANDATORY_SOLAR_SLOTS.map(slot => {
+                    {activeSlots.map((slot: VaultSlotConfig) => {
                       const Icon = slot.icon;
                       const existingDoc = vaultDocuments.find(d => slot.matchCategory(d.category));
                       const isUploading = uploadingSlotKey === slot.key;
@@ -2297,10 +2366,16 @@ export const CustomersPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-foreground flex items-center space-x-1.5">
                         <FileText className="w-3.5 h-3.5 text-solar-500" />
-                        <span>Additional Contracts & Custom Documents ({otherDocuments.length})</span>
+                        <span>
+                          {isInstaller
+                            ? `Additional Site Records (${otherDocuments.length})`
+                            : `Additional Contracts & Custom Documents (${otherDocuments.length})`}
+                        </span>
                       </h4>
                       <span className="text-[11px] text-muted-foreground">
-                        Custom proposals, agreements, commission reports & feasibility letters
+                        {isInstaller
+                          ? 'Field inspection reports, equipment warranty cards & testing logs'
+                          : 'Custom proposals, agreements, commission reports & feasibility letters'}
                       </span>
                     </div>
 

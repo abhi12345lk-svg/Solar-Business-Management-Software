@@ -262,7 +262,67 @@ export class ProjectService {
     const query: Record<string, any> = {};
 
     if (filter.status) query.status = filter.status;
-    if (filter.currentStage) query.currentStage = filter.currentStage;
+    if (filter.currentStage) {
+      const stageStr = String(filter.currentStage);
+      if (
+        stageStr === ProjectStage.STAGE_1_DESIGN_APPROVAL ||
+        stageStr === 'STAGE_1_DESIGN_APPROVAL'
+      ) {
+        query.currentStage = {
+          $in: [
+            ProjectStage.STAGE_1_DESIGN_APPROVAL,
+            ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+            ProjectStage.STAGE_2_NET_METERING_APPLY
+          ]
+        };
+      } else if (
+        stageStr === ProjectStage.STAGE_2_MATERIAL_DISPATCH ||
+        stageStr === 'STAGE_2_MATERIAL_DISPATCH'
+      ) {
+        query.currentStage = {
+          $in: [
+            ProjectStage.STAGE_2_MATERIAL_DISPATCH,
+            ProjectStage.STAGE_3_MATERIAL_DISPATCH
+          ]
+        };
+      } else if (
+        stageStr === ProjectStage.STAGE_3_SITE_INSTALLATION ||
+        stageStr === 'STAGE_3_SITE_INSTALLATION'
+      ) {
+        query.currentStage = {
+          $in: [
+            ProjectStage.STAGE_3_SITE_INSTALLATION,
+            ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+            ProjectStage.STAGE_5_MODULE_DC_CABLING,
+            ProjectStage.STAGE_6_INVERTER_ACDB,
+            ProjectStage.STAGE_7_EARTHING_LIGHTNING,
+            ProjectStage.STAGE_8_TESTING_PRE_COMMISSION
+          ]
+        };
+      } else if (
+        stageStr === ProjectStage.STAGE_4_NET_METER_SYNC ||
+        stageStr === 'STAGE_4_NET_METER_SYNC'
+      ) {
+        query.currentStage = {
+          $in: [
+            ProjectStage.STAGE_4_NET_METER_SYNC,
+            ProjectStage.STAGE_9_DISCOM_METER_INSTALL
+          ]
+        };
+      } else if (
+        stageStr === ProjectStage.STAGE_5_HANDOVER_COMMISSIONING ||
+        stageStr === 'STAGE_5_HANDOVER_COMMISSIONING'
+      ) {
+        query.currentStage = {
+          $in: [
+            ProjectStage.STAGE_5_HANDOVER_COMMISSIONING,
+            ProjectStage.STAGE_10_COMMISSION_HANDOVER
+          ]
+        };
+      } else {
+        query.currentStage = filter.currentStage;
+      }
+    }
     if (filter.priority) query.priority = filter.priority;
     if (filter.customerId) query.customerId = new Types.ObjectId(filter.customerId);
     if (filter.projectManagerId)
@@ -530,6 +590,7 @@ export class ProjectService {
 
     // Commissioning stage gates check: verify mandatory checklist items are PASSED
     if (
+      input.stage === ProjectStage.STAGE_5_HANDOVER_COMMISSIONING ||
       input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
       input.stage === ProjectStage.STAGE_10_COMMISSION_HANDOVER
     ) {
@@ -542,10 +603,11 @@ export class ProjectService {
           const incompleteItems: string[] = [];
           for (const cat of checklist.categories) {
             if (
-              input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION &&
+              (input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
+                input.stage === ProjectStage.STAGE_5_HANDOVER_COMMISSIONING) &&
               cat.category === ChecklistCategory.TESTING_COMMISSIONING_HANDOVER
             ) {
-              continue; // Testing items can be performed during Stage 8
+              continue; // Handover testing items can be performed during Stage 5
             }
             for (const item of cat.items) {
               if (item.isRequired && item.status !== ChecklistItemStatus.PASSED) {

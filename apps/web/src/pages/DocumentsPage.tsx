@@ -31,6 +31,12 @@ import {
 import { apiClient, getFullApiUrl } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
 import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
+import {
+  SOLAR_CATEGORIES,
+  INSTALLER_CATEGORIES,
+  isDocVisibleInPanel,
+  getCategoriesForPanel
+} from '../lib/documentVisibility.js';
 
 interface DocumentItem {
   _id: string;
@@ -88,35 +94,6 @@ interface CustomerOption {
   primaryPhone?: string;
 }
 
-const SOLAR_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
-  { value: 'TAX_RECEIPT', label: 'GST Tax Invoice & Bills', icon: '🧾', description: 'Tax invoices, bills of supply & vendor bills' },
-  { value: 'INTERNAL_OPERATIONAL', label: 'Payment Vouchers & Accounts Records', icon: '💳', description: 'Bank transaction receipts, vouchers & audit ledgers' },
-  { value: 'SUBSIDY_DOC', label: 'PM Surya Ghar Subsidy Dossier', icon: '☀️', description: 'National CFA subsidy application & sanction letters' },
-  { value: 'ELECTRICITY_BILL', label: 'Electricity Bill', icon: '⚡', description: 'Recent DISCOM power tariff bill' },
-  { value: 'AADHAAR_CARD', label: 'Aadhaar Card (KYC)', icon: '🪪', description: 'Applicant identity & address proof' },
-  { value: 'PAN_CARD', label: 'PAN Card', icon: '💳', description: 'Income Tax PAN card for billing' },
-  { value: 'PROPERTY_TAX_RECEIPT', label: 'Property / House Tax', icon: '🏛️', description: 'Municipal tax receipt or registry deed' },
-  { value: 'BANK_PASSBOOK', label: 'Bank Passbook / Cheque', icon: '🏦', description: 'Cancelled cheque / passbook for DBT subsidy' },
-  { value: 'SITE_PHOTOS', label: 'Site & Rooftop Photos', icon: '📸', description: 'Rooftop layout, shadow & structure photos' },
-  { value: 'SITE_GEOTAG_LOCATION', label: 'GPS Site Geotag', icon: '📍', description: 'Verified latitude/longitude installation coordinates' },
-  { value: 'QUOTATION_PROPOSAL', label: 'Solar Quotation / Proposal', icon: '📑', description: 'Techno-commercial proposal & plant sizing' },
-  { value: 'SIGNED_CONTRACT', label: 'Signed EPC Contract', icon: '🖋️', description: 'Executed turnkey installation agreement' },
-  { value: 'NET_METERING_DOC', label: 'Net Metering Application', icon: '🔌', description: 'DISCOM net meter submission & SLD' },
-  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty', icon: '📜', description: 'Solar module, inverter & structure warranties' },
-  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report', icon: '📋', description: 'Plant synchronization & test report' },
-  { value: 'CUSTOMER_KYC', label: 'General Customer KYC', icon: '👤', description: 'Customer documentation & identity files' },
-  { value: 'OTHER', label: 'Other Documents', icon: '📁', description: 'Supplementary paperwork & general records' },
-];
-
-const INSTALLER_CATEGORIES: { value: string; label: string; icon: string; description: string }[] = [
-  { value: 'SITE_PHOTOS', label: 'Site & Rooftop Photos', icon: '📸', description: 'Rooftop layout, 4-point structure & meter photos' },
-  { value: 'SITE_GEOTAG_LOCATION', label: 'GPS Site Geotag', icon: '📍', description: 'Verified latitude/longitude installation coordinates' },
-  { value: 'COMMISSIONING_REPORT', label: 'Joint Commissioning Report (JCR)', icon: '📋', description: 'Plant synchronization & DISCOM inspection report' },
-  { value: 'WARRANTY_CERTIFICATE', label: 'Equipment Warranty & Serials', icon: '📜', description: 'Solar module, inverter barcodes & warranty cards' },
-  { value: 'CUSTOMER_KYC', label: 'Work Completion & Handover Slip', icon: '✍️', description: 'Customer signed rooftop installation handover' },
-  { value: 'OTHER', label: 'Other Field Records', icon: '📁', description: 'Supplementary fieldwork & test records' },
-];
-
 const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes === 0) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
@@ -125,7 +102,8 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const getCategoryMeta = (categoryVal: string) => {
-  const match = SOLAR_CATEGORIES.find(c => c.value === categoryVal);
+  const match = SOLAR_CATEGORIES.find(c => c.value === categoryVal) ||
+    INSTALLER_CATEGORIES.find(c => c.value === categoryVal);
   if (match) return match;
   return {
     value: categoryVal,
@@ -141,7 +119,17 @@ export const DocumentsPage: React.FC = () => {
     ? getDefaultPanelForRole(user.role, user.department)
     : PanelType.ADMIN;
   const isInstaller = activePanel === PanelType.INSTALLER;
+  const isAdmin = activePanel === PanelType.ADMIN;
   const navigate = useNavigate();
+
+  // For Admin: Department lens switcher to preview or filter by specific panel view
+  const [adminLens, setAdminLens] = useState<'ALL' | 'INSTALLER' | 'SALES' | 'ACCOUNTS'>('ALL');
+
+  const effectivePanel: PanelType = isAdmin
+    ? (adminLens === 'ALL' ? PanelType.ADMIN : (adminLens as unknown as PanelType))
+    : activePanel;
+
+  const availableCategories = getCategoriesForPanel(effectivePanel);
 
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -176,7 +164,13 @@ export const DocumentsPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadFilename, setUploadFilename] = useState('');
   const [uploadDisplayName, setUploadDisplayName] = useState('');
-  const [uploadCategory, setUploadCategory] = useState(isInstaller ? 'SITE_PHOTOS' : 'ELECTRICITY_BILL');
+  const [uploadCategory, setUploadCategory] = useState(
+    effectivePanel === PanelType.INSTALLER
+      ? 'SITE_PHOTOS'
+      : effectivePanel === PanelType.ACCOUNTS
+      ? 'TAX_RECEIPT'
+      : 'ELECTRICITY_BILL'
+  );
   const [uploadClassification, setUploadClassification] = useState<
     'INTERNAL_ONLY' | 'CUSTOMER_VISIBLE' | 'RESTRICTED'
   >('CUSTOMER_VISIBLE');
@@ -313,6 +307,9 @@ export const DocumentsPage: React.FC = () => {
         console.warn('Could not scan local site photos for vault sync:', localErr);
       }
 
+      // CRITICAL: Filter documents strictly by role and department visibility
+      list = list.filter(d => isDocVisibleInPanel(d, effectivePanel));
+
       setDocuments(list);
     } catch (err: any) {
       setError(err?.message || 'Failed to load document vault records.');
@@ -323,7 +320,7 @@ export const DocumentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [search, customerFilter, categoryFilter, reviewFilter]);
+  }, [search, customerFilter, categoryFilter, reviewFilter, effectivePanel]);
 
   const handleFileSelection = (file: File) => {
     setSelectedFile(file);
@@ -672,20 +669,36 @@ export const DocumentsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center space-x-3 shrink-0">
           <div className="w-10 h-10 rounded-xl bg-solar-500/10 text-solar-600 flex items-center justify-center font-bold shrink-0">
-            {isInstaller ? <Camera className="w-5 h-5" /> : <FolderLock className="w-5 h-5" />}
+            {effectivePanel === PanelType.INSTALLER ? (
+              <Camera className="w-5 h-5" />
+            ) : effectivePanel === PanelType.ACCOUNTS ? (
+              <FileText className="w-5 h-5" />
+            ) : (
+              <FolderLock className="w-5 h-5" />
+            )}
           </div>
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight whitespace-nowrap">
-                {isInstaller ? 'Site Documents' : 'Document Vault & Compliance'}
+                {effectivePanel === PanelType.INSTALLER
+                  ? 'Site Documents'
+                  : effectivePanel === PanelType.SALES
+                  ? 'Customer KYC & Sales Documents'
+                  : effectivePanel === PanelType.ACCOUNTS
+                  ? 'Invoices & Accounts Records'
+                  : 'Document Vault & Compliance'}
               </h1>
               <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-full bg-solar-500/10 text-solar-700 dark:text-solar-300 border border-solar-200 dark:border-solar-800">
                 {totalCount} Total
               </span>
             </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block mt-0.5">
-              {isInstaller
+              {effectivePanel === PanelType.INSTALLER
                 ? 'Archived 4-point site inspection photos, verified GPS geotags, and DISCOM commissioning reports'
+                : effectivePanel === PanelType.SALES
+                ? 'Customer KYC files, recent electricity bills, signed EPC contracts, and subsidy sanction dossiers'
+                : effectivePanel === PanelType.ACCOUNTS
+                ? 'GST tax invoices, vendor purchase bills, PM Surya Ghar DBT subsidy credits, and bank vouchers'
                 : 'Centralized repository for financial compliance, GST invoices, subsidy sanction dossiers, and solar contracts'}
             </p>
           </div>
@@ -693,7 +706,7 @@ export const DocumentsPage: React.FC = () => {
 
         {/* Action Buttons: Installer gets Upload Document & Capture Site Photos */}
         <div className="flex items-center space-x-2.5 shrink-0">
-          {isInstaller ? (
+          {effectivePanel === PanelType.INSTALLER ? (
             <>
               <button
                 type="button"
@@ -720,10 +733,26 @@ export const DocumentsPage: React.FC = () => {
                 <span>Capture Site Photos &rarr;</span>
               </Link>
             </>
+          ) : effectivePanel === PanelType.ACCOUNTS ? (
+            <button
+              onClick={() => {
+                setFormError(null);
+                setSelectedFile(null);
+                setUploadFilename('');
+                setUploadDisplayName('');
+                setUploadCustomerId(customerFilter || '');
+                setUploadCategory('TAX_RECEIPT');
+                setUploadModalOpen(true);
+              }}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Upload Invoice / Voucher</span>
+            </button>
           ) : (
             <>
               <Link
-                to="/documents/create"
+                to="/create-document"
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-card hover:bg-muted text-foreground font-bold text-xs rounded-xl shadow-2xs border border-border transition cursor-pointer"
               >
                 <FilePlus2 className="w-4 h-4 text-solar-600" />
@@ -737,6 +766,7 @@ export const DocumentsPage: React.FC = () => {
                   setUploadFilename('');
                   setUploadDisplayName('');
                   setUploadCustomerId(customerFilter || '');
+                  setUploadCategory(effectivePanel === PanelType.SALES ? 'ELECTRICITY_BILL' : 'AADHAAR_CARD');
                   setUploadModalOpen(true);
                 }}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
@@ -748,6 +778,71 @@ export const DocumentsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Admin Department Lens Switcher */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center gap-2 p-1.5 bg-muted/40 border border-border rounded-xl text-xs font-semibold">
+          <span className="text-[11px] text-muted-foreground px-2 font-bold uppercase tracking-wider">
+            Filter View by Panel:
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminLens('ALL');
+              setCategoryFilter('');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              adminLens === 'ALL'
+                ? 'bg-solar-600 text-white shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            🏢 All Company Records
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminLens('INSTALLER');
+              setCategoryFilter('');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              adminLens === 'INSTALLER'
+                ? 'bg-solar-600 text-white shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            🔧 Site & Operations (Installer View)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminLens('SALES');
+              setCategoryFilter('');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              adminLens === 'SALES'
+                ? 'bg-solar-600 text-white shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            💼 Sales & Customer KYC
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminLens('ACCOUNTS');
+              setCategoryFilter('');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              adminLens === 'ACCOUNTS'
+                ? 'bg-solar-600 text-white shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            💰 Billing & Accounts
+          </button>
+        </div>
+      )}
 
       {/* Success Notification Banner */}
       {actionSuccess && (
@@ -903,8 +998,16 @@ export const DocumentsPage: React.FC = () => {
               onChange={e => setCategoryFilter(e.target.value)}
               className="w-full border border-border rounded-lg px-2.5 py-1.5 text-xs bg-background text-foreground focus:ring-2 focus:ring-solar-500 focus:outline-none cursor-pointer font-medium"
             >
-              <option value="">{isInstaller ? 'All Site Documents' : 'All Document Categories'}</option>
-              {(isInstaller ? INSTALLER_CATEGORIES : SOLAR_CATEGORIES).map(cat => (
+              <option value="">
+                {effectivePanel === PanelType.INSTALLER
+                  ? 'All Site Documents'
+                  : effectivePanel === PanelType.SALES
+                  ? 'All Sales & KYC Documents'
+                  : effectivePanel === PanelType.ACCOUNTS
+                  ? 'All Billing & Financial Documents'
+                  : 'All Document Categories'}
+              </option>
+              {availableCategories.map(cat => (
                 <option key={cat.value} value={cat.value}>
                   {cat.icon} {cat.label}
                 </option>
@@ -1559,7 +1662,7 @@ export const DocumentsPage: React.FC = () => {
               </div>
 
               {/* Category & Access Level */}
-              {isInstaller ? (
+              {effectivePanel === PanelType.INSTALLER ? (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Site Document Category *
@@ -1580,14 +1683,18 @@ export const DocumentsPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Solar Compliance Category *
+                      {effectivePanel === PanelType.SALES
+                        ? 'Sales & KYC Category *'
+                        : effectivePanel === PanelType.ACCOUNTS
+                        ? 'Accounting & Billing Category *'
+                        : 'Solar Compliance Category *'}
                     </label>
                     <select
                       value={uploadCategory}
                       onChange={e => setUploadCategory(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-solar-500 focus:outline-none bg-white font-medium"
                     >
-                      {SOLAR_CATEGORIES.map(cat => (
+                      {availableCategories.map(cat => (
                         <option key={cat.value} value={cat.value}>
                           {cat.icon} {cat.label}
                         </option>

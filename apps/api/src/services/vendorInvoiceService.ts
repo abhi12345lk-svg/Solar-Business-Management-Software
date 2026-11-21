@@ -23,13 +23,20 @@ export class VendorInvoiceService {
     user: { userId: string; role: UserRole },
     context: { ipAddress?: string; userAgent?: string; correlationId?: string }
   ): Promise<IVendorInvoiceDocument> {
-    if (!Types.ObjectId.isValid(input.vendorId)) {
-      throw AppError.validation(`Invalid Vendor ID format: '${input.vendorId}'. Expected a 24-character hexadecimal ObjectId.`);
+    let vendor: any = null;
+    if (Types.ObjectId.isValid(input.vendorId)) {
+      vendor = await Vendor.findById(input.vendorId);
+    } else {
+      vendor = await Vendor.findOne({
+        $or: [
+          { name: new RegExp(`^${input.vendorId.trim()}$`, 'i') },
+          { vendorCode: input.vendorId.trim() }
+        ]
+      });
     }
 
-    const vendor = await Vendor.findById(input.vendorId);
     if (!vendor) {
-      throw AppError.notFound('Vendor not found.');
+      throw AppError.notFound(`Vendor '${input.vendorId}' not found. Please select an existing vendor or create a new one.`);
     }
 
     // Check duplicate invoice number for this vendor
@@ -166,7 +173,18 @@ export class VendorInvoiceService {
     const query: any = {};
 
     if (filter.vendorId) {
-      query.vendorId = new Types.ObjectId(filter.vendorId);
+      if (Types.ObjectId.isValid(filter.vendorId)) {
+        query.vendorId = new Types.ObjectId(filter.vendorId);
+      } else {
+        const matched = await Vendor.find({
+          $or: [
+            { name: new RegExp(filter.vendorId.trim(), 'i') },
+            { vendorCode: filter.vendorId.trim() }
+          ]
+        }).select('_id').lean();
+        const ids = matched.map(v => v._id);
+        query.vendorId = { $in: ids };
+      }
     }
     if (filter.purchaseOrderId) {
       query.purchaseOrderId = new Types.ObjectId(filter.purchaseOrderId);

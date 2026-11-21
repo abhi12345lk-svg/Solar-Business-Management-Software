@@ -1,46 +1,43 @@
 /**
  * INS Solar ERP — Sales Panel Dashboard (Commercial & CRM Workspace)
- * Tailored for Sales Executives, CRM Managers, and Field Surveyors.
- * Focuses on Lead Qualification, Scheduled Follow-ups, PV Sizing, Proposals, and Order Intake.
+ * Strictly mapped to the actual operational modules of the Sales Panel:
+ * 1. Lead Management (/leads)
+ * 2. Customer Directory (/customers)
+ * 3. Quotation Proposals (/quotations)
+ * 4. Confirmed Sales Orders (/orders)
+ * 5. Document Vault & KYC (/documents)
+ * 6. Generate Agreement / Form (/create-document)
  */
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Users,
-  Sun,
+  UserCheck,
   FileSpreadsheet,
   ShoppingCart,
-  Calendar,
-  Clock,
-  Phone,
-  AlertCircle,
-  CheckCircle2,
+  FolderLock,
+  FilePlus2,
+  TrendingUp,
   ArrowRight,
   Plus,
-  Compass,
-  TrendingUp,
-  Check
+  Compass
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
 import { DashboardKpiCard } from './DashboardKpiCard.js';
-import { DateFilterRange, isWithinDateRange, formatShortDate } from './dashboardUtils.js';
+import {
+  DateFilterRange,
+  isWithinDateRange,
+  formatShortDate,
+  formatPaiseToInr
+} from './dashboardUtils.js';
 
 interface SalesDashboardProps {
   dateRange: DateFilterRange;
 }
 
 export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => {
-  const queryClient = useQueryClient();
-  const [followUpTab, setFollowUpTab] = useState<'today' | 'overdue' | 'upcoming'>('today');
-
-  // Complete Follow-up Modal State
-  const [completingItem, setCompletingItem] = useState<any | null>(null);
-  const [completeRemarks, setCompleteRemarks] = useState('');
-  const [nextFollowUpDate, setNextFollowUpDate] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   // 1. Fetch Leads
   const { data: leads = [] } = useQuery<any[]>({
     queryKey: ['salesLeads'],
@@ -54,12 +51,12 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // 2. Fetch Follow-ups
-  const { data: followUpsData = [] } = useQuery<any[]>({
-    queryKey: ['salesFollowUps', followUpTab],
+  // 2. Fetch Customers
+  const { data: customers = [] } = useQuery<any[]>({
+    queryKey: ['salesCustomers'],
     queryFn: async () => {
       try {
-        const res = await apiClient<any>(`/leads/follow-ups?timeframe=${followUpTab}&limit=50`);
+        const res = await apiClient<any>('/customers?limit=100');
         return Array.isArray(res) ? res : res?.data || res?.items || [];
       } catch {
         return [];
@@ -67,33 +64,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // 3. Fetch Surveys
-  const { data: surveys = [] } = useQuery<any[]>({
-    queryKey: ['salesSurveys'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/surveys?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
-  // 4. Fetch Solar PV Designs
-  const { data: solarDesigns = [] } = useQuery<any[]>({
-    queryKey: ['salesSolarDesigns'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient<any>('/solar-designs?limit=100');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
-    }
-  });
-
-  // 5. Fetch Quotations
+  // 3. Fetch Quotations
   const { data: quotations = [] } = useQuery<any[]>({
     queryKey: ['salesQuotations'],
     queryFn: async () => {
@@ -106,7 +77,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // 6. Fetch Sales Orders
+  // 4. Fetch Sales Orders
   const { data: orders = [] } = useQuery<any[]>({
     queryKey: ['salesOrders'],
     queryFn: async () => {
@@ -119,60 +90,104 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     }
   });
 
-  // Filter items by date range
+  // 5. Fetch Documents
+  const { data: documents = [] } = useQuery<any[]>({
+    queryKey: ['salesDocuments'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient<any>('/documents?limit=100');
+        return Array.isArray(res) ? res : res?.data || res?.items || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // Date Filtering
   const filteredLeads = useMemo(
     () => leads.filter(l => isWithinDateRange(l.createdAt, dateRange)),
     [leads, dateRange]
   );
+
+  const filteredCustomers = useMemo(
+    () => customers.filter(c => isWithinDateRange(c.createdAt, dateRange)),
+    [customers, dateRange]
+  );
+
   const filteredQuotations = useMemo(
     () => quotations.filter(q => isWithinDateRange(q.createdAt, dateRange)),
     [quotations, dateRange]
   );
+
   const filteredOrders = useMemo(
     () => orders.filter(o => isWithinDateRange(o.orderDate || o.createdAt, dateRange)),
     [orders, dateRange]
   );
 
-  // KPIs
+  const filteredDocuments = useMemo(
+    () => documents.filter(d => isWithinDateRange(d.createdAt, dateRange)),
+    [documents, dateRange]
+  );
+
+  // Key KPI Calculations
   const totalLeads = filteredLeads.length;
-  const newLeads = filteredLeads.filter(l => l.status === 'NEW').length;
-  const contactedLeads = filteredLeads.filter(
-    l => l.status === 'CONTACTED' || l.status === 'QUALIFIED'
-  ).length;
-
-  const dueTodayFollowUps = followUpsData.filter(f => f.isDueToday).length;
-  const overdueFollowUps = followUpsData.filter(f => f.isOverdue).length;
-
-  const totalDesigns = solarDesigns.length;
+  const newLeads = filteredLeads.filter(l => (l.status || '').toUpperCase() === 'NEW').length;
 
   const totalQuotes = filteredQuotations.length;
-  const quotesAwaitingResponse = filteredQuotations.filter(
-    q => q.status === 'SENT' || q.status === 'UNDER_REVIEW' || q.status === 'DRAFT'
+  const awaitingQuotes = filteredQuotations.filter(q =>
+    ['SENT', 'DRAFT', 'UNDER_REVIEW'].includes((q.status || '').toUpperCase())
   ).length;
-  const acceptedQuotes = filteredQuotations.filter(q => q.status === 'ACCEPTED').length;
-  const confirmedOrders = filteredOrders.filter(o => o.status === 'CONFIRMED').length;
+  const acceptedQuotes = filteredQuotations.filter(
+    q => (q.status || '').toUpperCase() === 'ACCEPTED'
+  ).length;
 
+  const totalOrders = filteredOrders.length;
+  const confirmedOrders = filteredOrders.filter(
+    o => (o.status || '').toUpperCase() === 'CONFIRMED'
+  ).length;
+
+  const totalBookedPaise = filteredOrders.reduce((sum, o) => {
+    return (
+      sum +
+      (o.netTotalPaise ||
+        o.totalAmountPaise ||
+        (o.grandTotal ? Math.round(o.grandTotal * 100) : 0) ||
+        0)
+    );
+  }, 0);
+
+  const totalCustomers = filteredCustomers.length;
+  const totalDocuments = filteredDocuments.length;
+
+  // Conversion rate: Accepted quotes vs total quotes (or Orders vs Leads)
   const quoteConversionRate =
-    totalQuotes > 0 ? Math.round((acceptedQuotes / totalQuotes) * 100) : 0;
+    totalQuotes > 0
+      ? Math.round((acceptedQuotes / totalQuotes) * 100)
+      : totalLeads > 0
+        ? Math.round((totalOrders / totalLeads) * 100)
+        : 0;
 
-  // 7-Stage Visual Lead Pipeline Funnel
+  // 6-Stage CRM Lead Conversion Funnel
   const pipelineStages = [
     { key: 'NEW', label: 'New Inbound', color: 'bg-blue-500' },
     { key: 'CONTACTED', label: 'Contacted', color: 'bg-sky-500' },
-    { key: 'SURVEY_SCHEDULED', label: 'Survey Booked', color: 'bg-teal-500' },
-    { key: 'QUOTED', label: 'Quotation Sent', color: 'bg-purple-500' },
-    { key: 'NEGOTIATION', label: 'Negotiation', color: 'bg-amber-500' },
-    { key: 'CONVERTED', label: 'Converted Order', color: 'bg-emerald-500' },
-    { key: 'LOST', label: 'Lost / Dropped', color: 'bg-slate-400' }
+    { key: 'QUALIFIED', label: 'Qualified', color: 'bg-indigo-500' },
+    { key: 'QUOTED', altKey: 'PROPOSAL_SENT', label: 'Proposal Sent', color: 'bg-purple-500' },
+    { key: 'CONVERTED', altKey: 'WON', label: 'Converted Order', color: 'bg-emerald-500' },
+    { key: 'LOST', altKey: 'DROPPED', label: 'Lost / Dropped', color: 'bg-slate-400' }
   ];
 
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     pipelineStages.forEach(stg => (counts[stg.key] = 0));
     filteredLeads.forEach(l => {
-      const status = l.status || 'NEW';
+      const status = (l.status || 'NEW').toUpperCase();
       if (counts[status] !== undefined) {
         counts[status] = (counts[status] ?? 0) + 1;
+      } else if (status === 'PROPOSAL_SENT' && counts['QUOTED'] !== undefined) {
+        counts['QUOTED'] = (counts['QUOTED'] ?? 0) + 1;
+      } else if (status === 'WON' && counts['CONVERTED'] !== undefined) {
+        counts['CONVERTED'] = (counts['CONVERTED'] ?? 0) + 1;
       } else {
         counts['NEW'] = (counts['NEW'] ?? 0) + 1;
       }
@@ -180,36 +195,10 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
     return counts;
   }, [filteredLeads]);
 
-  // Handle Mark Follow-Up Complete
-  const handleCompleteFollowUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!completingItem) return;
-
-    try {
-      setIsSubmitting(true);
-      await apiClient(`/leads/activities/${completingItem.id}/complete`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          remarks: completeRemarks.trim() || undefined,
-          nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate).toISOString() : undefined
-        })
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['salesFollowUps'] });
-      setCompletingItem(null);
-      setCompleteRemarks('');
-      setNextFollowUpDate('');
-    } catch (err: any) {
-      alert(err?.message || 'Failed to complete follow up.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* =========================================================================
-          PART 1: SALES QUICK ACTION LAUNCHPAD
+          PART 1: SALES QUICK ACTION LAUNCHPAD (Only Real Sales Modules)
          ========================================================================= */}
       <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-2xl bg-card border shadow-xs">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
@@ -223,157 +212,130 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
           <span>New Lead</span>
         </Link>
         <Link
-          to="/follow-ups"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <Calendar className="w-3.5 h-3.5 text-blue-500" />
-          <span>Schedule Follow-Up</span>
-        </Link>
-        <Link
-          to="/solar-designs"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
-        >
-          <Sun className="w-3.5 h-3.5 text-amber-500" />
-          <span>PV Sizing Engine</span>
-        </Link>
-        <Link
           to="/quotations"
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
         >
           <FileSpreadsheet className="w-3.5 h-3.5 text-purple-500" />
           <span>Create Quotation</span>
         </Link>
+        <Link
+          to="/create-document"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
+        >
+          <FilePlus2 className="w-3.5 h-3.5 text-amber-500" />
+          <span>Generate Agreement / Form</span>
+        </Link>
+        <Link
+          to="/customers"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
+        >
+          <UserCheck className="w-3.5 h-3.5 text-blue-500" />
+          <span>Customer Directory</span>
+        </Link>
+        <Link
+          to="/orders"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
+        >
+          <ShoppingCart className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Confirmed Orders</span>
+        </Link>
+        <Link
+          to="/documents"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-all"
+        >
+          <FolderLock className="w-3.5 h-3.5 text-slate-500" />
+          <span>Document Vault</span>
+        </Link>
       </div>
 
       {/* =========================================================================
-          PART 2: 10 SALES & CRM KPI METRICS
+          PART 2: CORE SALES & CRM KPIS (Directly matching the Sales panel modules)
          ========================================================================= */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-            CRM Pipeline & Commercial Performance
+            Commercial &amp; Sales Pipeline Performance
           </h2>
           <span className="text-[11px] text-muted-foreground font-mono">
             Range: {dateRange} &bull; Conversion Rate: {quoteConversionRate}%
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
           {/* 1. Total Leads */}
           <DashboardKpiCard
             title="Total Inbound Leads"
             value={totalLeads}
-            subtitle="Pipeline inquiries"
+            subtitle={`${newLeads} new / uncontacted`}
             icon={Users}
             to="/leads"
             color="blue"
-          />
-
-          {/* 2. New Leads */}
-          <DashboardKpiCard
-            title="New / Uncontacted"
-            value={newLeads}
-            subtitle="Requires prompt outreach"
-            icon={Users}
-            to="/leads"
-            color="sky"
             badge={newLeads > 0 ? `${newLeads} New` : undefined}
           />
 
-          {/* 3. Qualified Prospects */}
+          {/* 2. Quotation Proposals */}
           <DashboardKpiCard
-            title="Qualified Leads"
-            value={contactedLeads}
-            subtitle="Requirement established"
-            icon={Users}
-            to="/leads"
-            color="indigo"
-          />
-
-          {/* 4. Follow-ups Due Today */}
-          <DashboardKpiCard
-            title="Follow-ups Today"
-            value={dueTodayFollowUps}
-            subtitle="Scheduled interactions"
-            icon={Clock}
-            to="/follow-ups"
-            color="amber"
-            badge={dueTodayFollowUps > 0 ? 'Today' : undefined}
-          />
-
-          {/* 5. Overdue Follow-ups */}
-          <DashboardKpiCard
-            title="Overdue Reminders"
-            value={overdueFollowUps}
-            subtitle="Missed appointment dates"
-            icon={AlertCircle}
-            to="/follow-ups"
-            color={overdueFollowUps > 0 ? 'rose' : 'emerald'}
-            badge={overdueFollowUps > 0 ? 'Urgent' : 'Clear'}
-          />
-
-          {/* 6. Solar Designs */}
-          <DashboardKpiCard
-            title="Solar Designs"
-            value={totalDesigns}
-            subtitle="PV sizing & CAD layouts"
-            icon={Sun}
-            to="/solar-designs"
-            color="amber"
-          />
-
-          {/* 7. Quotations Created */}
-          <DashboardKpiCard
-            title="Quotes Created"
+            title="Active Quotations"
             value={totalQuotes}
-            subtitle="Customer proposals"
+            subtitle={`${awaitingQuotes} awaiting decision`}
             icon={FileSpreadsheet}
             to="/quotations"
             color="purple"
+            badge={awaitingQuotes > 0 ? `${awaitingQuotes} Pending` : undefined}
           />
 
-          {/* 8. Proposals Awaiting Decision */}
-          <DashboardKpiCard
-            title="Awaiting Response"
-            value={quotesAwaitingResponse}
-            subtitle="Under client review"
-            icon={Clock}
-            to="/quotations"
-            color="orange"
-          />
-
-          {/* 9. Accepted Quotations */}
-          <DashboardKpiCard
-            title="Accepted Proposals"
-            value={acceptedQuotes}
-            subtitle="Client approved quotes"
-            icon={CheckCircle2}
-            to="/quotations"
-            color="emerald"
-          />
-
-          {/* 10. Confirmed Orders */}
+          {/* 3. Confirmed Orders */}
           <DashboardKpiCard
             title="Confirmed Orders"
-            value={confirmedOrders}
-            subtitle="Signed project contracts"
+            value={confirmedOrders || totalOrders}
+            subtitle={`Booked: ${formatPaiseToInr(totalBookedPaise, { compact: true })}`}
             icon={ShoppingCart}
             to="/orders"
             color="emerald"
+          />
+
+          {/* 4. Customer Directory */}
+          <DashboardKpiCard
+            title="Registered Clients"
+            value={totalCustomers}
+            subtitle="Customer directory accounts"
+            icon={UserCheck}
+            to="/customers"
+            color="sky"
+          />
+
+          {/* 5. Document Vault & Generation */}
+          <DashboardKpiCard
+            title="Agreements &amp; KYC"
+            value={totalDocuments}
+            subtitle="Generated official docs"
+            icon={FolderLock}
+            to="/documents"
+            color="amber"
+          />
+
+          {/* 6. Conversion Rate */}
+          <DashboardKpiCard
+            title="Conversion Rate"
+            value={`${quoteConversionRate}%`}
+            subtitle={`${acceptedQuotes} won / signed deals`}
+            icon={TrendingUp}
+            to="/orders"
+            color="teal"
           />
         </div>
       </div>
 
       {/* =========================================================================
-          PART 3: 7-STAGE LEAD PIPELINE FUNNEL
+          PART 3: 6-STAGE CRM LEAD CONVERSION FUNNEL
          ========================================================================= */}
       <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
           <div>
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Compass className="w-4 h-4 text-blue-600" />
-              7-Stage CRM Lead Conversion Funnel
+              CRM Lead Conversion Pipeline
             </h2>
             <p className="text-xs text-muted-foreground">
               Commercial progression of prospective clients from initial inquiry to signed contract.
@@ -383,12 +345,12 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
             to="/leads"
             className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center self-start sm:self-auto shrink-0"
           >
-            <span>Open CRM Leads</span>
+            <span>Open All Leads</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           {pipelineStages.map((stg, idx) => {
             const count = stageCounts[stg.key] || 0;
             return (
@@ -410,7 +372,7 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
                   <div
                     className={`${stg.color} h-1.5 rounded-full transition-all`}
                     style={{
-                      width: `${totalLeads > 0 ? Math.min(100, Math.max(10, Math.round((count / totalLeads) * 100))) : 0}%`
+                      width: `${totalLeads > 0 ? Math.min(100, Math.max(8, Math.round((count / totalLeads) * 100))) : 0}%`
                     }}
                   />
                 </div>
@@ -421,265 +383,276 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ dateRange }) => 
       </div>
 
       {/* =========================================================================
-          PART 4: INTERACTIVE FOLLOW-UP WORKBENCH & TECHNICAL SURVEYS
+          PART 4: TWO OPERATIONAL SECTIONS: PROPOSALS & CONFIRMED ORDERS + CONTRACTS
          ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left (2 cols): Follow-Up Execution Workbench */}
-        <div className="lg:col-span-2 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Recent Quotations & Proposals */}
+        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-500" />
-                Scheduled Follow-up Reminders Workbench
+                <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+                Recent Quotations &amp; Proposals
               </h2>
               <p className="text-xs text-muted-foreground">
-                Action pending phone calls, client meetings, and technical quote reviews.
+                Formal customer solar proposals with capacity sizing and pricing.
               </p>
             </div>
-
-            {/* Timeframe Switcher Tabs */}
-            <div className="flex items-center p-1 rounded-xl bg-secondary border text-xs font-semibold self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setFollowUpTab('today')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  followUpTab === 'today'
-                    ? 'bg-card text-foreground shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Today ({dueTodayFollowUps})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFollowUpTab('overdue')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  followUpTab === 'overdue'
-                    ? 'bg-rose-500 text-white shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Overdue ({overdueFollowUps})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFollowUpTab('upcoming')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  followUpTab === 'upcoming'
-                    ? 'bg-card text-foreground shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Upcoming
-              </button>
-            </div>
+            <Link
+              to="/quotations"
+              className="text-xs font-semibold text-purple-600 hover:text-purple-700 inline-flex items-center shrink-0"
+            >
+              <span>View All Quotes</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
           </div>
 
-          {/* Follow-ups List */}
-          {followUpsData.length === 0 ? (
-            <div className="text-center py-10 text-xs text-muted-foreground">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
-              All follow-up reminders in this category are completely cleared.
+          {filteredQuotations.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground space-y-2">
+              <FileSpreadsheet className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+              <p>No quotation proposals created yet.</p>
+              <Link
+                to="/quotations"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-purple-600 hover:underline"
+              >
+                <span>+ Create First Quotation</span>
+              </Link>
             </div>
           ) : (
-            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-              {followUpsData.slice(0, 6).map(item => (
-                <div
-                  key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors gap-3"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold text-xs text-foreground truncate">
-                        {item.lead?.prospectName || item.summary || 'Prospect Follow-up'}
-                      </span>
-                      {item.isOverdue && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/20">
-                          Overdue
+            <div className="space-y-2.5">
+              {filteredQuotations.slice(0, 5).map((q: any) => {
+                const custName =
+                  q.customerId?.legalName ||
+                  q.customerId?.name ||
+                  q.customerId?.companyName ||
+                  q.customerName ||
+                  'Direct Client';
+                const quoteCode = q.fullQuotationCode || q.quotationNumber || 'QUOTE';
+                const status = (q.status || 'DRAFT').toUpperCase();
+                const totalPaise =
+                  q.netTotalPaise ||
+                  q.grandTotalPaise ||
+                  (q.grandTotal ? Math.round(q.grandTotal * 100) : 0) ||
+                  0;
+
+                const statusColor =
+                  status === 'ACCEPTED'
+                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                    : status === 'SENT'
+                      ? 'bg-blue-500/10 text-blue-700 border-blue-500/20'
+                      : status === 'REJECTED'
+                        ? 'bg-rose-500/10 text-rose-700 border-rose-500/20'
+                        : 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+
+                return (
+                  <div
+                    key={q._id || q.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors gap-2.5"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-xs text-purple-700 dark:text-purple-400">
+                          {quoteCode}
                         </span>
-                      )}
-                      {item.isDueToday && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          Due Today
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${statusColor}`}
+                        >
+                          {status}
                         </span>
-                      )}
+                      </div>
+                      <div className="text-xs font-semibold text-foreground truncate">
+                        {custName}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        {q.systemCapacityKwp && (
+                          <span className="font-bold text-foreground">
+                            {q.systemCapacityKwp} kWp
+                          </span>
+                        )}
+                        <span>&bull;</span>
+                        <span>{formatShortDate(q.createdAt)}</span>
+                      </div>
                     </div>
 
-                    <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
-                      {item.lead?.prospectPhone && (
-                        <span className="inline-flex items-center text-foreground font-mono font-medium">
-                          <Phone className="w-3 h-3 mr-1 text-solar-500" />
-                          {item.lead.prospectPhone}
-                        </span>
-                      )}
-                      <span>&bull;</span>
-                      <span className="truncate">
-                        {item.summary || item.remarks || 'Routine check-in'}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
-                      <Calendar className="w-3 h-3 text-muted-foreground" />
-                      <span>{formatShortDate(item.nextFollowUpDate)}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    <button
-                      type="button"
-                      onClick={() => setCompletingItem(item)}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition-colors"
-                      title="Mark follow-up completed"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Done</span>
-                    </button>
-                    {item.leadId && (
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0">
+                      <div className="text-xs font-black font-mono text-foreground">
+                        {formatPaiseToInr(totalPaise)}
+                      </div>
                       <Link
-                        to={`/leads/${item.leadId}`}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-colors"
+                        to={`/quotations/${q._id || q.id}`}
+                        className="text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:underline inline-flex items-center mt-0.5"
                       >
-                        <span>View</span>
-                        <ArrowRight className="w-3 h-3" />
+                        <span>Details</span>
+                        <ArrowRight className="w-3 h-3 ml-0.5" />
                       </Link>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Right (1 col): Technical Surveys & PV Sizing */}
-        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="border-b pb-3">
+        {/* Right Column: Confirmed Sales Orders & Contract Generation */}
+        <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+            <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Sun className="w-4 h-4 text-solar-500" />
-                Technical Surveys & Sizing Engine
+                <ShoppingCart className="w-4 h-4 text-emerald-600" />
+                Confirmed Orders &amp; Documents
               </h2>
               <p className="text-xs text-muted-foreground">
-                Rooftop engineering specs & sizing proposals.
+                Booked customer contracts ready for document generation &amp; execution.
               </p>
             </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-secondary/30 border space-y-1">
-                <div className="flex justify-between font-semibold">
-                  <span className="text-muted-foreground">Site Surveys Logged</span>
-                  <span className="font-bold">{surveys.length} Records</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Roof dimensions, shade obstruction & sanctioned load verified.
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-secondary/30 border space-y-1">
-                <div className="flex justify-between font-semibold">
-                  <span className="text-muted-foreground">Solar Designs Sized</span>
-                  <span className="font-bold">{solarDesigns.length} Calculations</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Tri-topology PV simulations (On-Grid, Off-Grid, Hybrid).
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-secondary/30 border space-y-1">
-                <div className="flex justify-between font-semibold">
-                  <span className="text-muted-foreground">Quote Acceptance Rate</span>
-                  <span className="font-bold text-emerald-600">{quoteConversionRate}%</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  {acceptedQuotes} accepted out of {totalQuotes} commercial proposals.
-                </div>
-              </div>
-            </div>
+            <Link
+              to="/orders"
+              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center shrink-0"
+            >
+              <span>View All Orders</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
           </div>
 
-          <div className="pt-2">
-            <Link
-              to="/solar-designs"
-              className="w-full inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl bg-solar-500 hover:bg-solar-600 text-slate-950 text-xs font-bold shadow-xs transition-all"
-            >
-              <Sun className="w-4 h-4" />
-              <span>Launch PV Sizing Engine</span>
-            </Link>
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground space-y-2">
+              <ShoppingCart className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+              <p>No confirmed sales orders yet.</p>
+              <Link
+                to="/orders"
+                className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-600 hover:underline"
+              >
+                <span>+ View Orders Workspace</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredOrders.slice(0, 4).map((order: any) => {
+                const custName =
+                  order.customerId?.legalName ||
+                  order.customerId?.name ||
+                  order.customerName ||
+                  'Customer';
+                const orderNum = order.orderNumber || 'SO-2026';
+                const totalPaise =
+                  order.netTotalPaise ||
+                  order.totalAmountPaise ||
+                  (order.grandTotal ? Math.round(order.grandTotal * 100) : 0) ||
+                  0;
+                const custId = order.customerId?._id || order.customerId?.id || order.customerId;
+
+                return (
+                  <div
+                    key={order._id || order.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-secondary/20 hover:bg-secondary/40 transition-colors gap-2.5"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-xs text-emerald-700 dark:text-emerald-400">
+                          {orderNum}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                          {order.status || 'CONFIRMED'}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-foreground truncate">
+                        {custName}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        <span>{formatShortDate(order.orderDate || order.createdAt)}</span>
+                        <span>&bull;</span>
+                        <span className="font-mono font-bold text-foreground">
+                          {formatPaiseToInr(totalPaise)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <Link
+                        to={`/create-document${custId ? `?customerId=${custId}` : ''}`}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-500/20 transition-all"
+                        title="Generate Solar Agreement or Cover Letter"
+                      >
+                        <FilePlus2 className="w-3.5 h-3.5" />
+                        <span>Gen Doc</span>
+                      </Link>
+                      <Link
+                        to={`/orders/${order._id || order.id}`}
+                        className="inline-flex items-center space-x-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border text-xs font-semibold transition-colors"
+                      >
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Quick Official Document Templates Launch Bar */}
+          <div className="pt-2 border-t space-y-2">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Official Document Templates (/create-document):
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Link
+                to="/create-document?template=SOLAR_AGGREMENT"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Solar Agreement
+                </div>
+                <div className="text-[10px] text-muted-foreground">2 Pages A4 Contract</div>
+              </Link>
+              <Link
+                to="/create-document?template=COVER_LETTER"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Cover Letter
+                </div>
+                <div className="text-[10px] text-muted-foreground">DISCOM Application</div>
+              </Link>
+              <Link
+                to="/create-document?template=WORK_COMPLETION"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Work Completion
+                </div>
+                <div className="text-[10px] text-muted-foreground">Handover Report</div>
+              </Link>
+              <Link
+                to="/create-document?template=LETTER_FOR_BANK"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Letter For Bank
+                </div>
+                <div className="text-[10px] text-muted-foreground">Loan Disbursement</div>
+              </Link>
+              <Link
+                to="/create-document?template=POWER_PURCHASE_AGREEMENT"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Power Purchase
+                </div>
+                <div className="text-[10px] text-muted-foreground">CSPDCL PPA Form</div>
+              </Link>
+              <Link
+                to="/create-document?template=DECLARATION_DCR_ANNEXURE_A"
+                className="p-2 rounded-lg border bg-secondary/30 hover:bg-secondary/60 text-left transition-all group"
+              >
+                <div className="text-[11px] font-bold text-foreground group-hover:text-amber-600 truncate">
+                  Annexure - A
+                </div>
+                <div className="text-[10px] text-muted-foreground">DCR Declaration</div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* =========================================================================
-          MODAL: COMPLETE FOLLOW-UP
-         ========================================================================= */}
-      {completingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-card border p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-sm font-bold text-foreground">Complete Follow-up Reminder</h3>
-              <button
-                type="button"
-                onClick={() => setCompletingItem(null)}
-                className="text-muted-foreground hover:text-foreground text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCompleteFollowUp} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-muted-foreground mb-1">
-                  Prospect / Task
-                </label>
-                <div className="p-2.5 rounded-lg bg-secondary/40 font-bold text-foreground">
-                  {completingItem.lead?.prospectName || completingItem.summary}
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-muted-foreground mb-1">
-                  Outcome Remarks & Notes
-                </label>
-                <textarea
-                  value={completeRemarks}
-                  onChange={e => setCompleteRemarks(e.target.value)}
-                  rows={3}
-                  className="w-full p-2.5 rounded-xl border bg-background focus:outline-none focus:ring-2 focus:ring-solar-500"
-                  placeholder="e.g. Spoke with client, requested revised 5kW quote with mono-perc panels..."
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-muted-foreground mb-1">
-                  Next Follow-up Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={nextFollowUpDate}
-                  onChange={e => setNextFollowUpDate(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border bg-background focus:outline-none focus:ring-2 focus:ring-solar-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setCompletingItem(null)}
-                  className="px-4 py-2 rounded-xl border text-muted-foreground hover:bg-secondary font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl bg-solar-500 hover:bg-solar-600 text-slate-950 font-bold disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Mark Completed'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

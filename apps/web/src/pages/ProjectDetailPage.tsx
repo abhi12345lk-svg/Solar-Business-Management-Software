@@ -149,68 +149,85 @@ interface ProjectTaskItem {
   createdAt: string;
 }
 
-const STAGES = [
+export const FIVE_STAGES = [
   {
-    key: 'STAGE_1_ENGINEERING_DESIGN',
+    key: 'STAGE_1_DESIGN_APPROVAL',
     step: 1,
-    label: 'Design & Eng.',
-    fullName: 'Stage 1: Design & Engineering'
+    label: 'Design & Approval',
+    fullName: 'Stage 1: Design & DISCOM Approval',
+    targetTab: 'overview' as const,
+    description: 'Engineering design, PV layout, and DISCOM net-metering portal application'
   },
   {
-    key: 'STAGE_2_NET_METERING_APPLY',
+    key: 'STAGE_2_MATERIAL_DISPATCH',
     step: 2,
-    label: 'Net Metering',
-    fullName: 'Stage 2: Net Metering Application'
+    label: 'Material Dispatch',
+    fullName: 'Stage 2: Material Dispatch',
+    targetTab: 'dispatch' as const,
+    description: 'Hardware dispatch: solar modules, inverter, structure, and BOS to customer site'
   },
   {
-    key: 'STAGE_3_MATERIAL_DISPATCH',
+    key: 'STAGE_3_SITE_INSTALLATION',
     step: 3,
-    label: 'Dispatch',
-    fullName: 'Stage 3: Material Dispatch'
+    label: 'Site Installation',
+    fullName: 'Stage 3: Site Installation & Wiring',
+    targetTab: 'checklist' as const,
+    description: 'Rooftop mounting, module fixing, inverter connection, AC/DC cabling, earthing & testing'
   },
   {
-    key: 'STAGE_4_CIVIL_STRUCTURE',
+    key: 'STAGE_4_NET_METER_SYNC',
     step: 4,
-    label: 'Civil Struct.',
-    fullName: 'Stage 4: Civil & Roof Structure'
+    label: 'DISCOM Net Meter',
+    fullName: 'Stage 4: DISCOM Net Meter Sync',
+    targetTab: 'net-metering' as const,
+    description: 'DISCOM inspection, bi-directional net meter installation & utility grid synchronization'
   },
   {
-    key: 'STAGE_5_MODULE_DC_CABLING',
+    key: 'STAGE_5_HANDOVER_COMMISSIONING',
     step: 5,
-    label: 'DC Cabling',
-    fullName: 'Stage 5: Module & DC Cabling'
-  },
-  {
-    key: 'STAGE_6_INVERTER_ACDB',
-    step: 6,
-    label: 'Inverter/ACDB',
-    fullName: 'Stage 6: Inverter & ACDB/DCDB'
-  },
-  {
-    key: 'STAGE_7_EARTHING_LIGHTNING',
-    step: 7,
-    label: 'Earthing',
-    fullName: 'Stage 7: Earthing & Lightning'
-  },
-  {
-    key: 'STAGE_8_TESTING_PRE_COMMISSION',
-    step: 8,
-    label: 'Pre-Test',
-    fullName: 'Stage 8: Pre-Commission Testing'
-  },
-  {
-    key: 'STAGE_9_DISCOM_METER_INSTALL',
-    step: 9,
-    label: 'DISCOM Sync',
-    fullName: 'Stage 9: DISCOM Meter Sync'
-  },
-  {
-    key: 'STAGE_10_COMMISSION_HANDOVER',
-    step: 10,
-    label: 'Handover',
-    fullName: 'Stage 10: Commissioning & Handover'
+    label: 'Handover & COD',
+    fullName: 'Stage 5: Commissioning & Handover',
+    targetTab: 'subsidy' as const,
+    description: 'Plant energization, Joint Commissioning Report (JCR) sign-off & PM Surya Ghar subsidy claim'
   }
 ];
+
+export function getSimplifiedStageIndex(stageKey: string): number {
+  switch (stageKey) {
+    case 'STAGE_1_ENGINEERING_DESIGN':
+    case 'STAGE_1_DESIGN_APPROVAL':
+    case 'STAGE_2_NET_METERING_APPLY':
+      return 0;
+
+    case 'STAGE_3_MATERIAL_DISPATCH':
+    case 'STAGE_2_MATERIAL_DISPATCH':
+      return 1;
+
+    case 'STAGE_4_CIVIL_STRUCTURE':
+    case 'STAGE_5_MODULE_DC_CABLING':
+    case 'STAGE_6_INVERTER_ACDB':
+    case 'STAGE_7_EARTHING_LIGHTNING':
+    case 'STAGE_8_TESTING_PRE_COMMISSION':
+    case 'STAGE_3_SITE_INSTALLATION':
+      return 2;
+
+    case 'STAGE_9_DISCOM_METER_INSTALL':
+    case 'STAGE_4_NET_METER_SYNC':
+      return 3;
+
+    case 'STAGE_10_COMMISSION_HANDOVER':
+    case 'STAGE_5_HANDOVER_COMMISSIONING':
+      return 4;
+
+    default:
+      return 0;
+  }
+}
+
+export function getStageDisplayInfo(stageKey: string) {
+  const idx = getSimplifiedStageIndex(stageKey);
+  return (FIVE_STAGES[idx] || FIVE_STAGES[0])!;
+}
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -497,29 +514,10 @@ export const ProjectDetailPage: React.FC = () => {
   };
 
   const handleStageClick = (stageKey: string) => {
-    switch (stageKey) {
-      case 'STAGE_1_ENGINEERING_DESIGN':
-        setActiveTab('overview');
-        break;
-      case 'STAGE_2_NET_METERING_APPLY':
-      case 'STAGE_9_DISCOM_METER_INSTALL':
-        setActiveTab('net-metering');
-        break;
-      case 'STAGE_3_MATERIAL_DISPATCH':
-        setActiveTab('dispatch');
-        break;
-      case 'STAGE_4_CIVIL_STRUCTURE':
-      case 'STAGE_5_MODULE_DC_CABLING':
-      case 'STAGE_6_INVERTER_ACDB':
-      case 'STAGE_7_EARTHING_LIGHTNING':
-      case 'STAGE_8_TESTING_PRE_COMMISSION':
-        setActiveTab('checklist');
-        break;
-      case 'STAGE_10_COMMISSION_HANDOVER':
-        setActiveTab('service-amc');
-        break;
-      default:
-        break;
+    const idx = getSimplifiedStageIndex(stageKey);
+    const target = FIVE_STAGES[idx];
+    if (target) {
+      setActiveTab(target.targetTab);
     }
   };
 
@@ -670,7 +668,7 @@ export const ProjectDetailPage: React.FC = () => {
     );
   }
 
-  const currentStageIndex = STAGES.findIndex(s => s.key === project.currentStage);
+  const currentStageIndex = getSimplifiedStageIndex(project.currentStage);
   const isTerminal = ['COMPLETED', 'CANCELLED'].includes(project.status);
 
   return (
@@ -713,7 +711,7 @@ export const ProjectDetailPage: React.FC = () => {
               <button
                 onClick={() => {
                   setTargetStage(
-                    STAGES[Math.min(currentStageIndex + 1, STAGES.length - 1)]?.key ||
+                    FIVE_STAGES[Math.min(currentStageIndex + 1, FIVE_STAGES.length - 1)]?.key ||
                       project.currentStage
                   );
                   setStageModalOpen(true);
@@ -791,24 +789,24 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* 10-Stage Progression Stepper */}
+      {/* 5-Stage Progression Stepper */}
       <div className="bg-card border rounded-xl p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-solar-600" />
             <h3 className="text-sm font-semibold text-foreground">
-              Installation Progression Pipeline
+              Installation Progression Pipeline (5 Master Milestones)
             </h3>
           </div>
-          <span className="text-xs font-semibold text-solar-600 bg-solar-50 px-2.5 py-0.5 rounded-full border border-solar-200">
-            {STAGES[currentStageIndex]?.fullName || project.currentStage}
+          <span className="text-xs font-semibold text-solar-600 bg-solar-50 px-2.5 py-0.5 rounded-full border border-solar-200 dark:bg-solar-950/40 dark:border-solar-800">
+            {FIVE_STAGES[currentStageIndex]?.fullName || project.currentStage}
           </span>
         </div>
 
         {/* Stepper bar */}
         <div className="overflow-x-auto py-2">
-          <div className="flex items-center min-w-[800px] justify-between">
-            {STAGES.map((s, idx) => {
+          <div className="flex items-center min-w-[650px] justify-between">
+            {FIVE_STAGES.map((s, idx) => {
               const isPast = idx < currentStageIndex;
               const isCurrent = idx === currentStageIndex;
               const isNext = idx === currentStageIndex + 1;
@@ -828,9 +826,9 @@ export const ProjectDetailPage: React.FC = () => {
                     title={
                       isNext
                         ? `Next Milestone: Click to Advance to ${s.fullName}`
-                        : `Jump to ${s.fullName} workspace tab`
+                        : `Jump to ${s.fullName} tab`
                     }
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-all shadow-sm cursor-pointer hover:scale-110 ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold z-10 transition-all shadow-sm cursor-pointer hover:scale-105 ${
                       isPast
                         ? 'bg-solar-600 text-white'
                         : isCurrent
@@ -840,20 +838,16 @@ export const ProjectDetailPage: React.FC = () => {
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
-                    {isPast ? <Check className="w-4 h-4" /> : s.step}
+                    {isPast ? <Check className="w-5 h-5" /> : s.step}
                   </div>
                   <span
                     onClick={() => handleStageNodeClick(s.key, idx)}
-                    title={
-                      isNext
-                        ? `Next Milestone: Click to Advance to ${s.fullName}`
-                        : `Jump to ${s.fullName} workspace tab`
-                    }
-                    className={`mt-2 text-[11px] text-center font-medium line-clamp-1 max-w-[85px] hover:underline cursor-pointer ${
+                    title={s.fullName}
+                    className={`mt-2 text-xs text-center font-medium line-clamp-1 max-w-[120px] hover:underline cursor-pointer ${
                       isCurrent
                         ? 'text-solar-600 font-bold'
                         : isPast
-                          ? 'text-foreground'
+                          ? 'text-foreground font-semibold'
                           : isNext
                             ? 'text-solar-600 dark:text-solar-400 font-semibold'
                             : 'text-muted-foreground'
@@ -874,10 +868,10 @@ export const ProjectDetailPage: React.FC = () => {
               <PlayCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
               <div>
                 <span className="font-bold text-amber-900 dark:text-amber-200">
-                  Project is currently in PLANNING Phase — On-Site Mobilization Pending
+                  Project is currently in PLANNING Phase — Ready for Mobilization
                 </span>
                 <p className="text-amber-700 dark:text-amber-300 text-[11px] mt-0.5">
-                  Click <strong>&quot;Start Project&quot;</strong> to activate the 10-Stage EPC Pipeline and advance from Stage 1 (Engineering) to Stage 10 (COD Handover).
+                  Click <strong>&quot;Start Project&quot;</strong> to activate the 5-Stage EPC Pipeline and proceed through Design, Dispatch, Installation, Net Metering, and Handover.
                 </p>
               </div>
             </div>
@@ -900,23 +894,23 @@ export const ProjectDetailPage: React.FC = () => {
               <Zap className="w-4 h-4 text-solar-600 shrink-0" />
               <div>
                 <span className="font-bold text-solar-900 dark:text-solar-200">
-                  Active Stage {currentStageIndex + 1}/10: {STAGES[currentStageIndex]?.fullName}
+                  Active Milestone {currentStageIndex + 1}/5: {FIVE_STAGES[currentStageIndex]?.fullName}
                 </span>
                 <span className="text-muted-foreground ml-2 hidden sm:inline">
-                  &bull; Complete tab tasks &amp; quality checklists to move forward
+                  &bull; {FIVE_STAGES[currentStageIndex]?.description}
                 </span>
               </div>
             </div>
             <div className="flex items-center space-x-2 shrink-0">
-              {currentStageIndex < STAGES.length - 1 && (
+              {currentStageIndex < FIVE_STAGES.length - 1 && (
                 <button
                   onClick={() => {
-                    setTargetStage(STAGES[currentStageIndex + 1]?.key || '');
+                    setTargetStage(FIVE_STAGES[currentStageIndex + 1]?.key || '');
                     setStageModalOpen(true);
                   }}
                   className="px-3.5 py-1.5 rounded-lg bg-solar-600 hover:bg-solar-700 text-white font-bold text-xs shadow-xs inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Advance to Stage {currentStageIndex + 2}</span>
+                  <span>Advance to Stage {currentStageIndex + 2} ({FIVE_STAGES[currentStageIndex + 1]?.label})</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -1498,7 +1492,7 @@ export const ProjectDetailPage: React.FC = () => {
             {project.stageHistory && project.stageHistory.length > 0 ? (
               <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
                 {project.stageHistory.map((item, idx) => {
-                  const stageInfo = STAGES.find(s => s.key === item.stage);
+                  const stageInfo = getStageDisplayInfo(item.stage);
                   return (
                     <div key={idx} className="relative flex items-start space-x-4 pl-8">
                       <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
@@ -1600,7 +1594,7 @@ export const ProjectDetailPage: React.FC = () => {
                   onChange={e => setTargetStage(e.target.value)}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 >
-                  {STAGES.map(s => (
+                  {FIVE_STAGES.map(s => (
                     <option key={s.key} value={s.key}>
                       {s.fullName}
                     </option>
@@ -1608,7 +1602,8 @@ export const ProjectDetailPage: React.FC = () => {
                 </select>
               </div>
 
-              {(targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ||
+              {(targetStage === 'STAGE_5_HANDOVER_COMMISSIONING' ||
+                targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ||
                 targetStage === 'STAGE_10_COMMISSION_HANDOVER') && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
@@ -1616,7 +1611,7 @@ export const ProjectDetailPage: React.FC = () => {
                     <span>EPC Quality &amp; Safety Gate Notice</span>
                   </div>
                   <p className="text-muted-foreground text-[11px] leading-relaxed">
-                    Advancing to <strong>{targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ? 'Stage 8 (Pre-Commissioning)' : 'Stage 10 (COD Handover)'}</strong> strictly requires all mandatory installation checklist items (Civil rails, DC cabling, Inverter mounting, and Earthing &lt; 5&Omega;) to be marked <strong>PASSED</strong> in the <em>Installation Checklist</em> tab.
+                    Advancing to <strong>Stage 5 (Plant Commissioning &amp; Handover)</strong> verifies that physical installation, rooftop cabling, and earthing checklists are marked <strong>PASSED</strong> in the <em>Installation Checklist</em> tab.
                   </p>
                 </div>
               )}
