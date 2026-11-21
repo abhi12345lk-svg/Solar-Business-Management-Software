@@ -110,6 +110,23 @@ projectTaskRouter.post(
 );
 
 /**
+ * GET /api/v1/tasks/metadata
+ * Return active staff, teams, projects, and customers for task dropdowns.
+ */
+projectTaskRouter.get(
+  '/metadata',
+  requireAnyPermission(['task:read', 'project:read']),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const metadata = await ProjectTaskService.getTaskMetadata();
+      return sendSuccess(req, res, metadata);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * GET /api/v1/tasks/:id
  * Get single task by ID with linked entities and status/reassignment history.
  */

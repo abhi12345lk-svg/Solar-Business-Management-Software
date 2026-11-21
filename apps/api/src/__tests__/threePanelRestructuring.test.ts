@@ -58,7 +58,7 @@ describe('Three-Panel Enterprise Architecture Verification', () => {
     });
 
     it('maps Field Operations & Service Crew to Admin operational submodules', () => {
-      expect(getDefaultPanelForRole(UserRole.INSTALLATION_CREW)).toBe(PanelType.ADMIN);
+      expect(getDefaultPanelForRole(UserRole.INSTALLATION_CREW)).toBe(PanelType.INSTALLER);
       expect(getDefaultPanelForRole(UserRole.SERVICE_TECHNICIAN)).toBe(PanelType.ADMIN);
       expect(getDefaultPanelForRole(UserRole.TECHNICIAN)).toBe(PanelType.ADMIN);
 

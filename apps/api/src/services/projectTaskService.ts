@@ -23,6 +23,7 @@ import { ProjectTask, IProjectTaskDocument } from '../models/ProjectTask.js';
 import { Project } from '../models/Project.js';
 import { Team } from '../models/Team.js';
 import { User } from '../models/User.js';
+import { Customer } from '../models/Customer.js';
 import { ServiceComplaint } from '../models/ServiceComplaint.js';
 import { ServiceVisit } from '../models/ServiceVisit.js';
 import { SequenceService } from './sequenceService.js';
@@ -686,5 +687,58 @@ export class ProjectTaskService {
         action: 'DELETED'
       }
     });
+  }
+
+  /**
+   * 8. Get Task Intake Metadata (active staff, teams, projects, customers)
+   */
+  public static async getTaskMetadata(): Promise<{
+    users: Array<{ _id: string; name: string; email: string; role: string; employeeCode?: string }>;
+    teams: Array<{ _id: string; name: string; teamCode: string; purpose?: string }>;
+    projects: Array<{ _id: string; projectCode: string; name: string; status: string }>;
+    customers: Array<{ _id: string; customerCode: string; name: string; phone?: string }>;
+  }> {
+    const [users, teams, projects, customers] = await Promise.all([
+      User.find({ isActive: true }, '_id firstName lastName email role employeeCode')
+        .sort({ firstName: 1 })
+        .lean(),
+      Team.find({ isActive: true }, '_id name teamCode purpose').sort({ name: 1 }).lean(),
+      Project.find({}, '_id projectCode name status customerId')
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .lean(),
+      Customer.find({}, '_id customerCode name companyName primaryPhone')
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .lean()
+    ]);
+
+    return {
+      users: users.map(u => ({
+        _id: u._id.toString(),
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+        email: u.email,
+        role: u.role,
+        employeeCode: (u as any).employeeCode || ''
+      })),
+      teams: teams.map(t => ({
+        _id: t._id.toString(),
+        name: t.name,
+        teamCode: t.teamCode,
+        purpose: (t as any).purpose
+      })),
+      projects: projects.map(p => ({
+        _id: p._id.toString(),
+        projectCode: p.projectCode,
+        name: p.name,
+        status: p.status
+      })),
+      customers: customers.map(c => ({
+        _id: c._id.toString(),
+        customerCode: c.customerCode,
+        name: (c as any).name || (c as any).companyName || 'Client',
+        phone: (c as any).primaryPhone || ''
+      }))
+    };
   }
 }

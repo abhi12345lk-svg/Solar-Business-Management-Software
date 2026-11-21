@@ -5,8 +5,6 @@ import { AppLayout } from './components/layout/AppLayout.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { HealthStatusPage } from './pages/HealthStatusPage.js';
 import { LoginPage } from './pages/LoginPage.js';
-import { MfaChallengePage } from './pages/MfaChallengePage.js';
-import { MfaSetupPage } from './pages/MfaSetupPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { LeadsPage } from './pages/LeadsPage.js';
 import { CustomersPage } from './pages/CustomersPage.js';
@@ -34,7 +32,6 @@ import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.j
 import { ExpensesPage } from './pages/ExpensesPage.js';
 import { EmployeesPage } from './pages/EmployeesPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
-import { TasksPage } from './pages/TasksPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
 import { SitePhotosPage } from './pages/SitePhotosPage.js';
@@ -68,7 +65,7 @@ export const App: React.FC = () => {
       <Routes>
         {/* Full-Screen Dedicated Authentication Routes */}
         <Route path="login" element={<LoginPage />} />
-        <Route path="mfa-challenge" element={<MfaChallengePage />} />
+        <Route path="mfa-challenge" element={<Navigate to="/login" replace />} />
 
         {/* Main Authenticated Application Shell */}
         <Route path="/" element={<AppLayout />}>
@@ -82,11 +79,7 @@ export const App: React.FC = () => {
           />
           <Route
             path="mfa-setup"
-            element={
-              <ProtectedRoute>
-                <MfaSetupPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="leads"
@@ -358,11 +351,7 @@ export const App: React.FC = () => {
           />
           <Route
             path="tasks"
-            element={
-              <ProtectedRoute>
-                <TasksPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="create-document"

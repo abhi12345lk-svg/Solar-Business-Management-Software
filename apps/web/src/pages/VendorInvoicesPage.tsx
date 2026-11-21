@@ -1,12 +1,11 @@
 /**
  * INS Solar ERP — Vendor Invoices & Accounts Payable Screen
  *
- * Clean, logical solar accounts payable workflow:
- * - Simple 3-metric KPI overview (Total Invoiced, Total Paid, Balance Due)
- * - Record supplier equipment bills (Panels, Inverters, Structures, BOS, Site Labor)
- * - Seamless supplier selection or inline new supplier registration without getting blocked
- * - 1-Click Pay Bill disbursement tracking (Bank Transfer/RTGS, UPI, Cheque, Cash with UTR)
- * - Clear payment status badges (Unpaid / Partially Paid / Paid)
+ * Dedicated Supplier Outflow Workflow (Khareedari & Supplier Payout):
+ * - Step 2 of the Solar Financial Cycle (Panels, Inverters, Structures, BOS purchase)
+ * - Record supplier equipment tax invoices with optional link to Customer's Solar Project
+ * - Disburse bank payments / RTGS to suppliers with UTR tracking
+ * - Real-time accounts payable dues and supplier balance tracking
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,7 +20,8 @@ import {
   X,
   CreditCard,
   Calculator,
-  Clock
+  Clock,
+  TrendingDown
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -89,6 +89,7 @@ export function VendorInvoicesPage() {
 
   // Master Dropdown Lists
   const [vendorsList, setVendorsList] = useState<any[]>([]);
+  const [customersList, setCustomersList] = useState<any[]>([]);
 
   // Modals State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -122,6 +123,7 @@ export function VendorInvoicesPage() {
 
   const [formData, setFormData] = useState({
     vendorId: '',
+    linkedCustomerId: '',
     vendorInvoiceNumber: '',
     invoiceDate: getTodayISO(),
     dueDate: getDefaultDueISO(),
@@ -144,6 +146,7 @@ export function VendorInvoicesPage() {
   const resetInvoiceForm = () => {
     setFormData({
       vendorId: vendorsList[0]?._id || '',
+      linkedCustomerId: '',
       vendorInvoiceNumber: '',
       invoiceDate: getTodayISO(),
       dueDate: getDefaultDueISO(),
@@ -182,18 +185,25 @@ export function VendorInvoicesPage() {
     }
   }, [search, statusFilter, vendorFilter]);
 
-  // 2. Load Master Dropdown (Vendors)
-  const loadVendors = async () => {
+  // 2. Load Master Dropdowns (Vendors & Customers)
+  const loadDropdowns = async () => {
     try {
-      const vRes = await apiClient<any>('/vendors?limit=100&isActive=true');
+      const [vRes, cRes] = await Promise.all([
+        apiClient<any>('/vendors?limit=100&isActive=true'),
+        apiClient<any>('/customers?limit=100&status=ACTIVE')
+      ]);
       const vList =
         vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
+      const cList =
+        cRes?.items || cRes?.data?.items || cRes?.data || (Array.isArray(cRes) ? cRes : []);
+
       setVendorsList(vList);
+      setCustomersList(cList);
       if (vList.length === 0) {
         setVendorMode('NEW');
       }
     } catch (err) {
-      console.error('Failed to load vendors list', err);
+      console.error('Failed to load dropdowns', err);
     }
   };
 
@@ -202,7 +212,7 @@ export function VendorInvoicesPage() {
   }, [fetchInvoices]);
 
   useEffect(() => {
-    loadVendors();
+    loadDropdowns();
   }, []);
 
   // 3. Quick GST Calculation Buttons (0%, 5%, 12% Solar, 18% EPC)
@@ -288,7 +298,10 @@ export function VendorInvoicesPage() {
         return;
       }
 
-      const particularsNote = `[${formData.category}] ${formData.notes || ''}`.trim();
+      // Link project info if selected
+      const matchedCustomer = customersList.find(c => c._id === formData.linkedCustomerId);
+      const projectPrefix = matchedCustomer ? `[Project: ${matchedCustomer.name}] ` : '';
+      const particularsNote = `${projectPrefix}[${formData.category}] ${formData.notes || ''}`.trim();
 
       const payload = {
         vendorId: targetVendorId,
@@ -309,16 +322,16 @@ export function VendorInvoicesPage() {
       setIsAddModalOpen(false);
       resetInvoiceForm();
       await fetchInvoices();
-      setActionSuccess(`Vendor Bill #${payload.vendorInvoiceNumber} recorded successfully!`);
+      setActionSuccess(`Supplier Bill #${payload.vendorInvoiceNumber} recorded successfully!`);
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to save vendor bill: ${err.message || 'Error'}`);
+      alert(`Failed to save supplier bill: ${err.message || 'Error'}`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 5. Pay Bill Modal Open & Submit
+  // 5. Pay Bill Modal Open & Submit (Disbursement to Vendor)
   const handleOpenPayModal = (inv: VendorInvoiceItem) => {
     setSelectedPayInvoice(inv);
     const balanceInr = (inv.balancePayablePaise / 100).toFixed(2);
@@ -327,7 +340,7 @@ export function VendorInvoicesPage() {
       paymentMethod: 'BANK_TRANSFER',
       paymentReference: `RTGS-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
       paymentDate: getTodayISO(),
-      notes: `Payment towards bill ${inv.vendorInvoiceNumber}`
+      notes: `Bank payout for supplier bill ${inv.vendorInvoiceNumber}`
     });
     setIsPayModalOpen(true);
   };
@@ -339,7 +352,7 @@ export function VendorInvoicesPage() {
       setSubmitting(true);
       const amountPaise = Math.round(Number(payFormData.amountInr) * 100);
       if (isNaN(amountPaise) || amountPaise <= 0) {
-        alert('Please enter a valid payment amount.');
+        alert('Please enter a valid disbursement amount.');
         return;
       }
 
@@ -353,13 +366,13 @@ export function VendorInvoicesPage() {
         })
       });
 
-      setActionSuccess(`Payment of ₹${payFormData.amountInr} recorded successfully against Bill #${selectedPayInvoice.vendorInvoiceNumber}!`);
+      setActionSuccess(`Disbursement of ₹${payFormData.amountInr} paid to supplier against Bill #${selectedPayInvoice.vendorInvoiceNumber}!`);
       setIsPayModalOpen(false);
       setSelectedPayInvoice(null);
       await fetchInvoices();
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err: any) {
-      alert(`Failed to record payment: ${err.message || 'Error'}`);
+      alert(`Failed to disburse payment: ${err.message || 'Error'}`);
     } finally {
       setSubmitting(false);
     }
@@ -367,13 +380,13 @@ export function VendorInvoicesPage() {
 
   // 6. Delete Invoice
   const handleDeleteInvoice = async (inv: VendorInvoiceItem) => {
-    if (!confirm(`Are you sure you want to delete Vendor Bill #${inv.vendorInvoiceNumber}?`)) {
+    if (!confirm(`Are you sure you want to delete Supplier Bill #${inv.vendorInvoiceNumber}?`)) {
       return;
     }
     try {
       setSubmitting(true);
       await apiClient(`/vendor-invoices/${inv._id}`, { method: 'DELETE' });
-      setActionSuccess(`Vendor Bill #${inv.vendorInvoiceNumber} deleted successfully.`);
+      setActionSuccess(`Supplier Bill #${inv.vendorInvoiceNumber} deleted successfully.`);
       await fetchInvoices();
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
@@ -432,7 +445,67 @@ export function VendorInvoicesPage() {
   return (
     <div className="space-y-5">
       {/* =========================================================================
-          PAGE HEADER: Title, Subtitle & Primary Action Button
+          SOLAR EPC ACCOUNTS WORKFLOW STRIP (Shows Step-by-Step Flow)
+         ========================================================================= */}
+      <div className="bg-secondary/40 border rounded-2xl p-3.5 sm:p-4 text-xs">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 mb-2.5">
+          <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <TrendingDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Solar Financial Flow: Step-by-Step Architecture</span>
+          </span>
+          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+            Active: Step 2 (Supplier Outflow)
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* Step 1: Customer Advance (Payments) */}
+          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0">
+              1
+            </span>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground text-xs truncate">Customer Advance (20%)</div>
+              <div className="text-[10px] text-muted-foreground truncate">Inflow at /payments</div>
+            </div>
+          </div>
+
+          {/* Step 2: Vendor Material Bills (Active Page) */}
+          <div className="p-2.5 rounded-xl border-2 border-amber-500 bg-amber-500/10 flex items-center gap-2.5 shadow-xs">
+            <span className="w-6 h-6 rounded-lg bg-amber-500 text-white font-black flex items-center justify-center text-xs shrink-0">
+              2
+            </span>
+            <div className="min-w-0">
+              <div className="font-bold text-foreground text-xs truncate">Vendor Purchase Bills</div>
+              <div className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold truncate">Outflow: Panels, Inverters</div>
+            </div>
+          </div>
+
+          {/* Step 3: Material Delivery & Handover (Payments) */}
+          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs shrink-0">
+              3
+            </span>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground text-xs truncate">Dispatch &amp; Handover (80%)</div>
+              <div className="text-[10px] text-muted-foreground truncate">Inflow at /payments</div>
+            </div>
+          </div>
+
+          {/* Step 4: Govt Subsidy DBT */}
+          <div className="p-2.5 rounded-xl border bg-card/60 flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs shrink-0">
+              4
+            </span>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground text-xs truncate">Govt Subsidy (DBT)</div>
+              <div className="text-[10px] text-muted-foreground truncate">Portal claim at /subsidies</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          PAGE HEADER: Title, Purpose, & Action Button
          ========================================================================= */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border rounded-2xl p-5 sm:p-6 shadow-xs">
         <div>
@@ -443,12 +516,12 @@ export function VendorInvoicesPage() {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <span>Vendor Invoices &amp; Payables</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                  Accounts Payable
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                  Supplier Outflow (-)
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Record supplier equipment bills, contractor invoices, and track accounts payable balances.
+                Record material purchase bills (Solar Panels, Inverters, Structures) and disburse bank payments to equipment vendors.
               </p>
             </div>
           </div>
@@ -457,7 +530,7 @@ export function VendorInvoicesPage() {
         <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-auto shrink-0">
           <button
             onClick={() => {
-              loadVendors();
+              loadDropdowns();
               fetchInvoices();
             }}
             className="p-2 border rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
@@ -469,14 +542,14 @@ export function VendorInvoicesPage() {
           {canCreateInvoice && (
             <button
               onClick={() => {
-                loadVendors();
+                loadDropdowns();
                 resetInvoiceForm();
                 setIsAddModalOpen(true);
               }}
               className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>+ Add Vendor Bill</span>
+              <span>+ Record Supplier Bill</span>
             </button>
           )}
         </div>
@@ -489,7 +562,7 @@ export function VendorInvoicesPage() {
         {/* Card 1: Total Invoiced Value */}
         <div className="bg-card border rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Total Invoiced Value</span>
+            <span>Total Invoiced (Material Bills)</span>
             <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
@@ -505,7 +578,7 @@ export function VendorInvoicesPage() {
         {/* Card 2: Paid to Vendors */}
         <div className="bg-card border rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Paid to Vendors</span>
+            <span>Disbursed to Suppliers</span>
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
@@ -514,14 +587,14 @@ export function VendorInvoicesPage() {
             {formatINR(totalPaidPaise)}
           </div>
           <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">
-            Disbursed vendor payments
+            Bank transfers / payouts released
           </span>
         </div>
 
         {/* Card 3: Outstanding Payables (Balance Due) */}
         <div className="bg-card border rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Outstanding Balance Due</span>
+            <span>Outstanding Supplier Dues</span>
             <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center">
               <AlertCircle className="w-4 h-4" />
             </div>
@@ -530,7 +603,7 @@ export function VendorInvoicesPage() {
             {formatINR(totalBalanceDuePaise)}
           </div>
           <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 block">
-            Remaining vendor dues to pay
+            Pending supplier payments to clear
           </span>
         </div>
       </div>
@@ -544,7 +617,7 @@ export function VendorInvoicesPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by bill #, supplier name, notes..."
+            placeholder="Search by bill #, supplier name, particulars..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-background border rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none"
@@ -653,7 +726,7 @@ export function VendorInvoicesPage() {
                 <th className="py-3 px-4">Bill / Invoice #</th>
                 <th className="py-3 px-4">Supplier / Vendor</th>
                 <th className="py-3 px-4">Bill Date</th>
-                <th className="py-3 px-4">Particulars</th>
+                <th className="py-3 px-4">Equipment &amp; Particulars</th>
                 <th className="py-3 px-4 text-right">Total Amount</th>
                 <th className="py-3 px-4 text-right">Paid Amount</th>
                 <th className="py-3 px-4 text-right">Balance Due</th>
@@ -666,7 +739,7 @@ export function VendorInvoicesPage() {
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-amber-500" />
-                    <span>Loading vendor bills...</span>
+                    <span>Loading supplier bills...</span>
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
@@ -676,11 +749,11 @@ export function VendorInvoicesPage() {
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
                         <Receipt className="w-5 h-5" />
                       </div>
-                      <div className="font-semibold text-foreground text-sm">No vendor bills recorded</div>
+                      <div className="font-semibold text-foreground text-sm">No supplier bills recorded</div>
                       <p className="text-xs text-muted-foreground">
                         {search || statusFilter !== 'ALL' || vendorFilter !== 'ALL'
                           ? 'No bills match your current filter. Try resetting.'
-                          : 'Record supplier equipment invoices (Solar Panels, Inverters, Structures) or contractor bills.'}
+                          : 'Record purchase bills for Solar Panels, Inverters, Structures or site supplies.'}
                       </p>
                       {canCreateInvoice && !search && statusFilter === 'ALL' && (
                         <div className="pt-2">
@@ -692,7 +765,7 @@ export function VendorInvoicesPage() {
                             className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>+ Add First Vendor Bill</span>
+                            <span>+ Record First Supplier Bill</span>
                           </button>
                         </div>
                       )}
@@ -739,7 +812,7 @@ export function VendorInvoicesPage() {
                       </td>
 
                       {/* Particulars */}
-                      <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate" title={inv.notes || 'Equipment / Service Purchase'}>
+                      <td className="py-3 px-4 text-muted-foreground max-w-[220px] truncate" title={inv.notes || 'Equipment Purchase'}>
                         {inv.notes || 'Equipment Purchase'}
                       </td>
 
@@ -768,16 +841,16 @@ export function VendorInvoicesPage() {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Pay Bill (if outstanding due) */}
+                          {/* Disburse to Supplier (if outstanding due) */}
                           {canManageInvoice && hasDue && (
                             <button
                               type="button"
                               onClick={() => handleOpenPayModal(inv)}
                               className="px-2.5 py-1 text-[11px] rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-2xs cursor-pointer flex items-center gap-1"
-                              title="Pay this bill"
+                              title="Pay / Disburse to supplier"
                             >
                               <CreditCard className="w-3 h-3" />
-                              <span>Pay Bill</span>
+                              <span>Disburse</span>
                             </button>
                           )}
 
@@ -817,7 +890,7 @@ export function VendorInvoicesPage() {
       </div>
 
       {/* =========================================================================
-          MODAL 1: ADD VENDOR BILL (WITH INLINE SUPPLIER SELECTION / REGISTRATION)
+          MODAL 1: ADD SUPPLIER PURCHASE BILL (OUTFLOW)
          ========================================================================= */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -826,10 +899,13 @@ export function VendorInvoicesPage() {
               <div>
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-amber-500" />
-                  <span>Record Vendor Bill</span>
+                  <span>Record Supplier Purchase Bill</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                    Outflow (-)
+                  </span>
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Enter supplier invoice details to track accounts payable and payment clearance.
+                  Record equipment purchase tax invoices from manufacturers or local distributors.
                 </p>
               </div>
               <button
@@ -845,7 +921,7 @@ export function VendorInvoicesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground">
-                    Supplier / Vendor Name *
+                    Equipment Supplier / Manufacturer *
                   </label>
                   <div className="flex items-center gap-1 bg-secondary rounded-lg p-0.5 border text-[11px]">
                     <button
@@ -881,7 +957,7 @@ export function VendorInvoicesPage() {
                     onChange={e => setFormData({ ...formData, vendorId: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border bg-background text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   >
-                    <option value="">-- Choose Supplier --</option>
+                    <option value="">-- Choose Supplier (e.g. Waaree, Growatt, Havells) --</option>
                     {vendorsList.map(v => (
                       <option key={v._id} value={v._id}>
                         {v.name} {v.gstin ? `(GST: ${v.gstin})` : ''}
@@ -920,11 +996,33 @@ export function VendorInvoicesPage() {
                 )}
               </div>
 
+              {/* Optional Link to Customer's Solar Project */}
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Associated Customer / Project (Optional)
+                </label>
+                <select
+                  value={formData.linkedCustomerId}
+                  onChange={e => setFormData({ ...formData, linkedCustomerId: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border bg-background text-xs focus:ring-2 focus:ring-amber-500 font-medium"
+                >
+                  <option value="">-- General Stock / Warehouse Inventory (No specific site) --</option>
+                  {customersList.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.name} {c.primaryPhone ? `(${c.primaryPhone})` : ''} {c.city ? `• ${c.city}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  Select customer if this material was purchased specifically for a rooftop solar order.
+                </span>
+              </div>
+
               {/* Bill Number & Invoice Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Bill / Invoice Number *
+                    Supplier Bill / Invoice Number *
                   </label>
                   <input
                     type="text"
@@ -949,7 +1047,7 @@ export function VendorInvoicesPage() {
                 </div>
               </div>
 
-              {/* Category / Particulars & Due Date */}
+              {/* Category & Due Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
@@ -985,7 +1083,7 @@ export function VendorInvoicesPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
                     <Calculator className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Bill Amount &amp; GST (₹)</span>
+                    <span>Purchase Cost &amp; GST Breakdown (₹)</span>
                   </span>
                   {/* GST Preset Buttons */}
                   <div className="flex items-center gap-1 text-[10px]">
@@ -1026,7 +1124,7 @@ export function VendorInvoicesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                      Base / Taxable (₹) *
+                      Base Cost (Taxable ₹) *
                     </label>
                     <input
                       type="number"
@@ -1074,11 +1172,11 @@ export function VendorInvoicesPage() {
               {/* Remarks / Notes */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Bill Particulars / Notes
+                  Item Particulars / Shipment Details
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. 550Wp bifacial solar panels batch shipment for Site #44"
+                  placeholder="e.g. 550Wp bifacial solar panels batch shipment (10 nos)"
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border bg-background text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
@@ -1099,7 +1197,7 @@ export function VendorInvoicesPage() {
                   disabled={submitting}
                   className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submitting ? 'Saving Bill...' : '+ Save Vendor Bill'}
+                  {submitting ? 'Recording...' : '+ Record Supplier Bill'}
                 </button>
               </div>
             </form>
@@ -1108,7 +1206,7 @@ export function VendorInvoicesPage() {
       )}
 
       {/* =========================================================================
-          MODAL 2: PAY VENDOR BILL (DISBURSEMENT MODAL)
+          MODAL 2: DISBURSE VENDOR PAYMENT (OUTFLOW)
          ========================================================================= */}
       {isPayModalOpen && selectedPayInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -1117,7 +1215,10 @@ export function VendorInvoicesPage() {
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-emerald-600" />
-                  <span>Record Vendor Payment</span>
+                  <span>Disburse Supplier Payment</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                    Bank Outflow (-)
+                  </span>
                 </h3>
                 <p className="text-[11px] text-muted-foreground font-mono">
                   Bill: {selectedPayInvoice.vendorInvoiceNumber} • {selectedPayInvoice.vendorId?.name}
@@ -1158,7 +1259,7 @@ export function VendorInvoicesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Amount to Pay (₹) *
+                    Amount to Disburse (₹) *
                   </label>
                   <input
                     type="number"
@@ -1173,7 +1274,7 @@ export function VendorInvoicesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Payment Date *
+                    Disbursement Date *
                   </label>
                   <input
                     type="date"
@@ -1196,7 +1297,7 @@ export function VendorInvoicesPage() {
                 >
                   <option value="BANK_TRANSFER">Bank Transfer (RTGS / NEFT / IMPS)</option>
                   <option value="UPI">Company UPI Payout</option>
-                  <option value="CHEQUE">Cheque Clearance</option>
+                  <option value="CHEQUE">Company Cheque Clearance</option>
                   <option value="CASH">Cash Voucher (Minor Site Purchases)</option>
                 </select>
               </div>
@@ -1217,13 +1318,13 @@ export function VendorInvoicesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Payment Remarks
+                  Accounts Remarks / Purpose
                 </label>
                 <input
                   type="text"
                   value={payFormData.notes}
                   onChange={e => setPayFormData({ ...payFormData, notes: e.target.value })}
-                  placeholder="e.g. Settled against material delivery."
+                  placeholder="e.g. Advance transfer for panel dispatch to site."
                   className="w-full px-3 py-2 text-xs bg-background border rounded-xl text-foreground focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -1241,7 +1342,7 @@ export function VendorInvoicesPage() {
                   disabled={submitting}
                   className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submitting ? 'Disbursing...' : 'Confirm Payment'}
+                  {submitting ? 'Disbursing...' : 'Confirm Bank Payout'}
                 </button>
               </div>
             </form>
@@ -1250,7 +1351,7 @@ export function VendorInvoicesPage() {
       )}
 
       {/* =========================================================================
-          MODAL 3: VIEW VENDOR BILL DETAILS
+          MODAL 3: VIEW SUPPLIER BILL DETAILS
          ========================================================================= */}
       {isDetailModalOpen && selectedDetailInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
@@ -1285,7 +1386,7 @@ export function VendorInvoicesPage() {
                 </span>
               </div>
               <div className="p-3 rounded-xl border bg-emerald-500/5 border-emerald-500/20">
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold block">Paid So Far</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold block">Disbursed</span>
                 <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-sm">
                   {formatINR(selectedDetailInvoice.paidAmountPaise)}
                 </span>
@@ -1344,7 +1445,7 @@ export function VendorInvoicesPage() {
 
               {selectedDetailInvoice.notes && (
                 <div className="border-t pt-2 mt-2">
-                  <span className="text-muted-foreground block text-[11px]">Particulars / Remarks:</span>
+                  <span className="text-muted-foreground block text-[11px]">Particulars / Project:</span>
                   <p className="font-medium text-foreground text-xs mt-0.5">
                     {selectedDetailInvoice.notes}
                   </p>
@@ -1356,7 +1457,7 @@ export function VendorInvoicesPage() {
             {selectedDetailInvoice.reconciliationNotes && (
               <div className="p-3 rounded-xl border bg-card text-xs space-y-1">
                 <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px] block">
-                  Payment History &amp; Settlement Log:
+                  Disbursement History &amp; Bank Log:
                 </span>
                 <p className="text-foreground text-[11px]">
                   {selectedDetailInvoice.reconciliationNotes}
@@ -1375,7 +1476,7 @@ export function VendorInvoicesPage() {
                   className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer flex items-center gap-1"
                 >
                   <CreditCard className="w-3.5 h-3.5" />
-                  <span>Pay Balance {formatINR(selectedDetailInvoice.balancePayablePaise)}</span>
+                  <span>Disburse Balance {formatINR(selectedDetailInvoice.balancePayablePaise)}</span>
                 </button>
               ) : (
                 <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">

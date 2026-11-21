@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-do
 import {
   Sun,
   LayoutDashboard,
-  ShieldCheck,
   LogOut,
   LogIn,
   Users,
@@ -200,10 +199,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/service-visits')) return { section: 'Service', title: 'Field Visits' };
   if (pathname.startsWith('/employees')) return { section: 'Workforce', title: 'Staff & Field Teams' };
   if (pathname.startsWith('/teams')) return { section: 'Workforce', title: 'Field Crews' };
-  if (pathname.startsWith('/tasks')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Tasks & Schedule' };
-    return { section: 'Workspace', title: 'Tasks' };
-  }
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'Commercial', title: 'Generate Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
@@ -212,7 +207,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Records', title: 'Document Vault' };
   }
   if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };
-  if (pathname.startsWith('/mfa')) return { section: 'Security', title: 'MFA Security' };
   if (pathname.startsWith('/health')) return { section: 'System', title: 'System Health' };
   return { section: 'Rarebox Solar', title: 'Workstation' };
 }
@@ -452,15 +446,6 @@ export const AppLayout: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-1 shrink-0">
-              {activePanel !== PanelType.INSTALLER && (
-                <Link
-                  to="/mfa-setup"
-                  className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-secondary transition-colors"
-                  title="Security & 2FA"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                </Link>
-              )}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -552,20 +537,8 @@ export const AppLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Simple & Clean (Notifications & Mobile Sign Out) */}
+          {/* Right: Simple & Clean (Mobile Sign Out) */}
           <div className="flex items-center space-x-2 shrink-0">
-            {activePanel !== PanelType.INSTALLER && (
-              <Link
-                to="/tasks"
-                className="p-2 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors relative"
-                title="Tasks & Notifications"
-                aria-label="Tasks and Notifications"
-              >
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500" />
-              </Link>
-            )}
-
             {/* Mobile-Only Sign Out (On desktop, user profile & logout are cleanly in sidebar bottom) */}
             {isAuthenticated ? (
               <button

@@ -7,7 +7,6 @@ import {
   ShieldAlert,
   ArrowRight,
   Loader2,
-  KeyRound,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -28,9 +27,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('admin@inssolar.com');
   const [password, setPassword] = useState('SolarAdmin2026!');
-  const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showMfaInput, setShowMfaInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -124,21 +121,16 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const result = await login({
+      await login({
         email,
-        password,
-        totpCode: totpCode.trim() || undefined
+        password
       });
 
-      if (result.requiresMfa) {
-        navigate('/mfa-challenge');
-      } else {
-        const destination =
-          (from === '/' || !from) && selectedPortal === 'INSTALLER'
-            ? '/site-photos'
-            : from;
-        navigate(destination, { replace: true });
-      }
+      const destination =
+        (from === '/' || !from) && selectedPortal === 'INSTALLER'
+          ? '/site-photos'
+          : from;
+      navigate(destination, { replace: true });
     } catch (err: any) {
       const msg = err.message || '';
       setErrorMessage(msg || 'Login failed. Please check your credentials.');
@@ -250,7 +242,7 @@ export const LoginPage: React.FC = () => {
             <span>•</span>
             <span>Argon2id Protected</span>
             <span>•</span>
-            <span>RBAC & MFA Secured</span>
+            <span>Enterprise Protected</span>
           </div>
           <span>v1.0.0 Production</span>
         </div>
@@ -432,53 +424,6 @@ export const LoginPage: React.FC = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
-
-            {/* Optional TOTP 2FA input */}
-            <div className="pt-1">
-              {showMfaInput ? (
-                <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/40 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="totpCode"
-                      className="block text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider"
-                    >
-                      6-Digit Authenticator Token
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowMfaInput(false)}
-                      className="text-[11px] text-amber-700 hover:underline"
-                    >
-                      Hide 2FA
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-600">
-                      <KeyRound className="w-4 h-4" />
-                    </div>
-                    <input
-                      id="totpCode"
-                      name="totpCode"
-                      type="text"
-                      maxLength={6}
-                      value={totpCode}
-                      onChange={e => setTotpCode(e.target.value)}
-                      placeholder="123456"
-                      className="w-full pl-10 pr-4 py-2.5 text-base font-mono tracking-[0.3em] text-center bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowMfaInput(true)}
-                  className="inline-flex items-center space-x-1.5 text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Have your 2FA authenticator code ready? Enter here</span>
-                </button>
-              )}
             </div>
 
             {/* Submit Button */}
