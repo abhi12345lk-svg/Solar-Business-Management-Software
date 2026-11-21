@@ -240,29 +240,35 @@ export const ProjectDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    | 'overview'
-    | 'dispatch'
-    | 'checklist'
-    | 'net-metering'
-    | 'subsidy'
-    | 'service-amc'
-    | 'milestones'
-    | 'tasks'
-    | 'history'
-    | 'costing'
-  >(urlTab && ['overview', 'dispatch', 'checklist', 'net-metering', 'subsidy', 'service-amc', 'milestones', 'tasks', 'history', 'costing'].includes(urlTab) ? urlTab : 'overview');
+    'overview' | 'dispatch' | 'checklist' | 'compliance' | 'financials'
+  >(() => {
+    if (urlTab === 'dispatch') return 'dispatch';
+    if (urlTab === 'checklist') return 'checklist';
+    if (['net-metering', 'subsidy'].includes(urlTab)) return 'compliance';
+    if (['costing', 'service-amc', 'history'].includes(urlTab)) return 'financials';
+    return 'overview';
+  });
+
+  const [complianceSubTab, setComplianceSubTab] = useState<'net-metering' | 'subsidy'>(
+    urlTab === 'subsidy' ? 'subsidy' : 'net-metering'
+  );
+  const [financialsSubTab, setFinancialsSubTab] = useState<'costing' | 'service-amc' | 'history'>(
+    urlTab === 'service-amc' ? 'service-amc' : urlTab === 'history' ? 'history' : 'costing'
+  );
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string>('');
   const [statusReason, setStatusReason] = useState<string>('');
   const [statusSubmitting, setStatusSubmitting] = useState(false);
+  const [statusModalError, setStatusModalError] = useState<string | null>(null);
 
   // Stage transition modal
   const [stageModalOpen, setStageModalOpen] = useState(false);
   const [targetStage, setTargetStage] = useState<string>('');
   const [stageNotes, setStageNotes] = useState<string>('');
   const [stageSubmitting, setStageSubmitting] = useState(false);
+  const [stageModalError, setStageModalError] = useState<string | null>(null);
 
   // Milestone status modal
   const [milestoneStatusModalOpen, setMilestoneStatusModalOpen] = useState(false);
@@ -270,6 +276,7 @@ export const ProjectDetailPage: React.FC = () => {
   const [milestoneTargetStatus, setMilestoneTargetStatus] = useState<string>('');
   const [milestoneBlockerReason, setMilestoneBlockerReason] = useState<string>('');
   const [milestoneSubmitting, setMilestoneSubmitting] = useState(false);
+  const [milestoneModalError, setMilestoneModalError] = useState<string | null>(null);
 
   // Add Milestone Modal
   const [addMilestoneModalOpen, setAddMilestoneModalOpen] = useState(false);
@@ -293,6 +300,9 @@ export const ProjectDetailPage: React.FC = () => {
     dueDate: ''
   });
   const [addTaskSubmitting, setAddTaskSubmitting] = useState(false);
+  const [taskModalError, setTaskModalError] = useState<string | null>(null);
+  const [taskModalError, setTaskModalError] = useState<string | null>(null);
+  void taskModalError;
 
   // Fetch Project Detail
   const fetchProject = async () => {
@@ -342,27 +352,48 @@ export const ProjectDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (urlTab && ['overview', 'dispatch', 'checklist', 'net-metering', 'subsidy', 'service-amc', 'milestones', 'tasks', 'history', 'costing'].includes(urlTab)) {
-      setActiveTab(urlTab);
+    if (!urlTab) return;
+    if (urlTab === 'dispatch') {
+      setActiveTab('dispatch');
+    } else if (urlTab === 'checklist') {
+      setActiveTab('checklist');
+    } else if (urlTab === 'net-metering') {
+      setActiveTab('compliance');
+      setComplianceSubTab('net-metering');
+    } else if (urlTab === 'subsidy') {
+      setActiveTab('compliance');
+      setComplianceSubTab('subsidy');
+    } else if (urlTab === 'costing') {
+      setActiveTab('financials');
+      setFinancialsSubTab('costing');
+    } else if (urlTab === 'service-amc') {
+      setActiveTab('financials');
+      setFinancialsSubTab('service-amc');
+    } else if (urlTab === 'history') {
+      setActiveTab('financials');
+      setFinancialsSubTab('history');
+    } else {
+      setActiveTab('overview');
     }
   }, [urlTab]);
 
   useEffect(() => {
-    if (activeTab === 'tasks') {
+    if (id) {
       fetchTasks();
     }
-  }, [id, activeTab, taskFilterStatus, taskOnlyOverdue]);
+  }, [id, taskFilterStatus, taskOnlyOverdue]);
 
   // Handle Project Status Transition
   const handleStatusTransition = async () => {
     if (!project || !targetStatus) return;
     if (['ON_HOLD', 'CANCELLED'].includes(targetStatus) && !statusReason.trim()) {
-      alert('A valid reason is required when placing a project on hold or cancelling.');
+      setStatusModalError('A valid operational reason is required when placing a project on hold or cancelling.');
       return;
     }
 
     try {
       setStatusSubmitting(true);
+      setStatusModalError(null);
       await apiClient(`/projects/${project._id}/status`, {
         method: 'POST',
         body: JSON.stringify({
@@ -375,7 +406,7 @@ export const ProjectDetailPage: React.FC = () => {
       setStatusReason('');
       fetchProject();
     } catch (err: any) {
-      alert(err?.message || 'Failed to update project status');
+      setStatusModalError(err?.message || 'Failed to update project status');
     } finally {
       setStatusSubmitting(false);
     }
@@ -387,6 +418,7 @@ export const ProjectDetailPage: React.FC = () => {
 
     try {
       setStageSubmitting(true);
+      setStageModalError(null);
       await apiClient(`/projects/${project._id}/stage`, {
         method: 'POST',
         body: JSON.stringify({
@@ -399,7 +431,7 @@ export const ProjectDetailPage: React.FC = () => {
       setStageNotes('');
       fetchProject();
     } catch (err: any) {
-      alert(err?.message || 'Failed to advance project stage');
+      setStageModalError(err?.message || 'Failed to advance project stage');
     } finally {
       setStageSubmitting(false);
     }
@@ -409,12 +441,13 @@ export const ProjectDetailPage: React.FC = () => {
   const handleMilestoneStatusUpdate = async () => {
     if (!project || !selectedMilestone || !milestoneTargetStatus) return;
     if (milestoneTargetStatus === 'BLOCKED' && !milestoneBlockerReason.trim()) {
-      alert('A blocker reason is strictly required when setting milestone to BLOCKED.');
+      setMilestoneModalError('A blocker reason is strictly required when setting milestone to BLOCKED.');
       return;
     }
 
     try {
       setMilestoneSubmitting(true);
+      setMilestoneModalError(null);
       await apiClient(`/projects/${project._id}/milestones/${selectedMilestone._id}/status`, {
         method: 'POST',
         body: JSON.stringify({
@@ -428,7 +461,7 @@ export const ProjectDetailPage: React.FC = () => {
       setMilestoneBlockerReason('');
       fetchProject();
     } catch (err: any) {
-      alert(err?.message || 'Failed to update milestone status');
+      setMilestoneModalError(err?.message || 'Failed to update milestone status');
     } finally {
       setMilestoneSubmitting(false);
     }
@@ -441,6 +474,7 @@ export const ProjectDetailPage: React.FC = () => {
 
     try {
       setAddMilestoneSubmitting(true);
+      setMilestoneModalError(null);
       await apiClient(`/projects/${project._id}/milestones`, {
         method: 'POST',
         body: JSON.stringify({
@@ -460,7 +494,7 @@ export const ProjectDetailPage: React.FC = () => {
       });
       fetchProject();
     } catch (err: any) {
-      alert(err?.message || 'Failed to add milestone');
+      setMilestoneModalError(err?.message || 'Failed to add milestone');
     } finally {
       setAddMilestoneSubmitting(false);
     }
@@ -473,6 +507,7 @@ export const ProjectDetailPage: React.FC = () => {
 
     try {
       setAddTaskSubmitting(true);
+      setTaskModalError(null);
       await apiClient(`/projects/${project._id}/tasks`, {
         method: 'POST',
         body: JSON.stringify({
@@ -494,7 +529,7 @@ export const ProjectDetailPage: React.FC = () => {
       });
       fetchTasks();
     } catch (err: any) {
-      alert(err?.message || 'Failed to create task');
+      setTaskModalError(err?.message || 'Failed to create task');
     } finally {
       setAddTaskSubmitting(false);
     }
@@ -509,7 +544,7 @@ export const ProjectDetailPage: React.FC = () => {
       });
       fetchTasks();
     } catch (err: any) {
-      alert(err?.message || 'Failed to update task status');
+      console.warn('Failed to update task status:', err);
     }
   };
 
@@ -517,7 +552,15 @@ export const ProjectDetailPage: React.FC = () => {
     const idx = getSimplifiedStageIndex(stageKey);
     const target = FIVE_STAGES[idx];
     if (target) {
-      setActiveTab(target.targetTab);
+      if (target.targetTab === 'net-metering') {
+        setActiveTab('compliance');
+        setComplianceSubTab('net-metering');
+      } else if (target.targetTab === 'subsidy') {
+        setActiveTab('compliance');
+        setComplianceSubTab('subsidy');
+      } else {
+        setActiveTab(target.targetTab as any);
+      }
     }
   };
 
@@ -674,17 +717,19 @@ export const ProjectDetailPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Link to="/projects" className="hover:text-foreground flex items-center">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Projects
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="space-y-1 min-w-0">
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <Link to="/projects" className="hover:text-foreground flex items-center font-medium">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Projects
             </Link>
             <span>/</span>
             <span className="font-mono text-foreground font-semibold">{project.projectCode}</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate max-w-xl">
+              {project.name}
+            </h1>
             {getStatusBadge(project.status)}
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground border">
               Priority: {project.priority}
@@ -693,16 +738,17 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
 
         {/* Status Transition Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 shrink-0 self-start lg:self-center">
           {project.status === 'PLANNING' && (
             <button
               onClick={() => {
+                setStatusModalError(null);
                 setTargetStatus('IN_PROGRESS');
                 setStatusModalOpen(true);
               }}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-bold shadow-xs transition-colors"
             >
-              <PlayCircle className="w-4 h-4 mr-1.5" /> Start Project
+              <PlayCircle className="w-4 h-4" /> Start Project
             </button>
           )}
 
@@ -710,33 +756,36 @@ export const ProjectDetailPage: React.FC = () => {
             <>
               <button
                 onClick={() => {
+                  setStageModalError(null);
                   setTargetStage(
                     FIVE_STAGES[Math.min(currentStageIndex + 1, FIVE_STAGES.length - 1)]?.key ||
                       project.currentStage
                   );
                   setStageModalOpen(true);
                 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-sm font-medium shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-bold shadow-xs transition-colors"
               >
-                <ChevronRight className="w-4 h-4 mr-1.5" /> Advance Stage
+                <ChevronRight className="w-4 h-4" /> Advance Stage
               </button>
               <button
                 onClick={() => {
+                  setStatusModalError(null);
                   setTargetStatus('ON_HOLD');
                   setStatusModalOpen(true);
                 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100 text-sm font-medium"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-semibold transition-colors"
               >
-                <PauseCircle className="w-4 h-4 mr-1.5" /> Hold
+                <PauseCircle className="w-3.5 h-3.5" /> Hold
               </button>
               <button
                 onClick={() => {
+                  setStatusModalError(null);
                   setTargetStatus('COMPLETED');
                   setStatusModalOpen(true);
                 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-sm font-medium"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold transition-colors"
               >
-                <Check className="w-4 h-4 mr-1.5" /> Mark Completed
+                <Check className="w-3.5 h-3.5" /> Mark Completed
               </button>
             </>
           )}
@@ -744,19 +793,20 @@ export const ProjectDetailPage: React.FC = () => {
           {project.status === 'ON_HOLD' && (
             <button
               onClick={() => {
+                setStatusModalError(null);
                 setTargetStatus('IN_PROGRESS');
                 setStatusModalOpen(true);
               }}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-sm font-medium"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-bold shadow-xs transition-colors"
             >
-              <PlayCircle className="w-4 h-4 mr-1.5" /> Resume Project
+              <PlayCircle className="w-4 h-4" /> Resume Project
             </button>
           )}
 
           {project.status === 'COMPLETED' && (
             <Link
               to={`/service?tab=warranties&projectId=${project._id}`}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-semibold shadow-sm gap-1.5"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs"
             >
               <LifeBuoy className="w-4 h-4" />
               <span>Plant Commissioned — After-Sales Hub</span>
@@ -766,12 +816,13 @@ export const ProjectDetailPage: React.FC = () => {
           {!isTerminal && (
             <button
               onClick={() => {
+                setStatusModalError(null);
                 setTargetStatus('CANCELLED');
                 setStatusModalOpen(true);
               }}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 text-sm font-medium"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 text-xs font-medium transition-colors"
             >
-              <XCircle className="w-4 h-4 mr-1.5" /> Cancel
+              <XCircle className="w-3.5 h-3.5" /> Cancel
             </button>
           )}
         </div>
@@ -919,25 +970,25 @@ export const ProjectDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Tabs Bar */}
-      <div className="border-b flex items-center space-x-2 sm:space-x-6 text-xs sm:text-sm font-medium overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
+      {/* 5-Tab Streamlined Navigation (Zero Horizontal Scrollbar) */}
+      <div className="border-b flex items-center gap-2 sm:gap-6 text-xs sm:text-sm font-medium pb-0.5">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
             activeTab === 'overview'
-              ? 'border-solar-600 text-solar-600 font-semibold'
+              ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <FolderKanban className="w-4 h-4" />
-          <span>Overview</span>
+          <span>Overview & Milestones</span>
         </button>
 
         <button
           onClick={() => setActiveTab('dispatch')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
             activeTab === 'dispatch'
-              ? 'border-solar-600 text-solar-600 font-semibold'
+              ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -947,587 +998,521 @@ export const ProjectDetailPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('checklist')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
             activeTab === 'checklist'
-              ? 'border-solar-600 text-solar-600 font-semibold'
+              ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <ClipboardCheck className="w-4 h-4" />
-          <span>Installation Checklist</span>
+          <span>Site Installation</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('net-metering')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'net-metering'
-              ? 'border-solar-600 text-solar-600 font-semibold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Net Metering</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('subsidy')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'subsidy'
-              ? 'border-solar-600 text-solar-600 font-semibold'
+          onClick={() => setActiveTab('compliance')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
+            activeTab === 'compliance'
+              ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <Landmark className="w-4 h-4" />
-          <span>Subsidy</span>
+          <span>DISCOM & Subsidy</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('service-amc')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'service-amc'
-              ? 'border-solar-600 text-solar-600 font-semibold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <LifeBuoy className="w-4 h-4" />
-          <span>Service & AMC</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('costing')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'costing'
-              ? 'border-solar-600 text-solar-600 font-semibold'
+          onClick={() => setActiveTab('financials')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
+            activeTab === 'financials'
+              ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <IndianRupee className="w-4 h-4" />
-          <span>Costing & Profitability</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('milestones')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'milestones'
-              ? 'border-solar-600 text-solar-600 font-semibold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Milestones ({project.milestones?.length || 0})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'tasks'
-              ? 'border-solar-600 text-solar-600 font-semibold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <ListTodo className="w-4 h-4" />
-          <span>Project Tasks</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 ${
-            activeTab === 'history'
-              ? 'border-solar-600 text-solar-600 font-semibold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span>Activity & Audit ({project.stageHistory?.length || 0})</span>
+          <span>Costing & Audit</span>
         </button>
       </div>
 
-      {/* Tab 1: Overview */}
+      {/* Tab 1: Overview, Milestones & Tasks */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Customer & Order Information */}
-          <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-foreground flex items-center">
-              <Building2 className="w-4 h-4 mr-2 text-solar-600" /> Customer & Sales Order
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Customer:</span>
-                <span className="font-semibold text-foreground">
-                  {project.customerId?.legalName ||
-                    project.customerId?.displayName ||
-                    project.customerId?.name ||
-                    'Customer'}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Code / Phone:</span>
-                <span className="font-mono text-muted-foreground">
-                  {project.customerId?.customerCode || '—'}{' '}
-                  {project.customerId?.primaryPhone ? `(${project.customerId.primaryPhone})` : ''}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Sales Order:</span>
-                {project.orderId ? (
-                  <Link
-                    to={`/orders/${project.orderId._id}`}
-                    className="font-mono font-medium text-solar-600 hover:underline flex items-center"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 mr-1" />
-                    {project.orderId.orderNumber}
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground italic">Direct Project</span>
-                )}
-              </div>
-              {project.orderId?.netTotalPaise && (
-                <div className="flex justify-between pt-1">
-                  <span className="text-muted-foreground">Order Value:</span>
+        <div className="space-y-6">
+          {/* Top 3 Metric / Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Customer & Order Information */}
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center">
+                <Building2 className="w-4 h-4 mr-2 text-solar-600" /> Customer & Sales Order
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Customer:</span>
                   <span className="font-semibold text-foreground">
-                    ₹{(project.orderId.netTotalPaise / 100).toLocaleString('en-IN')}
+                    {project.customerId?.legalName ||
+                      project.customerId?.displayName ||
+                      project.customerId?.name ||
+                      'Customer'}
                   </span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Technical Scope & Site Address */}
-          <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-foreground flex items-center">
-              <Zap className="w-4 h-4 mr-2 text-solar-600" /> Technical Scope & Site
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">System Capacity:</span>
-                <span className="font-bold text-foreground">
-                  {project.systemCapacityKwp ? `${project.systemCapacityKwp} kWp` : 'Not Specified'}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Topology:</span>
-                <span className="font-medium text-foreground">
-                  {project.systemTopology ? project.systemTopology.replace('_', ' ') : 'ON_GRID'}
-                </span>
-              </div>
-              <div className="space-y-1 pt-1">
-                <span className="text-muted-foreground block">Installation Address:</span>
-                <p className="text-xs bg-muted/50 p-2 rounded text-foreground">
-                  {project.siteAddress?.addressLine1 || 'No street specified'},{' '}
-                  {project.siteAddress?.city || '—'}, {project.siteAddress?.state || '—'}{' '}
-                  {project.siteAddress?.postalCode || ''}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Project Schedule & Operational Notes */}
-          <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-foreground flex items-center">
-              <Calendar className="w-4 h-4 mr-2 text-solar-600" /> Schedule & Leadership
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Planned Start:</span>
-                <span className="font-medium text-foreground">
-                  {project.plannedStartDate
-                    ? new Date(project.plannedStartDate).toLocaleDateString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Target Completion:</span>
-                <span className="font-medium text-foreground">
-                  {project.targetCompletionDate
-                    ? new Date(project.targetCompletionDate).toLocaleDateString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-muted-foreground">Actual Completion:</span>
-                <span className="font-medium text-foreground">
-                  {project.actualCompletionDate
-                    ? new Date(project.actualCompletionDate).toLocaleDateString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-muted-foreground">Project Manager:</span>
-                <span className="font-medium text-foreground flex items-center">
-                  <UserIcon className="w-3.5 h-3.5 mr-1 text-solar-500" />
-                  {project.projectManagerId
-                    ? `${project.projectManagerId.firstName} ${project.projectManagerId.lastName}`
-                    : 'Unassigned'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Milestones */}
-      {activeTab === 'milestones' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-foreground">Project Quality Milestones</h2>
-              <p className="text-xs text-muted-foreground">
-                Authoritative checklist of installation milestone gates and operational approvals.
-              </p>
-            </div>
-            {!isTerminal && (
-              <button
-                onClick={() => {
-                  setNewMilestoneData({
-                    name: '',
-                    description: '',
-                    displayOrder: (project.milestones?.length || 0) + 1,
-                    targetDueDate: ''
-                  });
-                  setAddMilestoneModalOpen(true);
-                }}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-sm font-medium shadow-sm"
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> Add Milestone
-              </button>
-            )}
-          </div>
-
-          <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-            <div className="divide-y">
-              {project.milestones && project.milestones.length > 0 ? (
-                project.milestones.map(m => (
-                  <div
-                    key={m._id}
-                    className="p-4 hover:bg-muted/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
-                          {m.displayOrder}
-                        </span>
-                        <h4 className="font-semibold text-foreground text-sm">{m.name}</h4>
-                        {getMilestoneStatusBadge(m.status)}
-                      </div>
-                      {m.description && (
-                        <p className="text-xs text-muted-foreground pl-8">{m.description}</p>
-                      )}
-
-                      {/* Blocker Reason Alert if Blocked */}
-                      {m.status === 'BLOCKED' && m.blockerReason && (
-                        <div className="ml-8 mt-2 p-2 bg-rose-50 border border-rose-200 rounded text-xs text-rose-800 flex items-start space-x-1.5">
-                          <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" />
-                          <div>
-                            <span className="font-bold">Blocker:</span> {m.blockerReason}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Completion Metadata if Completed */}
-                      {m.status === 'COMPLETED' && m.completedAt && (
-                        <div className="ml-8 mt-1 text-xs text-emerald-700 flex items-center space-x-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>
-                            Signed off on {new Date(m.completedAt).toLocaleDateString()}{' '}
-                            {m.completedBy
-                              ? `by ${m.completedBy.firstName} ${m.completedBy.lastName}`
-                              : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Milestone Due Dates & Action Buttons */}
-                    <div className="flex items-center space-x-3 self-end md:self-center">
-                      {m.targetDueDate && (
-                        <div className="text-right text-xs text-muted-foreground hidden sm:block">
-                          <span>Due: </span>
-                          <span className="font-medium text-foreground">
-                            {new Date(m.targetDueDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-
-                      {!isTerminal && (
-                        <div className="flex items-center space-x-1">
-                          {m.status === 'NOT_STARTED' && (
-                            <button
-                              onClick={() => {
-                                setSelectedMilestone(m);
-                                setMilestoneTargetStatus('IN_PROGRESS');
-                                setMilestoneBlockerReason('');
-                                setMilestoneStatusModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-xs rounded border bg-background hover:bg-muted font-medium"
-                            >
-                              Start
-                            </button>
-                          )}
-
-                          {m.status === 'IN_PROGRESS' && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedMilestone(m);
-                                  setMilestoneTargetStatus('COMPLETED');
-                                  setMilestoneBlockerReason('');
-                                  setMilestoneStatusModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700 font-medium"
-                              >
-                                Complete
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedMilestone(m);
-                                  setMilestoneTargetStatus('BLOCKED');
-                                  setMilestoneBlockerReason('');
-                                  setMilestoneStatusModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 text-xs rounded border border-rose-300 text-rose-700 hover:bg-rose-50 font-medium"
-                              >
-                                Block
-                              </button>
-                            </>
-                          )}
-
-                          {m.status === 'BLOCKED' && (
-                            <button
-                              onClick={() => {
-                                setSelectedMilestone(m);
-                                setMilestoneTargetStatus('IN_PROGRESS');
-                                setMilestoneBlockerReason('');
-                                setMilestoneStatusModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-xs rounded border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium"
-                            >
-                              Resolve Blocker
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-muted-foreground">
-                  No milestones configured for this project.
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Code / Phone:</span>
+                  <span className="font-mono text-muted-foreground">
+                    {project.customerId?.customerCode || '—'}{' '}
+                    {project.customerId?.primaryPhone ? `(${project.customerId.primaryPhone})` : ''}
+                  </span>
                 </div>
-              )}
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Sales Order:</span>
+                  {project.orderId ? (
+                    <Link
+                      to={`/orders/${project.orderId._id}`}
+                      className="font-mono font-medium text-solar-600 hover:underline flex items-center"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 mr-1" />
+                      {project.orderId.orderNumber}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground italic">Direct Project</span>
+                  )}
+                </div>
+                {project.orderId?.netTotalPaise && (
+                  <div className="flex justify-between pt-1">
+                    <span className="text-muted-foreground">Order Value:</span>
+                    <span className="font-semibold text-foreground">
+                      ₹{(project.orderId.netTotalPaise / 100).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Technical Scope & Site Address */}
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center">
+                <Zap className="w-4 h-4 mr-2 text-solar-600" /> Technical Scope & Site
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">System Capacity:</span>
+                  <span className="font-bold text-foreground">
+                    {project.systemCapacityKwp ? `${project.systemCapacityKwp} kWp` : 'Not Specified'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Topology:</span>
+                  <span className="font-medium text-foreground">
+                    {project.systemTopology ? project.systemTopology.replace('_', ' ') : 'ON_GRID'}
+                  </span>
+                </div>
+                <div className="space-y-1 pt-1">
+                  <span className="text-muted-foreground block">Installation Address:</span>
+                  <p className="text-xs bg-muted/50 p-2 rounded text-foreground">
+                    {project.siteAddress?.addressLine1 || 'No street specified'},{' '}
+                    {project.siteAddress?.city || '—'}, {project.siteAddress?.state || '—'}{' '}
+                    {project.siteAddress?.postalCode || ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Project Schedule & Operational Notes */}
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-solar-600" /> Schedule & Leadership
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Planned Start:</span>
+                  <span className="font-medium text-foreground">
+                    {project.plannedStartDate
+                      ? new Date(project.plannedStartDate).toLocaleDateString()
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Target Completion:</span>
+                  <span className="font-medium text-foreground">
+                    {project.targetCompletionDate
+                      ? new Date(project.targetCompletionDate).toLocaleDateString()
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Actual Completion:</span>
+                  <span className="font-medium text-foreground">
+                    {project.actualCompletionDate
+                      ? new Date(project.actualCompletionDate).toLocaleDateString()
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-muted-foreground">Project Manager:</span>
+                  <span className="font-medium text-foreground flex items-center">
+                    <UserIcon className="w-3.5 h-3.5 mr-1 text-solar-500" />
+                    {project.projectManagerId
+                      ? `${project.projectManagerId.firstName} ${project.projectManagerId.lastName}`
+                      : 'Unassigned'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Tab 3: Project Tasks */}
-      {activeTab === 'tasks' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h2 className="text-base font-bold text-foreground">Project Tasks</h2>
-              <p className="text-xs text-muted-foreground">
-                Operational action items and field task assignments.
-              </p>
+          {/* Project Quality Milestones & Action Tasks Side-by-Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Milestones Column */}
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-solar-600" />
+                    <span>Quality Milestones ({project.milestones?.length || 0})</span>
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">Quality gates & operational sign-offs</p>
+                </div>
+                {!isTerminal && (
+                  <button
+                    onClick={() => {
+                      setMilestoneModalError(null);
+                      setNewMilestoneData({
+                        name: '',
+                        description: '',
+                        displayOrder: (project.milestones?.length || 0) + 1,
+                        targetDueDate: ''
+                      });
+                      setAddMilestoneModalOpen(true);
+                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-semibold shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                  </button>
+                )}
+              </div>
+
+              <div className="divide-y max-h-[500px] overflow-y-auto">
+                {project.milestones && project.milestones.length > 0 ? (
+                  project.milestones.map(m => (
+                    <div key={m._id} className="py-3 first:pt-0 last:pb-0 hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <span className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-foreground shrink-0">
+                            {m.displayOrder}
+                          </span>
+                          <span className="font-semibold text-foreground text-xs truncate">{m.name}</span>
+                          {getMilestoneStatusBadge(m.status)}
+                        </div>
+                        {!isTerminal && (
+                          <div className="flex items-center space-x-1 shrink-0">
+                            {m.status === 'NOT_STARTED' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedMilestone(m);
+                                  setMilestoneTargetStatus('IN_PROGRESS');
+                                  setMilestoneBlockerReason('');
+                                  setMilestoneModalError(null);
+                                  setMilestoneStatusModalOpen(true);
+                                }}
+                                className="px-2 py-0.5 text-[11px] rounded border bg-background hover:bg-muted font-medium"
+                              >
+                                Start
+                              </button>
+                            )}
+                            {m.status === 'IN_PROGRESS' && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedMilestone(m);
+                                    setMilestoneTargetStatus('COMPLETED');
+                                    setMilestoneBlockerReason('');
+                                    setMilestoneModalError(null);
+                                    setMilestoneStatusModalOpen(true);
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded bg-emerald-600 text-white hover:bg-emerald-700 font-medium"
+                                >
+                                  Complete
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedMilestone(m);
+                                    setMilestoneTargetStatus('BLOCKED');
+                                    setMilestoneBlockerReason('');
+                                    setMilestoneModalError(null);
+                                    setMilestoneStatusModalOpen(true);
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded border border-rose-300 text-rose-700 hover:bg-rose-50 font-medium"
+                                >
+                                  Block
+                                </button>
+                              </>
+                            )}
+                            {m.status === 'BLOCKED' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedMilestone(m);
+                                  setMilestoneTargetStatus('IN_PROGRESS');
+                                  setMilestoneBlockerReason('');
+                                  setMilestoneModalError(null);
+                                  setMilestoneStatusModalOpen(true);
+                                }}
+                                className="px-2 py-0.5 text-[11px] rounded border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium"
+                              >
+                                Resolve
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {m.description && <p className="text-[11px] text-muted-foreground pl-7 mt-0.5">{m.description}</p>}
+                      {m.status === 'BLOCKED' && m.blockerReason && (
+                        <div className="ml-7 mt-1.5 p-1.5 bg-rose-50 border border-rose-200 rounded text-[11px] text-rose-800 flex items-start gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5 shrink-0 text-rose-600 mt-0.5" />
+                          <span><strong>Blocker:</strong> {m.blockerReason}</span>
+                        </div>
+                      )}
+                      {m.status === 'COMPLETED' && m.completedAt && (
+                        <div className="ml-7 mt-1 text-[10px] text-emerald-700 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Signed off on {new Date(m.completedAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground">
+                    No milestones configured.
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <select
-                value={taskFilterStatus}
-                onChange={e => setTaskFilterStatus(e.target.value)}
-                className="px-2.5 py-1.5 text-xs rounded-lg border bg-background text-foreground"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="BLOCKED">Blocked</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
 
-              <label className="flex items-center space-x-1.5 text-xs text-foreground cursor-pointer border px-2.5 py-1.5 rounded-lg bg-card">
-                <input
-                  type="checkbox"
-                  checked={taskOnlyOverdue}
-                  onChange={e => setTaskOnlyOverdue(e.target.checked)}
-                  className="rounded text-solar-600 focus:ring-solar-500"
-                />
-                <span>Overdue Only</span>
-              </label>
+            {/* Tasks Column */}
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <ListTodo className="w-4 h-4 text-solar-600" />
+                    <span>Project Tasks ({tasks.length})</span>
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">Operational tasks & site assignments</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={taskFilterStatus}
+                    onChange={e => setTaskFilterStatus(e.target.value)}
+                    className="px-2 py-1 text-xs rounded-lg border bg-background text-foreground"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="TODO">To Do</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                  </select>
+                  {!isTerminal && (
+                    <button
+                      onClick={() => {
+                        setTaskModalError(null);
+                        setAddTaskModalOpen(true);
+                      }}
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-semibold shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> New Task
+                    </button>
+                  )}
+                </div>
+              </div>
 
-              {!isTerminal && (
-                <button
-                  onClick={() => setAddTaskModalOpen(true)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-lg bg-solar-600 text-white hover:bg-solar-700 text-xs font-medium shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> New Task
-                </button>
-              )}
-            </div>
-          </div>
-
-          {tasksLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading tasks...</div>
-          ) : (
-            <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-              <div className="divide-y">
-                {tasks.length > 0 ? (
+              <div className="divide-y max-h-[500px] overflow-y-auto">
+                {tasksLoading ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground">Loading tasks...</div>
+                ) : tasks.length > 0 ? (
                   tasks.map(task => {
                     const isOverdue =
                       task.dueDate &&
                       new Date(task.dueDate) < new Date() &&
                       !['COMPLETED', 'CANCELLED'].includes(task.status);
-                    const linkedMilestone = project.milestones?.find(
-                      m => m._id === task.milestoneId
-                    );
-
                     return (
-                      <div
-                        key={task._id}
-                        className="p-4 hover:bg-muted/20 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
-                      >
-                        <div className="space-y-1 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs font-semibold text-muted-foreground">
-                              {task.taskCode}
-                            </span>
-                            <h4 className="text-sm font-semibold text-foreground">{task.title}</h4>
+                      <div key={task._id} className="py-3 first:pt-0 last:pb-0 hover:bg-muted/20 transition-colors">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <span className="font-mono text-[10px] font-semibold text-muted-foreground shrink-0">{task.taskCode}</span>
+                            <span className="font-semibold text-foreground text-xs truncate">{task.title}</span>
                             {getTaskStatusBadge(task.status)}
                             {isOverdue && (
-                              <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">
-                                Overdue
-                              </span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700">Overdue</span>
                             )}
                           </div>
-                          {task.description && (
-                            <p className="text-xs text-muted-foreground">{task.description}</p>
+                          {!isTerminal && task.status !== 'COMPLETED' && (
+                            <button
+                              onClick={() => handleQuickTaskStatus(task._id, 'COMPLETED')}
+                              className="px-2 py-0.5 text-[11px] rounded bg-emerald-600 text-white hover:bg-emerald-700 font-medium shrink-0"
+                            >
+                              Complete
+                            </button>
                           )}
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
-                            {linkedMilestone && (
-                              <span className="inline-flex items-center text-solar-700 bg-solar-50 px-2 py-0.5 rounded border border-solar-200">
-                                Milestone: {linkedMilestone.name}
-                              </span>
-                            )}
-                            {task.dueDate && (
-                              <span className="flex items-center">
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Due {new Date(task.dueDate).toLocaleDateString()}
-                              </span>
-                            )}
-                            {task.assignedUserId && (
-                              <span className="flex items-center">
-                                <UserIcon className="w-3 h-3 mr-1" />
-                                {task.assignedUserId.firstName} {task.assignedUserId.lastName}
-                              </span>
-                            )}
-                          </div>
                         </div>
-
-                        {/* Task Action Controls */}
-                        {!isTerminal && (
-                          <div className="flex items-center space-x-1.5 self-end md:self-center">
-                            {task.status !== 'COMPLETED' && (
-                              <button
-                                onClick={() => handleQuickTaskStatus(task._id, 'COMPLETED')}
-                                className="px-2.5 py-1 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700 font-medium"
-                              >
-                                Complete
-                              </button>
-                            )}
-                            {task.status === 'TODO' && (
-                              <button
-                                onClick={() => handleQuickTaskStatus(task._id, 'IN_PROGRESS')}
-                                className="px-2.5 py-1 text-xs rounded border hover:bg-muted font-medium"
-                              >
-                                Start
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {task.description && <p className="text-[11px] text-muted-foreground mt-0.5">{task.description}</p>}
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">
+                          {task.dueDate && (
+                            <span className="flex items-center">
+                              <Calendar className="w-3 h-3 mr-1" /> Due {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                          )}
+                          {task.assignedUserId && (
+                            <span className="flex items-center">
+                              <UserIcon className="w-3 h-3 mr-1" /> {task.assignedUserId.firstName} {task.assignedUserId.lastName}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    No tasks found matching criteria.
-                  </div>
+                  <div className="p-6 text-center text-xs text-muted-foreground">No tasks matching criteria.</div>
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* Tab: Material Dispatch */}
+      {/* Tab 2: Material Dispatch */}
       {activeTab === 'dispatch' && (
         <MaterialDispatchTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
-      {/* Tab: Installation Checklist */}
+      {/* Tab 3: Site Installation */}
       {activeTab === 'checklist' && (
         <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
-      {/* Tab: Net Metering */}
-      {activeTab === 'net-metering' && (
-        <NetMeteringTab projectId={project._id} isTerminal={isTerminal} />
-      )}
-
-      {/* Tab: Subsidy Tracking */}
-      {activeTab === 'subsidy' && <SubsidyTab projectId={project._id} isTerminal={isTerminal} />}
-
-      {/* Tab: Service, Warranties & AMC */}
-      {activeTab === 'service-amc' && (
-        <ServiceAmcTab projectId={project._id} isTerminal={isTerminal} />
-      )}
-
-      {/* Tab: Project Costing & Profitability */}
-      {activeTab === 'costing' && <ProjectCostingTab projectId={project._id} />}
-
-      {/* Tab 4: Stage History & Activity */}
-      {activeTab === 'history' && (
+      {/* Tab 4: DISCOM & Subsidy (Unified statutory compliance hub) */}
+      {activeTab === 'compliance' && (
         <div className="space-y-4">
-          <h2 className="text-base font-bold text-foreground">
-            Lifecycle & Stage Transition History
-          </h2>
-          <div className="bg-card border rounded-xl p-5 shadow-sm">
-            {project.stageHistory && project.stageHistory.length > 0 ? (
-              <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
-                {project.stageHistory.map((item, idx) => {
-                  const stageInfo = getStageDisplayInfo(item.stage);
-                  return (
-                    <div key={idx} className="relative flex items-start space-x-4 pl-8">
-                      <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
-                      <div className="bg-muted/40 p-3 rounded-lg flex-1 border text-sm space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">
-                            {stageInfo?.fullName || item.stage}
-                          </span>
-                          <span className="text-xs text-muted-foreground flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {new Date(item.transitionedAt).toLocaleString()}
-                          </span>
-                        </div>
-                        {item.transitionedBy && (
-                          <div className="text-xs text-muted-foreground">
-                            Updated by {item.transitionedBy.firstName}{' '}
-                            {item.transitionedBy.lastName} ({item.transitionedBy.email})
-                          </div>
-                        )}
-                        {item.notes && (
-                          <p className="text-xs text-foreground bg-background p-2 rounded">
-                            {item.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No historical transitions recorded yet.
-              </p>
-            )}
+          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
+            <button
+              onClick={() => setComplianceSubTab('net-metering')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                complianceSubTab === 'net-metering'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-solar-600" />
+              <span>DISCOM Net Metering</span>
+            </button>
+            <button
+              onClick={() => setComplianceSubTab('subsidy')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                complianceSubTab === 'subsidy'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Landmark className="w-3.5 h-3.5 text-solar-600" />
+              <span>PM Surya Ghar Subsidy Claim</span>
+            </button>
           </div>
+
+          {complianceSubTab === 'net-metering' && (
+            <NetMeteringTab projectId={project._id} isTerminal={isTerminal} />
+          )}
+
+          {complianceSubTab === 'subsidy' && (
+            <SubsidyTab projectId={project._id} isTerminal={isTerminal} />
+          )}
+        </div>
+      )}
+
+      {/* Tab 5: Costing, AMC & Audit History */}
+      {activeTab === 'financials' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
+            <button
+              onClick={() => setFinancialsSubTab('costing')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                financialsSubTab === 'costing'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <IndianRupee className="w-3.5 h-3.5 text-solar-600" />
+              <span>Costing & Profitability</span>
+            </button>
+            <button
+              onClick={() => setFinancialsSubTab('service-amc')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                financialsSubTab === 'service-amc'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <LifeBuoy className="w-3.5 h-3.5 text-solar-600" />
+              <span>Service & AMC</span>
+            </button>
+            <button
+              onClick={() => setFinancialsSubTab('history')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                financialsSubTab === 'history'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <History className="w-3.5 h-3.5 text-solar-600" />
+              <span>Stage Audit History ({project.stageHistory?.length || 0})</span>
+            </button>
+          </div>
+
+          {financialsSubTab === 'costing' && (
+            <ProjectCostingTab projectId={project._id} />
+          )}
+
+          {financialsSubTab === 'service-amc' && (
+            <ServiceAmcTab projectId={project._id} isTerminal={isTerminal} />
+          )}
+
+          {financialsSubTab === 'history' && (
+            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+              <h2 className="text-base font-bold text-foreground">
+                Lifecycle & Stage Transition History
+              </h2>
+              {project.stageHistory && project.stageHistory.length > 0 ? (
+                <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
+                  {project.stageHistory.map((item, idx) => {
+                    const stageInfo = getStageDisplayInfo(item.stage);
+                    return (
+                      <div key={idx} className="relative flex items-start space-x-4 pl-8">
+                        <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
+                        <div className="bg-muted/40 p-3 rounded-lg flex-1 border text-sm space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground">
+                              {stageInfo?.fullName || item.stage}
+                            </span>
+                            <span className="text-xs text-muted-foreground flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {new Date(item.transitionedAt).toLocaleString()}
+                            </span>
+                          </div>
+                          {item.transitionedBy && (
+                            <div className="text-xs text-muted-foreground">
+                              Updated by {item.transitionedBy.firstName}{' '}
+                              {item.transitionedBy.lastName} ({item.transitionedBy.email})
+                            </div>
+                          )}
+                          {item.notes && (
+                            <p className="text-xs text-foreground bg-background p-2 rounded">
+                              {item.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No historical transitions recorded yet.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1542,6 +1527,12 @@ export const ProjectDetailPage: React.FC = () => {
               <span className="font-semibold text-solar-600">{targetStatus}</span>?
             </p>
 
+            {statusModalError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs font-semibold">
+                {statusModalError}
+              </div>
+            )}
+
             {['ON_HOLD', 'CANCELLED'].includes(targetStatus) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">
@@ -1550,7 +1541,10 @@ export const ProjectDetailPage: React.FC = () => {
                 <textarea
                   rows={3}
                   value={statusReason}
-                  onChange={e => setStatusReason(e.target.value)}
+                  onChange={e => {
+                    setStatusReason(e.target.value);
+                    if (statusModalError) setStatusModalError(null);
+                  }}
                   placeholder={`Provide mandatory operational justification for ${targetStatus}...`}
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground focus:ring-2 focus:ring-solar-500"
                   required
@@ -1561,7 +1555,10 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="flex justify-end space-x-2 pt-2">
               <button
                 type="button"
-                onClick={() => setStatusModalOpen(false)}
+                onClick={() => {
+                  setStatusModalOpen(false);
+                  setStatusModalError(null);
+                }}
                 className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
               >
                 Cancel
@@ -1584,6 +1581,13 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
           <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Advance Installation Stage</h3>
+            
+            {stageModalError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs font-semibold">
+                {stageModalError}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">
@@ -1633,7 +1637,10 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="flex justify-end space-x-2 pt-2">
               <button
                 type="button"
-                onClick={() => setStageModalOpen(false)}
+                onClick={() => {
+                  setStageModalOpen(false);
+                  setStageModalError(null);
+                }}
                 className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
               >
                 Cancel
@@ -1665,6 +1672,12 @@ export const ProjectDetailPage: React.FC = () => {
               <span className="font-semibold text-foreground">{selectedMilestone.name}</span>
             </p>
 
+            {milestoneModalError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs font-semibold">
+                {milestoneModalError}
+              </div>
+            )}
+
             {milestoneTargetStatus === 'BLOCKED' && (
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">
@@ -1673,7 +1686,10 @@ export const ProjectDetailPage: React.FC = () => {
                 <textarea
                   rows={3}
                   value={milestoneBlockerReason}
-                  onChange={e => setMilestoneBlockerReason(e.target.value)}
+                  onChange={e => {
+                    setMilestoneBlockerReason(e.target.value);
+                    if (milestoneModalError) setMilestoneModalError(null);
+                  }}
                   placeholder="Specify blocker reason (e.g., DISCOM approval pending, site access denied)..."
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                   required
@@ -1684,7 +1700,10 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="flex justify-end space-x-2 pt-2">
               <button
                 type="button"
-                onClick={() => setMilestoneStatusModalOpen(false)}
+                onClick={() => {
+                  setMilestoneStatusModalOpen(false);
+                  setMilestoneModalError(null);
+                }}
                 className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
               >
                 Cancel
@@ -1707,6 +1726,13 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
           <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Add Custom Milestone</h3>
+
+            {milestoneModalError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs font-semibold">
+                {milestoneModalError}
+              </div>
+            )}
+
             <form onSubmit={handleAddMilestone} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">
@@ -1773,7 +1799,10 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="flex justify-end space-x-2 pt-3">
                 <button
                   type="button"
-                  onClick={() => setAddMilestoneModalOpen(false)}
+                  onClick={() => {
+                    setAddMilestoneModalOpen(false);
+                    setMilestoneModalError(null);
+                  }}
                   className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
                 >
                   Cancel
@@ -1796,6 +1825,13 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
           <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-foreground">Create Project Task</h3>
+
+            {taskModalError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs font-semibold">
+                {taskModalError}
+              </div>
+            )}
+
             <form onSubmit={handleAddTask} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-foreground block mb-1">
@@ -1875,7 +1911,10 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="flex justify-end space-x-2 pt-3">
                 <button
                   type="button"
-                  onClick={() => setAddTaskModalOpen(false)}
+                  onClick={() => {
+                    setAddTaskModalOpen(false);
+                    setTaskModalError(null);
+                  }}
                   className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
                 >
                   Cancel

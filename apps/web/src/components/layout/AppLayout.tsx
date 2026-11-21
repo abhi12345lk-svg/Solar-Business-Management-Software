@@ -66,18 +66,18 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Projects & Field Execution',
     items: [
+      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
       { to: '/projects', label: 'EPC Projects Pipeline', icon: FolderKanban },
       { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
-      { to: '/solar-designs', label: 'Solar PV Sizing & CAD', icon: Sun },
       { to: '/net-metering', label: 'Net Metering & DISCOM', icon: Zap }
     ]
   },
   {
     title: 'Procurement & Supply Chain',
     items: [
-      { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes },
+      { to: '/vendors', label: 'Vendor Directory', icon: Building2 },
       { to: '/purchase-orders', label: 'Purchase Orders (PO)', icon: FileText },
-      { to: '/vendors', label: 'Vendor Directory', icon: Building2 }
+      { to: '/inventory', label: 'Inventory & Stock Levels', icon: Boxes }
     ]
   },
   {
@@ -100,7 +100,7 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
 
 const SALES_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Commercial & Sales',
+    title: 'Commercial & Sales Pipeline',
     items: [
       { to: '/', label: 'Sales Overview', icon: LayoutDashboard },
       { to: '/leads', label: 'Lead Management', icon: Users },
@@ -124,7 +124,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     title: 'Customer Billing (Inflow)',
     items: [
       { to: '/payments', label: 'Payment Collections', icon: CreditCard },
-      { to: '/subsidies', label: 'Govt Subsidy (DBT)', icon: Landmark }
+      { to: '/subsidies', label: 'Govt Subsidies (DBT)', icon: Landmark }
     ]
   },
   {
@@ -140,64 +140,76 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Field Installation Workflow',
     items: [
-      { to: '/customers', label: 'Site List', icon: MapPin },
-      { to: '/site-photos', label: 'Site Photos', icon: Camera },
-      { to: '/documents', label: 'Site Documents', icon: FolderLock }
+      { to: '/customers', label: 'Assigned Site List', icon: MapPin },
+      { to: '/site-photos', label: 'Site Inspection Photos', icon: Camera },
+      { to: '/documents', label: 'Site Documents & JCR', icon: FolderLock }
     ]
   }
 ];
 
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
-    if (panel === PanelType.SALES) return { section: 'Commercial', title: 'Sales Overview' };
-    if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Finance Dashboard' };
-    return { section: 'Executive', title: 'Executive Dashboard' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Site List' };
+    if (panel === PanelType.SALES) return { section: 'Commercial & Sales', title: 'Sales Overview' };
+    if (panel === PanelType.ACCOUNTS) return { section: 'Billing & Finance', title: 'Finance Dashboard' };
+    return { section: 'Executive Console', title: 'Executive Dashboard' };
   }
   if (pathname.startsWith('/site-photos')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Inspection Photos' };
-    return { section: 'Projects & Execution', title: 'Site Inspection Photos' };
+    return { section: 'Projects & Field Execution', title: 'Site Inspection Photos' };
   }
   if (pathname.startsWith('/leads')) return { section: 'Commercial & Sales', title: 'Lead Management' };
   if (pathname.startsWith('/customers')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site List' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Site List' };
     return { section: 'Commercial & Sales', title: 'Customer Directory' };
   }
   if (pathname.startsWith('/follow-ups')) return { section: 'Commercial & Sales', title: 'Lead Management' };
   if (pathname.startsWith('/solar-designs'))
     return {
-      section: 'Projects & Execution',
+      section: 'Projects & Field Execution',
       title: 'Solar PV Sizing & CAD'
     };
   if (pathname.startsWith('/quotations')) return { section: 'Commercial & Sales', title: 'Quotation Proposals' };
-  if (pathname.startsWith('/orders')) return { section: 'Commercial & Sales', title: 'Sales Orders' };
+  if (pathname.startsWith('/orders')) return { section: 'Commercial & Sales', title: 'Confirmed Sales Orders' };
   if (pathname.startsWith('/projects')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
-    return { section: 'Projects & Execution', title: 'EPC Projects Pipeline' };
+    return { section: 'Projects & Field Execution', title: 'EPC Projects Pipeline' };
   }
-  if (pathname.startsWith('/net-metering')) return { section: 'Projects & Execution', title: 'Net Metering (DISCOM)' };
+  if (pathname.startsWith('/net-metering')) return { section: 'Projects & Field Execution', title: 'Net Metering (DISCOM)' };
   if (pathname.startsWith('/subsidies'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Inflow' : 'Billing & Finance', title: 'Govt Subsidy (DBT)' };
+    return {
+      section: panel === PanelType.ACCOUNTS ? 'Customer Billing (Inflow)' : 'Billing, Finance & Subsidies',
+      title: 'Govt Subsidies (DBT)'
+    };
   if (pathname.startsWith('/inventory')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Materials & Modules' };
-    return { section: 'Procurement & Supply', title: 'Inventory & Stock' };
+    return { section: 'Procurement & Supply Chain', title: 'Inventory & Stock Levels' };
   }
-  if (pathname.startsWith('/vendors')) return { section: 'Procurement & Supply', title: 'Vendors' };
-  if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement & Supply', title: 'Purchase Orders' };
-  if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement & Supply', title: 'Goods Receipts' };
+  if (pathname.startsWith('/vendors')) return { section: 'Procurement & Supply Chain', title: 'Vendor Directory' };
+  if (pathname.startsWith('/purchase-orders')) return { section: 'Procurement & Supply Chain', title: 'Purchase Orders (PO)' };
+  if (pathname.startsWith('/goods-receipts')) return { section: 'Procurement & Supply Chain', title: 'Goods Receipts' };
   if (pathname.startsWith('/vendor-invoices'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Outflow' : 'Billing & Finance', title: 'Equipment Purchase Bills' };
+    return {
+      section: panel === PanelType.ACCOUNTS ? 'Expenses & Payables (Outflow)' : 'Billing, Finance & Subsidies',
+      title: 'Equipment Purchase Bills'
+    };
   if (pathname.startsWith('/payments'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Inflow' : 'Billing & Finance', title: 'Payment Collections' };
+    return {
+      section: panel === PanelType.ACCOUNTS ? 'Customer Billing (Inflow)' : 'Billing, Finance & Subsidies',
+      title: 'Payment Collections'
+    };
   if (pathname.startsWith('/expenses'))
-    return { section: panel === PanelType.ACCOUNTS ? 'Outflow' : 'Billing & Finance', title: 'Site Expenses & Labor' };
-  if (pathname.startsWith('/service')) return { section: 'After-Sales & Team', title: 'Service Hub' };
-  if (pathname.startsWith('/complaints')) return { section: 'After-Sales & Team', title: 'Service Tickets' };
-  if (pathname.startsWith('/warranties')) return { section: 'After-Sales & Team', title: 'Asset Warranties' };
-  if (pathname.startsWith('/amc')) return { section: 'After-Sales & Team', title: 'AMC Contracts' };
-  if (pathname.startsWith('/service-visits')) return { section: 'After-Sales & Team', title: 'Field Visits' };
-  if (pathname.startsWith('/employees')) return { section: 'After-Sales & Team', title: 'Staff & Field Teams' };
-  if (pathname.startsWith('/teams')) return { section: 'After-Sales & Team', title: 'Field Crews' };
+    return {
+      section: panel === PanelType.ACCOUNTS ? 'Expenses & Payables (Outflow)' : 'Billing, Finance & Subsidies',
+      title: 'Site Expenses & Labor'
+    };
+  if (pathname.startsWith('/service')) return { section: 'After-Sales & Organization', title: 'Service & Maintenance Hub' };
+  if (pathname.startsWith('/complaints')) return { section: 'After-Sales & Organization', title: 'Service Tickets' };
+  if (pathname.startsWith('/warranties')) return { section: 'After-Sales & Organization', title: 'Asset Warranties' };
+  if (pathname.startsWith('/amc')) return { section: 'After-Sales & Organization', title: 'AMC Contracts' };
+  if (pathname.startsWith('/service-visits')) return { section: 'After-Sales & Organization', title: 'Field Visits' };
+  if (pathname.startsWith('/employees')) return { section: 'After-Sales & Organization', title: 'Staff & Field Teams' };
+  if (pathname.startsWith('/teams')) return { section: 'After-Sales & Organization', title: 'Field Crews' };
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'Commercial & Sales', title: 'Generate Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
@@ -320,22 +332,22 @@ export const AppLayout: React.FC = () => {
               />
               <span className="text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase truncate">
                 {activePanel === PanelType.ADMIN
-                  ? 'Executive Console'
+                  ? 'Admin Panel'
                   : activePanel === PanelType.SALES
-                    ? 'Commercial & CRM'
+                    ? 'Sales Panel'
                     : activePanel === PanelType.INSTALLER
-                      ? 'Field Operations'
-                      : 'Finance & Accounts'}
+                      ? 'Installer Panel'
+                      : 'Accounts Panel'}
               </span>
             </div>
             <div className="text-xs font-semibold text-foreground tracking-tight mt-0.5 truncate">
               {activePanel === PanelType.ADMIN
-                ? 'EPC Operations & Oversight'
+                ? 'Management & Operations'
                 : activePanel === PanelType.SALES
-                  ? 'Leads, Proposals & Bookings'
+                  ? 'Leads, Quotations & Orders'
                   : activePanel === PanelType.INSTALLER
-                    ? 'Rooftop Installation & Commissioning'
-                    : 'Billing, Milestones & Expenses'}
+                    ? 'Site Photos & Installation'
+                    : 'Payments, Subsidies & Invoices'}
             </div>
           </div>
         ) : (
