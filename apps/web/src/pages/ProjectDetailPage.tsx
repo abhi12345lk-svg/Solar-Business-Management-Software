@@ -36,11 +36,14 @@ import {
   Truck,
   ClipboardCheck,
   Landmark,
-  IndianRupee
+  IndianRupee,
+  Camera,
+  LifeBuoy
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
 import { InstallationChecklistTab } from '../components/project/InstallationChecklistTab.js';
+import { ProjectSitePhotosTab } from '../components/project/ProjectSitePhotosTab.js';
 import { NetMeteringTab } from '../components/project/NetMeteringTab.js';
 import { SubsidyTab } from '../components/project/SubsidyTab.js';
 import { ProjectCostingTab } from '../components/project/ProjectCostingTab.js';
@@ -253,6 +256,9 @@ export const ProjectDetailPage: React.FC = () => {
   const [financialsSubTab, setFinancialsSubTab] = useState<'costing' | 'history'>(
     urlTab === 'history' ? 'history' : 'costing'
   );
+  const [installationSubTab, setInstallationSubTab] = useState<'checklist' | 'photos'>(
+    urlTab === 'photos' ? 'photos' : 'checklist'
+  );
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -299,6 +305,27 @@ export const ProjectDetailPage: React.FC = () => {
   });
   const [addTaskSubmitting, setAddTaskSubmitting] = useState(false);
   const [taskModalError, setTaskModalError] = useState<string | null>(null);
+
+  // AMC Initialization
+  const [initializingAmc, setInitializingAmc] = useState(false);
+  const [amcInfo, setAmcInfo] = useState<string | null>(null);
+
+  const handleInitializeAmc = async () => {
+    if (!id) return;
+    try {
+      setInitializingAmc(true);
+      const res = await apiClient<any>(`/projects/${id}/initialize-amc`, {
+        method: 'POST'
+      });
+      const data = res?.data || res;
+      setAmcInfo(`Active: Contract #${data?.amcNumber || 'AMC-ACTIVE'} (4 Quarterly Visits Included)`);
+      setActionSuccess(`1st-Year Comprehensive AMC initialized: Contract #${data?.amcNumber || 'ACTIVE'}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to initialize AMC contract.');
+    } finally {
+      setInitializingAmc(false);
+    }
+  };
 
   // Fetch Project Detail
   const fetchProject = async () => {
@@ -931,16 +958,35 @@ export const ProjectDetailPage: React.FC = () => {
         )}
 
         {project.status === 'COMPLETED' && (
-          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-xs mt-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div>
-              <span className="font-bold text-emerald-900 dark:text-emerald-200">
-                Project Successfully Commissioned &amp; Handed Over
-              </span>
-              <p className="text-emerald-700 dark:text-emerald-300 text-[11px] mt-0.5">
-                All 5 stages (Design, Dispatch, Physical Installation, Net Metering &amp; Handover) are complete.
-              </p>
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mt-2">
+            <div className="flex items-center space-x-2.5">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div>
+                <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                  Project Successfully Commissioned &amp; Handed Over
+                </span>
+                <p className="text-emerald-700 dark:text-emerald-300 text-[11px] mt-0.5">
+                  All 5 stages (Design, Dispatch, Physical Installation, Net Metering &amp; Handover) are complete.
+                </p>
+                {amcInfo && (
+                  <p className="text-emerald-800 dark:text-emerald-300 font-semibold text-[11px] mt-1 flex items-center gap-1">
+                    <LifeBuoy className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{amcInfo}</span>
+                  </p>
+                )}
+              </div>
             </div>
+            {!amcInfo && (
+              <button
+                type="button"
+                onClick={handleInitializeAmc}
+                disabled={initializingAmc}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+              >
+                <LifeBuoy className="w-3.5 h-3.5" />
+                <span>{initializingAmc ? 'Initializing...' : 'Initialize 1st-Year AMC'}</span>
+              </button>
+            )}
           </div>
         )}
         {project.status === 'PLANNING' && (
@@ -1419,7 +1465,46 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* Tab 3: Site Installation */}
       {activeTab === 'checklist' && (
-        <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
+            <button
+              onClick={() => setInstallationSubTab('checklist')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                installationSubTab === 'checklist'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <ClipboardCheck className="w-3.5 h-3.5 text-solar-600" />
+              <span>Quality &amp; Safety Checklist</span>
+            </button>
+            <button
+              onClick={() => setInstallationSubTab('photos')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                installationSubTab === 'photos'
+                  ? 'bg-card text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5 text-solar-600" />
+              <span>Statutory DISCOM Site Photos</span>
+            </button>
+          </div>
+
+          {installationSubTab === 'checklist' && (
+            <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
+          )}
+
+          {installationSubTab === 'photos' && (
+            <ProjectSitePhotosTab
+              projectId={project._id}
+              customerId={(project.customerId as any)?._id || (project.customerId as any)?.id || project.customerId}
+              customerName={(project.customerId as any)?.name || (project.customerId as any)?.legalName}
+              projectCode={project.projectCode}
+              isTerminal={isTerminal}
+            />
+          )}
+        </div>
       )}
 
       {/* Tab 4: DISCOM & Subsidy (Unified statutory compliance hub) */}

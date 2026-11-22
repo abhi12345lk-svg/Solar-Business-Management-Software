@@ -23,7 +23,9 @@ export const createMaterialDispatchSchema = z.object({
   driverName: z.string().trim().max(100).optional(),
   driverPhone: z.string().trim().max(20).optional(),
   notes: z.string().trim().max(2000).optional(),
-  idempotencyKey: z.string().trim().max(100).optional()
+  idempotencyKey: z.string().trim().max(100).optional(),
+  overridePaymentBlock: z.boolean().optional().default(false),
+  overrideReason: z.string().trim().max(1000).optional()
 });
 
 export const cancelMaterialDispatchSchema = z.object({

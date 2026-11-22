@@ -18,13 +18,22 @@ import {
   SequenceEntityType,
   AuditAction,
   AuditOutcome,
-  ActorType
+  ActorType,
+  AmcPlanType,
+  AmcStatus,
+  AmcVisitCadence,
+  AmcBillingCadence,
+  AmcPaymentStatus,
+  MaterialDispatchStatus
 } from '@ins-solar/shared';
 import { Project, IProjectDocument } from '../models/Project.js';
 import { Customer } from '../models/Customer.js';
 import { SalesOrder } from '../models/SalesOrder.js';
 import { User } from '../models/User.js';
+import { InstallationModel } from '../models/Installation.js';
 import { ProjectInstallationChecklist } from '../models/ProjectInstallationChecklist.js';
+import { AnnualMaintenanceContract } from '../models/AnnualMaintenanceContract.js';
+import { MaterialDispatch } from '../models/MaterialDispatch.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
@@ -252,7 +261,10 @@ export class ProjectService {
   /**
    * 2. List Projects with Filters & Pagination
    */
-  public static async getProjects(filter: ProjectFilterInput): Promise<{
+  public static async getProjects(
+    filter: ProjectFilterInput,
+    userContext?: { userId?: string; role?: string }
+  ): Promise<{
     projects: IProjectDocument[];
     total: number;
     page: number;
@@ -333,6 +345,49 @@ export class ProjectService {
       query.$or = [{ name: searchRegex }, { projectCode: searchRegex }];
     }
 
+    if (
+      userContext?.userId &&
+      (userContext.role === UserRole.INSTALLATION_CREW ||
+        userContext.role === UserRole.TECHNICIAN)
+    ) {
+      const userObjId = new Types.ObjectId(userContext.userId);
+      const installationsForUser = await InstallationModel.find({
+        assignedInstallerId: userObjId
+      }).select('projectId');
+      const linkedProjectIds = installationsForUser
+        .map(i => i.projectId)
+        .filter(Boolean);
+
+      const installerScopeConditions: any[] = [
+        { teamMemberIds: userObjId },
+        { projectManagerId: userObjId }
+      ];
+      if (linkedProjectIds.length > 0) {
+        installerScopeConditions.push({ _id: { $in: linkedProjectIds } });
+      }
+
+      installerScopeConditions.push({
+        teamMemberIds: { $size: 0 },
+        currentStage: {
+          $in: [
+            ProjectStage.STAGE_3_SITE_INSTALLATION,
+            ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+            ProjectStage.STAGE_5_MODULE_DC_CABLING,
+            ProjectStage.STAGE_6_INVERTER_ACDB,
+            ProjectStage.STAGE_7_EARTHING_LIGHTNING,
+            ProjectStage.STAGE_8_TESTING_PRE_COMMISSION
+          ]
+        }
+      });
+
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: installerScopeConditions }];
+        delete query.$or;
+      } else {
+        query.$or = installerScopeConditions;
+      }
+    }
+
     const page = filter.page || 1;
     const limit = filter.limit || 20;
     const skip = (page - 1) * limit;
@@ -367,7 +422,8 @@ export class ProjectService {
    */
   public static async getProjectById(
     id: string,
-    customerScopeId?: string
+    customerScopeId?: string,
+    userContext?: { userId?: string; role?: string }
   ): Promise<IProjectDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw AppError.validation(`Invalid project ID '${id}'.`);
@@ -389,6 +445,42 @@ export class ProjectService {
     // Customer Isolation Check
     if (customerScopeId && project.customerId._id.toString() !== customerScopeId) {
       throw AppError.permissionDenied("Access denied: You cannot view another customer's project.");
+    }
+
+    // Installer Field Scoping Check
+    if (
+      userContext?.userId &&
+      (userContext.role === UserRole.INSTALLATION_CREW ||
+        userContext.role === UserRole.TECHNICIAN)
+    ) {
+      const userObjId = new Types.ObjectId(userContext.userId);
+      const isTeamMember = project.teamMemberIds?.some(
+        (m: any) => (m._id || m).toString() === userContext.userId
+      );
+      const isPM = (project.projectManagerId as any)?._id?.toString() === userContext.userId;
+
+      if (!isTeamMember && !isPM) {
+        const hasLinkedInstallation = await InstallationModel.exists({
+          projectId: project._id,
+          assignedInstallerId: userObjId
+        });
+        const isUnassignedFieldStage =
+          (!project.teamMemberIds || project.teamMemberIds.length === 0) &&
+          [
+            ProjectStage.STAGE_3_SITE_INSTALLATION,
+            ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+            ProjectStage.STAGE_5_MODULE_DC_CABLING,
+            ProjectStage.STAGE_6_INVERTER_ACDB,
+            ProjectStage.STAGE_7_EARTHING_LIGHTNING,
+            ProjectStage.STAGE_8_TESTING_PRE_COMMISSION
+          ].includes(project.currentStage as any);
+
+        if (!hasLinkedInstallation && !isUnassignedFieldStage) {
+          throw AppError.permissionDenied(
+            'Access denied: You are not assigned to this field installation project.'
+          );
+        }
+      }
     }
 
     return project;
@@ -844,5 +936,122 @@ export class ProjectService {
     });
 
     return project;
+  }
+
+  /**
+   * Initializes complimentary 1st-Year Comprehensive Annual Maintenance Contract (AMC)
+   * upon EPC project handover & commissioning.
+   */
+  public static async initializeFirstYearAmc(
+    projectId: string,
+    user: { userId: string; role: UserRole },
+    context?: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ) {
+    if (!Types.ObjectId.isValid(projectId)) {
+      throw AppError.validation(`Invalid project ID '${projectId}'.`);
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      throw AppError.notFound(`Project '${projectId}' not found.`);
+    }
+
+    // Check if active or pending AMC already exists for this project
+    const existing = await AnnualMaintenanceContract.findOne({
+      projectId: project._id,
+      status: { $ne: AmcStatus.CANCELLED }
+    });
+    if (existing) {
+      return existing;
+    }
+
+    // Derive covered hardware serial numbers from confirmed dispatches
+    const dispatches = await MaterialDispatch.find({
+      projectId: project._id,
+      status: MaterialDispatchStatus.DISPATCHED
+    }).lean();
+
+    const coveredEquipment: Array<{ productId?: any; serialNumber?: string; description: string }> = [];
+    for (const d of dispatches) {
+      for (const item of d.lineItems || []) {
+        if (item.serialNumbers && item.serialNumbers.length > 0) {
+          for (const sn of item.serialNumbers) {
+            coveredEquipment.push({
+              productId: item.productId,
+              serialNumber: sn,
+              description: `Installed Asset (S/N: ${sn})`
+            });
+          }
+        }
+      }
+    }
+
+    if (coveredEquipment.length === 0) {
+      coveredEquipment.push({
+        description: `${project.systemCapacityKwp || 5} kWp Rooftop Solar System & MMS Structure`
+      });
+    }
+
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    const seq = await SequenceService.generateNumber(SequenceEntityType.AMC_CONTRACT);
+
+    const amc = new AnnualMaintenanceContract({
+      amcNumber: seq.formattedNumber,
+      customerId: project.customerId,
+      projectId: project._id,
+      planType: AmcPlanType.COMPREHENSIVE,
+      capacityKwp: project.systemCapacityKwp || 5,
+      startDate,
+      endDate,
+      contractAmountPaise: 0, // Complimentary 1st year O&M
+      billingCadence: AmcBillingCadence.ANNUAL,
+      paymentStatus: AmcPaymentStatus.PAID,
+      visitCadence: AmcVisitCadence.QUARTERLY,
+      includedVisits: 4,
+      consumedVisits: 0,
+      chargeableVisits: 0,
+      coveredEquipment,
+      scopeOfWork:
+        'Complimentary 1st-Year Comprehensive O&M: 4 quarterly preventive inspections, module cleaning guidelines, electrical health check, inverter diagnostics, and priority breakdown response.',
+      slaCommitments: '24-48 business hours breakdown response; zero service visit labor charges.',
+      status: AmcStatus.ACTIVE,
+      approvedBy: new Types.ObjectId(user.userId),
+      approvedAt: new Date(),
+      statusHistory: [
+        {
+          status: AmcStatus.ACTIVE,
+          transitionedAt: new Date(),
+          transitionedBy: new Types.ObjectId(user.userId),
+          transitionedByName: 'System Auto-Commissioning',
+          notes: `Complimentary 1st-Year Comprehensive AMC initialized upon Project Handover (${project.projectCode}).`
+        }
+      ],
+      createdBy: new Types.ObjectId(user.userId)
+    });
+
+    await amc.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.AMC_CREATED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+      correlationId: context?.correlationId || `proj-amc-${projectId}`,
+      targetEntity: 'AnnualMaintenanceContract',
+      targetId: amc._id.toString(),
+      details: {
+        amcNumber: amc.amcNumber,
+        projectCode: project.projectCode,
+        capacityKwp: amc.capacityKwp,
+        includedVisits: amc.includedVisits,
+        status: amc.status
+      }
+    });
+
+    return amc;
   }
 }

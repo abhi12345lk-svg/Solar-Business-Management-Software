@@ -25,11 +25,16 @@ import { SubsidyPage } from './pages/SubsidyPage.js';
 import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
+import { CustomerInvoicesPage } from './pages/CustomerInvoicesPage.js';
 import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
 import { ExpensesPage } from './pages/ExpensesPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
 import { SitePhotosPage } from './pages/SitePhotosPage.js';
+import { ServiceHubPage } from './pages/ServiceHubPage.js';
+import { EmployeesPage } from './pages/EmployeesPage.js';
+import { TeamsPage } from './pages/TeamsPage.js';
+import { TasksPage } from './pages/TasksPage.js';
 import { ProtectedRoute } from './components/common/ProtectedRoute.js';
 
 export const App: React.FC = () => {
@@ -174,7 +179,7 @@ export const App: React.FC = () => {
           />
           <Route path="installations/*" element={<Navigate to="/site-photos" replace />} />
           <Route path="installations" element={<Navigate to="/site-photos" replace />} />
-          <Route path="installer" element={<Navigate to="/customers" replace />} />
+          <Route path="installer" element={<Navigate to="/projects" replace />} />
           <Route path="installation" element={<Navigate to="/site-photos" replace />} />
           <Route
             path="net-metering"
@@ -242,24 +247,16 @@ export const App: React.FC = () => {
           />
           <Route
             path="service"
-            element={<Navigate to="/" replace />}
+            element={
+              <ProtectedRoute>
+                <ServiceHubPage />
+              </ProtectedRoute>
+            }
           />
-          <Route
-            path="complaints"
-            element={<Navigate to="/" replace />}
-          />
-          <Route
-            path="warranties"
-            element={<Navigate to="/" replace />}
-          />
-          <Route
-            path="amc"
-            element={<Navigate to="/" replace />}
-          />
-          <Route
-            path="service-visits"
-            element={<Navigate to="/" replace />}
-          />
+          <Route path="complaints" element={<Navigate to="/service?tab=tickets" replace />} />
+          <Route path="warranties" element={<Navigate to="/service?tab=warranties" replace />} />
+          <Route path="amc" element={<Navigate to="/service?tab=amc" replace />} />
+          <Route path="service-visits" element={<Navigate to="/service?tab=visits" replace />} />
           <Route
             path="customer-portal/service"
             element={
@@ -281,6 +278,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CustomerPortalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customer-invoices"
+            element={
+              <ProtectedRoute>
+                <CustomerInvoicesPage />
               </ProtectedRoute>
             }
           />
@@ -310,15 +315,27 @@ export const App: React.FC = () => {
           />
           <Route
             path="employees"
-            element={<Navigate to="/" replace />}
+            element={
+              <ProtectedRoute>
+                <EmployeesPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="teams"
-            element={<Navigate to="/" replace />}
+            element={
+              <ProtectedRoute>
+                <TeamsPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="tasks"
-            element={<Navigate to="/" replace />}
+            element={
+              <ProtectedRoute>
+                <TasksPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="create-document"

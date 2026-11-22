@@ -3,6 +3,7 @@ import {
   CreateVendorInvoiceInput,
   ReconcileVendorInvoiceInput,
   VendorInvoiceStatus,
+  GoodsReceiptStatus,
   AuditAction,
   AuditOutcome,
   ActorType,
@@ -11,6 +12,7 @@ import {
 import { VendorInvoice, IVendorInvoiceDocument } from '../models/VendorInvoice.js';
 import { Vendor } from '../models/Vendor.js';
 import { PurchaseOrder } from '../models/PurchaseOrder.js';
+import { GoodsReceipt } from '../models/GoodsReceipt.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
 
@@ -63,20 +65,50 @@ export class VendorInvoiceService {
     let status = VendorInvoiceStatus.RECORDED;
     let discrepancyAmountPaise = 0;
     let reconciliationNotes = '';
+    let grnIds: Types.ObjectId[] = input.goodsReceiptIds?.map(id => new Types.ObjectId(id)) || [];
 
     if (po) {
-      // Calculate expected payable from PO
-      const expectedTotalPaise = po.totalAmountPaise;
-      const difference = input.totalAmountPaise - expectedTotalPaise;
+      // 3-Way Match Check: Inspect physical Goods Receipt Notes (GRN)
+      const goodsReceipts = await GoodsReceipt.find({
+        purchaseOrderId: po._id,
+        status: GoodsReceiptStatus.COMPLETED
+      });
 
-      if (Math.abs(difference) > 0) {
-        status = VendorInvoiceStatus.DISPUTED;
-        discrepancyAmountPaise = Math.abs(difference);
-        reconciliationNotes = `3-Way Match Discrepancy: Invoice amount (₹${(input.totalAmountPaise / 100).toFixed(2)}) differs from PO amount (₹${(expectedTotalPaise / 100).toFixed(2)}) by ₹${(discrepancyAmountPaise / 100).toFixed(2)}. Flagged for manual accountant review.`;
+      if (goodsReceipts.length > 0) {
+        grnIds = goodsReceipts.map(g => g._id);
+
+        let totalAcceptedSubtotalPaise = 0;
+        for (const poLine of po.lineItems || []) {
+          const acceptedQty = goodsReceipts.reduce((sum, grn) => {
+            const grnLine = grn.lineItems.find(
+              l => l.productId.toString() === poLine.productId.toString()
+            );
+            return sum + (grnLine?.acceptedQuantity || 0);
+          }, 0);
+          totalAcceptedSubtotalPaise += acceptedQty * (poLine.unitPricePaise || 0);
+        }
+
+        const poSubtotal = po.subtotalPaise || 1;
+        const acceptedRatio = Math.min(1, totalAcceptedSubtotalPaise / poSubtotal);
+        const expectedTaxPaise = Math.round((po.totalTaxPaise || 0) * acceptedRatio);
+        const expectedAcceptedTotalPaise = totalAcceptedSubtotalPaise + expectedTaxPaise;
+
+        const difference = input.totalAmountPaise - expectedAcceptedTotalPaise;
+
+        if (difference > 100) {
+          status = VendorInvoiceStatus.DISPUTED;
+          discrepancyAmountPaise = difference;
+          reconciliationNotes = `3-Way Match Discrepancy: Invoiced amount (₹${(input.totalAmountPaise / 100).toFixed(2)}) exceeds accepted warehouse receipts value (₹${(expectedAcceptedTotalPaise / 100).toFixed(2)}) by ₹${(discrepancyAmountPaise / 100).toFixed(2)}. Flagged for accountant review.`;
+        } else {
+          status = VendorInvoiceStatus.RECONCILED;
+          reconciliationNotes =
+            '3-Way Match successful: Invoice totals match physical warehouse GRN accepted receipts and approved PO terms.';
+        }
       } else {
-        status = VendorInvoiceStatus.RECONCILED;
-        reconciliationNotes =
-          '3-Way Match successful: Invoice totals perfectly match approved Purchase Order commercial terms.';
+        // No goods receipts recorded yet for this PO
+        status = VendorInvoiceStatus.DISPUTED;
+        discrepancyAmountPaise = input.totalAmountPaise;
+        reconciliationNotes = `3-Way Match Pending: No Goods Receipt Notes (GRN) recorded for PO ${po.poNumber}. Supplier bill cannot be reconciled until physical delivery is verified in warehouse.`;
       }
     }
 
@@ -84,7 +116,8 @@ export class VendorInvoiceService {
       vendorInvoiceNumber: input.vendorInvoiceNumber.trim(),
       vendorId: vendor._id,
       purchaseOrderId: po?._id,
-      goodsReceiptIds: input.goodsReceiptIds?.map(id => new Types.ObjectId(id)) || [],
+      projectId: po?.projectId || (input as any).projectId || undefined,
+      goodsReceiptIds: grnIds,
       invoiceDate: new Date(input.invoiceDate),
       dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
       subtotalPaise: input.subtotalPaise,
@@ -317,10 +350,17 @@ export class VendorInvoiceService {
       throw AppError.notFound('Vendor Invoice not found.');
     }
 
-    const payAmt = Math.min(input.amountPaise, invoice.balancePayablePaise);
-    if (payAmt <= 0) {
+    if (invoice.balancePayablePaise <= 0) {
       throw AppError.validation('Invoice has no outstanding balance payable.');
     }
+
+    if (input.amountPaise > invoice.balancePayablePaise) {
+      throw AppError.validation(
+        `Disbursement amount (₹${(input.amountPaise / 100).toFixed(2)}) exceeds remaining balance payable (₹${(invoice.balancePayablePaise / 100).toFixed(2)}).`
+      );
+    }
+
+    const payAmt = input.amountPaise;
 
     invoice.paidAmountPaise += payAmt;
     invoice.balancePayablePaise = Math.max(0, invoice.totalAmountPaise - invoice.paidAmountPaise);

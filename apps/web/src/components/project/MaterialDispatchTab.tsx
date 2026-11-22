@@ -14,12 +14,15 @@ import {
   Plus,
   PackageCheck,
   AlertCircle,
+  AlertTriangle,
   RotateCcw,
   Calendar,
   ShieldAlert,
   X
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.js';
+import { useAuth } from '../../context/AuthContext.js';
+import { UserRole } from '@ins-solar/shared';
 
 interface MaterialSummaryItem {
   productId: string;
@@ -106,6 +109,18 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
+  // Pre-dispatch Payment Guard & Override State
+  let user: any = null;
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+  } catch {}
+  const canOverride = !user || [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DEPARTMENT_HEAD].includes(user.role as any);
+
+  const [overridePaymentBlock, setOverridePaymentBlock] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -143,6 +158,9 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
   }, [projectId]);
 
   const handleOpenCreateModal = () => {
+    setDispatchError(null);
+    setOverridePaymentBlock(false);
+    setOverrideReason('');
     if (warehouses.length > 0 && !sourceWarehouseId) {
       setSourceWarehouseId(warehouses[0]!._id);
     }
@@ -176,12 +194,18 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
 
   const handleCreateDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDispatchError(null);
     if (!sourceWarehouseId) {
-      alert('Please select a source warehouse.');
+      setDispatchError('Please select a source fulfillment warehouse.');
       return;
     }
     if (lines.length === 0) {
-      alert('At least one material line item is required.');
+      setDispatchError('At least one material line item is required.');
+      return;
+    }
+
+    if (overridePaymentBlock && overrideReason.trim().length < 10) {
+      setDispatchError('A comprehensive managerial reason (minimum 10 characters) is required to override the payment block.');
       return;
     }
 
@@ -205,7 +229,9 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
           driverName: driverName.trim() || undefined,
           driverPhone: driverPhone.trim() || undefined,
           notes: notes.trim() || undefined,
-          lineItems: lineItemsPayload
+          lineItems: lineItemsPayload,
+          overridePaymentBlock,
+          overrideReason: overridePaymentBlock ? overrideReason.trim() : undefined
         })
       });
 
@@ -214,9 +240,12 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
       setDriverName('');
       setDriverPhone('');
       setNotes('');
+      setOverridePaymentBlock(false);
+      setOverrideReason('');
+      setDispatchError(null);
       fetchData();
     } catch (err: any) {
-      alert(err?.message || 'Failed to issue material dispatch.');
+      setDispatchError(err?.message || 'Failed to issue material dispatch.');
     } finally {
       setSubmitting(false);
     }
@@ -673,6 +702,44 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
                 />
               </div>
+
+              {dispatchError && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-lg space-y-2.5">
+                  <div className="font-semibold flex items-start gap-1.5 leading-relaxed">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
+                    <span>{dispatchError}</span>
+                  </div>
+                  {canOverride && (
+                    <div className="pt-2 border-t border-destructive/20 space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer font-bold text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={overridePaymentBlock}
+                          onChange={e => setOverridePaymentBlock(e.target.checked)}
+                          className="rounded border-border text-solar-600 focus:ring-solar-500"
+                        />
+                        <span>Managerial Override: Authorize urgent material dispatch despite pending advance</span>
+                      </label>
+                      {overridePaymentBlock && (
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-muted-foreground block">
+                            Mandatory Managerial Reason (Minimum 10 characters):
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            minLength={10}
+                            value={overrideReason}
+                            onChange={e => setOverrideReason(e.target.value)}
+                            placeholder="e.g. Client verified cheque in transit / owner approved immediate dispatch"
+                            className="w-full text-xs rounded border border-border bg-background px-3 py-1.5 text-foreground"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-end space-x-2 pt-3 border-t">
                 <button

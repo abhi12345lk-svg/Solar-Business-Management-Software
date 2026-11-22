@@ -23,7 +23,9 @@ import {
   AuditAction,
   AuditOutcome,
   ActorType,
-  UserRole
+  UserRole,
+  NotificationRecipientType,
+  NotificationCategory
 } from '@ins-solar/shared';
 import { MaterialDispatch, IMaterialDispatchDocument } from '../models/MaterialDispatch.js';
 import { Project } from '../models/Project.js';
@@ -34,8 +36,11 @@ import { StockBalance } from '../models/StockBalance.js';
 import { StockMovement } from '../models/StockMovement.js';
 import { StockReservation } from '../models/StockReservation.js';
 import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
+import { User } from '../models/User.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
+import { PaymentService } from './paymentService.js';
+import { NotificationCenterService } from './notificationCenterService.js';
 import { AppError } from '../errors/AppError.js';
 
 export class MaterialDispatchService {
@@ -90,6 +95,95 @@ export class MaterialDispatchService {
     let order: any = null;
     if (project.orderId) {
       order = await SalesOrder.findById(project.orderId);
+    }
+
+    // Pre-dispatch payment verification if linked to sales order
+    let isPaymentOverride = false;
+    let paymentOverrideReason: string | undefined;
+    let paymentOverrideBy: Types.ObjectId | undefined;
+
+    if (order) {
+      const receivables = await PaymentService.getOrderReceivables(order._id.toString(), {
+        userId: user.userId,
+        role: user.role
+      });
+
+      // Default required advance milestone: milestone 0 percentage or 20%
+      const advancePercentage = order.paymentMilestones?.[0]?.percentage || 20;
+      const minRequiredPaise = Math.round((order.netTotalPaise * advancePercentage) / 100);
+      const allocatedPaise = receivables.allocatedAmountPaise || 0;
+
+      if (allocatedPaise < minRequiredPaise) {
+        if (!input.overridePaymentBlock) {
+          const shortFallRs = ((minRequiredPaise - allocatedPaise) / 100).toLocaleString('en-IN');
+          const advanceRs = (minRequiredPaise / 100).toLocaleString('en-IN');
+          const paidRs = (allocatedPaise / 100).toLocaleString('en-IN');
+          throw AppError.businessRule(
+            `Material dispatch is blocked: Minimum Booking Advance payment of ${advancePercentage}% (₹${advanceRs}) is required before factory goods can be dispatched. Total paid to date: ₹${paidRs} (Shortfall: ₹${shortFallRs}). Authorized Admins or Department Heads can provide an override reason to release urgent dispatch.`
+          );
+        }
+
+        // Validate override authorization: only SUPERADMIN, ADMIN, or DEPARTMENT_HEAD
+        const isAuthorizedToOverride = [
+          UserRole.SUPERADMIN,
+          UserRole.ADMIN,
+          UserRole.DEPARTMENT_HEAD
+        ].includes(user.role as any);
+
+        if (!isAuthorizedToOverride) {
+          throw AppError.permissionDenied(
+            'Only Administrator or Department Manager roles are authorized to override the material dispatch payment restriction.'
+          );
+        }
+
+        if (!input.overrideReason || input.overrideReason.trim().length < 10) {
+          throw AppError.businessRule(
+            'A comprehensive managerial reason (minimum 10 characters) is required to override the material dispatch payment restriction.'
+          );
+        }
+
+        isPaymentOverride = true;
+        paymentOverrideReason = input.overrideReason.trim();
+        paymentOverrideBy = new Types.ObjectId(user.userId);
+
+        // Audit the override immediately
+        await AuditService.recordEvent({
+          actorId: user.userId,
+          actorType: ActorType.EMPLOYEE,
+          action: AuditAction.MATERIAL_DISPATCH_OVERRIDDEN,
+          outcome: AuditOutcome.SUCCESS,
+          ipAddress: context?.ipAddress,
+          userAgent: context?.userAgent,
+          correlationId: context?.correlationId || 'dispatch-override',
+          details: {
+            projectId: project._id.toString(),
+            projectCode: project.projectCode,
+            orderId: order._id.toString(),
+            orderNumber: order.orderNumber,
+            allocatedPaise,
+            minRequiredPaise,
+            overrideReason: paymentOverrideReason
+          }
+        });
+
+        // Notify Accounts team
+        const accountsOfficers = await User.find({
+          $or: [{ role: UserRole.ACCOUNTS_OFFICER }, { department: 'ACCOUNTS' }],
+          isActive: true
+        }).select('_id');
+
+        for (const officer of accountsOfficers) {
+          await NotificationCenterService.createNotification({
+            recipientId: officer._id.toString(),
+            recipientType: NotificationRecipientType.EMPLOYEE,
+            category: NotificationCategory.PAYMENT,
+            eventType: 'DISPATCH_PAYMENT_OVERRIDDEN',
+            title: `⚠️ Pre-Dispatch Payment Overridden: ${project.projectCode}`,
+            message: `Materials for project ${project.projectCode} (Order ${order.orderNumber}) were dispatched with ₹${((minRequiredPaise - allocatedPaise) / 100).toLocaleString('en-IN')} pending advance payment. Overridden with reason: "${paymentOverrideReason}".`,
+            linkUrl: `/projects/${project._id}?tab=dispatch`
+          });
+        }
+      }
     }
 
     // Cumulative dispatch limits validation if order is present
@@ -309,6 +403,9 @@ export class MaterialDispatchService {
       driverName: input.driverName?.trim(),
       driverPhone: input.driverPhone?.trim(),
       notes: input.notes?.trim(),
+      isPaymentOverride,
+      paymentOverrideReason,
+      paymentOverrideBy,
       idempotencyKey: input.idempotencyKey?.trim()
     });
 

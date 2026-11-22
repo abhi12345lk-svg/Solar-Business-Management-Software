@@ -25,7 +25,7 @@ export const DashboardPage: React.FC = () => {
 
   // Field installation crew does not use an executive analytics dashboard -> route straight to field execution
   if (user?.role === UserRole.INSTALLATION_CREW || user?.department === Department.OPERATIONS) {
-    return <Navigate to="/customers" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   // Determine initial panel based on authenticated user's role and department

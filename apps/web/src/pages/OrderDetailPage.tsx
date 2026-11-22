@@ -19,7 +19,8 @@ import {
   Ban,
   FolderKanban,
   User,
-  CreditCard
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 
@@ -525,6 +526,15 @@ export const OrderDetailPage: React.FC = () => {
             <CreditCard className="w-3.5 h-3.5 mr-1.5" />
             <span>Record Payment / Milestones</span>
           </button>
+          {/* Customer Statutory GST Tax Invoice */}
+          <Link
+            to={`/customer-invoices?search=${encodeURIComponent(order.orderNumber)}`}
+            className="inline-flex items-center px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-colors shadow-xs"
+            title="View or Issue Statutory GST Tax Invoice"
+          >
+            <Receipt className="w-3.5 h-3.5 mr-1.5 text-solar-400" />
+            <span>Tax Invoice</span>
+          </Link>
           {order.status !== 'CANCELLED' &&
             (linkedProject ? (
               <Link

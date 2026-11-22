@@ -6,6 +6,7 @@ export interface IVendorInvoiceDocument extends Document {
   vendorInvoiceNumber: string;
   vendorId: Types.ObjectId;
   purchaseOrderId?: Types.ObjectId;
+  projectId?: Types.ObjectId;
   goodsReceiptIds: Types.ObjectId[];
   invoiceDate: Date;
   dueDate?: Date;
@@ -40,6 +41,11 @@ const VendorInvoiceSchema = new Schema<IVendorInvoiceDocument>(
     purchaseOrderId: {
       type: Schema.Types.ObjectId,
       ref: 'PurchaseOrder',
+      index: true
+    },
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Project',
       index: true
     },
     goodsReceiptIds: [

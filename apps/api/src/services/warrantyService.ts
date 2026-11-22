@@ -11,6 +11,8 @@ import {
   IProductSerialNumberDocument,
   WarrantyClaim,
   IWarrantyClaimDocument,
+  StockBalance,
+  StockMovement,
   Project,
   User
 } from '../models/index.js';
@@ -19,6 +21,8 @@ import {
   WarrantyType,
   WarrantyClaimStatus,
   WarrantyClaimResolution,
+  SerialNumberStatus,
+  StockMovementType,
   SequenceEntityType,
   AuditAction,
   AuditOutcome,
@@ -377,6 +381,30 @@ export class WarrantyService {
   /**
    * Records manufacturer/warranty decision (Approve, Reject, Replace, Settle).
    */
+  /**
+   * Retrieves in-stock serial numbers available in the warehouse for hardware warranty replacement.
+   */
+  public static async getAvailableReplacements(productId?: string, warehouseId?: string) {
+    const query: Record<string, any> = {
+      status: SerialNumberStatus.IN_STOCK
+    };
+    if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+      query.productId = new mongoose.Types.ObjectId(productId);
+    }
+    if (warehouseId && mongoose.Types.ObjectId.isValid(warehouseId)) {
+      query.warehouseId = new mongoose.Types.ObjectId(warehouseId);
+    }
+    return ProductSerialNumber.find(query)
+      .populate('productId', 'name productCode brand model')
+      .populate('warehouseId', 'name code')
+      .limit(50)
+      .lean();
+  }
+
+  /**
+   * Records manufacturer/warranty decision (Approve, Reject, Replace, Settle).
+   * Automatically executes atomic inventory deduction and serial progression when replacement is decided.
+   */
   public static async decideClaim(
     id: string,
     input: DecideClaimInput,
@@ -398,7 +426,87 @@ export class WarrantyService {
     claim.decisionNotes = input.decisionNotes.trim();
     claim.decisionBy = actor.userId ? new mongoose.Types.ObjectId(actor.userId) : undefined;
     if (input.resolutionType) claim.resolutionType = input.resolutionType;
-    if (input.replacementSerialNumber?.trim()) {
+
+    let replacementSn: string | undefined;
+    let replacementDoc: IProductSerialNumberDocument | null = null;
+
+    // Handle Hardware Replacement Synchronization with Inventory
+    const isReplacement =
+      input.status === WarrantyClaimStatus.REPLACED ||
+      input.resolutionType === WarrantyClaimResolution.REPLACEMENT;
+
+    if (isReplacement) {
+      if (!input.replacementSerialNumber || !input.replacementSerialNumber.trim()) {
+        throw AppError.validation(
+          'A valid in-stock replacement serial number is mandatory when approving a replacement warranty claim.'
+        );
+      }
+      replacementSn = input.replacementSerialNumber.trim().toUpperCase();
+      claim.replacementSerialNumber = replacementSn;
+
+      // Validate replacement serial number in inventory
+      replacementDoc = await ProductSerialNumber.findOne({ serialNumber: replacementSn });
+      if (!replacementDoc) {
+        throw AppError.notFound(
+          `Replacement serial number '${replacementSn}' does not exist in inventory.`
+        );
+      }
+
+      if (replacementDoc.status !== SerialNumberStatus.IN_STOCK) {
+        throw AppError.businessRule(
+          `Replacement serial number '${replacementSn}' is not available in warehouse stock (Current status: '${replacementDoc.status}'). Must be IN_STOCK.`
+        );
+      }
+
+      // 1. Decrement warehouse stock for replacement unit
+      if (replacementDoc.warehouseId) {
+        await StockBalance.findOneAndUpdate(
+          { productId: replacementDoc.productId, warehouseId: replacementDoc.warehouseId },
+          {
+            $inc: { onHandQuantity: -1, availableQuantity: -1 },
+            $set: { updatedAt: new Date() }
+          }
+        );
+      }
+
+      // 2. Allocate and activate replacement serial number for customer/project
+      replacementDoc.status = SerialNumberStatus.INSTALLED;
+      replacementDoc.customerId = claim.customerId;
+      replacementDoc.projectId = claim.projectId;
+      replacementDoc.warrantyStartDate = new Date();
+      replacementDoc.warrantyStatus = WarrantyStatus.ACTIVE;
+      replacementDoc.notes = `Issued as warranty replacement for defective unit ${claim.serialNumber} under Claim ${claim.claimNumber}`;
+      await replacementDoc.save();
+
+      // 3. Generate Compensating Stock Movements
+      const issueSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
+      const issueMovement = new StockMovement({
+        movementNumber: issueSeq.formattedNumber,
+        productId: replacementDoc.productId,
+        quantity: 1,
+        movementType: StockMovementType.ISSUE,
+        sourceWarehouseId: replacementDoc.warehouseId,
+        projectId: claim.projectId,
+        serialNumbers: [replacementSn],
+        performedBy: new mongoose.Types.ObjectId(actorId),
+        reason: `Warranty replacement issued for defective unit ${claim.serialNumber} (Claim: ${claim.claimNumber})`
+      });
+      await issueMovement.save();
+
+      const returnSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
+      const returnMovement = new StockMovement({
+        movementNumber: returnSeq.formattedNumber,
+        productId: claim.productId,
+        quantity: 1,
+        movementType: StockMovementType.RETURN,
+        destWarehouseId: replacementDoc.warehouseId,
+        projectId: claim.projectId,
+        serialNumbers: [claim.serialNumber],
+        performedBy: new mongoose.Types.ObjectId(actorId),
+        reason: `Defective hardware returned under warranty claim ${claim.claimNumber} (Quarantine RTV)`
+      });
+      await returnMovement.save();
+    } else if (input.replacementSerialNumber?.trim()) {
       claim.replacementSerialNumber = input.replacementSerialNumber.trim().toUpperCase();
     }
 
@@ -412,15 +520,17 @@ export class WarrantyService {
 
     await claim.save();
 
-    // Update corresponding serial number warranty status
+    // Update defective unit serial number status
     const serialDoc = await ProductSerialNumber.findOne({ serialNumber: claim.serialNumber });
     if (serialDoc) {
       if (input.status === WarrantyClaimStatus.APPROVED) {
         serialDoc.warrantyStatus = WarrantyStatus.CLAIM_APPROVED;
       } else if (input.status === WarrantyClaimStatus.REJECTED) {
         serialDoc.warrantyStatus = WarrantyStatus.CLAIM_REJECTED;
-      } else if (input.status === WarrantyClaimStatus.REPLACED) {
+      } else if (isReplacement) {
+        serialDoc.status = SerialNumberStatus.DEFECTIVE;
         serialDoc.warrantyStatus = WarrantyStatus.VOID; // Replaced unit is decommissioned/void
+        serialDoc.notes = `Defective hardware replaced by unit ${replacementSn} under Claim ${claim.claimNumber}`;
       }
       await serialDoc.save();
     }
@@ -436,7 +546,10 @@ export class WarrantyService {
       details: {
         claimNumber: claim.claimNumber,
         status: input.status,
-        resolutionType: input.resolutionType
+        resolutionType: input.resolutionType,
+        defectiveSerialNumber: claim.serialNumber,
+        replacementSerialNumber: replacementSn,
+        warehouseId: replacementDoc?.warehouseId?.toString()
       }
     });
 

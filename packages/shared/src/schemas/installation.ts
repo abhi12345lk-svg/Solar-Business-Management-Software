@@ -158,6 +158,7 @@ export const assignInstallationSchema = z.object({
 export const installationFilterSchema = z.object({
   status: z.nativeEnum(InstallationStatus).optional(),
   customerId: z.string().regex(OBJECT_ID_REGEX).optional(),
+  projectId: z.string().regex(OBJECT_ID_REGEX).optional(),
   installerId: z.string().regex(OBJECT_ID_REGEX).optional(),
   search: z.string().trim().optional(),
   startDate: z.string().optional(),

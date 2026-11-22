@@ -124,11 +124,11 @@ warrantyRouter.get(
 );
 
 /**
- * PATCH /api/v1/warranties/claims/:id/decide
+ * PATCH /api/v1/warranties/claims/:id/decide (or /decision)
  * Record manufacturer decision on warranty claim (Approve, Reject, Replace).
  */
 warrantyRouter.patch(
-  '/claims/:id/decide',
+  ['/claims/:id/decide', '/claims/:id/decision'],
   requirePermission('warranty:claim_decide'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -144,6 +144,27 @@ warrantyRouter.patch(
       });
 
       return sendSuccess(req, res, claim);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/warranties/replacements/available
+ * Retrieve in-stock serial numbers available in warehouse for warranty replacement.
+ */
+warrantyRouter.get(
+  '/replacements/available',
+  requirePermission('warranty:read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { productId, warehouseId } = req.query;
+      const items = await WarrantyService.getAvailableReplacements(
+        productId as string,
+        warehouseId as string
+      );
+      return sendSuccess(req, res, items);
     } catch (err) {
       return next(err);
     }

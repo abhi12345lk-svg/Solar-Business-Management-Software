@@ -187,6 +187,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     e.preventDefault();
     try {
       setError(null);
+      setSuccessMsg(null);
       await apiClient('/net-metering', {
         method: 'POST',
         body: JSON.stringify({
@@ -205,6 +206,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setShowCreateModal(false);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to create application.');
     }
   };
@@ -213,6 +215,21 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     if (!selectedApp) return;
     try {
       setError(null);
+      setSuccessMsg(null);
+
+      // Helpful client-side validation check when marking Ready to Submit
+      if (status === 'READY_TO_SUBMIT') {
+        const missingDocs = (selectedApp.documents || []).filter(
+          d => d.isRequired && (!d.storageKey || d.status === 'REQUIRED' || d.status === 'REJECTED')
+        );
+        if (missingDocs.length > 0) {
+          setError(
+            `Cannot mark Ready to Submit: ${missingDocs.length} required document(s) must be uploaded first (${missingDocs.map(d => d.title).join(', ')}). You can attach them below or click "Auto-Attach Sample Docs (1-Click)".`
+          );
+          return;
+        }
+      }
+
       await apiClient(`/net-metering/${selectedApp._id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
@@ -220,6 +237,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setSuccessMsg(`Application status updated to ${status}.`);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to update application status.');
     }
   };
@@ -248,6 +266,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setSuccessMsg('All required documents attached and verified! You can now mark Ready to Submit.');
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err?.message || 'Failed to attach sample documents.');
     }
   };
@@ -257,6 +276,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     if (!selectedApp) return;
     try {
       setError(null);
+      setSuccessMsg(null);
       await apiClient(`/net-metering/${selectedApp._id}/schedule-inspection`, {
         method: 'POST',
         body: JSON.stringify({
@@ -270,6 +290,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setShowInspectionModal(false);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to schedule inspection.');
     }
   };
@@ -279,6 +300,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     if (!selectedApp) return;
     try {
       setError(null);
+      setSuccessMsg(null);
       await apiClient(`/net-metering/${selectedApp._id}/inspection-outcome`, {
         method: 'POST',
         body: JSON.stringify({
@@ -290,6 +312,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setShowOutcomeModal(false);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to record inspection outcome.');
     }
   };
@@ -299,6 +322,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     if (!selectedApp) return;
     try {
       setError(null);
+      setSuccessMsg(null);
       await apiClient(`/net-metering/${selectedApp._id}/meter-installation`, {
         method: 'POST',
         body: JSON.stringify({
@@ -314,6 +338,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setShowMeterModal(false);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to record meter installation.');
     }
   };
@@ -323,6 +348,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     if (!selectedApp || !uploadDocType) return;
     try {
       setError(null);
+      setSuccessMsg(null);
       const safeKey = `evidence/documents/net-metering/${selectedApp._id}/${uploadDocType}/${Date.now()}-${uploadFileForm.fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
       await apiClient(`/net-metering/${selectedApp._id}/documents`, {
         method: 'POST',
@@ -338,6 +364,7 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
       setShowUploadModal(false);
       await fetchApplications();
     } catch (err: any) {
+      setSuccessMsg(null);
       setError(err.message || 'Failed to upload document.');
     }
   };

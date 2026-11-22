@@ -940,6 +940,10 @@ export class InstallationService {
       conditions.push({ customerId: new Types.ObjectId(filter.customerId) });
     }
 
+    if (filter.projectId) {
+      conditions.push({ projectId: new Types.ObjectId(filter.projectId) });
+    }
+
     if (filter.search && filter.search.trim()) {
       const regex = new RegExp(filter.search.trim(), 'i');
       conditions.push({

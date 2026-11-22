@@ -66,7 +66,10 @@ projectRouter.get(
         return next(AppError.validation(parseResult.error));
       }
 
-      const result = await ProjectService.getProjects(parseResult.data);
+      const result = await ProjectService.getProjects(parseResult.data, {
+        userId: req.session.user?.userId,
+        role: req.session.user?.role
+      });
       return sendSuccess(req, res, result);
     } catch (err) {
       return next(err);
@@ -83,7 +86,14 @@ projectRouter.get(
   requirePermission('project:read'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const project = await ProjectService.getProjectById(req.params.id as string);
+      const project = await ProjectService.getProjectById(
+        req.params.id as string,
+        undefined,
+        {
+          userId: req.session.user?.userId,
+          role: req.session.user?.role
+        }
+      );
       return sendSuccess(req, res, project);
     } catch (err) {
       return next(err);
@@ -389,6 +399,34 @@ projectRouter.get(
         req.params.id as string
       );
       return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/projects/:id/initialize-amc
+ * Automatically initialize complimentary 1st-Year AMC contract upon project commissioning/handover.
+ */
+projectRouter.post(
+  '/:id/initialize-amc',
+  requirePermission('project:update'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const amc = await ProjectService.initializeFirstYearAmc(
+        req.params.id as string,
+        {
+          userId: req.session.user!.userId,
+          role: req.session.user!.role
+        },
+        {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          correlationId: (req.headers['x-correlation-id'] as string) || `proj-amc-${req.params.id}`
+        }
+      );
+      return sendSuccess(req, res, amc, 201);
     } catch (err) {
       return next(err);
     }

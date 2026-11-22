@@ -59,6 +59,19 @@ interface WarrantyClaimRecord {
   _id: string;
   claimNumber: string;
   serialNumber: string;
+  productId?: {
+    _id: string;
+    name?: string;
+    productCode?: string;
+  };
+  customerId?: {
+    _id: string;
+    name?: string;
+  };
+  projectId?: {
+    _id: string;
+    projectCode?: string;
+  };
   manufacturerName: string;
   issueDescription: string;
   status: string;
@@ -88,6 +101,7 @@ export const WarrantiesPage: React.FC = () => {
   const [selectedSerial, setSelectedSerial] = useState<WarrantyRecord | null>(null);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<WarrantyClaimRecord | null>(null);
+  const [availableReplacements, setAvailableReplacements] = useState<any[]>([]);
 
   // Form states
   const [claimForm, setClaimForm] = useState({
@@ -107,6 +121,19 @@ export const WarrantiesPage: React.FC = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+
+  const fetchAvailableReplacements = async (productId?: string) => {
+    try {
+      const url = productId
+        ? `/warranties/replacements/available?productId=${productId}`
+        : '/warranties/replacements/available';
+      const res = await apiClient<any>(url);
+      const items = res?.data || res || [];
+      setAvailableReplacements(Array.isArray(items) ? items : []);
+    } catch {
+      setAvailableReplacements([]);
+    }
+  };
 
   const fetchWarranties = useCallback(async () => {
     try {
@@ -592,6 +619,7 @@ export const WarrantiesPage: React.FC = () => {
                             onClick={() => {
                               setSelectedClaim(claim);
                               setShowDecisionModal(true);
+                              fetchAvailableReplacements(claim.productId?._id);
                             }}
                             className="px-2.5 py-1 rounded text-xs font-medium border hover:bg-secondary text-foreground"
                           >
@@ -809,19 +837,45 @@ export const WarrantiesPage: React.FC = () => {
               </div>
 
               {decisionForm.resolutionType === 'REPLACED_UNDER_WARRANTY' && (
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Replacement Hardware Serial Number
-                  </label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-muted-foreground">
+                      Replacement Hardware Serial Number *
+                    </label>
+                    {availableReplacements.length > 0 && (
+                      <span className="text-[10px] text-emerald-600 font-medium">
+                        {availableReplacements.length} in-stock available
+                      </span>
+                    )}
+                  </div>
+                  {availableReplacements.length > 0 && (
+                    <select
+                      value={decisionForm.replacementSerialNumber}
+                      onChange={e =>
+                        setDecisionForm({ ...decisionForm, replacementSerialNumber: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-md border bg-background font-mono text-xs focus:outline-none"
+                    >
+                      <option value="">-- Select In-Stock Serial from Warehouse --</option>
+                      {availableReplacements.map(item => (
+                        <option key={item._id} value={item.serialNumber}>
+                          {item.serialNumber} ({item.productId?.name || 'Unit'} — {item.warehouseId?.name || 'Warehouse'})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <input
                     type="text"
-                    placeholder="New equipment S/N from OEM"
+                    placeholder="Or enter replacement serial number manually..."
                     value={decisionForm.replacementSerialNumber}
                     onChange={e =>
                       setDecisionForm({ ...decisionForm, replacementSerialNumber: e.target.value })
                     }
-                    className="w-full px-3 py-2 rounded-md border bg-background font-mono focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md border bg-background font-mono text-xs focus:outline-none"
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    Assigning a replacement decrements warehouse stock and creates an audit movement automatically.
+                  </p>
                 </div>
               )}
 

@@ -12,6 +12,8 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.js';
+import { UserRole } from '@ins-solar/shared';
 
 interface ProjectListItem {
   _id: string;
@@ -358,6 +360,15 @@ export function ProjectsPage() {
 
   // Metrics (computed from allProjects so counts remain stable across tabs)
   const totalCount = allProjects.length;
+  let user: any = null;
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+  } catch {
+    // Safe fallback for testing harnesses outside AuthProvider
+  }
+  const isInstaller = user?.role === UserRole.INSTALLATION_CREW || user?.role === UserRole.TECHNICIAN;
+
   const inProgressCount = allProjects.filter(p => p.status === 'IN_PROGRESS').length;
   const planningCount = allProjects.filter(p => p.status === 'PLANNING').length;
   const completedCount = allProjects.filter(p => p.status === 'COMPLETED').length;
@@ -370,19 +381,23 @@ export function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <FolderKanban className="w-6 h-6 text-solar-600" />
-            <span>Projects</span>
+            <span>{isInstaller ? 'Assigned Field Projects' : 'Projects'}</span>
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track and manage solar rooftop installation projects.
+            {isInstaller
+              ? 'Authorized rooftop installation sites, bill of materials, dispatches, and commissioning checklists.'
+              : 'Track and manage solar rooftop installation projects.'}
           </p>
         </div>
-        <button
-          onClick={openNewProjectModal}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-solar-600 text-white font-medium text-sm hover:bg-solar-700 transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
+        {!isInstaller && (
+          <button
+            onClick={openNewProjectModal}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-solar-600 text-white font-medium text-sm hover:bg-solar-700 transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </button>
+        )}
       </div>
 
       {/* Sleek Filter & Search Toolbar */}

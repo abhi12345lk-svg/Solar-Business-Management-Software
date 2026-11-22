@@ -41,6 +41,9 @@ export interface IMaterialDispatchDocument extends Document {
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: Types.ObjectId;
+  isPaymentOverride?: boolean;
+  paymentOverrideReason?: string;
+  paymentOverrideBy?: Types.ObjectId;
   idempotencyKey?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -140,6 +143,12 @@ const MaterialDispatchSchema = new Schema<IMaterialDispatchDocument>(
     cancellationReason: { type: String, trim: true },
     cancelledAt: { type: Date },
     cancelledBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    isPaymentOverride: { type: Boolean, default: false },
+    paymentOverrideReason: { type: String, trim: true },
+    paymentOverrideBy: {
       type: Schema.Types.ObjectId,
       ref: 'User'
     },

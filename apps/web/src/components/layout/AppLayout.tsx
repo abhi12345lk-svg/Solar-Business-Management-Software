@@ -26,7 +26,9 @@ import {
   FolderLock,
   FilePlus2,
   Camera,
-  MapPin
+  LifeBuoy,
+  Wrench,
+  PackageCheck
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -75,16 +77,30 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/vendors', label: 'Vendors', icon: Building2 },
       { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck },
       { to: '/inventory', label: 'Inventory', icon: Boxes }
     ]
   },
   {
     title: 'Finance & Accounts',
     items: [
+      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt },
       { to: '/payments', label: 'Payments', icon: CreditCard },
       { to: '/subsidies', label: 'Subsidies', icon: Landmark },
-      { to: '/vendor-invoices', label: 'Vendor Bills', icon: Receipt },
+      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
       { to: '/expenses', label: 'Expenses', icon: TrendingUp }
+    ]
+  },
+  {
+    title: 'Service & Maintenance',
+    items: [
+      { to: '/service', label: 'Service & AMC', icon: LifeBuoy }
+    ]
+  },
+  {
+    title: 'Organization',
+    items: [
+      { to: '/employees', label: 'Employees', icon: Users }
     ]
   }
 ];
@@ -112,6 +128,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Billing & Inflow',
     items: [
+      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt },
       { to: '/payments', label: 'Payments', icon: CreditCard },
       { to: '/subsidies', label: 'Subsidies', icon: Landmark }
     ]
@@ -119,7 +136,7 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Bills & Expenses',
     items: [
-      { to: '/vendor-invoices', label: 'Vendor Bills', icon: Receipt },
+      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
       { to: '/expenses', label: 'Expenses', icon: TrendingUp }
     ]
   }
@@ -127,10 +144,11 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
 
 const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Installation',
+    title: 'Field Operations',
     items: [
-      { to: '/customers', label: 'Site List', icon: MapPin },
-      { to: '/site-photos', label: 'Site Photos', icon: Camera },
+      { to: '/projects', label: 'Assigned Projects', icon: FolderKanban },
+      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench },
+      { to: '/site-photos', label: 'Site Photos & Barcodes', icon: Camera },
       { to: '/documents', label: 'Site Documents', icon: FolderLock }
     ]
   }
@@ -138,25 +156,25 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Site List' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
     if (panel === PanelType.SALES) return { section: 'Sales', title: 'Dashboard' };
     if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Dashboard' };
     return { section: 'Overview', title: 'Dashboard' };
   }
   if (pathname.startsWith('/site-photos')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Site Photos' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Photos & Barcodes' };
     return { section: 'Projects', title: 'Site Photos' };
   }
   if (pathname.startsWith('/leads')) return { section: 'Sales', title: 'Leads' };
   if (pathname.startsWith('/customers')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Site List' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Customer Records' };
     return { section: 'Sales', title: 'Customers' };
   }
   if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
   if (pathname.startsWith('/quotations')) return { section: 'Sales', title: 'Quotations' };
   if (pathname.startsWith('/orders')) return { section: 'Sales', title: 'Orders' };
   if (pathname.startsWith('/projects')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Projects' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
     return { section: 'Projects', title: 'Projects' };
   }
   if (pathname.startsWith('/net-metering')) return { section: 'Projects', title: 'Net Metering' };
@@ -172,6 +190,11 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/vendors')) return { section: 'Inventory & Procurement', title: 'Vendors' };
   if (pathname.startsWith('/purchase-orders')) return { section: 'Inventory & Procurement', title: 'Purchase Orders' };
   if (pathname.startsWith('/goods-receipts')) return { section: 'Inventory & Procurement', title: 'Goods Receipts' };
+  if (pathname.startsWith('/customer-invoices'))
+    return {
+      section: panel === PanelType.ACCOUNTS ? 'Billing & Inflow' : 'Finance & Accounts',
+      title: 'Customer Invoices'
+    };
   if (pathname.startsWith('/vendor-invoices'))
     return {
       section: panel === PanelType.ACCOUNTS ? 'Bills & Expenses' : 'Finance & Accounts',
@@ -192,6 +215,13 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
     if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Site Documents' };
     return { section: 'Sales', title: 'Documents' };
+  }
+  if (pathname.startsWith('/service') || pathname.startsWith('/complaints') || pathname.startsWith('/service-visits') || pathname.startsWith('/warranties') || pathname.startsWith('/amc')) {
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Field Service Visits' };
+    return { section: 'Service & Maintenance', title: 'Service & AMC' };
+  }
+  if (pathname.startsWith('/employees') || pathname.startsWith('/teams') || pathname.startsWith('/tasks')) {
+    return { section: 'Organization', title: 'Employees & Team' };
   }
   if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };
   if (pathname.startsWith('/health')) return { section: 'System', title: 'System Health' };
