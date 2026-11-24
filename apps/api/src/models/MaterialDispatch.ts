@@ -38,6 +38,9 @@ export interface IMaterialDispatchDocument extends Document {
   driverName?: string;
   driverPhone?: string;
   notes?: string;
+  deliveredAt?: Date;
+  deliveredBy?: Types.ObjectId;
+  deliveryNotes?: string;
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: Types.ObjectId;
@@ -140,6 +143,12 @@ const MaterialDispatchSchema = new Schema<IMaterialDispatchDocument>(
     driverName: { type: String, trim: true },
     driverPhone: { type: String, trim: true },
     notes: { type: String, trim: true },
+    deliveredAt: { type: Date },
+    deliveredBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    deliveryNotes: { type: String, trim: true },
     cancellationReason: { type: String, trim: true },
     cancelledAt: { type: Date },
     cancelledBy: {

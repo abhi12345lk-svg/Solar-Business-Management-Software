@@ -35,6 +35,7 @@ export interface ISalesOrderDocument extends Document {
   quotationId: Types.ObjectId;
   quotationRevisionId: Types.ObjectId;
   solarDesignId?: Types.ObjectId;
+  projectId?: Types.ObjectId;
   orderDate: Date;
   status: OrderStatus;
   systemTopology: SolarTopology;
@@ -181,6 +182,12 @@ const SalesOrderSchema = new Schema<ISalesOrderDocument>(
       type: Schema.Types.ObjectId,
       ref: 'SolarDesign',
       default: null
+    },
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Project',
+      default: null,
+      index: true
     },
     orderDate: {
       type: Date,

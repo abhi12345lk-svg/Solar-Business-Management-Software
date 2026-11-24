@@ -27,6 +27,7 @@ export interface IPurchaseOrderDocument extends Document {
   poNumber: string;
   vendorId: Types.ObjectId;
   destinationWarehouseId: Types.ObjectId;
+  projectId?: Types.ObjectId;
   orderDate: Date;
   expectedDeliveryDate?: Date;
   lineItems: IPurchaseOrderLineItem[];
@@ -173,6 +174,12 @@ const PurchaseOrderSchema = new Schema<IPurchaseOrderDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Warehouse',
       required: true,
+      index: true
+    },
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Project',
+      default: null,
       index: true
     },
     orderDate: {

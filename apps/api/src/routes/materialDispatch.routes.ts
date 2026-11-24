@@ -142,3 +142,32 @@ materialDispatchRouter.post(
     }
   }
 );
+
+/**
+ * POST /api/v1/dispatches/:id/acknowledge
+ * Acknowledge receipt of dispatched equipment at project site by installation crew.
+ */
+materialDispatchRouter.post(
+  '/:id/acknowledge',
+  requirePermission('dispatch:read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      const dispatch = await MaterialDispatchService.acknowledgeDelivery(
+        req.params.id as string,
+        req.body,
+        user,
+        context
+      );
+      return sendSuccess(req, res, dispatch);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);

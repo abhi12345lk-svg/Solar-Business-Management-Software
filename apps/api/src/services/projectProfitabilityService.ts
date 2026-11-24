@@ -132,11 +132,11 @@ export class ProjectProfitabilityService {
 
     const entries: CostLedgerEntry[] = [];
 
-    // 1. Materials consumed from DISPATCHED material dispatches
+    // 1. Materials consumed from DISPATCHED or DELIVERED material dispatches
     // Note: Cancelled dispatches or draft dispatches are strictly excluded.
     const dispatches = await MaterialDispatch.find({
       projectId: project._id,
-      status: MaterialDispatchStatus.DISPATCHED
+      status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
     }).lean();
 
     const productIds = new Set<string>();

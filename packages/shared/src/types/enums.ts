@@ -563,6 +563,7 @@ export enum ProjectTaskStatus {
 export enum MaterialDispatchStatus {
   DRAFT = 'DRAFT',
   DISPATCHED = 'DISPATCHED',
+  DELIVERED = 'DELIVERED',
   CANCELLED = 'CANCELLED'
 }
 

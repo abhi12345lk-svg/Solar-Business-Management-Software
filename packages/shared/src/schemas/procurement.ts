@@ -86,6 +86,7 @@ export const poLineItemInputSchema = z.object({
 export const createPurchaseOrderSchema = z.object({
   vendorId: z.string().min(1, 'Vendor ID is required'),
   destinationWarehouseId: z.string().min(1, 'Destination warehouse ID is required'),
+  projectId: z.string().optional(),
   orderDate: z.string().or(z.date()).optional(),
   expectedDeliveryDate: z.string().or(z.date()).optional(),
   lineItems: z.array(poLineItemInputSchema).min(1, 'At least one line item is required'),
@@ -107,6 +108,7 @@ export const rejectPurchaseOrderSchema = z.object({
 
 export const poFilterSchema = PaginationQuerySchema.extend({
   vendorId: z.string().optional(),
+  projectId: z.string().optional(),
   status: z.nativeEnum(PurchaseOrderStatus).optional(),
   destinationWarehouseId: z.string().optional(),
   search: z.string().optional()

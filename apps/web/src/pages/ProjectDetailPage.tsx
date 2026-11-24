@@ -38,7 +38,8 @@ import {
   Landmark,
   IndianRupee,
   Camera,
-  LifeBuoy
+  LifeBuoy,
+  Printer
 } from 'lucide-react';
 import { apiClient } from '../lib/api.js';
 import { MaterialDispatchTab } from '../components/project/MaterialDispatchTab.js';
@@ -308,6 +309,84 @@ export const ProjectDetailPage: React.FC = () => {
 
   // AMC Initialization
   const [initializingAmc, setInitializingAmc] = useState(false);
+
+  // Assign Team & Edit Schedule Modal
+  const [assignTeamModalOpen, setAssignTeamModalOpen] = useState(false);
+  const [employeesList, setEmployeesList] = useState<any[]>([]);
+  const [assignPmId, setAssignPmId] = useState('');
+  const [assignTeamIds, setAssignTeamIds] = useState<string[]>([]);
+  const [editPriority, setEditPriority] = useState('');
+  const [editTargetDate, setEditTargetDate] = useState('');
+  const [editAddress, setEditAddress] = useState({
+    addressLine1: '',
+    city: '',
+    state: '',
+    postalCode: ''
+  });
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  const handleOpenAssignTeamModal = async () => {
+    setAssignError(null);
+    setAssignPmId((project?.projectManagerId as any)?._id || '');
+    setAssignTeamIds((project?.teamMemberIds || []).map((m: any) => m._id || m));
+    setEditPriority(project?.priority || 'MEDIUM');
+    setEditTargetDate(
+      project?.targetCompletionDate
+        ? new Date(project.targetCompletionDate).toISOString().split('T')[0]!
+        : ''
+    );
+    setEditAddress({
+      addressLine1: project?.siteAddress?.addressLine1 || '',
+      city: project?.siteAddress?.city || '',
+      state: project?.siteAddress?.state || '',
+      postalCode: project?.siteAddress?.postalCode || ''
+    });
+
+    try {
+      const res = await apiClient<any>('/employees?limit=100');
+      const emps = res?.items || res?.employees || (Array.isArray(res) ? res : []);
+      setEmployeesList(emps);
+    } catch {
+      // fallback
+    }
+
+    setAssignTeamModalOpen(true);
+  };
+
+  const handleSaveTeamAndSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+    try {
+      setAssignSubmitting(true);
+      setAssignError(null);
+      await apiClient(`/projects/${project._id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          projectManagerId: assignPmId || undefined,
+          teamMemberIds: assignTeamIds,
+          priority: editPriority,
+          targetCompletionDate: editTargetDate ? new Date(editTargetDate).toISOString() : undefined,
+          siteAddress: editAddress.addressLine1 ? editAddress : undefined
+        })
+      });
+      setAssignTeamModalOpen(false);
+      setActionSuccess('Project team assignments and schedule updated successfully.');
+      await fetchProject();
+    } catch (err: any) {
+      setAssignError(err?.message || 'Failed to update team assignments.');
+    } finally {
+      setAssignSubmitting(false);
+    }
+  };
+
+  const toggleTeamMember = (empUserId: string) => {
+    if (assignTeamIds.includes(empUserId)) {
+      setAssignTeamIds(assignTeamIds.filter(id => id !== empUserId));
+    } else {
+      setAssignTeamIds([...assignTeamIds, empUserId]);
+    }
+  };
   const [amcInfo, setAmcInfo] = useState<string | null>(null);
 
   const handleInitializeAmc = async () => {
@@ -759,6 +838,14 @@ export const ProjectDetailPage: React.FC = () => {
 
         {/* Status Transition Action Buttons */}
         <div className="flex items-center flex-wrap gap-2 shrink-0 self-start lg:self-center">
+          <button
+            onClick={() => window.print()}
+            title="Print or export project engineering & site dossier"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs transition-colors print:hidden"
+          >
+            <Printer className="w-3.5 h-3.5" /> Print Dossier
+          </button>
+
           {project.status === 'PLANNING' && (
             <button
               onClick={() => {
@@ -1192,9 +1279,20 @@ export const ProjectDetailPage: React.FC = () => {
 
             {/* Project Schedule & Operational Notes */}
             <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-foreground flex items-center">
-                <Calendar className="w-4 h-4 mr-2 text-solar-600" /> Schedule & Leadership
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-foreground flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 text-solar-600" /> Schedule & Leadership
+                </h3>
+                {!isTerminal && (
+                  <button
+                    type="button"
+                    onClick={handleOpenAssignTeamModal}
+                    className="text-xs font-bold text-solar-600 hover:text-solar-700 hover:underline cursor-pointer"
+                  >
+                    Manage Team &amp; Dates
+                  </button>
+                )}
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between border-b pb-2">
                   <span className="text-muted-foreground">Planned Start:</span>
@@ -1220,7 +1318,7 @@ export const ProjectDetailPage: React.FC = () => {
                       : '—'}
                   </span>
                 </div>
-                <div className="flex justify-between pt-1">
+                <div className="flex justify-between border-b pb-2">
                   <span className="text-muted-foreground">Project Manager:</span>
                   <span className="font-medium text-foreground flex items-center">
                     <UserIcon className="w-3.5 h-3.5 mr-1 text-solar-500" />
@@ -1228,6 +1326,26 @@ export const ProjectDetailPage: React.FC = () => {
                       ? `${project.projectManagerId.firstName} ${project.projectManagerId.lastName}`
                       : 'Unassigned'}
                   </span>
+                </div>
+                <div className="pt-1 space-y-1.5">
+                  <span className="text-muted-foreground text-xs block">Assigned Field Crew / Installers:</span>
+                  {project.teamMemberIds && project.teamMemberIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.teamMemberIds.map((m: any) => (
+                        <span
+                          key={m._id || m}
+                          className="px-2 py-0.5 rounded-full bg-solar-500/10 text-solar-800 text-[11px] font-medium border border-solar-500/20 flex items-center gap-1"
+                        >
+                          <UserIcon className="w-3 h-3 text-solar-600" />
+                          {m.firstName ? `${m.firstName} ${m.lastName}` : 'Technician'}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No technicians assigned yet. Click &quot;Manage Team &amp; Dates&quot; to assign crew.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -2034,6 +2152,189 @@ export const ProjectDetailPage: React.FC = () => {
                   className="px-4 py-2 bg-solar-600 text-white rounded-lg text-sm font-medium hover:bg-solar-700 disabled:opacity-50"
                 >
                   {addTaskSubmitting ? 'Creating...' : 'Create Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Manage Team & Dates Modal */}
+      {assignTeamModalOpen && project && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center space-x-2">
+                <UserIcon className="w-5 h-5 text-solar-600" />
+                <h3 className="text-base font-bold text-foreground">
+                  Assign Project Team &amp; Schedule
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssignTeamModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground font-bold text-lg"
+              >
+                &times;
+              </button>
+            </div>
+
+            {assignError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive">
+                {assignError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveTeamAndSchedule} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Project Manager
+                </label>
+                <select
+                  value={assignPmId}
+                  onChange={e => setAssignPmId(e.target.value)}
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                >
+                  <option value="">-- Unassigned (No PM) --</option>
+                  {employeesList.map((emp: any) => {
+                    const u = emp.userId || emp;
+                    const uId = u._id || emp._id;
+                    const name = u.firstName ? `${u.firstName} ${u.lastName || ''}` : emp.fullName || 'Employee';
+                    return (
+                      <option key={uId} value={uId}>
+                        {name} ({emp.designation || emp.department || 'Staff'})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Assign Field Crew / Technicians (Installer Panel Scoping)
+                </label>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Assigned technicians will see this project in their Field Operations / Assigned Projects workstation.
+                </p>
+                <div className="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1.5 bg-muted/20">
+                  {employeesList.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-1">No employee records loaded.</p>
+                  ) : (
+                    employeesList.map((emp: any) => {
+                      const u = emp.userId || emp;
+                      const uId = u._id || emp._id;
+                      const name = u.firstName ? `${u.firstName} ${u.lastName || ''}` : emp.fullName || 'Employee';
+                      const isChecked = assignTeamIds.includes(uId);
+
+                      return (
+                        <label
+                          key={uId}
+                          className="flex items-center space-x-2 text-xs p-1.5 rounded hover:bg-muted cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleTeamMember(uId)}
+                            className="rounded border-input text-solar-600 focus:ring-solar-500"
+                          />
+                          <span className="font-medium text-foreground">{name}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            ({emp.designation || emp.department || 'Crew'})
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Target Completion Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editTargetDate}
+                    onChange={e => setEditTargetDate(e.target.value)}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={editPriority}
+                    onChange={e => setEditPriority(e.target.value)}
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Installation Site Street Address
+                </label>
+                <input
+                  type="text"
+                  value={editAddress.addressLine1}
+                  onChange={e => setEditAddress({ ...editAddress, addressLine1: e.target.value })}
+                  placeholder="Street / Building Address Line 1"
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[11px] text-muted-foreground block mb-0.5">City</label>
+                  <input
+                    type="text"
+                    value={editAddress.city}
+                    onChange={e => setEditAddress({ ...editAddress, city: e.target.value })}
+                    className="w-full text-xs rounded-lg border bg-background px-2.5 py-1.5 text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground block mb-0.5">State</label>
+                  <input
+                    type="text"
+                    value={editAddress.state}
+                    onChange={e => setEditAddress({ ...editAddress, state: e.target.value })}
+                    className="w-full text-xs rounded-lg border bg-background px-2.5 py-1.5 text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground block mb-0.5">PIN Code</label>
+                  <input
+                    type="text"
+                    value={editAddress.postalCode}
+                    onChange={e => setEditAddress({ ...editAddress, postalCode: e.target.value })}
+                    className="w-full text-xs rounded-lg border bg-background px-2.5 py-1.5 text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setAssignTeamModalOpen(false)}
+                  className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={assignSubmitting}
+                  className="px-4 py-2 bg-solar-600 text-white rounded-lg text-sm font-medium hover:bg-solar-700 disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  <span>{assignSubmitting ? 'Saving...' : 'Save Assignments'}</span>
                 </button>
               </div>
             </form>

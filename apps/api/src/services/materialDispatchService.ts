@@ -456,6 +456,12 @@ export class MaterialDispatchService {
       );
     }
 
+    if (dispatch.status === MaterialDispatchStatus.DELIVERED) {
+      throw AppError.businessRule(
+        `Dispatch slip '${dispatch.dispatchNumber}' has already been delivered to the installation site. Cannot cancel a delivered dispatch directly without a verified physical material return inspection.`
+      );
+    }
+
     const project = await Project.findById(dispatch.projectId);
 
     // Perform reversal on inventory balances and generate compensating movements
@@ -520,6 +526,58 @@ export class MaterialDispatchService {
         dispatchNumber: dispatch.dispatchNumber,
         projectCode: project?.projectCode,
         cancellationReason: dispatch.cancellationReason
+      }
+    });
+
+    return dispatch;
+  }
+
+  /**
+   * 2b. Acknowledge on-site delivery of dispatched materials by field installation crew.
+   */
+  public static async acknowledgeDelivery(
+    dispatchId: string,
+    input: { deliveryNotes?: string },
+    user: { userId: string; role: UserRole },
+    context?: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ): Promise<IMaterialDispatchDocument> {
+    const dispatch = await MaterialDispatch.findById(dispatchId);
+    if (!dispatch) {
+      throw AppError.notFound(`Dispatch ${dispatchId} not found.`);
+    }
+
+    if (dispatch.status === MaterialDispatchStatus.CANCELLED) {
+      throw AppError.businessRule('Cannot acknowledge delivery for a cancelled dispatch.');
+    }
+
+    if (dispatch.status === MaterialDispatchStatus.DELIVERED) {
+      throw AppError.businessRule('Dispatch is already marked as delivered to site.');
+    }
+
+    dispatch.status = MaterialDispatchStatus.DELIVERED;
+    dispatch.deliveredAt = new Date();
+    dispatch.deliveredBy = new Types.ObjectId(user.userId);
+    if (input?.deliveryNotes?.trim()) {
+      dispatch.deliveryNotes = input.deliveryNotes.trim();
+    }
+
+    await dispatch.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.MATERIAL_DISPATCH_CREATED,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+      correlationId: context?.correlationId || 'dispatch-deliver',
+      targetEntity: 'MaterialDispatch',
+      targetId: dispatch._id.toString(),
+      details: {
+        dispatchNumber: dispatch.dispatchNumber,
+        projectId: dispatch.projectId.toString(),
+        deliveredAt: dispatch.deliveredAt,
+        deliveryNotes: dispatch.deliveryNotes
       }
     });
 

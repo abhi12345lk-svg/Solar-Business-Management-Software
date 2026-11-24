@@ -141,6 +141,7 @@ export class PurchaseOrderService {
 
     const po = new PurchaseOrder({
       poNumber: poSeq.formattedNumber,
+      projectId: input.projectId ? new Types.ObjectId(input.projectId) : undefined,
       vendorId: vendor._id,
       destinationWarehouseId: warehouse._id,
       orderDate: input.orderDate ? new Date(input.orderDate) : new Date(),
@@ -459,6 +460,10 @@ export class PurchaseOrderService {
       po.destinationWarehouseId = wh._id;
     }
 
+    if (input.projectId !== undefined) {
+      po.projectId = input.projectId ? new Types.ObjectId(input.projectId) : undefined;
+    }
+
     if (input.isInterState !== undefined) {
       po.isInterState = input.isInterState;
     }
@@ -541,6 +546,9 @@ export class PurchaseOrderService {
     }
     if (filter.destinationWarehouseId) {
       query.destinationWarehouseId = new Types.ObjectId(filter.destinationWarehouseId);
+    }
+    if (filter.projectId) {
+      query.projectId = new Types.ObjectId(filter.projectId);
     }
     if (filter.search && filter.search.trim()) {
       query.poNumber = { $regex: filter.search.trim(), $options: 'i' };

@@ -60,8 +60,10 @@ interface MaterialDispatchItem {
     postalCode?: string;
   };
   lineItems: DispatchLineItem[];
-  status: 'DRAFT' | 'DISPATCHED' | 'CANCELLED';
+  status: 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
   dispatchedAt?: string;
+  deliveredAt?: string;
+  deliveryNotes?: string;
   cancelledAt?: string;
   cancellationReason?: string;
   vehicleNumber?: string;
@@ -108,6 +110,12 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
   const [dispatchToCancel, setDispatchToCancel] = useState<MaterialDispatchItem | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+
+  // Delivery Acknowledgement Modal State
+  const [acknowledgeModalOpen, setAcknowledgeModalOpen] = useState(false);
+  const [dispatchToAcknowledge, setDispatchToAcknowledge] = useState<MaterialDispatchItem | null>(null);
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [acknowledging, setAcknowledging] = useState(false);
 
   // Pre-dispatch Payment Guard & Override State
   let user: any = null;
@@ -278,6 +286,26 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
     }
   };
 
+  const handleAcknowledgeDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dispatchToAcknowledge) return;
+    try {
+      setAcknowledging(true);
+      setError(null);
+      await apiClient(`/dispatches/${dispatchToAcknowledge._id}/acknowledge`, {
+        method: 'POST',
+        body: JSON.stringify({ deliveryNotes: deliveryNotes.trim() || undefined })
+      });
+      setAcknowledgeModalOpen(false);
+      setDispatchToAcknowledge(null);
+      await fetchData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to acknowledge delivery.');
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -428,10 +456,12 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                         className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
                           isCancelled
                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : disp.status === 'DELIVERED'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-blue-100 text-blue-800 border border-blue-200'
                         }`}
                       >
-                        {disp.status}
+                        {disp.status === 'DELIVERED' ? 'DELIVERED TO SITE' : disp.status}
                       </span>
                       {disp.dispatchedAt && (
                         <span className="text-xs text-muted-foreground flex items-center">
@@ -442,19 +472,43 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                     </div>
 
                     {!isCancelled && !isTerminal && (
-                      <button
-                        onClick={() => {
-                          setDispatchToCancel(disp);
-                          setCancellationReason('');
-                          setCancelModalOpen(true);
-                        }}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded border border-rose-300 text-rose-700 hover:bg-rose-50 self-start sm:self-auto"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                        Cancel & Return Stock
-                      </button>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        {disp.status === 'DISPATCHED' && (
+                          <button
+                            onClick={() => {
+                              setDispatchToAcknowledge(disp);
+                              setDeliveryNotes('');
+                              setAcknowledgeModalOpen(true);
+                            }}
+                            className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs cursor-pointer"
+                          >
+                            <PackageCheck className="w-3.5 h-3.5 mr-1" />
+                            Acknowledge Delivery
+                          </button>
+                        )}
+                        {disp.status !== 'DELIVERED' && (
+                          <button
+                            onClick={() => {
+                              setDispatchToCancel(disp);
+                              setCancellationReason('');
+                              setCancelModalOpen(true);
+                            }}
+                            className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                            Cancel & Return Stock
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
+
+                  {disp.deliveredAt && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex flex-wrap items-center justify-between gap-1">
+                      <span><strong>On-Site Delivery Acknowledged:</strong> {new Date(disp.deliveredAt).toLocaleString()}</span>
+                      {disp.deliveryNotes && <span className="text-emerald-700">Remarks: &quot;{disp.deliveryNotes}&quot;</span>}
+                    </div>
+                  )}
 
                   {/* Warehouse & Vehicle Details */}
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -809,6 +863,58 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                   className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
                 >
                   {cancelling ? 'Reversing Stock...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Delivery Acknowledgement Modal */}
+      {acknowledgeModalOpen && dispatchToAcknowledge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-card border rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl">
+            <div className="flex items-center space-x-2 text-emerald-600">
+              <PackageCheck className="w-5 h-5 flex-shrink-0" />
+              <h3 className="text-lg font-bold text-foreground">Acknowledge Site Delivery</h3>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Confirm that all hardware items and serialized components under dispatch slip{' '}
+              <span className="font-mono font-bold text-foreground">
+                {dispatchToAcknowledge.dispatchNumber}
+              </span>{' '}
+              have arrived safely at the rooftop installation site.
+            </p>
+
+            <form onSubmit={handleAcknowledgeDelivery} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Site Delivery Remarks / Condition (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={deliveryNotes}
+                  onChange={e => setDeliveryNotes(e.target.value)}
+                  placeholder="e.g. Received 20 solar modules, 1 inverter, and mounting structure in intact condition. Verified serial barcodes on-site."
+                  className="w-full text-sm rounded-lg border bg-background px-3 py-2 text-foreground"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setAcknowledgeModalOpen(false)}
+                  className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={acknowledging}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  <PackageCheck className="w-4 h-4" />
+                  <span>{acknowledging ? 'Confirming...' : 'Confirm Safe Delivery'}</span>
                 </button>
               </div>
             </form>

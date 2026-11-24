@@ -237,6 +237,12 @@ export class ProjectService {
 
     await project.save();
 
+    if (orderId) {
+      await SalesOrder.findByIdAndUpdate(orderId, {
+        $set: { projectId: project._id }
+      });
+    }
+
     await AuditService.recordEvent({
       actorId: user.userId,
       actorType: ActorType.EMPLOYEE,
@@ -968,7 +974,7 @@ export class ProjectService {
     // Derive covered hardware serial numbers from confirmed dispatches
     const dispatches = await MaterialDispatch.find({
       projectId: project._id,
-      status: MaterialDispatchStatus.DISPATCHED
+      status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
     }).lean();
 
     const coveredEquipment: Array<{ productId?: any; serialNumber?: string; description: string }> = [];

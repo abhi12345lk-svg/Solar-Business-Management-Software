@@ -10,7 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --test-timeout=15000",
+    "test": "vitest run --test-timeout=15000 --fileParallelism=false",
     "bootstrap:admin": "tsx src/scripts/bootstrap-admin.ts",
     "seed:workstations": "tsx src/scripts/seed-workstation-users.ts",
     "seed:demo": "tsx src/scripts/seed-demo.ts",
