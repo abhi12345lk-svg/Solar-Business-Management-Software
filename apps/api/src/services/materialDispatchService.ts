@@ -17,6 +17,7 @@ import {
   CancelMaterialDispatchInput,
   DispatchFilterInput,
   MaterialDispatchStatus,
+  PaymentMilestoneTrigger,
   StockMovementType,
   StockReservationStatus,
   SequenceEntityType,
@@ -109,43 +110,45 @@ export class MaterialDispatchService {
       });
 
       // Pre-dispatch payment schedule calculation:
-      // Determine required cumulative payment percentage prior to material dispatch from actual Sales Order schedule.
-      // If milestones specify a dispatch stage (e.g. Booking Advance 10% + Prior to Dispatch 70% = 80%),
-      // sum all milestones due up to and including the dispatch milestone.
-      let dispatchRequiredPercentage = 0;
+      // Evaluates structured milestone triggers: BOOKING, DESIGN_APPROVAL, PRE_DISPATCH.
+      // Supports BOTH percentage-based and fixed-amount schedules without text keyword reliance.
+      let minRequiredPaise = 0;
+      let hasStructuredPreDispatchTrigger = false;
 
       if (order.paymentMilestones && order.paymentMilestones.length > 0) {
-        let dispatchMilestoneIdx = -1;
-        for (let i = 0; i < order.paymentMilestones.length; i++) {
-          const m = order.paymentMilestones[i];
+        for (const m of order.paymentMilestones) {
           const trigger = (m.dueTrigger || '').toUpperCase();
-          const name = ((m.name || '') + ' ' + (m.milestoneName || '') + ' ' + (m.description || '')).toLowerCase();
-          if (
-            trigger === 'PRE_DISPATCH' ||
-            name.includes('prior to dispatch') ||
-            name.includes('prior to material dispatch') ||
-            name.includes('before dispatch') ||
-            name.includes('before material dispatch')
-          ) {
-            dispatchMilestoneIdx = i;
-            break;
+          const isPreDispatchMilestone =
+            trigger === PaymentMilestoneTrigger.BOOKING ||
+            trigger === PaymentMilestoneTrigger.DESIGN_APPROVAL ||
+            trigger === PaymentMilestoneTrigger.PRE_DISPATCH ||
+            trigger === 'ORDER CONFIRMATION';
+
+          if (isPreDispatchMilestone) {
+            hasStructuredPreDispatchTrigger = true;
+            if (m.amountPaise !== undefined && m.amountPaise > 0) {
+              minRequiredPaise += m.amountPaise;
+            } else if (m.percentage !== undefined) {
+              minRequiredPaise += Math.round((order.netTotalPaise * m.percentage) / 100);
+            }
           }
         }
 
-        if (dispatchMilestoneIdx >= 0) {
-          // Sum cumulative percentage of all milestones up to and including dispatch
-          for (let i = 0; i <= dispatchMilestoneIdx; i++) {
-            dispatchRequiredPercentage += order.paymentMilestones[i].percentage || 0;
+        // Fallback for custom or legacy orders where structured triggers were not assigned:
+        // Use milestone 0 configured amount or percentage
+        if (!hasStructuredPreDispatchTrigger) {
+          const m0 = order.paymentMilestones[0];
+          if (m0.amountPaise !== undefined && m0.amountPaise > 0) {
+            minRequiredPaise = m0.amountPaise;
+          } else {
+            const pct = m0.percentage || 20;
+            minRequiredPaise = Math.round((order.netTotalPaise * pct) / 100);
           }
-        } else {
-          // Fallback: booking advance milestone or 20%
-          dispatchRequiredPercentage = order.paymentMilestones[0]?.percentage || 20;
         }
       } else {
-        dispatchRequiredPercentage = 20;
+        minRequiredPaise = Math.round((order.netTotalPaise * 20) / 100);
       }
 
-      const minRequiredPaise = Math.round((order.netTotalPaise * dispatchRequiredPercentage) / 100);
       const allocatedPaise = receivables.allocatedAmountPaise || 0;
 
       if (allocatedPaise < minRequiredPaise) {
@@ -154,7 +157,7 @@ export class MaterialDispatchService {
           const advanceRs = (minRequiredPaise / 100).toLocaleString('en-IN');
           const paidRs = (allocatedPaise / 100).toLocaleString('en-IN');
           throw AppError.businessRule(
-            `Material dispatch is blocked: Minimum required pre-dispatch payment of ${dispatchRequiredPercentage}% (₹${advanceRs}) per Sales Order contract schedule is required before factory goods can be dispatched. Total paid to date: ₹${paidRs} (Shortfall: ₹${shortFallRs}). Authorized Admins or Department Heads can provide an override reason to release urgent dispatch.`
+            `Material dispatch is blocked: Minimum required pre-dispatch payment of ₹${advanceRs} per Sales Order contract schedule is required before factory goods can be dispatched. Total paid to date: ₹${paidRs} (Shortfall: ₹${shortFallRs}). Authorized Admins or Department Heads can provide an override reason to release urgent dispatch.`
           );
         }
 

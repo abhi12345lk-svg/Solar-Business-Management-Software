@@ -195,8 +195,12 @@ export class ProjectProfitabilityService {
           prod = await Product.findById(ret.productId).lean();
           if (prod) productMap.set(prod._id.toString(), prod);
         }
-        const unitRate = prod?.standardPurchaseRatePaise || 0;
+        const unitRate =
+          (ret as any).unitCostPaise !== undefined
+            ? (ret as any).unitCostPaise
+            : (prod?.standardPurchaseRatePaise || 0);
         const returnAmount = -Math.abs(Math.round((ret.quantity || 0) * unitRate));
+        const conditionLabel = (ret as any).condition ? ` [${(ret as any).condition}]` : '';
 
         entries.push({
           id: `RET_${ret._id}`,
@@ -204,7 +208,7 @@ export class ProjectProfitabilityService {
           sourceId: ret._id.toString(),
           sourceNumber: ret.movementNumber,
           costCategory: 'MATERIALS',
-          description: `Material Return Credit: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})`,
+          description: `Material Return Credit${conditionLabel}: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})`,
           quantity: -(ret.quantity || 0),
           unitRatePaise: unitRate,
           amountPaise: returnAmount,

@@ -61,8 +61,9 @@ export interface ISalesOrderDocument extends Document {
   paymentMilestones: Array<{
     name: string;
     milestoneName?: string;
-    percentage: number;
-    description: string;
+    percentage?: number;
+    amountPaise?: number;
+    description?: string;
     dueTrigger?: string;
   }>;
 

@@ -144,9 +144,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
     },
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: 'SalesOrder',
-      sparse: true,
-      unique: true
+      ref: 'SalesOrder'
     },
     quotationId: {
       type: Schema.Types.ObjectId,
@@ -255,9 +253,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
     },
     idempotencyKey: {
       type: String,
-      trim: true,
-      sparse: true,
-      index: true
+      trim: true
     },
     milestones: [ProjectMilestoneSchema],
     createdBy: {
@@ -280,6 +276,8 @@ const ProjectSchema = new Schema<IProjectDocument>(
 ProjectSchema.index({ customerId: 1, status: 1 });
 ProjectSchema.index({ projectManagerId: 1, status: 1 });
 ProjectSchema.index({ status: 1, currentStage: 1 });
+ProjectSchema.index({ orderId: 1 }, { unique: true, sparse: true });
+ProjectSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 ProjectSchema.index({ createdAt: -1 });
 
 export const Project: Model<IProjectDocument> = mongoose.model<IProjectDocument>(

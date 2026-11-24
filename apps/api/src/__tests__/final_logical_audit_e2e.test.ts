@@ -16,6 +16,7 @@ import {
   UserRole,
   Department,
   MaterialDispatchStatus,
+  PaymentMilestoneTrigger,
   StockMovementType,
   AmcStatus,
   AmcPlanType
@@ -89,9 +90,9 @@ describe('FINAL LOGICAL AUDIT: Cross-Module ERP Verification Suite', () => {
         orderNumber: 'SO-2026-00088',
         netTotalPaise: 10000000, // ₹1,00,000
         paymentMilestones: [
-          { name: 'Booking Advance', percentage: 10, description: '10% on booking' },
-          { name: 'Prior to Material Dispatch', percentage: 70, description: '70% before warehouse dispatch', dueTrigger: 'PRE_DISPATCH' },
-          { name: 'On Site Handover', percentage: 20, description: '20% on testing' }
+          { name: 'Initial Token', percentage: 10, description: '10% on booking', dueTrigger: PaymentMilestoneTrigger.BOOKING },
+          { name: 'Factory Release Stage', percentage: 70, description: '70% before warehouse dispatch', dueTrigger: PaymentMilestoneTrigger.PRE_DISPATCH },
+          { name: 'On Site Handover', percentage: 20, description: '20% on testing', dueTrigger: PaymentMilestoneTrigger.COD_HANDOVER }
         ]
       };
 
@@ -117,10 +118,10 @@ describe('FINAL LOGICAL AUDIT: Cross-Module ERP Verification Suite', () => {
         lineItems: [{ productId: new Types.ObjectId().toString(), issuedQuantity: 10 }]
       };
 
-      // Must be strictly blocked with clear message noting 80% requirement
+      // Must be strictly blocked with clear message noting required payment
       await expect(
         MaterialDispatchService.createDispatch(dispatchInput as any, projectManagerUser as any)
-      ).rejects.toThrow(/Minimum required pre-dispatch payment of 80%/);
+      ).rejects.toThrow(/Minimum required pre-dispatch payment of ₹80,000/);
     });
 
     it('allows dispatch when customer payments reach or exceed the cumulative 80% requirement', async () => {
@@ -134,9 +135,9 @@ describe('FINAL LOGICAL AUDIT: Cross-Module ERP Verification Suite', () => {
         orderNumber: 'SO-2026-00089',
         netTotalPaise: 10000000, // ₹1,00,000
         paymentMilestones: [
-          { name: 'Booking Advance', percentage: 10, description: '10% on booking' },
-          { name: 'Prior to Material Dispatch', percentage: 70, description: '70% before dispatch' },
-          { name: 'Handover', percentage: 20, description: '20% on testing' }
+          { name: 'Custom Kisht 1', percentage: 10, description: '10% on booking', dueTrigger: PaymentMilestoneTrigger.BOOKING },
+          { name: 'Custom Kisht 2', percentage: 70, description: '70% before dispatch', dueTrigger: PaymentMilestoneTrigger.PRE_DISPATCH },
+          { name: 'Handover', percentage: 20, description: '20% on testing', dueTrigger: PaymentMilestoneTrigger.COD_HANDOVER }
         ]
       };
 
@@ -193,8 +194,8 @@ describe('FINAL LOGICAL AUDIT: Cross-Module ERP Verification Suite', () => {
         orderNumber: 'SO-2026-00090',
         netTotalPaise: 10000000,
         paymentMilestones: [
-          { name: 'Advance', percentage: 20 },
-          { name: 'Before Dispatch', percentage: 60 }
+          { name: 'Advance', percentage: 20, dueTrigger: PaymentMilestoneTrigger.BOOKING },
+          { name: 'Before Dispatch', percentage: 60, dueTrigger: PaymentMilestoneTrigger.PRE_DISPATCH }
         ]
       };
 

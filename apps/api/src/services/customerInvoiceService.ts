@@ -151,8 +151,11 @@ export class CustomerInvoiceService {
         throw AppError.badRequest(`Milestone #${input.milestoneIndex + 1} does not exist on Sales Order '${order.orderNumber}'.`);
       }
 
-      const milestonePercentage = milestone.percentage;
-      const milestoneTaxablePaise = Math.round((order.taxableAmountPaise * milestonePercentage) / 100);
+      const milestonePercentage = milestone.percentage || 0;
+      const milestoneTaxablePaise =
+        milestone.amountPaise !== undefined && milestone.amountPaise > 0
+          ? milestone.amountPaise
+          : Math.round((order.taxableAmountPaise * milestonePercentage) / 100);
       const gstRateBps = 1800; // Standard 18% SAC 9954 for milestone advance EPC services
 
       let cgstPaise = 0;

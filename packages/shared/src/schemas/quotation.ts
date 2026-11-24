@@ -83,18 +83,24 @@ export const TaxProfileSnapshotSchema = z.object({
 
 export type TaxProfileSnapshot = z.infer<typeof TaxProfileSnapshotSchema>;
 
+import { PaymentMilestoneTrigger } from '../types/enums.js';
+
 export const PaymentMilestoneSchema = z
   .object({
     milestoneName: z.string().trim().min(1).max(100).optional(),
     name: z.string().trim().min(1).max(100).optional(),
-    percentage: z.number().min(0).max(100),
-    dueTrigger: z.string().trim().max(200).optional(),
+    percentage: z.number().min(0).max(100).optional(),
+    amountPaise: MoneyPaiseSchema.optional(),
+    dueTrigger: z.nativeEnum(PaymentMilestoneTrigger).or(z.string().trim().max(200)).optional(),
     description: z.string().trim().max(200).optional()
   })
   .transform(val => ({
     milestoneName: val.milestoneName || val.name || 'Milestone',
+    name: val.name || val.milestoneName || 'Milestone',
     percentage: val.percentage,
-    dueTrigger: val.dueTrigger || val.description || undefined
+    amountPaise: val.amountPaise,
+    dueTrigger: val.dueTrigger || val.description || undefined,
+    description: val.description || undefined
   }));
 
 export type PaymentMilestone = z.infer<typeof PaymentMilestoneSchema>;

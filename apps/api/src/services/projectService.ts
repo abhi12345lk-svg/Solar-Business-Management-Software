@@ -246,7 +246,29 @@ export class ProjectService {
       createdBy: new Types.ObjectId(user.userId)
     });
 
-    await project.save();
+    try {
+      await project.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        // Concurrency collision on unique index (orderId or idempotencyKey):
+        // Safely return the existing project document created by the winning concurrent thread
+        let collisionMatch: any = null;
+        if (input.idempotencyKey && input.idempotencyKey.trim()) {
+          collisionMatch = await Project.findOne({ idempotencyKey: input.idempotencyKey.trim() })
+            .populate('customerId', 'customerCode name phone email')
+            .populate('orderId', 'orderNumber status netTotalPaise');
+        }
+        if (!collisionMatch && orderId) {
+          collisionMatch = await Project.findOne({ orderId })
+            .populate('customerId', 'customerCode name phone email')
+            .populate('orderId', 'orderNumber status netTotalPaise');
+        }
+        if (collisionMatch) {
+          return collisionMatch;
+        }
+      }
+      throw saveErr;
+    }
 
     if (orderId) {
       await SalesOrder.findByIdAndUpdate(orderId, {
