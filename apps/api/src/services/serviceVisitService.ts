@@ -139,7 +139,21 @@ export class ServiceVisitService {
       }
       if (amcDoc.status !== AmcStatus.ACTIVE) {
         throw AppError.badRequest(
-          `Linked AMC contract is in '${amcDoc.status}' status (must be ACTIVE).`
+          `Linked AMC contract is in '${amcDoc.status}' status (must be ACTIVE to schedule visits).`
+        );
+      }
+
+      const now = new Date();
+      if (now > amcDoc.endDate) {
+        throw AppError.badRequest(
+          `Cannot schedule visit against expired AMC contract ${amcDoc.amcNumber} (expired on ${amcDoc.endDate.toISOString().split('T')[0]}).`
+        );
+      }
+
+      const scheduledDate = new Date(input.scheduledDate);
+      if (scheduledDate < amcDoc.startDate || scheduledDate > amcDoc.endDate) {
+        throw AppError.badRequest(
+          `Scheduled visit date (${scheduledDate.toISOString().split('T')[0]}) falls outside the active AMC contract coverage period (${amcDoc.startDate.toISOString().split('T')[0]} to ${amcDoc.endDate.toISOString().split('T')[0]}).`
         );
       }
     }

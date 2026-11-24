@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import { StockMovementType } from '../types/enums.js';
+import { MoneyPaiseSchema } from './money.js';
 
 export const StockBalanceFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -134,6 +135,10 @@ export const StockReturnInputSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{24}$/)
     .optional(),
+  condition: z.enum(['REUSABLE', 'DAMAGED', 'SCRAP', 'REJECTED']).optional(),
+  disposition: z.enum(['RESTOCK', 'SCRAP_WRITEOFF', 'SUPPLIER_RMA', 'INSURANCE_CLAIM']).optional(),
+  unitCostPaise: MoneyPaiseSchema.optional(),
+  salvageCreditPaise: MoneyPaiseSchema.optional(),
   idempotencyKey: z.string().trim().min(1).max(64).optional()
 });
 

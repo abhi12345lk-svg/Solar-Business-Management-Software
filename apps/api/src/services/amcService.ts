@@ -19,6 +19,7 @@ import {
   AmcVisitCadence,
   AmcBillingCadence,
   AmcPaymentStatus,
+  UserRole,
   SequenceEntityType,
   AuditAction,
   AuditOutcome,
@@ -309,6 +310,14 @@ export class AmcService {
     const amc = await AnnualMaintenanceContract.findById(id);
     if (!amc) {
       throw AppError.notFound(`AMC Contract ${id} not found.`);
+    }
+
+    // Role verification: only Admin or Department Head can approve AMC contracts
+    const allowedRoles = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DEPARTMENT_HEAD];
+    if (actor.role && !allowedRoles.includes(actor.role as UserRole)) {
+      throw AppError.forbidden(
+        'Only Administrator or Commercial Head can approve and activate an AMC contract.'
+      );
     }
 
     if (amc.status !== AmcStatus.DRAFT && amc.status !== AmcStatus.PENDING_APPROVAL) {

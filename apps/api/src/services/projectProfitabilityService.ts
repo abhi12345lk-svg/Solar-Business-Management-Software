@@ -199,8 +199,42 @@ export class ProjectProfitabilityService {
           (ret as any).unitCostPaise !== undefined
             ? (ret as any).unitCostPaise
             : (prod?.standardPurchaseRatePaise || 0);
-        const returnAmount = -Math.abs(Math.round((ret.quantity || 0) * unitRate));
-        const conditionLabel = (ret as any).condition ? ` [${(ret as any).condition}]` : '';
+
+        const rawCondition = (ret as any).condition
+          ? String((ret as any).condition).toUpperCase()
+          : 'REUSABLE';
+        const isDamagedOrScrap =
+          rawCondition.includes('DAMAGED') ||
+          rawCondition.includes('SCRAP') ||
+          rawCondition.includes('REJECT');
+
+        const disposition =
+          (ret as any).disposition ||
+          (isDamagedOrScrap ? 'SCRAP_WRITEOFF' : 'RESTOCK');
+
+        const salvageCreditPaise = (ret as any).salvageCreditPaise || 0;
+
+        let returnCreditPaise = 0;
+        let entryStatus = 'RETURNED';
+        let desc = '';
+
+        if (!isDamagedOrScrap) {
+          // Reusable / accepted physical return: full original valuation credited back to project
+          returnCreditPaise = -Math.abs(Math.round((ret.quantity || 0) * unitRate));
+          entryStatus = 'RETURNED';
+          desc = `Material Return Credit [REUSABLE]: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'}) via ${ret.movementNumber}`;
+        } else {
+          // Damaged / Scrap / Rejected return:
+          // Do NOT automatically credit full material cost! The project/business absorbed this loss.
+          // Only explicit salvage, insurance, or supplier RMA recovery amount is credited:
+          returnCreditPaise = salvageCreditPaise > 0 ? -Math.abs(salvageCreditPaise) : 0;
+          entryStatus = rawCondition.includes('DAMAGED')
+            ? 'DAMAGED_WRITE_OFF'
+            : rawCondition.includes('SCRAP')
+            ? 'SCRAP_LOSS'
+            : 'REJECTED';
+          desc = `Material Site Return [${rawCondition} - ${disposition}]: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})${salvageCreditPaise > 0 ? ` - Recovery Credit: ₹${salvageCreditPaise / 100}` : ' - Uncredited Damage/Loss'} via ${ret.movementNumber}`;
+        }
 
         entries.push({
           id: `RET_${ret._id}`,
@@ -208,12 +242,12 @@ export class ProjectProfitabilityService {
           sourceId: ret._id.toString(),
           sourceNumber: ret.movementNumber,
           costCategory: 'MATERIALS',
-          description: `Material Return Credit${conditionLabel}: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})`,
+          description: desc,
           quantity: -(ret.quantity || 0),
           unitRatePaise: unitRate,
-          amountPaise: returnAmount,
+          amountPaise: returnCreditPaise,
           effectiveDate: ret.createdAt,
-          status: 'RETURNED'
+          status: entryStatus
         });
       }
     }

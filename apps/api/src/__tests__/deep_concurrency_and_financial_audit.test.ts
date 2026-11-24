@@ -3,11 +3,11 @@
  *
  * Verifies the 6 remaining critical business domains:
  * 1. Structured Milestone Triggers & Fixed-Amount Schedules (No text-matching)
- * 2. Atomic Database Concurrency & Idempotency Collisions (MongoDB E11000 safe resolution)
- * 3. Inventory Physical Return Valuation, Conditions & Profitability Reversals
- * 4. AMC State Machine (DRAFT vs ACTIVE) & Service Visit Booking Gate
- * 5. Statutory GST Invoicing & Milestone Tax Calculations
- * 6. Role-Based Access Scoping & Financial Ledger Isolation
+ * 2. Atomic Database Concurrency & Idempotency Collisions (MongoDB E11000 safe resolution & conflict rejection)
+ * 3. Inventory Physical Return Valuation, Conditions & Profitability Reversals (Reusable vs Damaged/Scrap)
+ * 4. AMC State Machine, Role Authorization, Service Visit Gates & Serial Warranty Tracking
+ * 5. Statutory GST Invoicing, 70:30 Deemed Valuation & Anti-Double-Taxation Advance Adjustments
+ * 6. Role-Based Access Scoping, Sensitive Data Masking & AES-256-GCM Encryption
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -20,7 +20,9 @@ import {
   AmcStatus,
   AmcPlanType,
   PaymentMilestoneTrigger,
-  CustomerInvoiceType
+  CustomerInvoiceType,
+  ServiceVisitType,
+  WarrantyStatus
 } from '@ins-solar/shared';
 
 import { Project } from '../models/Project.js';
@@ -38,16 +40,28 @@ import { CompanySettings } from '../models/CompanySettings.js';
 import { Expense } from '../models/Expense.js';
 import { PaymentAllocation } from '../models/PaymentAllocation.js';
 import { User } from '../models/User.js';
+import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
+import { WarrantyClaim } from '../models/WarrantyClaim.js';
 
 import { MaterialDispatchService } from '../services/materialDispatchService.js';
 import { ProjectService } from '../services/projectService.js';
 import { ProjectProfitabilityService } from '../services/projectProfitabilityService.js';
 import { AmcService } from '../services/amcService.js';
+import { ServiceVisitService } from '../services/serviceVisitService.js';
+import { WarrantyService } from '../services/warrantyService.js';
 import { CustomerInvoiceService } from '../services/customerInvoiceService.js';
 import { SequenceService } from '../services/sequenceService.js';
 import { AuditService } from '../services/auditService.js';
 import { PaymentService } from '../services/paymentService.js';
 import { NotificationCenterService } from '../services/notificationCenterService.js';
+import {
+  maskAadhaar,
+  maskPan,
+  maskBankAccount,
+  maskCredentials,
+  encryptSensitiveField,
+  decryptSensitiveField
+} from '../utils/crypto.js';
 
 describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
   const superAdminUser = {
@@ -101,8 +115,6 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
       const projectId = new Types.ObjectId();
       const productId = new Types.ObjectId();
 
-      // Custom renamed milestones with fixed rupee amounts:
-      // ₹50,000 on booking + ₹1,50,000 before dispatch = ₹2,00,000 (20,000,000 paise) required
       const mockOrder = {
         _id: orderId,
         orderNumber: 'SO-2026-FIXED-01',
@@ -138,10 +150,9 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
       const dispatchInput = {
         projectId: projectId.toString(),
         sourceWarehouseId: new Types.ObjectId().toString(),
-        lineItems: [{ productId: productId.toString(), issuedQuantity: 10 }]
+        lineItems: [{ productId: productId.toString(), issuedQuantity: 5 }]
       };
 
-      // Must be blocked with explicit rupee amount requirement: ₹2,00,000
       await expect(
         MaterialDispatchService.createDispatch(dispatchInput as any, projectManagerUser as any)
       ).rejects.toThrow(/Minimum required pre-dispatch payment of ₹2,00,000/);
@@ -206,22 +217,21 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
         _id: new Types.ObjectId(),
         projectCode: 'PRJ-2026-CONCUR-01',
         name: 'Simultaneous Project Creation',
+        customerId,
         orderId
       };
 
       vi.spyOn(Customer, 'findById').mockResolvedValue({ _id: customerId } as any);
       vi.spyOn(SalesOrder, 'findById').mockResolvedValue({ _id: orderId, customerId } as any);
 
-      // First check passes (race window)
       vi.spyOn(Project, 'findOne')
-        .mockResolvedValueOnce(null) // Pre-save duplicate check passes
+        .mockResolvedValueOnce(null)
         .mockReturnValueOnce({
           populate: vi.fn().mockReturnValue({
             populate: vi.fn().mockResolvedValue(existingProjectDoc)
           })
-        } as any); // Collision recovery findOne returns the winning project
+        } as any);
 
-      // Simulate MongoDB driver throwing duplicate key error code 11000 on unique index
       vi.spyOn(Project.prototype, 'save').mockRejectedValueOnce({
         code: 11000,
         keyPattern: { orderId: 1 },
@@ -242,13 +252,57 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
       expect(result).toBeDefined();
       expect(result.projectCode).toBe('PRJ-2026-CONCUR-01');
     });
+
+    it('rejects with conflict (409) when concurrency collision occurs with incompatible customer payload', async () => {
+      const customerIdA = new Types.ObjectId();
+      const customerIdB = new Types.ObjectId();
+      const orderId = new Types.ObjectId();
+
+      const existingProjectDoc = {
+        _id: new Types.ObjectId(),
+        projectCode: 'PRJ-2026-CONCUR-02',
+        name: 'First Project for Customer A',
+        customerId: customerIdA,
+        orderId
+      };
+
+      vi.spyOn(Customer, 'findById').mockResolvedValue({ _id: customerIdB } as any);
+      vi.spyOn(SalesOrder, 'findById').mockResolvedValue({ _id: orderId, customerId: customerIdB } as any);
+
+      vi.spyOn(Project, 'findOne')
+        .mockResolvedValueOnce(null)
+        .mockReturnValueOnce({
+          populate: vi.fn().mockReturnValue({
+            populate: vi.fn().mockResolvedValue(existingProjectDoc)
+          })
+        } as any);
+
+      vi.spyOn(Project.prototype, 'save').mockRejectedValueOnce({
+        code: 11000,
+        keyPattern: { orderId: 1 },
+        message: 'E11000 duplicate key error'
+      });
+
+      await expect(
+        ProjectService.createProject(
+          {
+            name: 'Conflicting Project for Customer B',
+            customerId: customerIdB.toString(),
+            orderId: orderId.toString(),
+            plannedStartDate: new Date('2026-12-01'),
+            targetCompletionDate: new Date('2026-12-20')
+          } as any,
+          superAdminUser as any
+        )
+      ).rejects.toThrow(/Concurrency collision: Project for this key or order belongs to a different customer/);
+    });
   });
 
   // =========================================================================
   // 3. PHYSICAL RETURN VALUATION & CONDITION TAGGING
   // =========================================================================
   describe('3. Return Valuation & Condition Tagging in Project Profitability', () => {
-    it('reverses material cost using exact original issue valuation and tags condition', async () => {
+    it('credits 100% of material cost for REUSABLE returns, but retains uncredited loss on DAMAGED returns', async () => {
       const projectId = new Types.ObjectId();
       const orderId = new Types.ObjectId();
       const productId = new Types.ObjectId();
@@ -259,7 +313,7 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
         orderId
       } as any);
 
-      // 10 items dispatched @ custom issued rate of ₹12,500 each (1,250,000 paise)
+      // 10 items dispatched @ custom issued rate of ₹12,500 each = ₹1,25,000 (12,500,000 paise)
       vi.spyOn(MaterialDispatch, 'find').mockReturnValue({
         lean: vi.fn().mockResolvedValue([
           {
@@ -278,17 +332,46 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
         ])
       } as any);
 
-      // 2 damaged items returned from site with explicit unitCostPaise recorded: 1,250,000 paise
+      // Mixed returns:
+      // - 2 REUSABLE units: 100% cost reversal = 2 * ₹12,500 = -₹25,000 (-2,500,000 paise)
+      // - 1 DAMAGED unit with salvage recovery: ₹5,000 recovery credit (-500,000 paise)
+      // - 1 DAMAGED unit without recovery: 0 credit (loss preserved on project)
       vi.spyOn(StockMovement, 'find').mockReturnValue({
         lean: vi.fn().mockResolvedValue([
           {
             _id: new Types.ObjectId(),
-            movementNumber: 'MOV-2026-RET-01',
+            movementNumber: 'MOV-2026-RET-REUSABLE',
             movementType: StockMovementType.RETURN,
             productId,
             quantity: 2,
-            unitCostPaise: 1250000, // Original issue valuation
-            condition: 'DAMAGED_TRANSIT',
+            unitCostPaise: 1250000,
+            condition: 'REUSABLE',
+            orderId,
+            createdAt: new Date()
+          },
+          {
+            _id: new Types.ObjectId(),
+            movementNumber: 'MOV-2026-RET-DAMAGED-INSURED',
+            movementType: StockMovementType.RETURN,
+            productId,
+            quantity: 1,
+            unitCostPaise: 1250000,
+            condition: 'DAMAGED',
+            disposition: 'INSURANCE_CLAIM',
+            salvageCreditPaise: 500000, // ₹5,000 recovery
+            orderId,
+            createdAt: new Date()
+          },
+          {
+            _id: new Types.ObjectId(),
+            movementNumber: 'MOV-2026-RET-DAMAGED-SCRAP',
+            movementType: StockMovementType.RETURN,
+            productId,
+            quantity: 1,
+            unitCostPaise: 1250000,
+            condition: 'DAMAGED',
+            disposition: 'SCRAP_WRITEOFF',
+            salvageCreditPaise: 0, // Uncredited loss
             orderId,
             createdAt: new Date()
           }
@@ -297,21 +380,26 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
 
       const ledger = await ProjectProfitabilityService.getCostLedger(projectId.toString());
 
-      const returnEntry = ledger.entries.find(e => e.status === 'RETURNED');
-      expect(returnEntry).toBeDefined();
-      expect(returnEntry?.description).toContain('[DAMAGED_TRANSIT]');
-      // Reversal amount must be strictly 2 * ₹12,500 = ₹25,000 (2,500,000 paise)
-      expect(returnEntry?.amountPaise).toBe(-2500000);
+      // Total material issued: ₹1,25,000
+      // Less reusable return: -₹25,000
+      // Less salvage recovery: -₹5,000
+      // Net material cost must be strictly ₹95,000 (9,500,000 paise)
+      expect(ledger.summary.materialsCostPaise).toBe(9500000);
 
-      // Net material cost = (10 * 12,500) - (2 * 12,500) = 8 * 12,500 = ₹1,00,000 (10,000,000 paise)
-      expect(ledger.summary.materialsCostPaise).toBe(10000000);
+      const reusableEntry = ledger.entries.find(e => e.sourceNumber === 'MOV-2026-RET-REUSABLE');
+      expect(reusableEntry?.amountPaise).toBe(-2500000);
+      expect(reusableEntry?.status).toBe('RETURNED');
+
+      const scrapEntry = ledger.entries.find(e => e.sourceNumber === 'MOV-2026-RET-DAMAGED-SCRAP');
+      expect(scrapEntry?.amountPaise).toBe(0);
+      expect(scrapEntry?.status).toBe('DAMAGED_WRITE_OFF');
     });
   });
 
   // =========================================================================
-  // 4. AMC STATE MACHINE & ACTIVE APPROVAL REQUIREMENT
+  // 4. AMC STATE MACHINE, ROLE AUTHORIZATION & SERVICE VISIT GATES
   // =========================================================================
-  describe('4. AMC Proposal State Machine & Approval Requirement', () => {
+  describe('4. AMC Proposal State Machine & Service Scheduling Gate', () => {
     it('creates contract in DRAFT status and requires explicit approval to become ACTIVE', async () => {
       const projectId = new Types.ObjectId();
       const customerId = new Types.ObjectId();
@@ -331,7 +419,6 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
         return Promise.resolve(this);
       });
 
-      // 1. Create AMC proposal -> status must be DRAFT
       const contract = await AmcService.createAmc(
         {
           customerId: customerId.toString(),
@@ -347,29 +434,117 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
 
       expect(contract.status).toBe(AmcStatus.DRAFT);
 
-      // 2. Approve AMC contract -> status transitions to ACTIVE
       vi.spyOn(AnnualMaintenanceContract, 'findById').mockResolvedValue(savedAmc);
 
       const approvedContract = await AmcService.approveAmc(amcId.toString(), 'Approved by Commercial Head', superAdminUser as any);
       expect(approvedContract.status).toBe(AmcStatus.ACTIVE);
       expect(approvedContract.approvedBy).toBeDefined();
     });
+
+    it('blocks unauthorized field installation crew from approving AMC contracts', async () => {
+      const amcId = new Types.ObjectId();
+      const installerActor = {
+        userId: new Types.ObjectId().toString(),
+        role: UserRole.INSTALLATION_CREW,
+        department: Department.OPERATIONS
+      };
+
+      vi.spyOn(AnnualMaintenanceContract, 'findById').mockResolvedValue({
+        _id: amcId,
+        status: AmcStatus.DRAFT
+      } as any);
+
+      await expect(
+        AmcService.approveAmc(amcId.toString(), 'Unauthorized attempt', installerActor as any)
+      ).rejects.toThrow(/Only Administrator or Commercial Head can approve and activate an AMC contract/);
+    });
+
+    it('blocks field service visits against expired AMC contracts', async () => {
+      const projectId = new Types.ObjectId();
+      const customerId = new Types.ObjectId();
+      const amcId = new Types.ObjectId();
+
+      vi.spyOn(Project, 'findById').mockResolvedValue({ _id: projectId, customerId } as any);
+      vi.spyOn(User, 'findById').mockResolvedValue({ _id: new Types.ObjectId(), isActive: true } as any);
+
+      // Contract ended in past
+      vi.spyOn(AnnualMaintenanceContract, 'findById').mockResolvedValue({
+        _id: amcId,
+        amcNumber: 'AMC-2025-00001',
+        projectId,
+        status: AmcStatus.ACTIVE,
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2026-01-01') // Expired
+      } as any);
+
+      await expect(
+        ServiceVisitService.scheduleVisit(
+          {
+            visitType: ServiceVisitType.AMC_PREVENTIVE,
+            projectId: projectId.toString(),
+            customerId: customerId.toString(),
+            amcId: amcId.toString(),
+            assignedTechnicianId: new Types.ObjectId().toString(),
+            scheduledDate: new Date('2026-06-01'),
+            purpose: 'Quarterly Routine Maintenance'
+          },
+          superAdminUser as any
+        )
+      ).rejects.toThrow(/Cannot schedule visit against expired AMC contract/);
+    });
+
+    it('blocks warranty claim submission for component assigned to a different project', async () => {
+      const projectA = new Types.ObjectId();
+      const projectB = new Types.ObjectId();
+      const customerId = new Types.ObjectId();
+
+      vi.spyOn(WarrantyClaim, 'findOne').mockResolvedValue(null);
+
+      vi.spyOn(ProductSerialNumber, 'findOne').mockResolvedValue({
+        serialNumber: 'SN-INV-2026-099',
+        projectId: projectA, // Belongs to Project A
+        customerId,
+        warrantyStatus: WarrantyStatus.ACTIVE,
+        warrantyEndDate: new Date('2030-01-01')
+      } as any);
+
+      vi.spyOn(Project, 'findById').mockResolvedValue({
+        _id: projectB, // User attempts claim for Project B
+        customerId
+      } as any);
+
+      await expect(
+        WarrantyService.submitClaim(
+          {
+            serialNumber: 'SN-INV-2026-099',
+            productId: new Types.ObjectId().toString(),
+            projectId: projectB.toString(),
+            manufacturerName: 'Sungrow',
+            issueDescription: 'Defective inverter unit'
+          },
+          superAdminUser as any
+        )
+      ).rejects.toThrow(/belongs to a different project/);
+    });
   });
 
   // =========================================================================
-  // 5. STATUTORY GST INVOICING & SAC PRORATION
+  // 5. STATUTORY GST INVOICING & 70:30 DEEMED VALUATION
   // =========================================================================
-  describe('5. Statutory GST Invoicing & Duplicate Prevention', () => {
-    it('calculates Intra-State GST (CGST + SGST split) on milestone advance invoices', async () => {
+  describe('5. Statutory GST Invoicing & Anti-Double-Taxation', () => {
+    it('calculates 70:30 Deemed Valuation rate (13.8% = 1380 bps) on composite solar EPC milestone advance invoices', async () => {
       const orderId = new Types.ObjectId();
       const customerId = new Types.ObjectId();
 
       const mockOrder = {
         _id: orderId,
-        orderNumber: 'SO-2026-GST-01',
+        orderNumber: 'SO-2026-EPC-7030',
         customerId,
         taxableAmountPaise: 10000000, // ₹1,00,000 taxable base
-        netTotalPaise: 11800000,
+        netTotalPaise: 11380000,
+        taxProfile: {
+          useDeemedValuation7030: true
+        },
         paymentMilestones: [
           { name: 'Advance Milestone', percentage: 20 }
         ]
@@ -378,7 +553,7 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
       vi.spyOn(SalesOrder, 'findById').mockResolvedValue(mockOrder as any);
       vi.spyOn(Customer, 'findById').mockResolvedValue({
         _id: customerId,
-        name: 'Goyal Enterprises',
+        name: 'Sharma Industries',
         billingAddress: { state: 'Chhattisgarh' }
       } as any);
       vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({
@@ -406,18 +581,81 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
       expect(invoice.isInterState).toBe(false);
       // Prorated 20% of ₹1,00,000 = ₹20,000 taxable
       expect(invoice.taxableAmountPaise).toBe(2000000);
-      // 18% GST split into 9% CGST (₹1,800) and 9% SGST (₹1,800)
-      expect(invoice.totalCgstPaise).toBe(180000);
-      expect(invoice.totalSgstPaise).toBe(180000);
-      expect(invoice.totalIgstPaise).toBe(0);
-      expect(invoice.netTotalPaise).toBe(2360000); // ₹23,600 total
+      // 13.8% composite rate: 6.9% CGST (₹1,380) and 6.9% SGST (₹1,380)
+      expect(invoice.totalCgstPaise).toBe(138000);
+      expect(invoice.totalSgstPaise).toBe(138000);
+      expect(invoice.netTotalPaise).toBe(2276000); // ₹22,760 total
+    });
+
+    it('adjusts prior milestone advances on final tax invoice to prevent double taxation', async () => {
+      const orderId = new Types.ObjectId();
+      const customerId = new Types.ObjectId();
+
+      const mockOrder = {
+        _id: orderId,
+        orderNumber: 'SO-2026-EPC-FINAL',
+        customerId,
+        lineItems: [
+          {
+            itemType: 'PRODUCT',
+            description: 'Solar PV Modules (HSN 8541)',
+            quantity: 1,
+            unitRatePaise: 10000000,
+            taxableAmountPaise: 10000000,
+            gstRateBasisPoints: 1200 // 12% GST = ₹12,000
+          }
+        ]
+      };
+
+      vi.spyOn(SalesOrder, 'findById').mockResolvedValue(mockOrder as any);
+      vi.spyOn(Customer, 'findById').mockResolvedValue({
+        _id: customerId,
+        name: 'Goyal Mills',
+        billingAddress: { state: 'Chhattisgarh' }
+      } as any);
+      vi.spyOn(CompanySettings, 'findOne').mockResolvedValue({
+        legalEntityName: 'INS Solar Pvt Ltd',
+        gstin: '22AAAAA0000A1Z5',
+        registeredAddress: { state: 'Chhattisgarh' }
+      } as any);
+
+      vi.spyOn(CustomerInvoice, 'findOne').mockResolvedValue(null);
+
+      // Prior milestone advance already invoiced for ₹25,000 (2,500,000 paise)
+      vi.spyOn(CustomerInvoice, 'find').mockResolvedValue([
+        {
+          _id: new Types.ObjectId(),
+          invoiceNumber: 'INV-2026-ADV-001',
+          invoiceType: CustomerInvoiceType.MILESTONE_INVOICE,
+          netTotalPaise: 2500000
+        }
+      ] as any);
+
+      vi.spyOn(CustomerInvoice.prototype, 'save').mockImplementation(function (this: any) {
+        return Promise.resolve(this);
+      });
+
+      const invoice = await CustomerInvoiceService.createInvoiceFromOrder(
+        {
+          orderId: orderId.toString(),
+          invoiceType: CustomerInvoiceType.TAX_INVOICE
+        } as any,
+        superAdminUser,
+        {}
+      );
+
+      expect(invoice).toBeDefined();
+      // Gross contract value: ₹1,00,000 + 12% GST (₹12,000) = ₹1,12,000 (11,200,000 paise)
+      expect(invoice.netTotalPaise).toBe(11200000);
+      // Balance due adjusted for ₹25,000 prior advance = ₹1,12,000 - ₹25,000 = ₹87,000 (8,700,000 paise)
+      expect(invoice.balanceDuePaise).toBe(8700000);
     });
   });
 
   // =========================================================================
-  // 6. ROLE-BASED ACCESS SCOPING & FINANCIAL LEDGER ISOLATION
+  // 6. ROLE-BASED ACCESS SCOPING & SENSITIVE DATA SECURITY
   // =========================================================================
-  describe('6. Role-Based Access Scoping & Financial Ledger Isolation', () => {
+  describe('6. Role-Based Access Scoping & Sensitive Data Security', () => {
     it('blocks field installer crew from modifying or cancelling statutory GST invoices', async () => {
       const installerUser = {
         userId: new Types.ObjectId().toString(),
@@ -433,6 +671,28 @@ describe('DEEP CONCURRENCY & FINANCIAL AUDIT SUITE', () => {
           {}
         )
       ).rejects.toThrow(/Only Administrator or Accounts Head can cancel a statutory GST Tax Invoice/);
+    });
+
+    it('masks Aadhaar, PAN, and Bank details according to statutory privacy rules', () => {
+      expect(maskAadhaar('123456789012')).toBe('XXXX-XXXX-9012');
+      expect(maskAadhaar('1234-5678-9012')).toBe('XXXX-XXXX-9012');
+
+      expect(maskPan('ABCDE1234F')).toBe('ABXXXXXX4F');
+
+      expect(maskBankAccount('987654321098')).toBe('XXXXXXXX1098');
+
+      expect(maskCredentials('DISCOM_PASSWORD_123')).toBe('********');
+    });
+
+    it('encrypts and decrypts sensitive credentials at rest using AES-256-GCM', () => {
+      const secret = 'DISCOM_CONSUMER_PORTAL_KEY_#2026';
+      const ciphertext = encryptSensitiveField(secret);
+
+      expect(ciphertext).not.toBe(secret);
+      expect(ciphertext).toContain(':'); // <iv>:<tag>:<encrypted> format
+
+      const decrypted = decryptSensitiveField(ciphertext);
+      expect(decrypted).toBe(secret);
     });
   });
 });

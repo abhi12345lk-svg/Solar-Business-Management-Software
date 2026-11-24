@@ -303,6 +303,18 @@ export class WarrantyService {
       }
     }
 
+    // 4b. Verify asset ownership and project assignment
+    if (serialDoc.projectId && serialDoc.projectId.toString() !== project._id.toString()) {
+      throw AppError.badRequest(
+        `Component with serial number '${normalizedSerial}' belongs to a different project.`
+      );
+    }
+    if (serialDoc.customerId && serialDoc.customerId.toString() !== customerId) {
+      throw AppError.badRequest(
+        `Component with serial number '${normalizedSerial}' is registered to a different customer.`
+      );
+    }
+
     // 5. Check warranty expiration
     const now = new Date();
     const isExpired = serialDoc.warrantyEndDate ? serialDoc.warrantyEndDate < now : false;
@@ -469,13 +481,24 @@ export class WarrantyService {
         );
       }
 
-      // 2. Allocate and activate replacement serial number for customer/project
+      // 2. Fetch original serial document to preserve warranty history
+      const originalSerialDoc = await ProductSerialNumber.findOne({ serialNumber: claim.serialNumber });
+      const originalWarrantyEnd = originalSerialDoc?.warrantyEndDate;
+      const minReplacementEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+      // Allocate and activate replacement serial number for customer/project
       replacementDoc.status = SerialNumberStatus.INSTALLED;
       replacementDoc.customerId = claim.customerId;
       replacementDoc.projectId = claim.projectId;
       replacementDoc.warrantyStartDate = new Date();
+      replacementDoc.warrantyEndDate =
+        originalWarrantyEnd && originalWarrantyEnd > minReplacementEnd
+          ? originalWarrantyEnd
+          : minReplacementEnd;
+      replacementDoc.supplierWarrantyReference =
+        originalSerialDoc?.supplierWarrantyReference || replacementDoc.supplierWarrantyReference;
       replacementDoc.warrantyStatus = WarrantyStatus.ACTIVE;
-      replacementDoc.notes = `Issued as warranty replacement for defective unit ${claim.serialNumber} under Claim ${claim.claimNumber}`;
+      replacementDoc.notes = `Issued as warranty replacement for defective unit ${claim.serialNumber} under Claim ${claim.claimNumber} (Warranty ends: ${replacementDoc.warrantyEndDate.toISOString().split('T')[0]})`;
       await replacementDoc.save();
 
       // 3. Generate Compensating Stock Movements
@@ -501,6 +524,8 @@ export class WarrantyService {
         movementType: StockMovementType.RETURN,
         destWarehouseId: replacementDoc.warehouseId,
         projectId: claim.projectId,
+        condition: 'DAMAGED',
+        disposition: 'SUPPLIER_RMA',
         serialNumbers: [claim.serialNumber],
         performedBy: new mongoose.Types.ObjectId(actorId),
         reason: `Defective hardware returned under warranty claim ${claim.claimNumber} (Quarantine RTV)`

@@ -156,7 +156,24 @@ export class CustomerInvoiceService {
         milestone.amountPaise !== undefined && milestone.amountPaise > 0
           ? milestone.amountPaise
           : Math.round((order.taxableAmountPaise * milestonePercentage) / 100);
-      const gstRateBps = 1800; // Standard 18% SAC 9954 for milestone advance EPC services
+
+      // Configurable GST Treatment:
+      // Priority 1: Explicit milestone-level rate
+      // Priority 2: Order-level tax profile default rate
+      // Priority 3: 70:30 Deemed Valuation Rule for Composite EPC (13.8% = 1380 bps)
+      // Priority 4: Standard SAC 9954 Service Rate (18% = 1800 bps)
+      const is7030 = Boolean(
+        (order.taxProfile as any)?.useDeemedValuation7030 ||
+        (order as any)?.isSolarEpcComposite
+      );
+      const gstRateBps =
+        (milestone as any)?.gstRateBasisPoints !== undefined
+          ? (milestone as any).gstRateBasisPoints
+          : (order.taxProfile as any)?.defaultGstRateBps !== undefined
+          ? (order.taxProfile as any).defaultGstRateBps
+          : is7030
+          ? 1380
+          : 1800;
 
       let cgstPaise = 0;
       let sgstPaise = 0;
@@ -174,7 +191,7 @@ export class CustomerInvoiceService {
 
       lineItems.push({
         itemType: 'SERVICE',
-        description: `Milestone Advance: ${milestone.name || `Stage ${input.milestoneIndex + 1}`} (${milestonePercentage}% of Solar EPC Order ${order.orderNumber})`,
+        description: `Milestone Advance: ${milestone.name || `Stage ${input.milestoneIndex + 1}`} (${milestonePercentage}% of Solar EPC Order ${order.orderNumber})${is7030 ? ' [70:30 Deemed Valuation Scheme Applied]' : ''}`,
         hsnSacCode: '9954',
         quantity: 1,
         unit: 'STAGE',
@@ -226,7 +243,7 @@ export class CustomerInvoiceService {
       }
     }
 
-    // 7. Aggregate Totals
+    // 7. Aggregate Totals & Adjust for Previous Milestone Advance Invoices (Anti-Double-Taxation)
     const grossSubtotalPaise = lineItems.reduce((acc, item) => acc + (item.unitRatePaise * item.quantity), 0);
     const totalDiscountPaise = lineItems.reduce((acc, item) => acc + item.discountPaise, 0);
     const taxableAmountPaise = lineItems.reduce((acc, item) => acc + item.taxableAmountPaise, 0);
@@ -236,14 +253,25 @@ export class CustomerInvoiceService {
     const totalTaxPaise = totalCgstPaise + totalSgstPaise + totalIgstPaise;
     const netTotalPaise = taxableAmountPaise + totalTaxPaise;
 
-    // 8. Reconcile Customer Payments against this Order
+    let advancesAdjustedPaise = 0;
+    if (input.invoiceType === CustomerInvoiceType.TAX_INVOICE) {
+      const priorMilestones = await CustomerInvoice.find({
+        orderId: order._id,
+        invoiceType: CustomerInvoiceType.MILESTONE_INVOICE,
+        status: { $ne: CustomerInvoiceStatus.CANCELLED }
+      });
+      advancesAdjustedPaise = priorMilestones.reduce((sum, inv) => sum + (inv.netTotalPaise || 0), 0);
+    }
+
+    // 8. Reconcile Customer Payments against this Order & Invoiced Advances
     const allocations = await PaymentAllocation.find({
       salesOrderId: order._id,
       status: 'ALLOCATED'
     });
     const totalAllocatedPaise = allocations.reduce((sum, a) => sum + (a.allocatedAmountPaise || 0), 0);
-    const amountPaidPaise = Math.min(netTotalPaise, totalAllocatedPaise);
-    const balanceDuePaise = Math.max(0, netTotalPaise - amountPaidPaise);
+    const netPayablePaise = Math.max(0, netTotalPaise - advancesAdjustedPaise);
+    const amountPaidPaise = Math.min(netPayablePaise, totalAllocatedPaise);
+    const balanceDuePaise = Math.max(0, netPayablePaise - amountPaidPaise);
 
     let status = CustomerInvoiceStatus.ISSUED;
     if (balanceDuePaise === 0 && netTotalPaise > 0) {

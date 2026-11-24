@@ -90,3 +90,58 @@ export async function verifyPassword(hash: string, candidate: string): Promise<b
     return false;
   }
 }
+
+/**
+ * Mask Indian Aadhaar number preserving strictly the last 4 digits (e.g. XXXX-XXXX-1234).
+ */
+export function maskAadhaar(aadhaar: string): string {
+  if (!aadhaar) return '';
+  const digits = aadhaar.replace(/\D/g, '');
+  if (digits.length < 4) return 'XXXX-XXXX-XXXX';
+  const last4 = digits.slice(-4);
+  return `XXXX-XXXX-${last4}`;
+}
+
+/**
+ * Mask Permanent Account Number (PAN) preserving first 2 and last 2 characters (e.g. ABXXXXXX4F).
+ */
+export function maskPan(pan: string): string {
+  if (!pan) return '';
+  const clean = pan.trim().toUpperCase();
+  if (clean.length < 5) return 'XXXXXXXXXX';
+  const first2 = clean.slice(0, 2);
+  const last2 = clean.slice(-2);
+  return `${first2}${'X'.repeat(Math.max(0, clean.length - 4))}${last2}`;
+}
+
+/**
+ * Mask Bank Account Number preserving strictly the last 4 digits.
+ */
+export function maskBankAccount(accountNo: string): string {
+  if (!accountNo) return '';
+  const digits = accountNo.replace(/\D/g, '');
+  if (digits.length < 4) return 'XXXXXXXX';
+  return `${'X'.repeat(Math.max(4, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+/**
+ * Mask utility / DISCOM portal passwords or credentials.
+ */
+export function maskCredentials(secret: string): string {
+  if (!secret) return '';
+  return '********';
+}
+
+/**
+ * Encrypt sensitive customer PII or credentials at rest using AES-256-GCM.
+ */
+export function encryptSensitiveField(plaintext: string): string {
+  return encryptAesGcm(plaintext);
+}
+
+/**
+ * Decrypt sensitive customer PII or credentials at rest using AES-256-GCM.
+ */
+export function decryptSensitiveField(ciphertext: string): string {
+  return decryptAesGcm(ciphertext);
+}

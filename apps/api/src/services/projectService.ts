@@ -116,6 +116,21 @@ export class ProjectService {
         .populate('customerId', 'customerCode name phone email')
         .populate('orderId', 'orderNumber status netTotalPaise');
       if (existing) {
+        // Validate payload compatibility before returning idempotent record
+        const existingCustId = (existing.customerId as any)?._id?.toString() || existing.customerId?.toString();
+        if (existingCustId && existingCustId !== input.customerId) {
+          throw AppError.conflict(
+            `Idempotency key conflict: Key '${input.idempotencyKey}' was already used for a different customer.`
+          );
+        }
+        if (input.orderId && input.orderId.trim()) {
+          const existingOrdId = (existing.orderId as any)?._id?.toString() || existing.orderId?.toString();
+          if (existingOrdId && existingOrdId !== input.orderId.trim()) {
+            throw AppError.conflict(
+              `Idempotency key conflict: Key '${input.idempotencyKey}' was already used for a different sales order.`
+            );
+          }
+        }
         return existing;
       }
     }
@@ -251,7 +266,7 @@ export class ProjectService {
     } catch (saveErr: any) {
       if (saveErr?.code === 11000) {
         // Concurrency collision on unique index (orderId or idempotencyKey):
-        // Safely return the existing project document created by the winning concurrent thread
+        // Safely recover using idempotencyKey first, then orderId as fallback
         let collisionMatch: any = null;
         if (input.idempotencyKey && input.idempotencyKey.trim()) {
           collisionMatch = await Project.findOne({ idempotencyKey: input.idempotencyKey.trim() })
@@ -264,6 +279,25 @@ export class ProjectService {
             .populate('orderId', 'orderNumber status netTotalPaise');
         }
         if (collisionMatch) {
+          // Validate that the incoming payload matches the existing project's customer and order
+          const matchCustId =
+            (collisionMatch.customerId as any)?._id?.toString() ||
+            collisionMatch.customerId?.toString();
+          if (matchCustId && matchCustId !== input.customerId) {
+            throw AppError.conflict(
+              `Concurrency collision: Project for this key or order belongs to a different customer.`
+            );
+          }
+          if (input.orderId && input.orderId.trim()) {
+            const matchOrdId =
+              (collisionMatch.orderId as any)?._id?.toString() ||
+              collisionMatch.orderId?.toString();
+            if (matchOrdId && matchOrdId !== input.orderId.trim()) {
+              throw AppError.conflict(
+                `Concurrency collision: Project for this key belongs to a different sales order.`
+              );
+            }
+          }
           return collisionMatch;
         }
       }

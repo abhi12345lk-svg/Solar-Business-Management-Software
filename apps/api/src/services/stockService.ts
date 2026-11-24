@@ -647,11 +647,20 @@ export class StockService {
       throw AppError.notFound('Product not found.');
     }
 
+    const isDamagedOrScrap =
+      input.condition === 'DAMAGED' ||
+      input.condition === 'SCRAP' ||
+      input.condition === 'REJECTED';
+
+    // Damaged or scrap returns must NOT increase availableQuantity for dispatch.
+    // Only reusable/accepted returns restore availableQuantity.
+    const availableInc = isDamagedOrScrap ? 0 : input.quantity;
+
     // Atomic addition at return destination warehouse
     await StockBalance.findOneAndUpdate(
       { productId: product._id, warehouseId: destWarehouse._id },
       {
-        $inc: { onHandQuantity: input.quantity, availableQuantity: input.quantity },
+        $inc: { onHandQuantity: input.quantity, availableQuantity: availableInc },
         $set: { updatedAt: new Date() }
       },
       { upsert: true, new: true }
@@ -665,6 +674,10 @@ export class StockService {
       movementType: StockMovementType.RETURN,
       sourceWarehouseId: srcWarehouse._id,
       destinationWarehouseId: destWarehouse._id,
+      condition: input.condition || 'REUSABLE',
+      disposition: input.disposition || (isDamagedOrScrap ? 'SCRAP_WRITEOFF' : 'RESTOCK'),
+      unitCostPaise: input.unitCostPaise,
+      salvageCreditPaise: input.salvageCreditPaise || 0,
       performedBy: new Types.ObjectId(user.userId),
       reason: input.reason,
       reversalOfMovementId: input.originalMovementId

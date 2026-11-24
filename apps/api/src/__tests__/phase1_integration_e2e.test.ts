@@ -425,6 +425,10 @@ describe('Phase 1 E2E Integration: Pre-Dispatch, Customer GST Invoicing & Instal
   // 2. STATUTORY CUSTOMER GST TAX INVOICE SYSTEM (DECISION 2)
   // =========================================================================
   describe('2. Customer GST Tax Invoice System', () => {
+    beforeEach(() => {
+      vi.spyOn(CustomerInvoice, 'find').mockResolvedValue([]);
+    });
+
     const mockCompany = {
       legalEntityName: 'INS Solar Private Limited',
       companyName: 'INS Solar',

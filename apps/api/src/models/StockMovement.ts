@@ -26,6 +26,10 @@ export interface IStockMovementDocument extends Document {
   idempotencyKey?: string;
   isReversal: boolean;
   reversalOfMovementId?: Types.ObjectId;
+  condition?: 'REUSABLE' | 'DAMAGED' | 'SCRAP' | 'REJECTED';
+  disposition?: 'RESTOCK' | 'SCRAP_WRITEOFF' | 'SUPPLIER_RMA' | 'INSURANCE_CLAIM';
+  unitCostPaise?: number;
+  salvageCreditPaise?: number;
   createdAt: Date;
 }
 
@@ -112,6 +116,24 @@ const StockMovementSchema = new Schema<IStockMovementDocument>(
       type: Schema.Types.ObjectId,
       ref: 'StockMovement',
       default: null
+    },
+    condition: {
+      type: String,
+      enum: ['REUSABLE', 'DAMAGED', 'SCRAP', 'REJECTED'],
+      default: 'REUSABLE'
+    },
+    disposition: {
+      type: String,
+      enum: ['RESTOCK', 'SCRAP_WRITEOFF', 'SUPPLIER_RMA', 'INSURANCE_CLAIM'],
+      default: 'RESTOCK'
+    },
+    unitCostPaise: {
+      type: Number,
+      default: undefined
+    },
+    salvageCreditPaise: {
+      type: Number,
+      default: 0
     }
   },
   {
