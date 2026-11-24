@@ -71,6 +71,19 @@ describe('Three-Panel Enterprise Architecture Verification', () => {
       expect(isRoleAllowedInPanel(UserRole.SERVICE_TECHNICIAN, PanelType.ACCOUNTS)).toBe(false);
     });
 
+    it('ensures Installation Crew has field service visit execution and ticket read permissions without AMC governance', () => {
+      const crewPermissions = ROLE_DEFAULT_PERMISSIONS[UserRole.INSTALLATION_CREW];
+
+      expect(crewPermissions).toContain('service:ticket_read');
+      expect(crewPermissions).toContain('service:ticket_create');
+      expect(crewPermissions).toContain('service:visit_schedule');
+      expect(crewPermissions).toContain('service:visit_execute');
+      expect(crewPermissions).toContain('warranty:read');
+
+      // Installation Crew does not have contractual AMC administration authority
+      expect(crewPermissions).not.toContain('service:amc_manage');
+    });
+
     it('denies external Customers access to all 3 internal company panels', () => {
       expect(isRoleAllowedInPanel(UserRole.CUSTOMER, PanelType.ADMIN)).toBe(false);
       expect(isRoleAllowedInPanel(UserRole.CUSTOMER, PanelType.SALES)).toBe(false);

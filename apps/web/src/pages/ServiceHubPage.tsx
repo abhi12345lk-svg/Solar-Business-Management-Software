@@ -11,6 +11,8 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LifeBuoy, Wrench, ShieldCheck, FileCheck2, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.js';
+import { Permission, UserRole } from '@ins-solar/shared';
 import { ComplaintsPage } from './ComplaintsPage.js';
 import { ServiceVisitsPage } from './ServiceVisitsPage.js';
 import { WarrantiesPage } from './WarrantiesPage.js';
@@ -19,33 +21,44 @@ import { AmcPage } from './AmcPage.js';
 type ServiceTab = 'tickets' | 'visits' | 'warranties' | 'amc';
 
 export const ServiceHubPage: React.FC = () => {
+  const { user, isAdmin, hasPermission } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const projectIdParam = searchParams.get('projectId');
 
+  const allTabs: Array<{
+    id: ServiceTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    permission?: Permission;
+  }> = [
+    { id: 'tickets', label: 'Complaints & Tickets', icon: LifeBuoy, permission: 'service:ticket_read' },
+    { id: 'visits', label: 'Field Technician Visits', icon: Wrench, permission: 'service:ticket_read' },
+    { id: 'warranties', label: 'Asset Warranties', icon: ShieldCheck, permission: 'warranty:read' },
+    { id: 'amc', label: 'AMC Contracts', icon: FileCheck2, permission: 'service:amc_manage' }
+  ];
+
+  // Filter tabs accessible to the logged in user
+  const tabs = allTabs.filter(
+    tab => !tab.permission || isAdmin || hasPermission(tab.permission)
+  );
+
+  const defaultTab: ServiceTab =
+    user?.role === UserRole.INSTALLATION_CREW || user?.role === UserRole.TECHNICIAN
+      ? 'visits'
+      : (tabs[0]?.id || 'tickets');
+
+  const resolvedTabParam = tabParam === 'complaints' ? 'tickets' : tabParam;
   const currentTab: ServiceTab =
-    tabParam === 'complaints'
-      ? 'tickets'
-      : ['tickets', 'visits', 'warranties', 'amc'].includes(tabParam || '')
-        ? (tabParam as ServiceTab)
-        : 'tickets';
+    resolvedTabParam && tabs.some(t => t.id === resolvedTabParam)
+      ? (resolvedTabParam as ServiceTab)
+      : defaultTab;
 
   const handleTabChange = (tab: ServiceTab) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('tab', tab);
     setSearchParams(nextParams);
   };
-
-  const tabs: Array<{
-    id: ServiceTab;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }> = [
-    { id: 'tickets', label: 'Complaints & Tickets', icon: LifeBuoy },
-    { id: 'visits', label: 'Field Technician Visits', icon: Wrench },
-    { id: 'warranties', label: 'Asset Warranties', icon: ShieldCheck },
-    { id: 'amc', label: 'AMC Contracts', icon: FileCheck2 }
-  ];
 
   return (
     <div className="space-y-6">

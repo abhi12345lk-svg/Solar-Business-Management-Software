@@ -39,8 +39,8 @@ export async function seedWorkstationUsers(): Promise<void> {
     if (!salesExists) {
       await User.create({
         employeeCode: 'EMP-0002',
-        firstName: 'Rajesh',
-        lastName: 'Sharma',
+        firstName: 'Sales',
+        lastName: 'Executive',
         email: 'sales@inssolar.com',
         phone: '+919876500001',
         passwordHash: salesPassHash,
@@ -53,6 +53,8 @@ export async function seedWorkstationUsers(): Promise<void> {
       });
       logger.info('Created default Sales Executive (sales@inssolar.com).');
     } else {
+      salesExists.firstName = 'Sales';
+      salesExists.lastName = 'Executive';
       salesExists.passwordHash = salesPassHash;
       await salesExists.save();
       logger.info('Verified Sales Executive (sales@inssolar.com).');
@@ -64,8 +66,8 @@ export async function seedWorkstationUsers(): Promise<void> {
     if (!accountsExists) {
       await User.create({
         employeeCode: 'EMP-0003',
-        firstName: 'Priya',
-        lastName: 'Verma',
+        firstName: 'Accounts',
+        lastName: 'Officer',
         email: 'accounts@inssolar.com',
         phone: '+919876500002',
         passwordHash: accountsPassHash,
@@ -78,6 +80,8 @@ export async function seedWorkstationUsers(): Promise<void> {
       });
       logger.info('Created default Accounts Officer (accounts@inssolar.com).');
     } else {
+      accountsExists.firstName = 'Accounts';
+      accountsExists.lastName = 'Officer';
       accountsExists.passwordHash = accountsPassHash;
       await accountsExists.save();
       logger.info('Verified Accounts Officer (accounts@inssolar.com).');
@@ -89,8 +93,8 @@ export async function seedWorkstationUsers(): Promise<void> {
     if (!installerExists) {
       await User.create({
         employeeCode: 'EMP-0004',
-        firstName: 'Vikram',
-        lastName: 'Sahu',
+        firstName: 'Field',
+        lastName: 'Installer',
         email: 'installer@inssolar.com',
         phone: '+919876500003',
         passwordHash: installerPassHash,
@@ -103,6 +107,8 @@ export async function seedWorkstationUsers(): Promise<void> {
       });
       logger.info('Created default Field Installer Crew (installer@inssolar.com).');
     } else {
+      installerExists.firstName = 'Field';
+      installerExists.lastName = 'Installer';
       installerExists.passwordHash = installerPassHash;
       await installerExists.save();
       logger.info('Verified Field Installer Crew (installer@inssolar.com).');

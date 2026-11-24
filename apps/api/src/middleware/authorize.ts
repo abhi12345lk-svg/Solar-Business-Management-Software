@@ -201,8 +201,10 @@ export function requireRole(allowedRoles: UserRole[]): RequestHandler {
 /**
  * 6. Require Permission:
  * Evaluates whether the user's role-based and custom permissions contain the required permission token.
+ * When multiple permissions are supplied as an array, having ANY one of the permissions grants access.
  */
-export function requirePermission(permission: Permission): RequestHandler {
+export function requirePermission(permission: Permission | readonly Permission[]): RequestHandler {
+  const required = Array.isArray(permission) ? permission : [permission];
   return (req, _res, next) => {
     const user = req.session?.user;
     if (!user) {
@@ -222,14 +224,18 @@ export function requirePermission(permission: Permission): RequestHandler {
           ...(((user as any).permissions as Permission[]) || [])
         ];
 
-    if (effectivePermissions.includes(permission)) {
+    const hasPermission = required.some(p => effectivePermissions.includes(p));
+    if (hasPermission) {
       return next();
     }
+
+    const missingDesc =
+      required.length === 1 ? `'${required[0]}'` : `one of [${required.join(', ')}]`;
 
     return next(
       new AppError(
         403,
-        `Access Denied: Role '${user.role}' lacks required permission '${permission}'.`,
+        `Access Denied: Role '${user.role}' lacks required permission ${missingDesc}.`,
         ErrorCode.PERMISSION_DENIED
       )
     );

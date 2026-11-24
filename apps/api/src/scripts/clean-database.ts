@@ -118,8 +118,8 @@ export async function cleanAllDatabaseData() {
     {
       $set: {
         employeeCode: 'EMP-0002',
-        firstName: 'Rajesh',
-        lastName: 'Sharma',
+        firstName: 'Sales',
+        lastName: 'Executive',
         email: 'sales@inssolar.com',
         phone: '+919876500001',
         passwordHash: salesPassHash,
@@ -140,8 +140,8 @@ export async function cleanAllDatabaseData() {
     {
       $set: {
         employeeCode: 'EMP-0003',
-        firstName: 'Priya',
-        lastName: 'Verma',
+        firstName: 'Accounts',
+        lastName: 'Officer',
         email: 'accounts@inssolar.com',
         phone: '+919876500002',
         passwordHash: accountsPassHash,
@@ -162,8 +162,8 @@ export async function cleanAllDatabaseData() {
     {
       $set: {
         employeeCode: 'EMP-0004',
-        firstName: 'Vikram',
-        lastName: 'Sahu',
+        firstName: 'Field',
+        lastName: 'Installer',
         email: 'installer@inssolar.com',
         phone: '+919876500003',
         passwordHash: installerPassHash,

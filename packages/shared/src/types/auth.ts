@@ -417,7 +417,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'installation:create',
     'installation:read',
     'installation:update',
-    'installation:submit'
+    'installation:submit',
+    'service:ticket_create',
+    'service:ticket_read',
+    'service:visit_schedule',
+    'service:visit_execute',
+    'warranty:read'
   ],
   [UserRole.ACCOUNTS_OFFICER]: [
     'account:invoice_create',
@@ -499,6 +504,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'service:ticket_create',
     'service:ticket_read',
     'service:ticket_resolve',
+    'service:visit_schedule',
     'service:visit_execute',
     'warranty:read',
     'customer:read',

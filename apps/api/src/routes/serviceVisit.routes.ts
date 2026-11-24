@@ -25,7 +25,7 @@ serviceVisitRouter.use(requireEmployee);
  */
 serviceVisitRouter.get(
   '/',
-  requirePermission('service:ticket_read'),
+  requirePermission(['service:ticket_read', 'service:visit_execute', 'service:visit_schedule']),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parseResult = serviceVisitFilterSchema.safeParse(req.query);
@@ -79,7 +79,7 @@ serviceVisitRouter.post(
  */
 serviceVisitRouter.get(
   '/:id',
-  requirePermission('service:ticket_read'),
+  requirePermission(['service:ticket_read', 'service:visit_execute', 'service:visit_schedule']),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const visit = await ServiceVisitService.getVisitById(req.params.id as string, {
