@@ -28,7 +28,9 @@ import {
   Camera,
   LifeBuoy,
   Wrench,
-  PackageCheck
+  PackageCheck,
+  Compass,
+  SunMedium
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -58,6 +60,8 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/leads', label: 'Leads', icon: Users },
       { to: '/customers', label: 'Customers', icon: UserCheck },
+      { to: '/surveys', label: 'Site Surveys', icon: Compass },
+      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
       { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
       { to: '/orders', label: 'Orders', icon: ShoppingCart },
       { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
@@ -112,6 +116,8 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/leads', label: 'Leads', icon: Users },
       { to: '/customers', label: 'Customers', icon: UserCheck },
+      { to: '/surveys', label: 'Site Surveys', icon: Compass },
+      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
       { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
       { to: '/orders', label: 'Orders', icon: ShoppingCart }
     ]
@@ -166,6 +172,8 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Projects', title: 'Site Photos' };
   }
   if (pathname.startsWith('/leads')) return { section: 'Sales', title: 'Leads' };
+  if (pathname.startsWith('/surveys')) return { section: 'Sales', title: 'Site Surveys' };
+  if (pathname.startsWith('/solar-designs')) return { section: 'Sales', title: 'Solar PV Designs' };
   if (pathname.startsWith('/customers')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Customer Records' };
     return { section: 'Sales', title: 'Customers' };

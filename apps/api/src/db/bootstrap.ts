@@ -206,6 +206,8 @@ export async function bootstrapDefaultUsers(): Promise<void> {
     // Bootstrap default Tier-1 vendors if none exists
     const vendorCount = await Vendor.countDocuments({});
     if (vendorCount === 0) {
+      const adminRecord = await User.findOne({ email: 'admin@inssolar.com' });
+      const adminId = adminRecord ? adminRecord._id : new mongoose.Types.ObjectId();
       await Vendor.create({
         vendorCode: 'VEN-2026-00001',
         name: 'Waaree Energies Limited',
@@ -216,7 +218,8 @@ export async function bootstrapDefaultUsers(): Promise<void> {
         pan: 'AAACW1234A',
         paymentTermsDays: 30,
         address: { addressLine1: 'B-Wing, Times Square, Andheri East', city: 'Mumbai', state: 'Maharashtra', postalCode: '400059', country: 'India' },
-        isActive: true
+        isActive: true,
+        createdBy: adminId
       });
       await Vendor.create({
         vendorCode: 'VEN-2026-00002',
@@ -228,7 +231,8 @@ export async function bootstrapDefaultUsers(): Promise<void> {
         pan: 'AAACS5678B',
         paymentTermsDays: 30,
         address: { addressLine1: 'Tower B, Cyber City, DLF Phase 2', city: 'Gurugram', state: 'Haryana', postalCode: '122002', country: 'India' },
-        isActive: true
+        isActive: true,
+        createdBy: adminId
       });
       await Vendor.create({
         vendorCode: 'VEN-2026-00003',
@@ -240,7 +244,8 @@ export async function bootstrapDefaultUsers(): Promise<void> {
         pan: 'AAACP9999C',
         paymentTermsDays: 45,
         address: { addressLine1: 'Polycab House, Mogul Lane, Mahim', city: 'Mumbai', state: 'Maharashtra', postalCode: '400016', country: 'India' },
-        isActive: true
+        isActive: true,
+        createdBy: adminId
       });
       logger.info('Initialized default Tier-1 solar suppliers.');
     }

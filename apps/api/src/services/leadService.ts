@@ -6,6 +6,7 @@ import {
   ILeadActivityDocument,
   Customer,
   ICustomerDocument,
+  CustomerIdentity,
   User,
   IAddressSubdocument
 } from '../models/index.js';
@@ -875,6 +876,26 @@ export class LeadService {
       ? new Types.ObjectId(user.userId)
       : undefined;
     await lead.save();
+
+    // Ensure CustomerIdentity exists for passwordless portal authentication
+    try {
+      await CustomerIdentity.findOneAndUpdate(
+        { customerId: customerDoc._id },
+        {
+          $setOnInsert: {
+            customerId: customerDoc._id,
+            customerCode: customerDoc.customerCode,
+            name: customerDoc.name,
+            email: customerDoc.email ? customerDoc.email.toLowerCase().trim() : undefined,
+            phone: customerDoc.primaryPhone ? customerDoc.primaryPhone.trim() : undefined,
+            isActive: true
+          }
+        },
+        { upsert: true, new: true }
+      );
+    } catch {
+      // Identity provision failure should not block lead conversion
+    }
 
     // Record conversion activity
     await LeadActivity.create({

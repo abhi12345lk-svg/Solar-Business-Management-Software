@@ -162,7 +162,8 @@ export class GoodsReceiptService {
               productId: product._id,
               warehouseId: warehouse._id,
               status: 'IN_STOCK',
-              movementHistory: [movement._id]
+              movementHistory: [movement._id],
+              registeredBy: new Types.ObjectId(user.userId)
             });
             await serialDoc.save();
           }

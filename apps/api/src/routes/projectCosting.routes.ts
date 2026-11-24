@@ -53,6 +53,25 @@ projectCostingRouter.get(
 );
 
 /**
+ * GET /api/v1/projects/:projectId/costing
+ * Route alias for comprehensive project profitability and costing ledger.
+ */
+projectCostingRouter.get(
+  '/costing',
+  requirePermission('project:cost_read'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await ProjectProfitabilityService.getProjectProfitability(
+        req.params.projectId as string
+      );
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * GET /api/v1/projects/:projectId/budgets
  * Version history of planned budgets for this project.
  */

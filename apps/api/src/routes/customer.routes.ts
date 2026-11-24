@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { Customer } from '../models/Customer.js';
+import { CustomerIdentity } from '../models/CustomerIdentity.js';
 import { Lead } from '../models/Lead.js';
 import { DocumentModel } from '../models/DocumentModel.js';
 import { DocumentService } from '../services/documentService.js';
@@ -184,6 +185,26 @@ customerRouter.post('/', async (req: Request, res: Response, next: NextFunction)
         convertedCustomerId: customer._id,
         status: 'CONVERTED'
       });
+    }
+
+    // Ensure CustomerIdentity exists for passwordless portal authentication
+    try {
+      await CustomerIdentity.findOneAndUpdate(
+        { customerId: customer._id },
+        {
+          $setOnInsert: {
+            customerId: customer._id,
+            customerCode: customer.customerCode,
+            name: customer.name,
+            email: customer.email ? customer.email.toLowerCase().trim() : undefined,
+            phone: customer.primaryPhone ? customer.primaryPhone.trim() : undefined,
+            isActive: true
+          }
+        },
+        { upsert: true, new: true }
+      );
+    } catch {
+      // Identity provision failure should not block customer creation
     }
 
     return sendSuccess(

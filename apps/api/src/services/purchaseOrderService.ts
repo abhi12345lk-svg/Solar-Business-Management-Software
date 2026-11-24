@@ -261,7 +261,11 @@ export class PurchaseOrderService {
     }
 
     // Anti-Self-Approval Enforcement: Creator cannot approve their own PO!
-    if (po.createdBy.toString() === user.userId) {
+    const createdById = (po.createdBy as any)?._id
+      ? (po.createdBy as any)._id.toString()
+      : po.createdBy.toString();
+
+    if (createdById === user.userId) {
       throw AppError.permissionDenied(
         'Anti-Self-Approval Violation: Requesters cannot approve their own purchase orders.'
       );

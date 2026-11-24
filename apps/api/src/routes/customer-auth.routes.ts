@@ -49,9 +49,31 @@ customerAuthRouter.post(
       const lowerIdentifier = identifier.toLowerCase();
 
       // Query customer identity by email or phone
-      const identity = await CustomerIdentity.findOne({
+      let identity = await CustomerIdentity.findOne({
         $or: [{ email: lowerIdentifier }, { phone: identifier }]
       });
+
+      // Auto-provision CustomerIdentity if Customer exists in DB
+      if (!identity) {
+        const customer = await Customer.findOne({
+          $or: [
+            { email: lowerIdentifier },
+            { primaryPhone: identifier },
+            { customerCode: identifier.toUpperCase() }
+          ],
+          isActive: true
+        });
+        if (customer) {
+          identity = await CustomerIdentity.create({
+            customerId: customer._id,
+            customerCode: customer.customerCode,
+            name: customer.name,
+            email: customer.email ? customer.email.toLowerCase().trim() : undefined,
+            phone: customer.primaryPhone ? customer.primaryPhone.trim() : undefined,
+            isActive: true
+          });
+        }
+      }
 
       if (identity && identity.isActive) {
         const rawToken = generateRandomToken(32);
@@ -197,7 +219,22 @@ customerAuthRouter.post(
       }
 
       const { phone } = parseResult.data;
-      const identity = await CustomerIdentity.findOne({ phone, isActive: true });
+      let identity = await CustomerIdentity.findOne({ phone, isActive: true });
+
+      // Auto-provision CustomerIdentity if Customer exists in DB
+      if (!identity) {
+        const customer = await Customer.findOne({ primaryPhone: phone, isActive: true });
+        if (customer) {
+          identity = await CustomerIdentity.create({
+            customerId: customer._id,
+            customerCode: customer.customerCode,
+            name: customer.name,
+            email: customer.email ? customer.email.toLowerCase().trim() : undefined,
+            phone: customer.primaryPhone ? customer.primaryPhone.trim() : undefined,
+            isActive: true
+          });
+        }
+      }
 
       if (identity) {
         // Generate 6-digit numeric OTP

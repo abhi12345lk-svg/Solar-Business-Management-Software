@@ -136,9 +136,13 @@ export class SolarDesignService {
         'Selected solar module is inactive or does not exist in catalog.'
       );
     }
-    if (moduleProduct.productType !== SolarProductType.SOLAR_PANEL) {
+    const isSolarPanel =
+      moduleProduct.productType === SolarProductType.SOLAR_PANEL ||
+      moduleProduct.productType === 'PANEL' ||
+      moduleProduct.productType === 'SOLAR_PANELS';
+    if (!isSolarPanel) {
       throw AppError.validationFailed(
-        `Product '${moduleProduct.name}' is categorized as '${moduleProduct.productType}', not '${SolarProductType.SOLAR_PANEL}'.`
+        `Product '${moduleProduct.name}' is categorized as '${moduleProduct.productType}', not a solar panel.`
       );
     }
 
@@ -147,9 +151,13 @@ export class SolarDesignService {
     if (!inverterProduct || !inverterProduct.isActive) {
       throw AppError.businessRule('Selected inverter is inactive or does not exist in catalog.');
     }
-    if (inverterProduct.productType !== SolarProductType.INVERTER) {
+    const isInverter =
+      inverterProduct.productType === SolarProductType.INVERTER ||
+      inverterProduct.productType === 'INVERTER' ||
+      inverterProduct.productType === 'INVERTERS';
+    if (!isInverter) {
       throw AppError.validationFailed(
-        `Product '${inverterProduct.name}' is categorized as '${inverterProduct.productType}', not '${SolarProductType.INVERTER}'.`
+        `Product '${inverterProduct.name}' is categorized as '${inverterProduct.productType}', not an inverter.`
       );
     }
 
