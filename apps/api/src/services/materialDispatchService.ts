@@ -108,9 +108,44 @@ export class MaterialDispatchService {
         role: user.role
       });
 
-      // Default required advance milestone: milestone 0 percentage or 20%
-      const advancePercentage = order.paymentMilestones?.[0]?.percentage || 20;
-      const minRequiredPaise = Math.round((order.netTotalPaise * advancePercentage) / 100);
+      // Pre-dispatch payment schedule calculation:
+      // Determine required cumulative payment percentage prior to material dispatch from actual Sales Order schedule.
+      // If milestones specify a dispatch stage (e.g. Booking Advance 10% + Prior to Dispatch 70% = 80%),
+      // sum all milestones due up to and including the dispatch milestone.
+      let dispatchRequiredPercentage = 0;
+
+      if (order.paymentMilestones && order.paymentMilestones.length > 0) {
+        let dispatchMilestoneIdx = -1;
+        for (let i = 0; i < order.paymentMilestones.length; i++) {
+          const m = order.paymentMilestones[i];
+          const trigger = (m.dueTrigger || '').toUpperCase();
+          const name = ((m.name || '') + ' ' + (m.milestoneName || '') + ' ' + (m.description || '')).toLowerCase();
+          if (
+            trigger === 'PRE_DISPATCH' ||
+            name.includes('prior to dispatch') ||
+            name.includes('prior to material dispatch') ||
+            name.includes('before dispatch') ||
+            name.includes('before material dispatch')
+          ) {
+            dispatchMilestoneIdx = i;
+            break;
+          }
+        }
+
+        if (dispatchMilestoneIdx >= 0) {
+          // Sum cumulative percentage of all milestones up to and including dispatch
+          for (let i = 0; i <= dispatchMilestoneIdx; i++) {
+            dispatchRequiredPercentage += order.paymentMilestones[i].percentage || 0;
+          }
+        } else {
+          // Fallback: booking advance milestone or 20%
+          dispatchRequiredPercentage = order.paymentMilestones[0]?.percentage || 20;
+        }
+      } else {
+        dispatchRequiredPercentage = 20;
+      }
+
+      const minRequiredPaise = Math.round((order.netTotalPaise * dispatchRequiredPercentage) / 100);
       const allocatedPaise = receivables.allocatedAmountPaise || 0;
 
       if (allocatedPaise < minRequiredPaise) {
@@ -119,7 +154,7 @@ export class MaterialDispatchService {
           const advanceRs = (minRequiredPaise / 100).toLocaleString('en-IN');
           const paidRs = (allocatedPaise / 100).toLocaleString('en-IN');
           throw AppError.businessRule(
-            `Material dispatch is blocked: Minimum Booking Advance payment of ${advancePercentage}% (₹${advanceRs}) is required before factory goods can be dispatched. Total paid to date: ₹${paidRs} (Shortfall: ₹${shortFallRs}). Authorized Admins or Department Heads can provide an override reason to release urgent dispatch.`
+            `Material dispatch is blocked: Minimum required pre-dispatch payment of ${dispatchRequiredPercentage}% (₹${advanceRs}) per Sales Order contract schedule is required before factory goods can be dispatched. Total paid to date: ₹${paidRs} (Shortfall: ₹${shortFallRs}). Authorized Admins or Department Heads can provide an override reason to release urgent dispatch.`
           );
         }
 

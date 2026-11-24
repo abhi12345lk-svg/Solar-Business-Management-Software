@@ -110,6 +110,16 @@ export class ProjectService {
     user: { userId: string; role: UserRole },
     context?: { ipAddress?: string; userAgent?: string; correlationId?: string }
   ): Promise<IProjectDocument> {
+    // 0. Idempotency Check
+    if (input.idempotencyKey && input.idempotencyKey.trim()) {
+      const existing = await Project.findOne({ idempotencyKey: input.idempotencyKey.trim() })
+        .populate('customerId', 'customerCode name phone email')
+        .populate('orderId', 'orderNumber status netTotalPaise');
+      if (existing) {
+        return existing;
+      }
+    }
+
     // 1. Verify customer
     const customer = await Customer.findById(input.customerId);
     if (!customer) {
@@ -198,6 +208,7 @@ export class ProjectService {
     // 7. Assemble Document
     const project = new Project({
       projectCode,
+      idempotencyKey: input.idempotencyKey?.trim() || undefined,
       name: input.name.trim(),
       customerId: customer._id,
       orderId,

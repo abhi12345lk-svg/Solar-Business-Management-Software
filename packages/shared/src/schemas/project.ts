@@ -66,6 +66,7 @@ export const createProjectSchema = z
       .or(z.date())
       .transform(val => new Date(val)),
     priority: z.nativeEnum(ProjectPriority).optional().default(ProjectPriority.MEDIUM),
+    idempotencyKey: z.string().trim().max(100).optional(),
     notes: z.string().trim().max(2000).optional(),
     applyDefaultMilestones: z.boolean().optional().default(true)
   })

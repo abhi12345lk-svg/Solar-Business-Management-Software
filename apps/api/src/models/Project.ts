@@ -59,6 +59,7 @@ export interface IProjectDocument extends Document {
   notes?: string;
   holdReason?: string;
   cancellationReason?: string;
+  idempotencyKey?: string;
   milestones: Types.DocumentArray<IProjectMilestone & Document>;
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
@@ -251,6 +252,12 @@ const ProjectSchema = new Schema<IProjectDocument>(
     cancellationReason: {
       type: String,
       trim: true
+    },
+    idempotencyKey: {
+      type: String,
+      trim: true,
+      sparse: true,
+      index: true
     },
     milestones: [ProjectMilestoneSchema],
     createdBy: {

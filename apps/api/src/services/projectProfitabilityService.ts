@@ -20,10 +20,12 @@ import {
   ProjectBudget,
   IProjectBudgetDocument,
   PaymentAllocation,
-  CustomerPayment
+  CustomerPayment,
+  StockMovement
 } from '../models/index.js';
 import {
   MaterialDispatchStatus,
+  StockMovementType,
   ExpenseStatus,
   ProjectBudgetStatus,
   PaymentAllocationStatus,
@@ -176,6 +178,38 @@ export class ProjectProfitabilityService {
           amountPaise: lineItemAmount,
           effectiveDate: d.dispatchedAt || d.createdAt,
           status: d.status
+        });
+      }
+    }
+
+    // 1b. Material returns (credit back to project to reflect net actual consumption)
+    if (project.orderId) {
+      const returnMovements = await StockMovement.find({
+        orderId: project.orderId,
+        movementType: StockMovementType.RETURN
+      }).lean();
+
+      for (const ret of returnMovements) {
+        let prod = productMap.get(ret.productId.toString());
+        if (!prod) {
+          prod = await Product.findById(ret.productId).lean();
+          if (prod) productMap.set(prod._id.toString(), prod);
+        }
+        const unitRate = prod?.standardPurchaseRatePaise || 0;
+        const returnAmount = -Math.abs(Math.round((ret.quantity || 0) * unitRate));
+
+        entries.push({
+          id: `RET_${ret._id}`,
+          sourceType: ProjectCostSourceType.MATERIAL_DISPATCH,
+          sourceId: ret._id.toString(),
+          sourceNumber: ret.movementNumber,
+          costCategory: 'MATERIALS',
+          description: `Material Return Credit: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})`,
+          quantity: -(ret.quantity || 0),
+          unitRatePaise: unitRate,
+          amountPaise: returnAmount,
+          effectiveDate: ret.createdAt,
+          status: 'RETURNED'
         });
       }
     }

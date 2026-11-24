@@ -133,16 +133,16 @@ export class AmcService {
       throw AppError.badRequest('Contract start date must be strictly before contract end date.');
     }
 
-    // 4. Exclusivity check: prevent overlapping active AMC on same project
-    const overlappingActive = await AnnualMaintenanceContract.findOne({
+    // 4. Exclusivity check: prevent overlapping active or pending AMC on same project
+    const overlappingContract = await AnnualMaintenanceContract.findOne({
       projectId: project._id,
-      status: AmcStatus.ACTIVE,
+      status: { $in: [AmcStatus.ACTIVE, AmcStatus.PENDING_APPROVAL, AmcStatus.DRAFT] },
       startDate: { $lte: new Date(input.endDate) },
       endDate: { $gte: new Date(input.startDate) }
     });
-    if (overlappingActive) {
+    if (overlappingContract) {
       throw AppError.badRequest(
-        `An active AMC contract (${overlappingActive.amcNumber}) already covers this project for the requested date window.`
+        `An AMC contract (${overlappingContract.amcNumber}) in status '${overlappingContract.status}' already exists for this project in the requested date window.`
       );
     }
 
