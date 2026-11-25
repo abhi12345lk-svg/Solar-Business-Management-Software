@@ -838,12 +838,17 @@ export const InventoryPage: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-xs text-muted-foreground">
                             ₹
-                            {(p.purchaseRatePaise ? p.purchaseRatePaise / 100 : 0).toLocaleString(
-                              'en-IN'
-                            )}
+                            {(
+                              (p.purchaseRatePaise ?? (p as any).standardPurchaseRatePaise ?? 0) /
+                              100
+                            ).toLocaleString('en-IN')}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm font-bold text-foreground">
-                            ₹{(p.sellingPricePaise / 100).toLocaleString('en-IN')}
+                            ₹
+                            {(
+                              ((p.sellingPricePaise ?? (p as any).standardSellingRatePaise ?? 0)) /
+                              100
+                            ).toLocaleString('en-IN')}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {p.isSerialized ? (
