@@ -1620,16 +1620,16 @@ export const ProjectDetailPage: React.FC = () => {
                           </span>
                           <span className="text-xs text-muted-foreground flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            {item.changedAt || item.transitionedAt
-                              ? new Date(item.changedAt || item.transitionedAt).toLocaleString()
+                            {item.transitionedAt
+                              ? new Date(item.transitionedAt).toLocaleString()
                               : new Date().toLocaleDateString()}
                           </span>
                         </div>
-                        {(item.changedBy || item.transitionedBy) && (
+                        {item.transitionedBy && (
                           <div className="text-xs text-muted-foreground">
                             Updated by{' '}
-                            {typeof (item.changedBy || item.transitionedBy) === 'object'
-                              ? `${(item.changedBy || item.transitionedBy).firstName || ''} ${(item.changedBy || item.transitionedBy).lastName || ''}`.trim()
+                            {typeof item.transitionedBy === 'object'
+                              ? `${item.transitionedBy.firstName || ''} ${item.transitionedBy.lastName || ''}`.trim()
                               : 'System Administrator'}
                           </div>
                         )}

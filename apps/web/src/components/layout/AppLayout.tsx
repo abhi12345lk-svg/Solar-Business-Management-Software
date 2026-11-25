@@ -24,7 +24,6 @@ import {
   PanelLeftOpen,
   ChevronRight,
   FolderLock,
-  FilePlus2,
   Camera,
   LifeBuoy,
   Wrench,
@@ -56,28 +55,26 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Sales',
+    title: 'Commercial & CRM',
     items: [
       { to: '/leads', label: 'Leads', icon: Users },
-      { to: '/customers', label: 'Customers', icon: UserCheck },
       { to: '/surveys', label: 'Site Surveys', icon: Compass },
       { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
       { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
       { to: '/orders', label: 'Orders', icon: ShoppingCart },
-      { to: '/create-document', label: 'Create Document', icon: FilePlus2 },
-      { to: '/documents', label: 'Documents', icon: FolderLock }
+      { to: '/customers', label: 'Customers', icon: UserCheck }
     ]
   },
   {
-    title: 'Projects',
+    title: 'Projects & Liaison',
     items: [
       { to: '/projects', label: 'Projects', icon: FolderKanban },
-      { to: '/site-photos', label: 'Site Photos', icon: Camera },
-      { to: '/net-metering', label: 'Net Metering', icon: Zap }
+      { to: '/net-metering', label: 'Net Metering', icon: Zap },
+      { to: '/subsidies', label: 'Subsidies', icon: Landmark }
     ]
   },
   {
-    title: 'Inventory & Procurement',
+    title: 'Supply Chain',
     items: [
       { to: '/vendors', label: 'Vendors', icon: Building2 },
       { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
@@ -90,7 +87,6 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt },
       { to: '/payments', label: 'Payments', icon: CreditCard },
-      { to: '/subsidies', label: 'Subsidies', icon: Landmark },
       { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
       { to: '/expenses', label: 'Expenses', icon: TrendingUp }
     ]
@@ -104,22 +100,36 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Organization',
     items: [
-      { to: '/employees', label: 'Employees', icon: Users }
+      { to: '/employees', label: 'Employees', icon: Users },
+      { to: '/teams', label: 'Teams', icon: Users },
+      { to: '/documents', label: 'Documents', icon: FolderLock },
+      { to: '/health', label: 'System Health', icon: Wrench }
     ]
   }
 ];
 
 const SALES_PANEL_SECTIONS: NavSection[] = [
   {
-    title: 'Sales',
+    title: 'Overview',
     items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard }
+    ]
+  },
+  {
+    title: 'Sales Pipeline',
+    items: [
       { to: '/leads', label: 'Leads', icon: Users },
-      { to: '/customers', label: 'Customers', icon: UserCheck },
       { to: '/surveys', label: 'Site Surveys', icon: Compass },
       { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
       { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Orders', icon: ShoppingCart }
+      { to: '/orders', label: 'Orders', icon: ShoppingCart },
+      { to: '/customers', label: 'Customers', icon: UserCheck }
+    ]
+  },
+  {
+    title: 'Resources',
+    items: [
+      { to: '/documents', label: 'Proposals & Datasheets', icon: FolderLock }
     ]
   }
 ];
@@ -140,7 +150,15 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Bills & Expenses',
+    title: 'Procurement Verification',
+    items: [
+      { to: '/vendors', label: 'Vendors', icon: Building2 },
+      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck }
+    ]
+  },
+  {
+    title: 'Payables & Expenses',
     items: [
       { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
       { to: '/expenses', label: 'Expenses', icon: TrendingUp }
@@ -153,9 +171,8 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     title: 'Field Operations',
     items: [
       { to: '/projects', label: 'Assigned Projects', icon: FolderKanban },
-      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench },
       { to: '/site-photos', label: 'Site Photos & Barcodes', icon: Camera },
-      { to: '/documents', label: 'Site Documents', icon: FolderLock }
+      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench }
     ]
   }
 ];
@@ -163,41 +180,41 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
 function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; title: string } {
   if (pathname === '/') {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
-    if (panel === PanelType.SALES) return { section: 'Sales', title: 'Dashboard' };
-    if (panel === PanelType.ACCOUNTS) return { section: 'Finance', title: 'Dashboard' };
+    if (panel === PanelType.SALES) return { section: 'Overview', title: 'Dashboard' };
+    if (panel === PanelType.ACCOUNTS) return { section: 'Overview', title: 'Dashboard' };
     return { section: 'Overview', title: 'Dashboard' };
   }
   if (pathname.startsWith('/site-photos')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Photos & Barcodes' };
-    return { section: 'Projects', title: 'Site Photos' };
+    return { section: 'Projects & Liaison', title: 'Site Photos' };
   }
-  if (pathname.startsWith('/leads')) return { section: 'Sales', title: 'Leads' };
-  if (pathname.startsWith('/surveys')) return { section: 'Sales', title: 'Site Surveys' };
-  if (pathname.startsWith('/solar-designs')) return { section: 'Sales', title: 'Solar PV Designs' };
+  if (pathname.startsWith('/leads')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Leads' };
+  if (pathname.startsWith('/surveys')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Site Surveys' };
+  if (pathname.startsWith('/solar-designs')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Solar PV Designs' };
   if (pathname.startsWith('/customers')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Customer Records' };
-    return { section: 'Sales', title: 'Customers' };
+    return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Customers' };
   }
-  if (pathname.startsWith('/follow-ups')) return { section: 'Sales', title: 'Follow-ups' };
-  if (pathname.startsWith('/quotations')) return { section: 'Sales', title: 'Quotations' };
-  if (pathname.startsWith('/orders')) return { section: 'Sales', title: 'Orders' };
+  if (pathname.startsWith('/follow-ups')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Follow-ups' };
+  if (pathname.startsWith('/quotations')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Quotations' };
+  if (pathname.startsWith('/orders')) return { section: panel === PanelType.SALES ? 'Sales Pipeline' : 'Commercial & CRM', title: 'Orders' };
   if (pathname.startsWith('/projects')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Assigned Projects' };
-    return { section: 'Projects', title: 'Projects' };
+    return { section: 'Projects & Liaison', title: 'Projects' };
   }
-  if (pathname.startsWith('/net-metering')) return { section: 'Projects', title: 'Net Metering' };
+  if (pathname.startsWith('/net-metering')) return { section: panel === PanelType.ADMIN ? 'Projects & Liaison' : 'Projects', title: 'Net Metering' };
   if (pathname.startsWith('/subsidies'))
     return {
-      section: panel === PanelType.ACCOUNTS ? 'Billing & Inflow' : 'Finance & Accounts',
+      section: panel === PanelType.ACCOUNTS ? 'Billing & Inflow' : 'Projects & Liaison',
       title: 'Subsidies'
     };
   if (pathname.startsWith('/inventory')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Inventory' };
-    return { section: 'Inventory & Procurement', title: 'Inventory' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Inventory' };
+    return { section: 'Supply Chain', title: 'Inventory' };
   }
-  if (pathname.startsWith('/vendors')) return { section: 'Inventory & Procurement', title: 'Vendors' };
-  if (pathname.startsWith('/purchase-orders')) return { section: 'Inventory & Procurement', title: 'Purchase Orders' };
-  if (pathname.startsWith('/goods-receipts')) return { section: 'Inventory & Procurement', title: 'Goods Receipts' };
+  if (pathname.startsWith('/vendors')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Vendors' };
+  if (pathname.startsWith('/purchase-orders')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Purchase Orders' };
+  if (pathname.startsWith('/goods-receipts')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Goods Receipts' };
   if (pathname.startsWith('/customer-invoices'))
     return {
       section: panel === PanelType.ACCOUNTS ? 'Billing & Inflow' : 'Finance & Accounts',
@@ -205,7 +222,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     };
   if (pathname.startsWith('/vendor-invoices'))
     return {
-      section: panel === PanelType.ACCOUNTS ? 'Bills & Expenses' : 'Finance & Accounts',
+      section: panel === PanelType.ACCOUNTS ? 'Payables & Expenses' : 'Finance & Accounts',
       title: 'Vendor Bills'
     };
   if (pathname.startsWith('/payments'))
@@ -215,14 +232,15 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     };
   if (pathname.startsWith('/expenses'))
     return {
-      section: panel === PanelType.ACCOUNTS ? 'Bills & Expenses' : 'Finance & Accounts',
+      section: panel === PanelType.ACCOUNTS ? 'Payables & Expenses' : 'Finance & Accounts',
       title: 'Expenses'
     };
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
-    return { section: 'Sales', title: 'Create Document' };
+    return { section: 'Organization', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Installation', title: 'Site Documents' };
-    return { section: 'Sales', title: 'Documents' };
+    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents' };
+    if (panel === PanelType.SALES) return { section: 'Resources', title: 'Proposals & Datasheets' };
+    return { section: 'Organization', title: 'Documents' };
   }
   if (pathname.startsWith('/service') || pathname.startsWith('/complaints') || pathname.startsWith('/service-visits') || pathname.startsWith('/warranties') || pathname.startsWith('/amc')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Field Service Visits' };
@@ -232,7 +250,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Organization', title: 'Employees & Team' };
   }
   if (pathname.startsWith('/customer-portal')) return { section: 'Customer', title: 'Client Portal' };
-  if (pathname.startsWith('/health')) return { section: 'System', title: 'System Health' };
+  if (pathname.startsWith('/health')) return { section: 'Organization', title: 'System Health' };
   return { section: 'Rarebox Solar', title: 'Workstation' };
 }
 
@@ -359,10 +377,10 @@ export const AppLayout: React.FC = () => {
               {activePanel === PanelType.ADMIN
                 ? 'Management & Operations'
                 : activePanel === PanelType.SALES
-                  ? 'Leads, Quotations & Orders'
+                  ? 'Sales Pipeline & CRM'
                   : activePanel === PanelType.INSTALLER
                     ? 'Site Photos & Installation'
-                    : 'Payments, Subsidies & Invoices'}
+                    : 'Invoices, Bills & Reconciliation'}
             </div>
           </div>
         ) : (
