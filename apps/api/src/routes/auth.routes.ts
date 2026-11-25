@@ -10,7 +10,7 @@ import {
   ActorType,
   UserRole,
   Permission,
-  ROLE_DEFAULT_PERMISSIONS,
+  resolveEffectivePermissions,
   LoginSchema,
   MfaLoginChallengeSchema,
   MfaConfirmEnrollSchema,
@@ -453,10 +453,11 @@ authRouter.get(
     const user = req.currentUser;
     if (!user) {
       if (req.session?.user) {
-        const role = req.session.user.role;
-        const defaults = ROLE_DEFAULT_PERMISSIONS[role] || [];
-        const sessionPermissions = (req.session.user as any).permissions || [];
-        const permissions = Array.from(new Set<Permission>([...defaults, ...sessionPermissions]));
+        const permissions = resolveEffectivePermissions(
+          req.session.user.role,
+          req.session.user.department,
+          ((req.session.user as any).permissions as Permission[]) || []
+        );
         return sendSuccess(req, res, {
           id: req.session.user.userId,
           email: req.session.user.email,

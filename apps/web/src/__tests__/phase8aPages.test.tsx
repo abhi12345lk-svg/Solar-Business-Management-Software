@@ -151,13 +151,13 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     );
 
     // Verify Title & Subtitle
-    expect(screen.getByText('Customer Payments & Receivables Ledger')).toBeInTheDocument();
+    expect(screen.getByText('Customer Payment Collections')).toBeInTheDocument();
 
     // Wait for ledger table to populate
     await waitFor(() => {
       expect(screen.getByText('REC-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Vikram Mehta')).toBeInTheDocument();
-      expect(screen.getByText('VERIFIED')).toBeInTheDocument();
+      expect(screen.getByText('Verified')).toBeInTheDocument();
       expect(screen.getByText('NEFT2026102500123')).toBeInTheDocument();
     });
 
@@ -189,10 +189,8 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     fireEvent.click(recordBtn);
 
     expect(screen.getByText('Record Customer Payment')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('Enter Customer Code (e.g. CUST-2026-00001) or ID')
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('e.g. 50000.00')).toBeInTheDocument();
+    expect(screen.getByText('-- Choose Customer --')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('e.g. 100000')).toBeInTheDocument();
   });
 
   it('opens and prints operational payment receipt with legal non-tax disclaimer', async () => {
@@ -227,12 +225,12 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     fireEvent.click(printBtns[0]!);
 
     await waitFor(() => {
-      expect(screen.getByText('INS Solar Solutions Pvt Ltd')).toBeInTheDocument();
+      expect(screen.getAllByText(/Rarebox Solar/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Notice of Fund Realization:/i)).toBeInTheDocument();
       expect(
-        screen.getByText(/does not constitute a statutory Tax Invoice under GST law/i)
+        screen.getByText(/Statutory Tax Invoice will be handed over/i)
       ).toBeInTheDocument();
-      expect(screen.getByText('Print Receipt')).toBeInTheDocument();
+      expect(screen.getByText(/Print A4 Receipt/i)).toBeInTheDocument();
     });
   });
 
@@ -260,16 +258,15 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Statement')).toBeInTheDocument();
+      expect(screen.getAllByText('View Ledger & Balance').length).toBeGreaterThanOrEqual(1);
     });
 
-    const statementLink = screen.getByText('Statement');
-    fireEvent.click(statementLink);
+    const statementLinks = screen.getAllByText('View Ledger & Balance');
+    fireEvent.click(statementLinks[0]!);
 
     await waitFor(() => {
-      expect(screen.getByText('Customer Receivables & Aging Statement')).toBeInTheDocument();
-      expect(screen.getByText('Receivables Aging Analysis')).toBeInTheDocument();
-      expect(screen.getByText('31–60 Days Overdue')).toBeInTheDocument();
+      expect(screen.getByText('Customer Statement of Account')).toBeInTheDocument();
+      expect(screen.getByText('Contracted Solar Orders')).toBeInTheDocument();
       expect(screen.getByText('SO-2026-00001')).toBeInTheDocument();
     });
   });

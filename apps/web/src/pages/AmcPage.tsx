@@ -108,8 +108,10 @@ export const AmcPage: React.FC = () => {
       setLoadingProjects(true);
       apiClient<any>('/projects?limit=100')
         .then(res => {
-          const list = Array.isArray(res) ? res : res?.data || res?.items || [];
-          setAvailableProjects(list);
+          const list = Array.isArray(res)
+            ? res
+            : res?.projects || res?.data?.projects || res?.items || res?.data?.items || res?.data || [];
+          setAvailableProjects(Array.isArray(list) ? list : []);
         })
         .catch(() => {})
         .finally(() => setLoadingProjects(false));
@@ -169,7 +171,7 @@ export const AmcPage: React.FC = () => {
     try {
       setSubmitting(true);
       await apiClient(`/amc/${selectedAmc._id}/approve`, {
-        method: 'POST',
+        method: 'PATCH',
         body: JSON.stringify({ notes: approvalNotes })
       });
       setShowApproveModal(false);
@@ -178,6 +180,25 @@ export const AmcPage: React.FC = () => {
       fetchContracts();
     } catch (err: any) {
       alert(err?.message || 'Failed to approve AMC contract.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExpireAmc = async (contract: AmcRecord) => {
+    if (!window.confirm(`Mark contract ${contract.amcNumber} as EXPIRED?`)) return;
+    try {
+      setSubmitting(true);
+      await apiClient(`/amc/${contract._id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: 'EXPIRED',
+          reason: 'Contract term elapsed / expired manually verified'
+        })
+      });
+      fetchContracts();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update AMC status.');
     } finally {
       setSubmitting(false);
     }
@@ -492,6 +513,15 @@ export const AmcPage: React.FC = () => {
 
                         {contract.status === 'ACTIVE' && (
                           <button
+                            onClick={() => handleExpireAmc(contract)}
+                            className="px-2.5 py-1 rounded text-xs font-medium bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border border-rose-500/30"
+                          >
+                            Expire
+                          </button>
+                        )}
+
+                        {(contract.status === 'ACTIVE' || contract.status === 'EXPIRED') && (
+                          <button
                             onClick={() => {
                               setSelectedAmc(contract);
                               const endD = new Date(contract.endDate);
@@ -587,7 +617,13 @@ export const AmcPage: React.FC = () => {
                     <select
                       required
                       value={createForm.projectId}
-                      onChange={e => setCreateForm({ ...createForm, projectId: e.target.value })}
+                      onChange={e => {
+                        const pId = e.target.value;
+                        const proj = availableProjects.find(p => (p._id || p.id) === pId);
+                        const custId =
+                          proj?.customerId?._id || proj?.customerId?.id || proj?.customerId || '';
+                        setCreateForm({ ...createForm, projectId: pId, customerId: custId });
+                      }}
                       className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
                     >
                       <option value="">

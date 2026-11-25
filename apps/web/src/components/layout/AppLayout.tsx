@@ -33,13 +33,14 @@ import {
 } from 'lucide-react';
 import { ErrorBoundary } from '../common/ErrorBoundary.js';
 import { useAuth } from '../../context/AuthContext.js';
-import { PanelType, getDefaultPanelForRole } from '@ins-solar/shared';
+import { Department, PanelType, Permission, UserRole, getDefaultPanelForRole } from '@ins-solar/shared';
 
 interface NavItem {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  permission?: Permission;
 }
 
 interface NavSection {
@@ -57,52 +58,52 @@ const ADMIN_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Commercial & CRM',
     items: [
-      { to: '/leads', label: 'Leads', icon: Users },
-      { to: '/surveys', label: 'Site Surveys', icon: Compass },
-      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
-      { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Orders', icon: ShoppingCart },
-      { to: '/customers', label: 'Customers', icon: UserCheck }
+      { to: '/leads', label: 'Leads', icon: Users, permission: 'lead:read' },
+      { to: '/surveys', label: 'Site Surveys', icon: Compass, permission: 'survey:read' },
+      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium, permission: 'design:read' },
+      { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet, permission: 'quote:read' },
+      { to: '/orders', label: 'Orders', icon: ShoppingCart, permission: 'order:read' },
+      { to: '/customers', label: 'Customers', icon: UserCheck, permission: 'customer:read' }
     ]
   },
   {
     title: 'Projects & Liaison',
     items: [
-      { to: '/projects', label: 'Projects', icon: FolderKanban },
-      { to: '/net-metering', label: 'Net Metering', icon: Zap },
-      { to: '/subsidies', label: 'Subsidies', icon: Landmark }
+      { to: '/projects', label: 'Projects', icon: FolderKanban, permission: 'project:read' },
+      { to: '/net-metering', label: 'Net Metering', icon: Zap, permission: 'net_metering:read' },
+      { to: '/subsidies', label: 'Subsidies', icon: Landmark, permission: 'subsidy:read' }
     ]
   },
   {
     title: 'Supply Chain',
     items: [
-      { to: '/vendors', label: 'Vendors', icon: Building2 },
-      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck },
-      { to: '/inventory', label: 'Inventory', icon: Boxes }
+      { to: '/vendors', label: 'Vendors', icon: Building2, permission: 'vendor:read' },
+      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText, permission: 'po:read' },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck, permission: 'grn:read' },
+      { to: '/inventory', label: 'Inventory', icon: Boxes, permission: 'inv:read' }
     ]
   },
   {
     title: 'Finance & Accounts',
     items: [
-      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt },
-      { to: '/payments', label: 'Payments', icon: CreditCard },
-      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
-      { to: '/expenses', label: 'Expenses', icon: TrendingUp }
+      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt, permission: 'account:invoice_read' },
+      { to: '/payments', label: 'Payments', icon: CreditCard, permission: 'payment:read' },
+      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet, permission: 'vendor_invoice:read' },
+      { to: '/expenses', label: 'Expenses', icon: TrendingUp, permission: 'expense:read' }
     ]
   },
   {
     title: 'Service & Maintenance',
     items: [
-      { to: '/service', label: 'Service & AMC', icon: LifeBuoy }
+      { to: '/service', label: 'Service & AMC', icon: LifeBuoy, permission: 'service:ticket_read' }
     ]
   },
   {
     title: 'Organization',
     items: [
-      { to: '/employees', label: 'Employees', icon: Users },
-      { to: '/teams', label: 'Teams', icon: Users },
-      { to: '/documents', label: 'Documents', icon: FolderLock },
+      { to: '/employees', label: 'Employees', icon: Users, permission: 'employee:read' },
+      { to: '/teams', label: 'Teams', icon: Users, permission: 'team:read' },
+      { to: '/documents', label: 'Documents', icon: FolderLock, permission: 'document:read' },
       { to: '/health', label: 'System Health', icon: Wrench }
     ]
   }
@@ -118,18 +119,18 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Sales Pipeline',
     items: [
-      { to: '/leads', label: 'Leads', icon: Users },
-      { to: '/surveys', label: 'Site Surveys', icon: Compass },
-      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium },
-      { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet },
-      { to: '/orders', label: 'Orders', icon: ShoppingCart },
-      { to: '/customers', label: 'Customers', icon: UserCheck }
+      { to: '/leads', label: 'Leads', icon: Users, permission: 'lead:read' },
+      { to: '/surveys', label: 'Site Surveys', icon: Compass, permission: 'survey:read' },
+      { to: '/solar-designs', label: 'Solar PV Designs', icon: SunMedium, permission: 'design:read' },
+      { to: '/quotations', label: 'Quotations', icon: FileSpreadsheet, permission: 'quote:read' },
+      { to: '/orders', label: 'Orders', icon: ShoppingCart, permission: 'order:read' },
+      { to: '/customers', label: 'Customers', icon: UserCheck, permission: 'customer:read' }
     ]
   },
   {
     title: 'Resources',
     items: [
-      { to: '/documents', label: 'Proposals & Datasheets', icon: FolderLock }
+      { to: '/documents', label: 'Proposals & Datasheets', icon: FolderLock, permission: 'document:read' }
     ]
   }
 ];
@@ -144,24 +145,24 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Billing & Inflow',
     items: [
-      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt },
-      { to: '/payments', label: 'Payments', icon: CreditCard },
-      { to: '/subsidies', label: 'Subsidies', icon: Landmark }
+      { to: '/customer-invoices', label: 'Customer Invoices', icon: Receipt, permission: 'account:invoice_read' },
+      { to: '/payments', label: 'Payments', icon: CreditCard, permission: 'payment:read' },
+      { to: '/subsidies', label: 'Subsidies', icon: Landmark, permission: 'subsidy:read' }
     ]
   },
   {
     title: 'Procurement Verification',
     items: [
-      { to: '/vendors', label: 'Vendors', icon: Building2 },
-      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText },
-      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck }
+      { to: '/vendors', label: 'Vendors', icon: Building2, permission: 'vendor:read' },
+      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText, permission: 'po:read' },
+      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck, permission: 'grn:read' }
     ]
   },
   {
     title: 'Payables & Expenses',
     items: [
-      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet },
-      { to: '/expenses', label: 'Expenses', icon: TrendingUp }
+      { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet, permission: 'vendor_invoice:read' },
+      { to: '/expenses', label: 'Expenses', icon: TrendingUp, permission: 'expense:read' }
     ]
   }
 ];
@@ -170,9 +171,10 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
   {
     title: 'Field Operations',
     items: [
-      { to: '/projects', label: 'Assigned Projects', icon: FolderKanban },
-      { to: '/site-photos', label: 'Site Photos & Barcodes', icon: Camera },
-      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench }
+      { to: '/projects', label: 'Assigned Projects', icon: FolderKanban, permission: 'project:read' },
+      { to: '/site-photos', label: 'Site Photos & Barcodes', icon: Camera, permission: 'installation:read' },
+      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench, permission: 'service:ticket_read' },
+      { to: '/documents', label: 'Site Documents', icon: FolderLock, permission: 'document:read' }
     ]
   }
 ];
@@ -255,7 +257,7 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
 }
 
 export const AppLayout: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -267,7 +269,13 @@ export const AppLayout: React.FC = () => {
     ? getDefaultPanelForRole(user.role, user.department)
     : PanelType.ADMIN;
 
-  const currentSections =
+  const isInventorySpecialist =
+    user?.department === Department.INVENTORY &&
+    user?.role !== UserRole.SUPERADMIN &&
+    user?.role !== UserRole.ADMIN &&
+    user?.role !== UserRole.DEPARTMENT_HEAD;
+
+  const rawSections =
     activePanel === PanelType.INSTALLER
       ? INSTALLER_PANEL_SECTIONS
       : activePanel === PanelType.SALES
@@ -275,6 +283,17 @@ export const AppLayout: React.FC = () => {
         : activePanel === PanelType.ACCOUNTS
           ? ACCOUNTS_PANEL_SECTIONS
           : ADMIN_PANEL_SECTIONS;
+
+  const currentSections = rawSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => {
+        if (item.to === '/' && isInventorySpecialist) return false;
+        if (!item.permission) return true;
+        return !user || hasPermission(item.permission);
+      })
+    }))
+    .filter(section => section.items.length > 0);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -295,7 +314,7 @@ export const AppLayout: React.FC = () => {
         className={`h-14 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'} border-b border-border/60 shrink-0 bg-card`}
       >
         <Link
-          to={activePanel === PanelType.INSTALLER ? '/customers' : '/'}
+          to={activePanel === PanelType.INSTALLER ? '/projects' : isInventorySpecialist ? '/inventory' : '/'}
           className="flex items-center space-x-2.5 group min-w-0"
         >
           <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-100 text-amber-500 dark:text-amber-600 flex items-center justify-center shrink-0 shadow-xs border border-zinc-800/10 dark:border-zinc-200/10">

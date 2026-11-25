@@ -102,6 +102,7 @@ export function VendorInvoicesPage() {
   const [vendorsList, setVendorsList] = useState<any[]>([]);
   const [customersList, setCustomersList] = useState<any[]>([]);
   const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [purchaseOrdersList, setPurchaseOrdersList] = useState<any[]>([]);
 
   // Modals State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -144,6 +145,7 @@ export function VendorInvoicesPage() {
 
   const [formData, setFormData] = useState({
     vendorId: '',
+    purchaseOrderId: '',
     linkedCustomerId: '',
     vendorInvoiceNumber: '',
     invoiceDate: getTodayISO(),
@@ -170,6 +172,7 @@ export function VendorInvoicesPage() {
     const defaultVendorId = vendorsList[0]?._id || vendorsList[0]?.id || '';
     setFormData({
       vendorId: defaultVendorId,
+      purchaseOrderId: '',
       linkedCustomerId: '',
       vendorInvoiceNumber: '',
       invoiceDate: getTodayISO(),
@@ -225,10 +228,11 @@ export function VendorInvoicesPage() {
   // 2. Load Master Dropdowns (Vendors, Customers, and Projects)
   const loadDropdowns = async () => {
     try {
-      const [vRes, cRes, pRes] = await Promise.all([
+      const [vRes, cRes, pRes, poRes] = await Promise.all([
         apiClient<any>('/vendors?limit=100&isActive=true'),
         apiClient<any>('/customers?limit=100&status=ACTIVE'),
-        apiClient<any>('/projects?limit=100').catch(() => null)
+        apiClient<any>('/projects?limit=100').catch(() => null),
+        apiClient<any>('/purchase-orders?limit=100').catch(() => null)
       ]);
       const rawVList =
         vRes?.items || vRes?.data?.items || vRes?.data || (Array.isArray(vRes) ? vRes : []);
@@ -258,9 +262,18 @@ export function VendorInvoicesPage() {
         id: p.id || p._id
       }));
 
+      const rawPoList =
+        poRes?.items || poRes?.data?.items || poRes?.data || (Array.isArray(poRes) ? poRes : []);
+      const poList = (Array.isArray(rawPoList) ? rawPoList : []).map((po: any) => ({
+        ...po,
+        _id: po._id || po.id,
+        id: po.id || po._id
+      }));
+
       setVendorsList(vList);
       setCustomersList(cList);
       setProjectsList(pList);
+      setPurchaseOrdersList(poList);
       if (vList.length === 0) {
         setVendorMode('NEW');
       } else {
@@ -460,6 +473,7 @@ export function VendorInvoicesPage() {
 
       const payload = {
         vendorId: targetVendorId,
+        purchaseOrderId: formData.purchaseOrderId || undefined,
         vendorInvoiceNumber: formData.vendorInvoiceNumber.trim(),
         invoiceDate: new Date(formData.invoiceDate || Date.now()).toISOString(),
         dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
@@ -1226,6 +1240,47 @@ export function VendorInvoicesPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Optional Purchase Order Link for Automated 3-Way Match */}
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Associated Purchase Order (3-Way Match)
+                </label>
+                <select
+                  value={formData.purchaseOrderId}
+                  onChange={e => {
+                    const poId = e.target.value;
+                    const poObj = purchaseOrdersList.find(p => (p._id || p.id) === poId);
+                    const poVendorId = poObj?.vendorId?._id || poObj?.vendorId?.id || poObj?.vendorId || '';
+                    const poProjectId = poObj?.projectId?._id || poObj?.projectId?.id || poObj?.projectId || '';
+                    const poProjectName = poObj?.projectId?.name || poObj?.projectId?.projectCode || '';
+                    setFormData(prev => ({
+                      ...prev,
+                      purchaseOrderId: poId,
+                      vendorId: poVendorId || prev.vendorId,
+                      linkedCustomerId: poProjectId ? `PRJ:${poProjectId}:${poProjectName || poProjectId}` : prev.linkedCustomerId
+                    }));
+                    if (poVendorId) setVendorMode('EXISTING');
+                    if (formError) setFormError(null);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border bg-background text-xs focus:ring-2 focus:ring-amber-500 font-medium"
+                >
+                  <option value="">-- Direct Expense Bill (No Purchase Order / 3-Way Match) --</option>
+                  {purchaseOrdersList.map(po => {
+                    const poId = po._id || po.id;
+                    const vName = po.vendorId?.name || '';
+                    const tot = po.grandTotalPaise || po.totalAmountPaise || 0;
+                    return (
+                      <option key={poId} value={poId}>
+                        {po.poNumber} {vName ? `• ${vName}` : ''} • ₹{(tot / 100).toLocaleString('en-IN')} ({po.status})
+                      </option>
+                    );
+                  })}
+                </select>
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  Select a PO to enforce automated 3-way matching against physical GRN accepted quantities.
+                </span>
               </div>
 
               {/* Optional Link to Customer's Solar Project */}

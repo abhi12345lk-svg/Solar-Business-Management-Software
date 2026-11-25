@@ -13,6 +13,7 @@ import {
   CustomerInvoiceFilterInput,
   CustomerInvoiceType,
   CustomerInvoiceStatus,
+  PaymentAllocationStatus,
   SequenceEntityType,
   AuditAction,
   AuditOutcome,
@@ -243,13 +244,31 @@ export class CustomerInvoiceService {
       }
     }
 
-    // 7. Aggregate Totals & Adjust for Previous Milestone Advance Invoices (Anti-Double-Taxation)
+    // 7. Aggregate Totals & Reconcile with Order Contract Net Total & Previous Advances
     const grossSubtotalPaise = lineItems.reduce((acc, item) => acc + (item.unitRatePaise * item.quantity), 0);
-    const totalDiscountPaise = lineItems.reduce((acc, item) => acc + item.discountPaise, 0);
-    const taxableAmountPaise = lineItems.reduce((acc, item) => acc + item.taxableAmountPaise, 0);
-    const totalCgstPaise = lineItems.reduce((acc, item) => acc + item.cgstPaise, 0);
-    const totalSgstPaise = lineItems.reduce((acc, item) => acc + item.sgstPaise, 0);
-    const totalIgstPaise = lineItems.reduce((acc, item) => acc + item.igstPaise, 0);
+    const lineDiscountPaise = lineItems.reduce((acc, item) => acc + item.discountPaise, 0);
+    const rawTaxablePaise = lineItems.reduce((acc, item) => acc + item.taxableAmountPaise, 0);
+    let totalCgstPaise = lineItems.reduce((acc, item) => acc + item.cgstPaise, 0);
+    let totalSgstPaise = lineItems.reduce((acc, item) => acc + item.sgstPaise, 0);
+    let totalIgstPaise = lineItems.reduce((acc, item) => acc + item.igstPaise, 0);
+
+    let totalDiscountPaise = lineDiscountPaise;
+    let taxableAmountPaise = rawTaxablePaise;
+
+    if (
+      input.invoiceType === CustomerInvoiceType.TAX_INVOICE &&
+      (order.additionalDiscountPaise || 0) > 0 &&
+      rawTaxablePaise > 0
+    ) {
+      const addlDisc = Math.min(rawTaxablePaise, order.additionalDiscountPaise || 0);
+      totalDiscountPaise = lineDiscountPaise + addlDisc;
+      taxableAmountPaise = Math.max(0, rawTaxablePaise - addlDisc);
+      const scale = taxableAmountPaise / rawTaxablePaise;
+      totalCgstPaise = Math.round(totalCgstPaise * scale);
+      totalSgstPaise = Math.round(totalSgstPaise * scale);
+      totalIgstPaise = Math.round(totalIgstPaise * scale);
+    }
+
     const totalTaxPaise = totalCgstPaise + totalSgstPaise + totalIgstPaise;
     const netTotalPaise = taxableAmountPaise + totalTaxPaise;
 
@@ -266,7 +285,7 @@ export class CustomerInvoiceService {
     // 8. Reconcile Customer Payments against this Order & Invoiced Advances
     const allocations = await PaymentAllocation.find({
       salesOrderId: order._id,
-      status: 'ALLOCATED'
+      status: PaymentAllocationStatus.ACTIVE
     });
     const totalAllocatedPaise = allocations.reduce((sum, a) => sum + (a.allocatedAmountPaise || 0), 0);
     const netPayablePaise = Math.max(0, netTotalPaise - advancesAdjustedPaise);

@@ -8,7 +8,7 @@ import {
   updateTaskStatusSchema,
   Permission,
   UserRole,
-  ROLE_DEFAULT_PERMISSIONS,
+  resolveEffectivePermissions,
   ErrorCode
 } from '@ins-solar/shared';
 import { ProjectTaskService } from '../services/projectTaskService.js';
@@ -32,10 +32,11 @@ function requireAnyPermission(permissions: Permission[]): RequestHandler {
     }
     const effectivePermissions: Permission[] = req.currentUser
       ? req.currentUser.getEffectivePermissions()
-      : [
-          ...(ROLE_DEFAULT_PERMISSIONS[user.role] || []),
-          ...(((user as any).permissions as Permission[]) || [])
-        ];
+      : resolveEffectivePermissions(
+          user.role,
+          user.department,
+          ((user as any).permissions as Permission[]) || []
+        );
 
     const hasAny = permissions.some(p => effectivePermissions.includes(p));
     if (hasAny) {

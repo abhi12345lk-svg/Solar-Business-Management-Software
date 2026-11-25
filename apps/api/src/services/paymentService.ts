@@ -73,8 +73,7 @@ export class PaymentService {
     const cleanCustId = input.customerId.trim();
     if (mongoose.Types.ObjectId.isValid(cleanCustId)) {
       customer = await Customer.findById(cleanCustId);
-    }
-    if (!customer) {
+    } else {
       customer = await Customer.findOne({ customerCode: cleanCustId.toUpperCase() });
     }
     if (!customer) {
@@ -706,6 +705,7 @@ export class PaymentService {
     totalPaidPaise: number;
     totalAllocatedPaise: number;
     totalUnallocatedCreditPaise: number;
+    pendingVerificationPaise?: number;
     totalOutstandingPaise: number;
     totalInvoicedPaise?: number;
     totalRealizedPaise?: number;
@@ -814,11 +814,19 @@ export class PaymentService {
       };
     });
 
-    const totalPaidPaise = payments.reduce((sum, p) => sum + (p.amountPaise || 0), 0);
-    const totalUnallocatedCreditPaise = payments.reduce(
-      (sum, p) => sum + (p.unallocatedAmountPaise || 0),
+    const verifiedPayments = payments.filter(
+      p => p.status === CustomerPaymentStatus.VERIFIED || p.status === CustomerPaymentStatus.REFUNDED
+    );
+    const totalPaidPaise = verifiedPayments.reduce(
+      (sum, p) => sum + Math.max(0, (p.amountPaise || 0) - (p.refundAmountPaise || 0)),
       0
     );
+    const pendingVerificationPaise = payments
+      .filter(p => p.status === CustomerPaymentStatus.RECORDED)
+      .reduce((sum, p) => sum + (p.amountPaise || 0), 0);
+    const totalUnallocatedCreditPaise = payments
+      .filter(p => p.status === CustomerPaymentStatus.VERIFIED)
+      .reduce((sum, p) => sum + (p.unallocatedAmountPaise || 0), 0);
     const totalOutstandingPaise = Math.max(0, totalOrderValuePaise - totalAllocatedPaise);
 
     return {
@@ -827,6 +835,7 @@ export class PaymentService {
       totalPaidPaise,
       totalAllocatedPaise,
       totalUnallocatedCreditPaise,
+      pendingVerificationPaise,
       totalOutstandingPaise,
       // Frontend alias compatibility
       totalInvoicedPaise: totalOrderValuePaise,

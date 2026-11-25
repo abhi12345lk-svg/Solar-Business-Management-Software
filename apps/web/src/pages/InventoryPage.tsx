@@ -131,10 +131,12 @@ export const InventoryPage: React.FC = () => {
   const [newProductName, setNewProductName] = useState('');
   const [newProductSku, setNewProductSku] = useState('');
   const [newProductBrand, setNewProductBrand] = useState('Rarebox Solar Tech');
+  const [newProductModel, setNewProductModel] = useState('');
+  const [newProductType, setNewProductType] = useState('OTHER');
   const [newProductCategory, setNewProductCategory] = useState('');
-  const [newProductUom, setNewProductUom] = useState('PCS');
-  const [newProductSellPrice, setNewProductSellPrice] = useState('15000');
-  const [newProductBuyRate, setNewProductBuyRate] = useState('12000');
+  const [newProductUom, setNewProductUom] = useState('NOS');
+  const [newProductSellPrice, setNewProductSellPrice] = useState('');
+  const [newProductBuyRate, setNewProductBuyRate] = useState('');
   const [newProductSerialized, setNewProductSerialized] = useState(false);
 
   // Movements
@@ -264,8 +266,19 @@ export const InventoryPage: React.FC = () => {
 
   const handleCreateProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProductName.trim() || !newProductSku.trim() || !newProductCategory) {
-      alert('Please fill product name, SKU, and category.');
+    if (
+      !newProductName.trim() ||
+      !newProductSku.trim() ||
+      !newProductModel.trim() ||
+      !newProductCategory
+    ) {
+      alert('Please fill product name, SKU, model, and category.');
+      return;
+    }
+    const buyRateNum = Number(newProductBuyRate);
+    const sellPriceNum = Number(newProductSellPrice);
+    if (isNaN(buyRateNum) || buyRateNum < 0 || isNaN(sellPriceNum) || sellPriceNum < 0) {
+      alert('Please enter valid non-negative purchase and selling prices.');
       return;
     }
     setSavingProduct(true);
@@ -276,16 +289,21 @@ export const InventoryPage: React.FC = () => {
           name: newProductName.trim(),
           sku: newProductSku.trim(),
           brand: newProductBrand.trim() || 'Rarebox Solar',
+          model: newProductModel.trim(),
+          productType: newProductType || 'OTHER',
           categoryId: newProductCategory,
           uom: newProductUom,
-          sellingPricePaise: Math.round(Number(newProductSellPrice) * 100),
-          purchaseRatePaise: Math.round(Number(newProductBuyRate) * 100),
-          isSerialized: newProductSerialized
+          standardSellingRatePaise: Math.round(sellPriceNum * 100),
+          standardPurchaseRatePaise: Math.round(buyRateNum * 100),
+          technicalSpecifications: newProductSerialized ? { isSerialized: true } : undefined
         })
       });
       setShowAddProductModal(false);
       setNewProductName('');
       setNewProductSku('');
+      setNewProductModel('');
+      setNewProductSellPrice('');
+      setNewProductBuyRate('');
       setSuccessBanner('New product item successfully added to master catalogue.');
       fetchCatalogProducts();
     } catch (err: any) {
@@ -765,12 +783,15 @@ export const InventoryPage: React.FC = () => {
                       <div className="flex items-center justify-between pt-1 border-t text-xs">
                         <span className="text-muted-foreground">
                           Buy: ₹
-                          {(p.purchaseRatePaise ? p.purchaseRatePaise / 100 : 0).toLocaleString(
-                            'en-IN'
-                          )}
+                          {(
+                            (p.purchaseRatePaise ?? (p as any).standardPurchaseRatePaise ?? 0) / 100
+                          ).toLocaleString('en-IN')}
                         </span>
                         <span className="font-bold text-foreground">
-                          Sell: ₹{(p.sellingPricePaise / 100).toLocaleString('en-IN')}
+                          Sell: ₹
+                          {(
+                            (p.sellingPricePaise ?? (p as any).standardSellingRatePaise ?? 0) / 100
+                          ).toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>
@@ -1188,6 +1209,22 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
+                    Model *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. RBX-550M-PERC"
+                    value={newProductModel}
+                    onChange={e => setNewProductModel(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
                     Brand / Mfr
                   </label>
                   <input
@@ -1195,6 +1232,18 @@ export const InventoryPage: React.FC = () => {
                     placeholder="e.g. Rarebox Solar"
                     value={newProductBrand}
                     onChange={e => setNewProductBrand(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Product Type
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SOLAR_PANEL, INVERTER, CABLE"
+                    value={newProductType}
+                    onChange={e => setNewProductType(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   />
                 </div>
@@ -1233,11 +1282,14 @@ export const InventoryPage: React.FC = () => {
                     onChange={e => setNewProductUom(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
                   >
-                    <option value="PCS">PCS (Pieces)</option>
                     <option value="NOS">NOS (Numbers)</option>
-                    <option value="SET">SET (Sets)</option>
-                    <option value="MTR">MTR (Meters)</option>
+                    <option value="SETS">SETS (Sets)</option>
+                    <option value="METERS">METERS (Meters)</option>
                     <option value="KG">KG (Kilograms)</option>
+                    <option value="PAIRS">PAIRS (Pairs)</option>
+                    <option value="KW">KW (Kilowatt)</option>
+                    <option value="KWP">KWP (Kilowatt Peak)</option>
+                    <option value="LTR">LTR (Liters)</option>
                   </select>
                 </div>
               </div>

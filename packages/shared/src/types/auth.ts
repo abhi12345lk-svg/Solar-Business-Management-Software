@@ -330,7 +330,6 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'net_metering:read',
     'subsidy:create',
     'subsidy:read',
-    'subsidy:update',
     'expense:create',
     'expense:read',
     'notification:read',
@@ -342,9 +341,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'employee:read',
     'team:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.EXECUTIVE]: [
     'lead:create',
@@ -363,9 +360,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'order:cancel',
     'notification:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.SURVEYOR]: [
     'survey:create',
@@ -376,15 +371,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'lead:read',
     'notification:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.INSTALLATION_CREW]: [
     'order:read',
-    'order:create',
-    'order:confirm',
-    'order:cancel',
     'project:read',
     'project:update',
     'project:stage_advance',
@@ -399,21 +389,15 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'inv:read',
     'net_metering:read',
     'net_metering:update',
-    'expense:create',
-    'expense:read',
-    'project:cost_read',
     'notification:read',
     'task:read',
     'task:create',
     'task:update',
     'task:assign',
-    'task:delete',
     'employee:read',
     'team:read',
     'document:read',
     'document:upload',
-    'document:review',
-    'document:archive',
     'installation:create',
     'installation:read',
     'installation:update',
@@ -430,26 +414,20 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'account:payment_record',
     'account:expense_approve',
     'account:po_approve',
+    'po:approve',
     'payment:create',
     'payment:read',
     'payment:verify',
     'payment:allocate',
     'payment:reverse',
     'payment:receipt_read',
-    'po:create',
     'po:read',
-    'po:update',
-    'po:approve',
-    'vendor:create',
     'vendor:read',
     'grn:read',
     'vendor_invoice:create',
     'vendor_invoice:read',
     'vendor_invoice:update',
     'order:read',
-    'order:create',
-    'order:confirm',
-    'order:cancel',
     'customer:read',
     'quote:read',
     'inv:read',
@@ -471,13 +449,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:create',
     'task:update',
     'task:assign',
-    'task:delete',
     'employee:read',
     'team:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.SERVICE_TECHNICIAN]: [
     'service:ticket_create',
@@ -494,13 +469,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'task:create',
     'task:update',
     'task:assign',
-    'task:delete',
     'employee:read',
     'team:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.TECHNICIAN]: [
     'service:ticket_create',
@@ -512,12 +484,58 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<UserRole, readonly Permission[]> =
     'customer:read',
     'notification:read',
     'document:read',
-    'document:upload',
-    'document:review',
-    'document:archive'
+    'document:upload'
   ],
   [UserRole.CUSTOMER]: []
 };
+
+/**
+ * Departmental baseline permissions layered alongside role permissions so dedicated
+ * Inventory/Procurement and Liaison staff receive domain permissions cleanly without
+ * over-granting commercial Sales Executives.
+ */
+export const DEPARTMENT_DEFAULT_PERMISSIONS: Partial<Record<Department, readonly Permission[]>> = {
+  [Department.INVENTORY]: [
+    'catalog:read',
+    'catalog:create',
+    'catalog:update',
+    'inv:read',
+    'inv:receive',
+    'inv:issue',
+    'inv:reserve',
+    'inv:return',
+    'inv:transfer',
+    'warehouse:read',
+    'vendor:read',
+    'vendor:create',
+    'vendor:update',
+    'po:read',
+    'po:create',
+    'po:update',
+    'po:cancel',
+    'grn:create',
+    'grn:read',
+    'dispatch:create',
+    'dispatch:read',
+    'dispatch:cancel',
+    'project:read',
+    'order:read',
+    'checklist:read'
+  ]
+};
+
+/**
+ * Computes effective permissions from role defaults + department defaults + user overrides.
+ */
+export function resolveEffectivePermissions(
+  role: UserRole,
+  department?: Department,
+  customPermissions: readonly Permission[] = []
+): Permission[] {
+  const roleDefaults = ROLE_DEFAULT_PERMISSIONS[role] || [];
+  const deptDefaults = department ? DEPARTMENT_DEFAULT_PERMISSIONS[department] || [] : [];
+  return Array.from(new Set<Permission>([...roleDefaults, ...deptDefaults, ...customPermissions]));
+}
 
 /**
  * Roles that mandate Multi-Factor Authentication.
@@ -581,6 +599,9 @@ export function getDefaultPanelForRole(role: UserRole, department?: Department):
   if (role === UserRole.SUPERADMIN || role === UserRole.ADMIN) {
     return PanelType.ADMIN;
   }
+  if (department === Department.INVENTORY) {
+    return PanelType.ADMIN;
+  }
   if (role === UserRole.INSTALLATION_CREW) {
     return PanelType.INSTALLER;
   }
@@ -629,11 +650,9 @@ export function isRoleAllowedInPanel(
   }
   if (targetPanel === PanelType.ADMIN) {
     return (
-      role === UserRole.INSTALLATION_CREW ||
+      role === UserRole.DEPARTMENT_HEAD ||
       role === UserRole.SERVICE_TECHNICIAN ||
       role === UserRole.TECHNICIAN ||
-      department === Department.OPERATIONS ||
-      department === Department.SERVICE ||
       department === Department.INVENTORY
     );
   }

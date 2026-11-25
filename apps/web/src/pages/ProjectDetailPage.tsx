@@ -397,8 +397,14 @@ export const ProjectDetailPage: React.FC = () => {
         method: 'POST'
       });
       const data = res?.data || res;
-      setAmcInfo(`Active: Contract #${data?.amcNumber || 'AMC-ACTIVE'} (4 Quarterly Visits Included)`);
-      setActionSuccess(`1st-Year Comprehensive AMC initialized: Contract #${data?.amcNumber || 'ACTIVE'}`);
+      const amcNum = data?.amcNumber || 'AMC-PENDING';
+      const statusLabel = data?.status === 'ACTIVE' ? 'Active' : 'Pending Approval';
+      setAmcInfo(`${statusLabel}: Contract #${amcNum} (4 Quarterly Visits Scheduled)`);
+      setActionSuccess(
+        data?.status === 'ACTIVE'
+          ? `1st-Year Comprehensive AMC active: Contract #${amcNum}`
+          : `1st-Year Comprehensive AMC proposal #${amcNum} created (${data?.status || 'PENDING_APPROVAL'}). Approve in Service & AMC to activate.`
+      );
     } catch (err: any) {
       alert(err.message || 'Failed to initialize AMC contract.');
     } finally {

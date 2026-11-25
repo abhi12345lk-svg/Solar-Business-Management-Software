@@ -30,7 +30,12 @@ interface MaterialSummaryItem {
   sku: string;
   contractedQuantity: number;
   totalIssuedQuantity: number;
+  deliveredQuantity?: number;
+  inTransitQuantity?: number;
   remainingQuantity: number;
+  isFullyDispatched?: boolean;
+  isFullyDelivered?: boolean;
+  deliveryStatus?: string;
 }
 
 interface DispatchLineItem {
@@ -355,20 +360,26 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {summary.map(item => {
-              const percent =
+              const deliveredQty = item.deliveredQuantity ?? 0;
+              const inTransitQty =
+                item.inTransitQuantity ?? Math.max(0, item.totalIssuedQuantity - deliveredQty);
+              const deliveredPercent =
                 item.contractedQuantity > 0
-                  ? Math.min(
-                      100,
-                      Math.round((item.totalIssuedQuantity / item.contractedQuantity) * 100)
-                    )
+                  ? Math.min(100, Math.round((deliveredQty / item.contractedQuantity) * 100))
                   : 0;
+              const issuedPercent =
+                item.contractedQuantity > 0
+                  ? Math.min(100, Math.round((item.totalIssuedQuantity / item.contractedQuantity) * 100))
+                  : 0;
+              const isFullyDeliv =
+                item.isFullyDelivered ?? (item.contractedQuantity > 0 && deliveredQty >= item.contractedQuantity);
 
               return (
                 <div
                   key={item.productId}
                   className="bg-card border rounded-xl p-4 shadow-sm space-y-3"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start gap-2">
                     <div>
                       <h4 className="text-sm font-semibold text-foreground line-clamp-1">
                         {item.name}
@@ -376,26 +387,42 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                       <p className="font-mono text-xs text-muted-foreground">SKU: {item.sku}</p>
                     </div>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        item.remainingQuantity === 0
+                      className={`text-xs px-2 py-0.5 rounded-full font-bold whitespace-nowrap ${
+                        isFullyDeliv
                           ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
+                          : deliveredQty > 0
+                            ? 'bg-blue-100 text-blue-800'
+                            : item.totalIssuedQuantity > 0
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      {percent}% Dispatched
+                      {isFullyDeliv
+                        ? '100% Delivered'
+                        : deliveredQty > 0
+                          ? `${deliveredPercent}% Delivered`
+                          : item.totalIssuedQuantity > 0
+                            ? `${issuedPercent}% In Transit`
+                            : 'Pending Dispatch'}
                     </span>
                   </div>
 
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden flex">
                     <div
-                      className={`h-2 rounded-full ${
-                        percent === 100 ? 'bg-emerald-500' : 'bg-solar-600'
-                      }`}
-                      style={{ width: `${percent}%` }}
+                      className="h-2 bg-emerald-500"
+                      style={{ width: `${deliveredPercent}%` }}
+                      title={`Delivered: ${deliveredQty}`}
                     />
+                    {issuedPercent > deliveredPercent && (
+                      <div
+                        className="h-2 bg-amber-400"
+                        style={{ width: `${Math.min(100 - deliveredPercent, issuedPercent - deliveredPercent)}%` }}
+                        title={`In Transit: ${inTransitQty}`}
+                      />
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-3 text-center text-xs pt-1 border-t">
+                  <div className="grid grid-cols-4 text-center text-xs pt-1 border-t">
                     <div>
                       <span className="text-muted-foreground block text-[10px]">Contracted</span>
                       <span className="font-semibold text-foreground">
@@ -403,15 +430,21 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                       </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[10px]">Issued</span>
+                      <span className="text-muted-foreground block text-[10px]">Delivered</span>
                       <span className="font-semibold text-emerald-600">
-                        {item.totalIssuedQuantity}
+                        {deliveredQty}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">In Transit</span>
+                      <span className="font-semibold text-amber-600">
+                        {inTransitQty}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px]">Pending</span>
                       <span
-                        className={`font-semibold ${item.remainingQuantity > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}
+                        className={`font-semibold ${item.remainingQuantity > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}
                       >
                         {item.remainingQuantity}
                       </span>

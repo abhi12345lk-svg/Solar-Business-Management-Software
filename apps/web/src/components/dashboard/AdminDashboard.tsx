@@ -359,7 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
           <DashboardKpiCard
             title="Active EPC Projects"
             value={activeProjects.length}
-            subtitle="Under 10-stage execution"
+            subtitle="Under 5-stage execution"
             icon={FolderKanban}
             to="/projects"
             color="orange"

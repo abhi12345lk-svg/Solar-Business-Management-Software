@@ -68,15 +68,15 @@ const serveManualStream = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-installationRouter.get('/:id/photos-raw', servePhotoStream);
-installationRouter.get('/:id/photos/:storageKey', servePhotoStream);
-
-installationRouter.get('/:id/manuals-raw', serveManualStream);
-installationRouter.get('/:id/manuals/:storageKey', serveManualStream);
-
-// All subsequent operations require authenticated employee session
+// All installation operations and raw site media streams require an authenticated employee session
 installationRouter.use(requireAuth);
 installationRouter.use(requireEmployee);
+
+installationRouter.get('/:id/photos-raw', requirePermission('installation:read'), servePhotoStream);
+installationRouter.get('/:id/photos/:storageKey', requirePermission('installation:read'), servePhotoStream);
+
+installationRouter.get('/:id/manuals-raw', requirePermission('installation:read'), serveManualStream);
+installationRouter.get('/:id/manuals/:storageKey', requirePermission('installation:read'), serveManualStream);
 
 /**
  * GET /api/v1/installations/dashboard-stats

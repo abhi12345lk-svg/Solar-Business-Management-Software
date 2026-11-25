@@ -63,6 +63,13 @@ interface CustomerItem {
   city?: string;
 }
 
+interface OrderMilestoneItem {
+  milestoneName?: string;
+  percentage?: number;
+  amountPaise?: number;
+  status?: string;
+}
+
 interface OrderItem {
   _id: string;
   orderNumber: string;
@@ -71,12 +78,14 @@ interface OrderItem {
   allocatedAmountPaise?: number;
   systemCapacityKwp?: number;
   status?: string;
+  paymentMilestones?: OrderMilestoneItem[];
 }
 
 export const PaymentsPage: React.FC = () => {
   const { isAdmin, hasPermission } = useAuth();
   const canRecordPayment = isAdmin || hasPermission('payment:create');
   const canVerifyPayment = isAdmin || hasPermission('payment:verify');
+  const canAllocatePayment = isAdmin || hasPermission('payment:allocate');
   const canReversePayment = isAdmin || hasPermission('payment:reverse');
   const canEditPayment = isAdmin || hasPermission('payment:create');
 
@@ -127,19 +136,49 @@ export const PaymentsPage: React.FC = () => {
 
   // Selected Order Contract Info & Milestone Progress
   const [activeOrderContractRupees, setActiveOrderContractRupees] = useState<number>(0);
+  const [activeOrderMilestones, setActiveOrderMilestones] = useState<OrderMilestoneItem[]>([]);
   const [customerTotalPaidRupees, setCustomerTotalPaidRupees] = useState<number>(0);
-  const [customContractRupees, setCustomContractRupees] = useState<number>(100000);
+  const [pendingVerificationRupees, setPendingVerificationRupees] = useState<number>(0);
+  const [customContractRupees, setCustomContractRupees] = useState<number>(0);
   const [customerReceipts, setCustomerReceipts] = useState<any[]>([]);
+  const [actionBanner, setActionBanner] = useState<string | null>(null);
+
+  // Allocate Payment Modal State
+  const [showAllocateModal, setShowAllocateModal] = useState(false);
+  const [selectedAllocatePayment, setSelectedAllocatePayment] = useState<CustomerPaymentRecord | null>(null);
+  const [allocateOrders, setAllocateOrders] = useState<OrderItem[]>([]);
+  const [allocateOrderId, setAllocateOrderId] = useState('');
+  const [allocateAmountRupees, setAllocateAmountRupees] = useState('');
 
   // Computed Solar EPC Contract & Balance values
-  const effectiveContractRupees = activeOrderContractRupees > 0 ? activeOrderContractRupees : (customContractRupees || 100000);
+  const effectiveContractRupees =
+    activeOrderContractRupees > 0 ? activeOrderContractRupees : customContractRupees;
   const remainingBalanceRupees = Math.max(0, effectiveContractRupees - customerTotalPaidRupees);
-  const percentPaid = effectiveContractRupees > 0 ? Math.min(100, Math.round((customerTotalPaidRupees / effectiveContractRupees) * 100)) : 0;
+  const percentPaid =
+    effectiveContractRupees > 0
+      ? Math.min(100, Math.round((customerTotalPaidRupees / effectiveContractRupees) * 100))
+      : 0;
 
-  // 3-Stage Milestone Targets & Progression
-  const m1Target = Math.round(effectiveContractRupees * 0.2); // 20% Booking Advance
-  const m2Target = Math.round(effectiveContractRupees * 0.7); // 70% Pre-Dispatch
-  const m3Target = Math.round(effectiveContractRupees * 0.1); // 10% Handover & Commissioning
+  // Dynamic Milestone Targets from Selected Sales Order (falls back to 20/70/10 only when custom target has no order milestones)
+  const m1Pct = activeOrderMilestones[0]?.percentage ?? 20;
+  const m2Pct = activeOrderMilestones[1]?.percentage ?? 70;
+  const m3Pct = activeOrderMilestones[2]?.percentage ?? 10;
+  const m1Name = activeOrderMilestones[0]?.milestoneName || 'Booking Advance';
+  const m2Name = activeOrderMilestones[1]?.milestoneName || 'Pre-Dispatch';
+  const m3Name = activeOrderMilestones[2]?.milestoneName || 'Commissioning';
+
+  const m1Target =
+    activeOrderMilestones[0]?.amountPaise && activeOrderMilestones[0].amountPaise > 0
+      ? Math.round(activeOrderMilestones[0].amountPaise / 100)
+      : Math.round(effectiveContractRupees * (m1Pct / 100));
+  const m2Target =
+    activeOrderMilestones[1]?.amountPaise && activeOrderMilestones[1].amountPaise > 0
+      ? Math.round(activeOrderMilestones[1].amountPaise / 100)
+      : Math.round(effectiveContractRupees * (m2Pct / 100));
+  const m3Target =
+    activeOrderMilestones[2]?.amountPaise && activeOrderMilestones[2].amountPaise > 0
+      ? Math.round(activeOrderMilestones[2].amountPaise / 100)
+      : Math.round(effectiveContractRupees * (m3Pct / 100));
 
   // Calculate stage breakdown specifically from verified receipts
   const stageTotals = useMemo(() => {
@@ -365,21 +404,30 @@ export const PaymentsPage: React.FC = () => {
       setCustomerOrders(activeOrders);
 
       const allPayments = recvRes?.data?.payments || recvRes?.payments || [];
-      const verifiedPayments = allPayments.filter((p: any) => p.status === 'VERIFIED' || p.status === 'RECORDED');
+      const verifiedPayments = allPayments.filter((p: any) => p.status === 'VERIFIED');
+      const pendingPaymentsList = allPayments.filter((p: any) => p.status === 'RECORDED');
       setCustomerReceipts(verifiedPayments);
 
-      const totalPaidPaise = verifiedPayments.length > 0
-        ? verifiedPayments.reduce((sum: number, p: any) => sum + (p.amountPaise || 0), 0)
-        : (recvRes?.data?.totalPaidPaise ?? recvRes?.totalPaidPaise ?? 0);
+      const totalPaidPaise =
+        recvRes?.data?.totalPaidPaise ??
+        recvRes?.totalPaidPaise ??
+        verifiedPayments.reduce((sum: number, p: any) => sum + (p.amountPaise || 0), 0);
+      const pendingPaise =
+        recvRes?.data?.pendingVerificationPaise ??
+        recvRes?.pendingVerificationPaise ??
+        pendingPaymentsList.reduce((sum: number, p: any) => sum + (p.amountPaise || 0), 0);
       setCustomerTotalPaidRupees(Math.round(totalPaidPaise / 100));
+      setPendingVerificationRupees(Math.round(pendingPaise / 100));
 
       if (activeOrders.length > 0) {
         const first = activeOrders[0];
         setRecordForm(prev => ({ ...prev, salesOrderId: first._id }));
         const total = Math.round((first.netTotalPaise || first.totalAmountPaise || 0) / 100);
         setActiveOrderContractRupees(total);
+        setActiveOrderMilestones(Array.isArray(first.paymentMilestones) ? first.paymentMilestones : []);
       } else {
         setActiveOrderContractRupees(0);
+        setActiveOrderMilestones([]);
       }
     } catch (err) {
       console.warn('Failed to load customer data:', err);
@@ -403,7 +451,9 @@ export const PaymentsPage: React.FC = () => {
     } else {
       setCustomerOrders([]);
       setActiveOrderContractRupees(0);
+      setActiveOrderMilestones([]);
       setCustomerTotalPaidRupees(0);
+      setPendingVerificationRupees(0);
       setCustomerReceipts([]);
     }
   };
@@ -415,9 +465,11 @@ export const PaymentsPage: React.FC = () => {
     if (found) {
       const total = Math.round((found.netTotalPaise || found.totalAmountPaise || 0) / 100);
       setActiveOrderContractRupees(total);
+      setActiveOrderMilestones(Array.isArray(found.paymentMilestones) ? found.paymentMilestones : []);
       setSelectedMilestoneStage('CUSTOM');
     } else {
       setActiveOrderContractRupees(0);
+      setActiveOrderMilestones([]);
     }
   };
 
@@ -538,7 +590,7 @@ export const PaymentsPage: React.FC = () => {
       setSubmitting(true);
       const amountPaise = Math.round(amountNum * 100);
 
-      const res: any = await apiClient('/payments', {
+      await apiClient('/payments', {
         method: 'POST',
         body: JSON.stringify({
           customerId: recordForm.customerId,
@@ -546,36 +598,16 @@ export const PaymentsPage: React.FC = () => {
           paymentDate: recordForm.paymentDate ? new Date(recordForm.paymentDate) : new Date(),
           paymentMethod: recordForm.paymentMethod,
           transactionReference: recordForm.transactionReference.trim() || undefined,
-          notes: recordForm.notes.trim() || undefined,
-          autoVerify: true
+          notes: recordForm.notes.trim() || undefined
         })
       });
 
-      const payment = res?.data || res;
-
-      // Automatically allocate to linked sales order
-      if (payment?._id && recordForm.salesOrderId) {
-        try {
-          await apiClient(`/payments/${payment._id}/allocate`, {
-            method: 'POST',
-            body: JSON.stringify({
-              salesOrderId: recordForm.salesOrderId,
-              allocatedAmountPaise: amountPaise,
-              notes: recordForm.notes || 'Solar milestone payment allocation'
-            })
-          });
-        } catch (allocErr) {
-          console.warn('Auto-allocation skipped:', allocErr);
-        }
-      }
-
       setShowRecordModal(false);
+      setActionBanner(
+        `Payment receipt ₹${amountNum.toLocaleString('en-IN')} recorded (Pending Verification). Click Verify, then Allocate to apply it to a Sales Order.`
+      );
+      setTimeout(() => setActionBanner(null), 8000);
       fetchPayments();
-
-      // Open printable receipt for immediate print/confirmation
-      if (payment?._id) {
-        openReceiptModal(payment._id);
-      }
     } catch (err: any) {
       alert(`Error saving payment: ${err.message || 'Server error'}`);
     } finally {
@@ -591,9 +623,62 @@ export const PaymentsPage: React.FC = () => {
         method: 'PATCH',
         body: JSON.stringify({ verificationNotes: 'Bank realization confirmed by accounts officer' })
       });
+      setActionBanner('Payment verified as realized in bank. Allocate unallocated funds to a Sales Order if needed.');
+      setTimeout(() => setActionBanner(null), 6000);
       fetchPayments();
     } catch (err: any) {
       alert(`Verification failed: ${err.message}`);
+    }
+  };
+
+  // Open Allocate Modal for Verified Payment
+  const handleOpenAllocateModal = async (p: CustomerPaymentRecord) => {
+    const custId = p.customerId?._id;
+    setSelectedAllocatePayment(p);
+    setAllocateAmountRupees(((p.unallocatedAmountPaise || 0) / 100).toString());
+    setAllocateOrderId('');
+    setAllocateOrders([]);
+    setShowAllocateModal(true);
+    if (custId) {
+      try {
+        const res = await apiClient<any>(`/orders?customerId=${custId}&limit=50`);
+        const items = res?.items || res?.data?.items || (Array.isArray(res) ? res : []);
+        const valid = items.filter((o: any) => o.status !== 'CANCELLED');
+        setAllocateOrders(valid);
+        if (valid.length > 0) setAllocateOrderId(valid[0]._id);
+      } catch {
+        setAllocateOrders([]);
+      }
+    }
+  };
+
+  const handleSubmitAllocate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAllocatePayment || !allocateOrderId) return;
+    const amtPaise = Math.round(Number(allocateAmountRupees) * 100);
+    if (isNaN(amtPaise) || amtPaise <= 0) {
+      alert('Enter a valid positive allocation amount.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await apiClient(`/payments/${selectedAllocatePayment._id}/allocate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          salesOrderId: allocateOrderId,
+          allocatedAmountPaise: amtPaise,
+          notes: `Allocated ₹${(amtPaise / 100).toLocaleString('en-IN')} from receipt ${selectedAllocatePayment.receiptNumber}`
+        })
+      });
+      setShowAllocateModal(false);
+      setSelectedAllocatePayment(null);
+      setActionBanner(`Successfully allocated ₹${(amtPaise / 100).toLocaleString('en-IN')} to Sales Order.`);
+      setTimeout(() => setActionBanner(null), 6000);
+      fetchPayments();
+    } catch (err: any) {
+      alert(`Allocation failed: ${err?.message || 'Error'}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -759,6 +844,15 @@ export const PaymentsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {actionBanner && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between">
+          <span>{actionBanner}</span>
+          <button type="button" onClick={() => setActionBanner(null)} className="font-bold ml-3 cursor-pointer">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* =========================================================================
           FINANCIAL KPI SUMMARY (4 CLEAN CARDS)
@@ -1040,6 +1134,17 @@ export const PaymentsPage: React.FC = () => {
                             </button>
                           )}
 
+                          {/* Allocate verified unallocated amount to Sales Order */}
+                          {canAllocatePayment && isVerified && (payment.unallocatedAmountPaise || 0) > 0 && (
+                            <button
+                              onClick={() => handleOpenAllocateModal(payment)}
+                              className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-semibold cursor-pointer"
+                              title="Allocate unallocated funds to Sales Order"
+                            >
+                              Allocate
+                            </button>
+                          )}
+
                           {/* Reverse (Accounts / Admin Only) */}
                           {canReversePayment && !isReversed && (
                             <button
@@ -1273,6 +1378,11 @@ export const PaymentsPage: React.FC = () => {
                         <div className="text-xs font-mono font-bold text-rose-600">
                           {formatINR(remainingBalanceRupees * 100)} ({Math.max(0, 100 - percentPaid)}% due)
                         </div>
+                        {pendingVerificationRupees > 0 && (
+                          <div className="text-[10px] text-amber-600 font-semibold">
+                            +{formatINR(pendingVerificationRupees * 100)} pending bank verification
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1294,7 +1404,7 @@ export const PaymentsPage: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
                             {m1Completed && <Lock className="w-2.5 h-2.5 text-emerald-600" />}
-                            Stage 1 (20%)
+                            Stage 1 ({m1Pct}%)
                           </span>
                           {m1Completed ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
@@ -1306,7 +1416,7 @@ export const PaymentsPage: React.FC = () => {
                             </span>
                           ) : null}
                         </div>
-                        <div className="font-semibold text-foreground truncate mt-0.5">Booking Advance</div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">{m1Name}</div>
                         <div className="text-[11px] font-mono font-bold text-foreground mt-1">
                           {m1Completed ? (
                             <span className="text-emerald-600">✓ {formatINR(m1Target * 100)}</span>
@@ -1341,7 +1451,7 @@ export const PaymentsPage: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
                             {(m2Completed || !m1Completed) && <Lock className="w-2.5 h-2.5 text-muted-foreground" />}
-                            Stage 2 (70%)
+                            Stage 2 ({m2Pct}%)
                           </span>
                           {m2Completed ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
@@ -1357,7 +1467,7 @@ export const PaymentsPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="font-semibold text-foreground truncate mt-0.5">Pre-Dispatch</div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">{m2Name}</div>
                         <div className="text-[11px] font-mono font-bold text-foreground mt-1">
                           {m2Completed ? (
                             <span className="text-emerald-600">✓ {formatINR(m2Target * 100)}</span>
@@ -1390,7 +1500,7 @@ export const PaymentsPage: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1">
                             {(m3Completed || !m2Completed) && <Lock className="w-2.5 h-2.5 text-muted-foreground" />}
-                            Stage 3 (10%)
+                            Stage 3 ({m3Pct}%)
                           </span>
                           {m3Completed ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 font-bold flex items-center gap-0.5">
@@ -1406,7 +1516,7 @@ export const PaymentsPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="font-semibold text-foreground truncate mt-0.5">Commissioning</div>
+                        <div className="font-semibold text-foreground truncate mt-0.5">{m3Name}</div>
                         <div className="text-[11px] font-mono font-bold text-foreground mt-1">
                           {m3Completed ? (
                             <span className="text-emerald-600">✓ {formatINR(m3Target * 100)}</span>
@@ -2136,6 +2246,84 @@ export const PaymentsPage: React.FC = () => {
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold cursor-pointer"
                 >
                   {submitting ? 'Reversing...' : 'Confirm Reversal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 7: ALLOCATE VERIFIED PAYMENT TO SALES ORDER
+         ========================================================================= */}
+      {showAllocateModal && selectedAllocatePayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 !mt-0 !m-0">
+          <div className="bg-card border rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h2 className="text-base font-bold text-foreground">
+                Allocate Receipt ({selectedAllocatePayment.receiptNumber})
+              </h2>
+              <button
+                onClick={() => setShowAllocateModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitAllocate} className="space-y-3.5 mt-4 text-xs">
+              <div className="p-2.5 rounded-xl bg-muted/40 border text-xs">
+                Unallocated Verified Balance:{' '}
+                <strong className="font-mono text-emerald-600">
+                  {formatINR(selectedAllocatePayment.unallocatedAmountPaise)}
+                </strong>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-foreground">
+                  Target Sales Order *
+                </label>
+                <select
+                  required
+                  value={allocateOrderId}
+                  onChange={e => setAllocateOrderId(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-xl bg-background font-medium"
+                >
+                  <option value="">-- Select Sales Order --</option>
+                  {allocateOrders.map(o => (
+                    <option key={o._id} value={o._id}>
+                      {o.orderNumber} (Total:{' '}
+                      {formatINR(o.netTotalPaise || o.totalAmountPaise || 0)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-foreground">
+                  Allocation Amount (₹) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  required
+                  value={allocateAmountRupees}
+                  onChange={e => setAllocateAmountRupees(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-xl bg-background font-mono font-bold"
+                />
+              </div>
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowAllocateModal(false)}
+                  className="px-4 py-2 border rounded-xl hover:bg-muted font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !allocateOrderId}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? 'Allocating...' : 'Confirm Allocation'}
                 </button>
               </div>
             </form>

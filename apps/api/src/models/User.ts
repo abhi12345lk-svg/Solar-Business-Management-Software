@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
-import { Department, UserRole, Permission, ROLE_DEFAULT_PERMISSIONS } from '@ins-solar/shared';
+import { Department, UserRole, Permission, resolveEffectivePermissions } from '@ins-solar/shared';
 
 export interface IUserDocument extends Document {
   _id: Types.ObjectId;
@@ -128,12 +128,11 @@ UserSchema.index({ department: 1, role: 1 });
  * Returns merged effective permissions: role default permissions + custom assigned permissions.
  */
 UserSchema.methods.getEffectivePermissions = function (this: IUserDocument): Permission[] {
-  const defaults = ROLE_DEFAULT_PERMISSIONS[this.role] || [];
-  const combined = new Set<Permission>([
-    ...defaults,
-    ...((this.permissions as Permission[]) || [])
-  ]);
-  return Array.from(combined);
+  return resolveEffectivePermissions(
+    this.role,
+    this.department,
+    (this.permissions as Permission[]) || []
+  );
 };
 
 export const User: Model<IUserDocument> =

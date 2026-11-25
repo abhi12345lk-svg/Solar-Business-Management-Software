@@ -44,8 +44,12 @@ import {
   FileText,
   Mail,
   Smartphone,
-  MessageSquare
+  MessageSquare,
+  LogOut,
+  KeyRound,
+  Lock
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api.js';
 
 interface ProjectSummary {
@@ -104,48 +108,69 @@ interface NotificationPreferences {
   };
 }
 
-const STAGE_LABELS: Record<string, { label: string; desc: string }> = {
-  STAGE_1_ENGINEERING_DESIGN: {
-    label: 'Stage 1: Engineering & Design',
-    desc: 'System layout, string sizing, and CAD single-line diagrams finalized.'
+const CANONICAL_STAGES = [
+  {
+    key: 'STAGE_1_DESIGN_APPROVAL',
+    label: 'Stage 1: Survey, Design & Approvals',
+    shortLabel: 'Design & Approvals',
+    desc: 'Site survey, engineering SLD/BOM, and structural/utility approvals.'
   },
-  STAGE_2_NET_METERING_APPLY: {
-    label: 'Stage 2: Net Metering Application',
-    desc: 'Bi-directional meter paperwork submitted to DISCOM utility.'
+  {
+    key: 'STAGE_2_MATERIAL_DISPATCH',
+    label: 'Stage 2: Material Dispatch & Logistics',
+    shortLabel: 'Material Dispatch',
+    desc: 'Modules, inverter, structure, and BOS reserved, dispatched, and delivered to site.'
   },
-  STAGE_3_MATERIAL_DISPATCH: {
-    label: 'Stage 3: Material Dispatch',
-    desc: 'Solar modules, inverter, structure, and BOS allocated and dispatched.'
+  {
+    key: 'STAGE_3_SITE_INSTALLATION',
+    label: 'Stage 3: Physical Site Installation',
+    shortLabel: 'Site Installation',
+    desc: 'Mechanical structure mounting, cabling, inverter integration, and QA checklist sign-off.'
   },
-  STAGE_4_CIVIL_STRUCTURE: {
-    label: 'Stage 4: Civil & Structure Mounting',
-    desc: 'Rooftop mounting rails, ballast, and structure anchored to civil columns.'
+  {
+    key: 'STAGE_4_NET_METER_SYNC',
+    label: 'Stage 4: Net Metering & Grid Sync',
+    shortLabel: 'Net Metering Sync',
+    desc: 'DISCOM inspection, bi-directional meter installation, and grid synchronization.'
   },
-  STAGE_5_MODULE_DC_CABLING: {
-    label: 'Stage 5: Module & DC Cabling',
-    desc: 'PV modules clamped in string series; UV-resistant DC cabling routed.'
-  },
-  STAGE_6_INVERTER_ACDB: {
-    label: 'Stage 6: Inverter & ACDB Integration',
-    desc: 'Inverter mounted with AC/DC distribution boxes and surge arrestors.'
-  },
-  STAGE_7_EARTHING_LIGHTNING: {
-    label: 'Stage 7: Earthing & Lightning Protection',
-    desc: 'Chemical earthing pits and copper lightning arrestor grounded.'
-  },
-  STAGE_8_TESTING_PRE_COMMISSION: {
-    label: 'Stage 8: Pre-Commissioning Testing',
-    desc: 'Insulation resistance, open circuit voltage, and grid sync verified.'
-  },
-  STAGE_9_DISCOM_METER_INSTALL: {
-    label: 'Stage 9: DISCOM Meter Sync',
-    desc: 'DISCOM inspector verification and bi-directional meter installed.'
-  },
-  STAGE_10_COMMISSION_HANDOVER: {
-    label: 'Stage 10: Commissioning & Handover',
-    desc: 'System energized; warranty cards and generation monitoring handed over.'
+  {
+    key: 'STAGE_5_HANDOVER_COMMISSIONING',
+    label: 'Stage 5: Commissioning & Handover',
+    shortLabel: 'Handover & Commissioning',
+    desc: 'Pre-commissioning tests, generation verification, JCR sign-off, and warranty handover.'
   }
-};
+] as const;
+
+function getCanonicalStageIndex(stageKey: string): number {
+  switch (stageKey) {
+    case 'STAGE_1_DESIGN_APPROVAL':
+    case 'STAGE_1_ENGINEERING_DESIGN':
+    case 'STAGE_2_NET_METERING_APPLY':
+      return 0;
+    case 'STAGE_2_MATERIAL_DISPATCH':
+    case 'STAGE_3_MATERIAL_DISPATCH':
+      return 1;
+    case 'STAGE_3_SITE_INSTALLATION':
+    case 'STAGE_4_CIVIL_STRUCTURE':
+    case 'STAGE_5_MODULE_DC_CABLING':
+    case 'STAGE_6_INVERTER_ACDB':
+    case 'STAGE_7_EARTHING_LIGHTNING':
+    case 'STAGE_8_TESTING_PRE_COMMISSION':
+      return 2;
+    case 'STAGE_4_NET_METER_SYNC':
+    case 'STAGE_9_DISCOM_METER_INSTALL':
+      return 3;
+    case 'STAGE_5_HANDOVER_COMMISSIONING':
+    case 'STAGE_10_COMMISSION_HANDOVER':
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+function getStageDisplay(stageKey: string) {
+  return CANONICAL_STAGES[getCanonicalStageIndex(stageKey)] || CANONICAL_STAGES[0];
+}
 
 export interface CustomerPortalPageProps {
   defaultTab?:
@@ -195,7 +220,15 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
     }
   }, [urlTab, defaultTab]);
 
-  // Loading & error states
+  // Loading, Customer Auth & error states
+  const [authStatus, setAuthStatus] = useState<'CHECKING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'>('CHECKING');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -262,8 +295,31 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
       setLoading(true);
       setError(null);
 
-      const [dashRes, notifRes, unreadRes, prefsRes] = await Promise.all([
-        apiClient<any>('/customer-portal/dashboard').catch(() => null),
+      // Verify email magic link token automatically if present in query string
+      const magicToken = searchParams.get('token');
+      if (magicToken) {
+        await apiClient('/auth/csrf').catch(() => null);
+        await apiClient('/customer-auth/magic-link/verify', {
+          method: 'POST',
+          body: JSON.stringify({ token: magicToken })
+        }).catch(() => null);
+      }
+
+      let dashRes: any = null;
+      try {
+        dashRes = await apiClient<any>('/customer-portal/dashboard');
+      } catch (authErr: any) {
+        if (authErr?.statusCode === 401 || authErr?.statusCode === 403 || /session required|authentication/i.test(authErr?.message || '')) {
+          setAuthStatus('UNAUTHENTICATED');
+          setDashboardData(null);
+          return;
+        }
+        throw authErr;
+      }
+
+      setAuthStatus('AUTHENTICATED');
+
+      const [notifRes, unreadRes, prefsRes] = await Promise.all([
         apiClient<any>('/customer-portal/notifications?limit=20').catch(() => ({ items: [] })),
         apiClient<any>('/customer-portal/notifications/unread-count').catch(() => ({
           unreadCount: 0
@@ -292,7 +348,64 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, searchParams]);
+
+  const handleRequestCustomerOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginIdentifier.trim()) return;
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+    try {
+      await apiClient('/auth/csrf').catch(() => null);
+      await apiClient('/customer-auth/otp/request', {
+        method: 'POST',
+        body: JSON.stringify({ identifier: loginIdentifier.trim() })
+      });
+      setOtpRequested(true);
+      setAuthMessage('A 6-digit verification OTP has been dispatched to your registered mobile/email.');
+    } catch (err: any) {
+      setAuthError(err?.message || 'Unable to request verification code.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyCustomerOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginIdentifier.trim() || !otpCode.trim()) return;
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await apiClient('/customer-auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({
+          identifier: loginIdentifier.trim(),
+          otp: otpCode.trim()
+        })
+      });
+      setOtpCode('');
+      setOtpRequested(false);
+      await fetchDashboardData();
+    } catch (err: any) {
+      setAuthError(err?.message || 'Invalid or expired OTP code.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleCustomerLogout = async () => {
+    try {
+      await apiClient('/customer-auth/logout', { method: 'POST' });
+    } catch {
+      // ignore error during sign out
+    }
+    setDashboardData(null);
+    setProjects([]);
+    setSelectedProjectId(null);
+    setSelectedProjectDetail(null);
+    setAuthStatus('UNAUTHENTICATED');
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -548,6 +661,108 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
     }
   };
 
+  if (authStatus === 'UNAUTHENTICATED') {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-card border rounded-2xl p-6 sm:p-8 shadow-lg space-y-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-11 h-11 rounded-xl bg-solar-500/10 border border-solar-500/30 flex items-center justify-center text-solar-600">
+              <Sun className="w-6 h-6 text-solar-500" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Customer Self-Service Portal</h1>
+              <p className="text-xs text-muted-foreground">
+                Rarebox Solar — Sign in with your registered phone or email
+              </p>
+            </div>
+          </div>
+
+          {authError && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              {authError}
+            </div>
+          )}
+          {authMessage && (
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs">
+              {authMessage}
+            </div>
+          )}
+
+          {!otpRequested ? (
+            <form onSubmit={handleRequestCustomerOtp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Registered Mobile / Email / Customer Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. +919876543210 or customer@email.com"
+                  value={loginIdentifier}
+                  onChange={e => setLoginIdentifier(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-2.5 px-4 rounded-lg bg-solar-600 hover:bg-solar-500 text-white text-sm font-bold shadow-sm transition disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>{authLoading ? 'Sending OTP...' : 'Send Verification Code (OTP)'}</span>
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyCustomerOtp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  6-Digit Verification OTP *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP"
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-solar-500"
+                />
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpRequested(false);
+                    setOtpCode('');
+                    setAuthError(null);
+                  }}
+                  className="px-3 py-2.5 rounded-lg border text-xs font-semibold hover:bg-muted"
+                >
+                  Change Account
+                </button>
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="flex-1 py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-sm transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>{authLoading ? 'Verifying...' : 'Verify & Sign In'}</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
+            <span>Internal ERP employee?</span>
+            <Link to="/login" className="text-solar-600 hover:underline font-semibold">
+              Staff Login →
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Banner & Header */}
@@ -604,6 +819,15 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={handleCustomerLogout}
+            className="px-3 py-2 rounded-lg border bg-background hover:bg-rose-500/10 hover:text-rose-600 text-muted-foreground text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            title="Sign Out of Customer Portal"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
@@ -865,11 +1089,10 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
                 <Zap className="w-4 h-4 text-solar-500 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-semibold text-foreground">
-                    {STAGE_LABELS[projects[0]!.currentStage]?.label || projects[0]!.currentStage}
+                    {getStageDisplay(projects[0]!.currentStage).label}
                   </div>
                   <div className="text-muted-foreground mt-0.5">
-                    {STAGE_LABELS[projects[0]!.currentStage]?.desc ||
-                      'Stage execution in progress.'}
+                    {getStageDisplay(projects[0]!.currentStage).desc}
                   </div>
                 </div>
               </div>
@@ -1001,21 +1224,20 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
                   </div>
                 </div>
 
-                {/* 10 Stages Visualizer */}
+                {/* 5-Stage Canonical Pipeline Visualizer */}
                 <div className="pt-4 border-t space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Execution Pipeline (10 Stages)
+                    Execution Pipeline (5 Stages)
                   </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {Object.entries(STAGE_LABELS).map(([stageKey, info], idx) => {
-                      const isCurrent = selectedProjectDetail.currentStage === stageKey;
-                      const stagesArr = Object.keys(STAGE_LABELS);
-                      const currentIdx = stagesArr.indexOf(selectedProjectDetail.currentStage);
-                      const isDone = stagesArr.indexOf(stageKey) < currentIdx;
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                    {CANONICAL_STAGES.map((stageInfo, idx) => {
+                      const currentIdx = getCanonicalStageIndex(selectedProjectDetail.currentStage);
+                      const isCurrent = idx === currentIdx && selectedProjectDetail.status !== 'COMPLETED';
+                      const isDone = idx < currentIdx || selectedProjectDetail.status === 'COMPLETED';
 
                       return (
                         <div
-                          key={stageKey}
+                          key={stageInfo.key}
                           className={`p-3 rounded-lg border text-xs transition-all ${
                             isCurrent
                               ? 'bg-solar-500 text-white font-bold shadow-md shadow-solar-500/20 border-solar-600'
@@ -1026,13 +1248,13 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] uppercase tracking-wider">
-                              Step {idx + 1}
+                              Stage {idx + 1}
                             </span>
                             {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
                             {isCurrent && <Clock className="w-3.5 h-3.5" />}
                           </div>
                           <div className="line-clamp-2 leading-tight">
-                            {info.label.split(': ')[1]}
+                            {stageInfo.shortLabel}
                           </div>
                         </div>
                       );

@@ -14,7 +14,7 @@ import {
   DocumentCategory,
   DocumentAccessClassification
 } from '@ins-solar/shared';
-import { requireAuth, requireEmployee } from '../middleware/authorize.js';
+import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
 
@@ -27,7 +27,7 @@ customerRouter.use(requireEmployee);
  * GET /api/v1/customers
  * Query registered customers with search, status filtering, and pagination.
  */
-customerRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.get('/', requirePermission('customer:read'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const status = typeof req.query.status === 'string' ? req.query.status.trim() : '';
@@ -89,7 +89,7 @@ customerRouter.get('/', async (req: Request, res: Response, next: NextFunction) 
  * GET /api/v1/customers/:id
  * Retrieve a single customer record by ObjectId or customerCode.
  */
-customerRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.get('/:id', requirePermission('customer:read'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const idOrCode = String(req.params.id || '').trim();
     let customer: any = null;
@@ -119,7 +119,7 @@ customerRouter.get('/:id', async (req: Request, res: Response, next: NextFunctio
  * POST /api/v1/customers
  * Direct customer registration from workstation.
  */
-customerRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.post('/', requirePermission('customer:create'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {
       name,
@@ -142,6 +142,19 @@ customerRouter.post('/', async (req: Request, res: Response, next: NextFunction)
     }
     if (!primaryPhone || !primaryPhone.trim()) {
       throw AppError.validationFailed('Customer phone number is required.');
+    }
+
+    const cleanPhone = primaryPhone.trim();
+    const cleanEmail = email ? String(email).trim().toLowerCase() : undefined;
+    const dupOr: any[] = [{ primaryPhone: cleanPhone }];
+    if (cleanEmail) {
+      dupOr.push({ email: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    }
+    const duplicate = await Customer.findOne({ $or: dupOr });
+    if (duplicate) {
+      throw AppError.conflict(
+        `A customer (${duplicate.customerCode} - ${duplicate.name}) with this phone number or email already exists.`
+      );
     }
 
     // Generate atomic sequential code (e.g. CUST-2026-00002)
@@ -226,7 +239,7 @@ customerRouter.post('/', async (req: Request, res: Response, next: NextFunction)
  * PATCH /api/v1/customers/:id/status
  * Direct status transition for customer lifecycle stages.
  */
-customerRouter.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.patch('/:id/status', requirePermission('customer:update'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = String(req.params.id || '').trim();
     const { status } = req.body;
@@ -262,7 +275,7 @@ customerRouter.patch('/:id/status', async (req: Request, res: Response, next: Ne
  * GET /api/v1/customers/:id/documents
  * Fetch all active documents attached to a specific customer's vault.
  */
-customerRouter.get('/:id/documents', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.get('/:id/documents', requirePermission('customer:read'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const customerId = String(req.params.id || '').trim();
     if (!Types.ObjectId.isValid(customerId)) {
@@ -284,7 +297,7 @@ customerRouter.get('/:id/documents', async (req: Request, res: Response, next: N
  * POST /api/v1/customers/:id/documents
  * Directly upload or register a document into a customer's document vault.
  */
-customerRouter.post('/:id/documents', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.post('/:id/documents', requirePermission(['document:upload', 'customer:update']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const customerId = String(req.params.id || '').trim();
     if (!Types.ObjectId.isValid(customerId)) {
@@ -342,7 +355,7 @@ customerRouter.post('/:id/documents', async (req: Request, res: Response, next: 
  * DELETE /api/v1/customers/:id/documents/:docId
  * Archive / delete a document from a customer's document vault.
  */
-customerRouter.delete('/:id/documents/:docId', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.delete('/:id/documents/:docId', requirePermission(['document:archive', 'customer:update']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const docId = String(req.params.docId || '').trim();
     if (!Types.ObjectId.isValid(docId)) {
@@ -375,7 +388,7 @@ customerRouter.delete('/:id/documents/:docId', async (req: Request, res: Respons
  * POST /api/v1/customers/:id/geotag
  * Save live GPS site location coordinates to customer installation profile & create a verified vault record.
  */
-customerRouter.post('/:id/geotag', async (req: Request, res: Response, next: NextFunction) => {
+customerRouter.post('/:id/geotag', requirePermission(['customer:update', 'installation:update', 'survey:upload_photos']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const customerId = String(req.params.id || '').trim();
     if (!Types.ObjectId.isValid(customerId)) {

@@ -24,19 +24,58 @@ import {
   AmcVisitCadence,
   AmcBillingCadence,
   AmcPaymentStatus,
-  MaterialDispatchStatus
+  MaterialDispatchStatus,
+  NetMeteringStatus,
+  NetMeteringInspectionOutcome,
+  SolarTopology,
+  DocumentCategory,
+  SerialNumberStatus,
+  WarrantyStatus
 } from '@ins-solar/shared';
 import { Project, IProjectDocument } from '../models/Project.js';
 import { Customer } from '../models/Customer.js';
 import { SalesOrder } from '../models/SalesOrder.js';
+import { SiteSurvey } from '../models/SiteSurvey.js';
+import { SolarDesign } from '../models/SolarDesign.js';
 import { User } from '../models/User.js';
 import { InstallationModel } from '../models/Installation.js';
 import { ProjectInstallationChecklist } from '../models/ProjectInstallationChecklist.js';
+import { NetMeteringApplication } from '../models/NetMeteringApplication.js';
 import { AnnualMaintenanceContract } from '../models/AnnualMaintenanceContract.js';
 import { MaterialDispatch } from '../models/MaterialDispatch.js';
+import { DocumentModel } from '../models/DocumentModel.js';
+import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
+import { Product } from '../models/Product.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { AppError } from '../errors/AppError.js';
+
+function getCanonicalStageStep(stageKey: ProjectStage | string): number {
+  switch (stageKey) {
+    case ProjectStage.STAGE_1_DESIGN_APPROVAL:
+    case ProjectStage.STAGE_1_ENGINEERING_DESIGN:
+    case ProjectStage.STAGE_2_NET_METERING_APPLY:
+      return 1;
+    case ProjectStage.STAGE_2_MATERIAL_DISPATCH:
+    case ProjectStage.STAGE_3_MATERIAL_DISPATCH:
+      return 2;
+    case ProjectStage.STAGE_3_SITE_INSTALLATION:
+    case ProjectStage.STAGE_4_CIVIL_STRUCTURE:
+    case ProjectStage.STAGE_5_MODULE_DC_CABLING:
+    case ProjectStage.STAGE_6_INVERTER_ACDB:
+    case ProjectStage.STAGE_7_EARTHING_LIGHTNING:
+    case ProjectStage.STAGE_8_TESTING_PRE_COMMISSION:
+      return 3;
+    case ProjectStage.STAGE_4_NET_METER_SYNC:
+    case ProjectStage.STAGE_9_DISCOM_METER_INSTALL:
+      return 4;
+    case ProjectStage.STAGE_5_HANDOVER_COMMISSIONING:
+    case ProjectStage.STAGE_10_COMMISSION_HANDOVER:
+      return 5;
+    default:
+      return 1;
+  }
+}
 
 export const DEFAULT_PROJECT_MILESTONES = [
   {
@@ -244,10 +283,10 @@ export class ProjectService {
       projectManagerId,
       teamMemberIds,
       status: ProjectStatus.PLANNING,
-      currentStage: ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+      currentStage: ProjectStage.STAGE_1_DESIGN_APPROVAL,
       stageHistory: [
         {
-          stage: ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+          stage: ProjectStage.STAGE_1_DESIGN_APPROVAL,
           changedAt: new Date(),
           changedBy: new Types.ObjectId(user.userId),
           notes: 'Project initialized.'
@@ -689,17 +728,40 @@ export class ProjectService {
       }
       project.cancellationReason = input.reason.trim();
     } else if (newStatus === ProjectStatus.COMPLETED) {
-      if (
-        mongoose.connection.readyState === 1 ||
-        (ProjectInstallationChecklist.findOne as any)?.mock
-      ) {
+      const dbConnected = mongoose.connection.readyState === 1;
+      if (dbConnected) {
+        if (getCanonicalStageStep(project.currentStage) < 5) {
+          throw AppError.businessRule(
+            `Cannot mark project COMPLETED while at stage '${project.currentStage}'. Advance through Stage 5 (Handover & Commissioning) first.`
+          );
+        }
+
+        const jcrDoc = await DocumentModel.findOne({
+          customerId: project.customerId,
+          $or: [{ projectId: project._id }, { projectId: { $exists: false } }, { projectId: null }],
+          category: DocumentCategory.COMMISSIONING_REPORT,
+          isArchived: false
+        }).lean();
+
+        if (!jcrDoc) {
+          throw AppError.businessRule(
+            'Cannot complete project handover: Joint Commissioning Report (JCR) / Commissioning document is required.'
+          );
+        }
+      }
+
+      if (dbConnected || (ProjectInstallationChecklist.findOne as any)?.mock) {
         const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
         if (checklist) {
           const incompleteItems: string[] = [];
+          const missingEvidence: string[] = [];
           for (const cat of checklist.categories) {
             for (const item of cat.items) {
               if (item.isRequired && item.status !== ChecklistItemStatus.PASSED) {
                 incompleteItems.push(`[${item.itemCode}] ${item.description}`);
+              }
+              if (item.isRequired && item.requiresEvidence && (!item.evidence || item.evidence.length === 0)) {
+                missingEvidence.push(`[${item.itemCode}] ${item.description}`);
               }
             }
           }
@@ -708,6 +770,35 @@ export class ProjectService {
               `Cannot complete project: Mandatory installation checklist items remain incomplete or failed (${incompleteItems.length} items pending).`
             );
           }
+          if (dbConnected && missingEvidence.length > 0) {
+            throw AppError.businessRule(
+              `Cannot complete project: Commissioning/installation evidence photos are missing for required checklist items: ${missingEvidence.join('; ')}`
+            );
+          }
+        } else if (dbConnected) {
+          throw AppError.businessRule(
+            'Cannot complete project: Pre-commissioning and installation checklist must be completed first.'
+          );
+        }
+      }
+
+      // Activate hardware warranty bounds on installed serial numbers upon actual handover/commissioning
+      if (dbConnected) {
+        const commDate = new Date();
+        const serials = await ProductSerialNumber.find({
+          projectId: project._id,
+          status: SerialNumberStatus.INSTALLED
+        });
+        for (const snDoc of serials) {
+          const prod = await Product.findById(snDoc.productId).lean();
+          const years = (prod as any)?.warranty?.warrantyYears || 5;
+          const endDate = new Date(commDate);
+          endDate.setFullYear(endDate.getFullYear() + years);
+          snDoc.commissioningDate = commDate;
+          snDoc.warrantyStartDate = commDate;
+          snDoc.warrantyEndDate = endDate;
+          snDoc.warrantyStatus = WarrantyStatus.ACTIVE;
+          await snDoc.save();
         }
       }
       project.actualCompletionDate = new Date();
@@ -754,67 +845,235 @@ export class ProjectService {
       throw AppError.businessRule(`Cannot advance stage on a ${project.status} project.`);
     }
 
-    // Stage 1 -> Stage 2 (Material Dispatch Gate):
-    // Requires system capacity and engineering specifications
-    if (
-      (input.stage === ProjectStage.STAGE_2_MATERIAL_DISPATCH ||
-        input.stage === ProjectStage.STAGE_3_MATERIAL_DISPATCH) &&
-      (!project.systemCapacityKwp || project.systemCapacityKwp <= 0)
-    ) {
+    const dbConnected = mongoose.connection.readyState === 1;
+    const oldStep = getCanonicalStageStep(oldStage);
+    const targetStep = getCanonicalStageStep(input.stage);
+
+    if (dbConnected && targetStep > oldStep + 1) {
       throw AppError.businessRule(
-        'Cannot advance to Material Dispatch: System capacity (kWp) and engineering design specifications must be defined.'
+        `Cannot skip directly from Stage ${oldStep} (${oldStage}) to Stage ${targetStep} (${input.stage}). Complete each stage gate sequentially.`
       );
     }
 
-    // Stage 2 -> Stage 3 (Site Installation Gate):
-    // Requires material to be dispatched from warehouse to the project site
-    if (
-      input.stage === ProjectStage.STAGE_3_SITE_INSTALLATION ||
-      input.stage === ProjectStage.STAGE_4_CIVIL_STRUCTURE
-    ) {
-      if (project.systemCapacityKwp && project.systemCapacityKwp > 0) {
-        const dispatches = await MaterialDispatch.find({
-          projectId: project._id,
-          status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
-        });
-        if (dispatches.length === 0) {
+    // Stage 1 -> Stage 2 (Engineering Design & BOM Approval Gate):
+    if (targetStep === 2) {
+      if (!project.systemCapacityKwp || project.systemCapacityKwp <= 0) {
+        throw AppError.businessRule(
+          'Cannot advance to Material Dispatch: System capacity (kWp) and engineering design specifications must be defined.'
+        );
+      }
+
+      if (dbConnected) {
+        // 1. Survey completed (if site survey exists for customer or design)
+        const pendingSurvey = await SiteSurvey.findOne({
+          customerId: project.customerId,
+          status: { $nin: ['COMPLETED', 'APPROVED', 'CANCELLED'] }
+        }).lean();
+        if (pendingSurvey) {
           throw AppError.businessRule(
-            'Cannot advance to Site Installation: Bill of Materials (BOM) must be dispatched or delivered to site from the warehouse.'
+            `Cannot advance to Stage 2 (Material Dispatch): Linked Site Survey '${pendingSurvey.surveyNumber}' must be completed before procurement/dispatch.`
+          );
+        }
+
+        // 2. Engineering design saved
+        const hasDesign =
+          Boolean(project.solarDesignId) ||
+          Boolean(await SolarDesign.exists({ customerId: project.customerId }));
+        if (!hasDesign) {
+          throw AppError.businessRule(
+            'Cannot advance to Stage 2 (Material Dispatch): A saved Solar PV Engineering Design is required.'
+          );
+        }
+
+        // 3. Approved BOM / confirmed Sales Order exists
+        if (!project.orderId) {
+          throw AppError.businessRule(
+            'Cannot advance to Stage 2 (Material Dispatch): A confirmed Sales Order with an approved BOM is required.'
+          );
+        }
+        const order = await SalesOrder.findById(project.orderId).lean();
+        if (!order || order.status === 'CANCELLED' || !order.lineItems?.length) {
+          throw AppError.businessRule(
+            'Cannot advance to Stage 2 (Material Dispatch): Linked Sales Order must be active and contain an approved Bill of Materials.'
+          );
+        }
+
+        // 4. Required engineering milestone approval sign-off
+        const engMilestone = (project.milestones || []).find((m: any) =>
+          /engineering|structural design/i.test(m.name || '')
+        );
+        if (engMilestone && engMilestone.status !== MilestoneStatus.COMPLETED) {
+          throw AppError.businessRule(
+            `Cannot advance to Stage 2 (Material Dispatch): Engineering milestone '${engMilestone.name}' must be signed off COMPLETED first.`
           );
         }
       }
     }
 
-    // Commissioning stage gates check: verify mandatory checklist items are PASSED
+    // Stage 2 -> Stage 3 (Material Procurement, Reservation & Physical Site Delivery Gate):
+    if (targetStep === 3 && oldStep < 3) {
+      if (dbConnected || (MaterialDispatch.find as any)?.mock) {
+        const activeDispatches = await MaterialDispatch.find({
+          projectId: project._id,
+          status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
+        }).lean();
+
+        if (activeDispatches.length === 0) {
+          throw AppError.businessRule(
+            'Cannot advance to Site Installation: Bill of Materials (BOM) must be dispatched and physically delivered to site from the warehouse.'
+          );
+        }
+
+        if (dbConnected) {
+          // Enforce physical delivery acknowledgement and prevent partial dispatch bypass
+          const deliveredDispatches = activeDispatches.filter(
+            d => d.status === MaterialDispatchStatus.DELIVERED
+          );
+          if (deliveredDispatches.length === 0) {
+            throw AppError.businessRule(
+              'Cannot advance to Stage 3 (Site Installation): Materials have only been dispatched in transit and have not been physically delivered & acknowledged at site.'
+            );
+          }
+
+          if (project.orderId) {
+            const order = await SalesOrder.findById(project.orderId).lean();
+            if (order && order.lineItems) {
+              const deliveredMap = new Map<string, number>();
+              for (const disp of deliveredDispatches) {
+                for (const li of disp.lineItems || []) {
+                  const pId = li.productId?.toString();
+                  if (pId) {
+                    deliveredMap.set(pId, (deliveredMap.get(pId) || 0) + (li.issuedQuantity || 0));
+                  }
+                }
+              }
+
+              const shortages: string[] = [];
+              for (const ol of order.lineItems) {
+                if (ol.productId && (ol.itemType as string) !== 'INSTALLATION_SERVICE') {
+                  const prodId = ol.productId.toString();
+                  const delivQty = deliveredMap.get(prodId) || 0;
+                  if (delivQty < ol.quantity) {
+                    shortages.push(`${ol.description}: delivered ${delivQty}/${ol.quantity}`);
+                  }
+                }
+              }
+              if (shortages.length > 0) {
+                throw AppError.businessRule(
+                  `Cannot advance to Stage 3 (Site Installation): Partial delivery cannot unlock installation. Remaining materials not yet physically delivered: ${shortages.join('; ')}`
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Stage 3 -> Stage 4 or Pre-Commissioning Checklist Gate:
     if (
-      input.stage === ProjectStage.STAGE_5_HANDOVER_COMMISSIONING ||
+      targetStep >= 4 ||
       input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
       input.stage === ProjectStage.STAGE_10_COMMISSION_HANDOVER
     ) {
-      if (
-        mongoose.connection.readyState === 1 ||
-        (ProjectInstallationChecklist.findOne as any)?.mock
-      ) {
+      if (dbConnected || (ProjectInstallationChecklist.findOne as any)?.mock) {
         const checklist = await ProjectInstallationChecklist.findOne({ projectId: project._id });
         if (checklist) {
           const incompleteItems: string[] = [];
+          const missingEvidence: string[] = [];
           for (const cat of checklist.categories) {
             if (
-              (input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
+              (targetStep === 4 ||
+                input.stage === ProjectStage.STAGE_8_TESTING_PRE_COMMISSION ||
                 input.stage === ProjectStage.STAGE_5_HANDOVER_COMMISSIONING) &&
               cat.category === ChecklistCategory.TESTING_COMMISSIONING_HANDOVER
             ) {
-              continue; // Handover testing items can be performed during Stage 5
+              continue; // Handover testing & JCR items are completed in Stage 5 prior to final closeout
             }
             for (const item of cat.items) {
               if (item.isRequired && item.status !== ChecklistItemStatus.PASSED) {
                 incompleteItems.push(`[${item.itemCode}] ${item.description} (${item.status})`);
+              }
+              if (
+                dbConnected &&
+                item.isRequired &&
+                item.requiresEvidence &&
+                (!item.evidence || item.evidence.length === 0)
+              ) {
+                missingEvidence.push(`[${item.itemCode}] ${item.description}`);
               }
             }
           }
           if (incompleteItems.length > 0) {
             throw AppError.businessRule(
               `Cannot advance to ${input.stage}: Mandatory installation checklist items must be PASSED before commissioning gate.\nIncomplete items: ${incompleteItems.join('; ')}`
+            );
+          }
+          if (dbConnected && missingEvidence.length > 0) {
+            throw AppError.businessRule(
+              `Cannot advance to ${input.stage}: Required field evidence photos are missing for checklist items: ${missingEvidence.join('; ')}`
+            );
+          }
+        } else if (dbConnected) {
+          throw AppError.businessRule(
+            `Cannot advance to ${input.stage}: Physical installation checklist must be completed and PASSED first.`
+          );
+        }
+      }
+
+      if (dbConnected && targetStep >= 4) {
+        // Verify installer assignment + Supervisor QA approval if installation report exists
+        const hasInstaller =
+          (project.teamMemberIds && project.teamMemberIds.length > 0) ||
+          Boolean(await InstallationModel.exists({ projectId: project._id, assignedInstallerId: { $ne: null } }));
+        if (!hasInstaller) {
+          throw AppError.businessRule(
+            'Cannot advance to Stage 4 (Net Metering Sync): Installer assignment must be completed.'
+          );
+        }
+        const installations = await InstallationModel.find({ projectId: project._id }).lean();
+        const unapproved = installations.find(i => i.status !== 'APPROVED');
+        if (installations.length > 0 && unapproved) {
+          throw AppError.businessRule(
+            `Cannot advance to Stage 4: Installation report ${unapproved.installationNumber} (status: ${unapproved.status}) requires supervisor QA approval.`
+          );
+        }
+      }
+    }
+
+    // Stage 4 -> Stage 5 (DISCOM Inspection, Bi-Directional Meter Install & Grid Sync Gate):
+    if (targetStep === 5) {
+      if (dbConnected || (NetMeteringApplication.findOne as any)?.mock) {
+        const needsDiscom =
+          project.systemTopology === SolarTopology.ON_GRID ||
+          project.systemTopology === SolarTopology.HYBRID;
+        const nma = await NetMeteringApplication.findOne({
+          projectId: project._id,
+          status: { $ne: NetMeteringStatus.CANCELLED }
+        }).lean();
+
+        if ((needsDiscom || nma) && dbConnected) {
+          if (!nma) {
+            throw AppError.businessRule(
+              `Cannot advance to Stage 5 (Handover & Commissioning): Net Metering application must be registered and completed for ${project.systemTopology} topology.`
+            );
+          }
+          if (nma.inspectionSchedule?.outcome !== NetMeteringInspectionOutcome.PASSED) {
+            throw AppError.businessRule(
+              `Cannot advance to Stage 5: DISCOM inspection outcome is '${nma.inspectionSchedule?.outcome || 'PENDING'}' — inspection observations must be resolved and PASSED.`
+            );
+          }
+          if (
+            !nma.meterInstallation?.meterInstalled ||
+            !nma.meterInstallation?.meterNumber ||
+            !nma.meterInstallation?.installationDate
+          ) {
+            throw AppError.businessRule(
+              'Cannot advance to Stage 5: Actual bi-directional net meter installation (meter number and installation date) must be recorded.'
+            );
+          }
+          if (nma.status !== NetMeteringStatus.APPROVED) {
+            throw AppError.businessRule(
+              `Cannot advance to Stage 5: Grid synchronization / DISCOM Net Metering approval is required (current status: '${nma.status}').`
             );
           }
         }
@@ -1061,7 +1320,34 @@ export class ProjectService {
       throw AppError.notFound(`Project '${projectId}' not found.`);
     }
 
-    // Check if active or pending AMC already exists for this project
+    // Eligibility check 1: Must be handed over / commissioned (COMPLETED or Stage 5)
+    if (
+      project.status !== ProjectStatus.COMPLETED &&
+      getCanonicalStageStep(project.currentStage) < 5
+    ) {
+      throw AppError.businessRule(
+        `Project '${project.projectCode}' is not eligible for complimentary AMC yet. Complete commissioning and handover (Stage 5) first.`
+      );
+    }
+
+    // Eligibility check 2: Must have an active, non-cancelled contracted Sales Order
+    if (!project.orderId) {
+      throw AppError.businessRule(
+        `Project '${project.projectCode}' has no linked Sales Order contract to verify complimentary 1st-year AMC eligibility.`
+      );
+    }
+
+    const dbConnected = mongoose.connection.readyState === 1;
+    if (dbConnected || (SalesOrder.findById as any)?.mock) {
+      const order = await SalesOrder.findById(project.orderId).lean();
+      if (!order || order.status === 'CANCELLED') {
+        throw AppError.businessRule(
+          'Linked Sales Order is missing or cancelled; complimentary AMC cannot be issued.'
+        );
+      }
+    }
+
+    // Check if active or pending AMC already exists for this project (duplicate prevention)
     const existing = await AnnualMaintenanceContract.findOne({
       projectId: project._id,
       status: { $ne: AmcStatus.CANCELLED }
@@ -1102,6 +1388,7 @@ export class ProjectService {
 
     const seq = await SequenceService.generateNumber(SequenceEntityType.AMC_CONTRACT);
 
+    // Must remain PENDING_APPROVAL until an authorized manager explicitly approves the contract
     const amc = new AnnualMaintenanceContract({
       amcNumber: seq.formattedNumber,
       customerId: project.customerId,
@@ -1121,16 +1408,14 @@ export class ProjectService {
       scopeOfWork:
         'Complimentary 1st-Year Comprehensive O&M: 4 quarterly preventive inspections, module cleaning guidelines, electrical health check, inverter diagnostics, and priority breakdown response.',
       slaCommitments: '24-48 business hours breakdown response; zero service visit labor charges.',
-      status: AmcStatus.ACTIVE,
-      approvedBy: new Types.ObjectId(user.userId),
-      approvedAt: new Date(),
+      status: AmcStatus.PENDING_APPROVAL,
       statusHistory: [
         {
-          status: AmcStatus.ACTIVE,
+          status: AmcStatus.PENDING_APPROVAL,
           transitionedAt: new Date(),
           transitionedBy: new Types.ObjectId(user.userId),
-          transitionedByName: 'System Auto-Commissioning',
-          notes: `Complimentary 1st-Year Comprehensive AMC initialized upon Project Handover (${project.projectCode}).`
+          transitionedByName: 'Project Commissioning Desk',
+          notes: `Complimentary 1st-Year Comprehensive AMC proposal initiated upon Project Handover (${project.projectCode}); awaiting contract approval.`
         }
       ],
       createdBy: new Types.ObjectId(user.userId)

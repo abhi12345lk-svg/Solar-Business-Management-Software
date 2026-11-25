@@ -78,7 +78,7 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
       expect(project.projectCode).toMatch(/^PRJ-\d{4}-\d{5}$/);
       expect(project.name).toBe('15kW Rooftop Solar - Suresh Patel');
       expect(project.status).toBe(ProjectStatus.PLANNING);
-      expect(project.currentStage).toBe(ProjectStage.STAGE_1_ENGINEERING_DESIGN);
+      expect(project.currentStage).toBe(ProjectStage.STAGE_1_DESIGN_APPROVAL);
       expect(project.milestones.length).toBe(10);
       expect(project.milestones[0]!.name).toBe('Site Readiness & Physical Survey Verification');
       expect(project.milestones[0]!.status).toBe(MilestoneStatus.NOT_STARTED);
@@ -122,6 +122,7 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
       } as any);
 
       vi.spyOn(Project, 'findOne').mockResolvedValue(null);
+      vi.spyOn(SalesOrder, 'findByIdAndUpdate').mockResolvedValue({} as any);
       vi.spyOn(Project.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();
         return this;

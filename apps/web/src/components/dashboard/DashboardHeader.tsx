@@ -46,7 +46,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       badgeColor: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
       gradient: 'from-slate-900 via-solar-950 to-slate-900 border-solar-500/30',
       title: 'Executive Operations Control Center',
-      desc: 'Company-wide oversight across commercial pipeline, 10-stage project delivery, supply chain inventory, and statutory compliance.',
+      desc: 'Company-wide oversight across commercial pipeline, 5-stage project delivery, supply chain inventory, and statutory compliance.',
       icon: ShieldCheck
     },
     [PanelType.SALES]: {

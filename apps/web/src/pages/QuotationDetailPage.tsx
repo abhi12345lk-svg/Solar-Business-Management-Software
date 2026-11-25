@@ -224,7 +224,7 @@ export const QuotationDetailPage: React.FC = () => {
       await apiClient(`/quotations/${qId}/approve-discount`, {
         method: 'POST',
         body: JSON.stringify({
-          isApproved: true,
+          action: 'APPROVE',
           remarks: approvalRemarks.trim() || 'Commercial discount approved by management.'
         })
       });
@@ -247,7 +247,7 @@ export const QuotationDetailPage: React.FC = () => {
       await apiClient(`/quotations/${qId}/reject-discount`, {
         method: 'POST',
         body: JSON.stringify({
-          isApproved: false,
+          action: 'REJECT',
           rejectionReason:
             approvalRemarks.trim() || 'Discount exceeds permissible commercial margins.'
         })
@@ -1196,7 +1196,7 @@ export const QuotationDetailPage: React.FC = () => {
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
               <span>
                 Sales Order generation will lock this commercial pricing and enable warehouse
-                hardware reservation and 10-stage EPC project execution.
+                hardware reservation and 5-stage EPC project execution.
               </span>
             </div>
 

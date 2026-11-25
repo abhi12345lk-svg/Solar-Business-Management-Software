@@ -181,7 +181,7 @@ describe('Phase 6A Frontend Operational Pages', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByRole('heading', { name: /Project Management/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Projects$/i })).toBeInTheDocument();
     expect(screen.getByText(/New Project/i)).toBeInTheDocument();
 
     await waitFor(() => {
@@ -218,7 +218,7 @@ describe('Phase 6A Frontend Operational Pages', () => {
     await waitFor(() => {
       expect(screen.getByText('PRJ-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Apex Commercial Rooftop 25kWp')).toBeInTheDocument();
-      expect(screen.getByText('Installation Progression Pipeline')).toBeInTheDocument();
+      expect(screen.getByText(/Installation Progression Pipeline/i)).toBeInTheDocument();
     });
 
     // Overview Tab Content
@@ -257,18 +257,12 @@ describe('Phase 6A Frontend Operational Pages', () => {
 
     await waitFor(() => {
       expect(screen.getByText('PRJ-2026-00001')).toBeInTheDocument();
-    });
-
-    // Switch to Milestones tab
-    const milestonesTab = screen.getByRole('button', { name: /Milestones \(2\)/i });
-    fireEvent.click(milestonesTab);
-
-    await waitFor(() => {
+      expect(screen.getByText(/Quality Milestones \(2\)/i)).toBeInTheDocument();
       expect(screen.getByText('Site Readiness & Structural Assessment')).toBeInTheDocument();
       expect(screen.getByText(/Signed off on/i)).toBeInTheDocument();
       expect(screen.getByText('DISCOM Net-metering Application Submission')).toBeInTheDocument();
       expect(screen.getByText('DISCOM portal down for portal maintenance')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Resolve Blocker/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Resolve$/i })).toBeInTheDocument();
     });
   });
 
@@ -298,16 +292,10 @@ describe('Phase 6A Frontend Operational Pages', () => {
 
     await waitFor(() => {
       expect(screen.getByText('PRJ-2026-00001')).toBeInTheDocument();
-    });
-
-    // Switch to Tasks tab
-    const tasksTab = screen.getByRole('button', { name: /Project Tasks/i });
-    fireEvent.click(tasksTab);
-
-    await waitFor(() => {
+      expect(screen.getByText(/Project Tasks \(1\)/i)).toBeInTheDocument();
       expect(screen.getByText('TSK-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Roof anchor pull-out test')).toBeInTheDocument();
-      expect(screen.getByText('Overdue')).toBeInTheDocument();
+      expect(screen.getAllByText('Overdue').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('button', { name: /New Task/i })).toBeInTheDocument();
     });
   });

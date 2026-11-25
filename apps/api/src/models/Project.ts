@@ -194,7 +194,7 @@ const ProjectSchema = new Schema<IProjectDocument>(
     currentStage: {
       type: String,
       enum: Object.values(ProjectStage),
-      default: ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+      default: ProjectStage.STAGE_1_DESIGN_APPROVAL,
       required: true,
       index: true
     },

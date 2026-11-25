@@ -34,6 +34,7 @@ import { Project } from '../models/Project.js';
 import { User } from '../models/User.js';
 import { DocumentModel } from '../models/DocumentModel.js';
 import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
+import { Product } from '../models/Product.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { getStorageAdapter } from './storage/index.js';
@@ -175,24 +176,17 @@ export class InstallationService {
       console.warn('Customer status sync warning:', custErr);
     }
 
-    // 2. Synchronize linked EPC Project status & stage
-    if (project) {
+    // 2. Ensure linked EPC Project reflects active field installation without bypassing dispatch gates
+    if (project && project.currentStage === ProjectStage.STAGE_2_MATERIAL_DISPATCH) {
       try {
         project.status = ProjectStatus.IN_PROGRESS;
-        const earlyStages: ProjectStage[] = [
-          ProjectStage.STAGE_1_ENGINEERING_DESIGN,
-          ProjectStage.STAGE_2_NET_METERING_APPLY,
-          ProjectStage.STAGE_3_MATERIAL_DISPATCH
-        ];
-        if (earlyStages.includes(project.currentStage)) {
-          project.currentStage = ProjectStage.STAGE_4_CIVIL_STRUCTURE;
-          project.stageHistory.push({
-            stage: ProjectStage.STAGE_4_CIVIL_STRUCTURE,
-            changedAt: new Date(),
-            changedBy: new Types.ObjectId(actorContext.actorId),
-            notes: `Field Installation ${installation.installationNumber} initialized`
-          });
-        }
+        project.currentStage = ProjectStage.STAGE_3_SITE_INSTALLATION;
+        project.stageHistory.push({
+          stage: ProjectStage.STAGE_3_SITE_INSTALLATION,
+          changedAt: new Date(),
+          changedBy: new Types.ObjectId(actorContext.actorId),
+          notes: `Field Installation ${installation.installationNumber} initialized`
+        });
         await project.save();
       } catch (projErr) {
         console.warn('Project stage sync warning:', projErr);
@@ -397,43 +391,24 @@ export class InstallationService {
     }
 
     // Advance linked EPC Project stage based on current installation progress
+    // Keep Project cleanly in canonical Stage 3 during field installation updates
     if (inst.projectId) {
       try {
         const proj = await Project.findById(inst.projectId);
-        if (proj && proj.status !== ProjectStatus.CANCELLED) {
-          let targetStage = proj.currentStage;
-          if (
-            (inst.currentStep >= 5 || (input.currentStep && input.currentStep >= 5)) &&
-            [
-              ProjectStage.STAGE_1_ENGINEERING_DESIGN,
-              ProjectStage.STAGE_2_NET_METERING_APPLY,
-              ProjectStage.STAGE_3_MATERIAL_DISPATCH,
-              ProjectStage.STAGE_4_CIVIL_STRUCTURE
-            ].includes(proj.currentStage)
-          ) {
-            targetStage = ProjectStage.STAGE_5_MODULE_DC_CABLING;
-          }
-          if (
-            (inst.currentStep >= 7 || (input.currentStep && input.currentStep >= 7)) &&
-            [
-              ProjectStage.STAGE_4_CIVIL_STRUCTURE,
-              ProjectStage.STAGE_5_MODULE_DC_CABLING,
-              ProjectStage.STAGE_6_INVERTER_ACDB
-            ].includes(proj.currentStage)
-          ) {
-            targetStage = ProjectStage.STAGE_7_EARTHING_LIGHTNING;
-          }
-          if (targetStage !== proj.currentStage) {
-            proj.currentStage = targetStage;
-            proj.status = ProjectStatus.IN_PROGRESS;
-            proj.stageHistory.push({
-              stage: targetStage,
-              changedAt: new Date(),
-              changedBy: new Types.ObjectId(actorContext.actorId),
-              notes: `Progressed during installation ${inst.installationNumber} (Step ${inst.currentStep})`
-            });
-            await proj.save();
-          }
+        if (
+          proj &&
+          proj.status !== ProjectStatus.CANCELLED &&
+          proj.currentStage === ProjectStage.STAGE_2_MATERIAL_DISPATCH
+        ) {
+          proj.currentStage = ProjectStage.STAGE_3_SITE_INSTALLATION;
+          proj.status = ProjectStatus.IN_PROGRESS;
+          proj.stageHistory.push({
+            stage: ProjectStage.STAGE_3_SITE_INSTALLATION,
+            changedAt: new Date(),
+            changedBy: new Types.ObjectId(actorContext.actorId),
+            notes: `Field installation underway (${inst.installationNumber}, Step ${inst.currentStep})`
+          });
+          await proj.save();
         }
       } catch (projErr) {
         console.warn('Project stage progress sync warning:', projErr);
@@ -514,18 +489,16 @@ export class InstallationService {
 
     await inst.save();
 
-    // Advance linked EPC project to Stage 8 (Testing & Pre-Commissioning)
+    // Record submission note on project without bypassing canonical stage 3 -> stage 4 DISCOM gate
     if (inst.projectId) {
       try {
         const proj = await Project.findById(inst.projectId);
         if (proj && proj.status !== ProjectStatus.CANCELLED) {
-          proj.currentStage = ProjectStage.STAGE_8_TESTING_PRE_COMMISSION;
-          proj.status = ProjectStatus.IN_PROGRESS;
           proj.stageHistory.push({
-            stage: ProjectStage.STAGE_8_TESTING_PRE_COMMISSION,
+            stage: proj.currentStage || ProjectStage.STAGE_3_SITE_INSTALLATION,
             changedAt: new Date(),
             changedBy: new Types.ObjectId(actorContext.actorId),
-            notes: `Field installation submitted (${inst.installationNumber}) - Pre-commissioning testing ready`
+            notes: `Field installation submitted (${inst.installationNumber}) - Awaiting supervisor QA review`
           });
           await proj.save();
         }
@@ -614,40 +587,36 @@ export class InstallationService {
         notes: input.adminRemarks || 'Installation report approved by QA / Admin'
       });
 
-      // 1. Synchronize Customer status to Completed / Active
+      // 1. Update Customer operational note without prematurely marking overall EPC plant Completed
       try {
         await Customer.findByIdAndUpdate(inst.customerId, {
-          status: 'Completed / Active'
+          status: 'Site Installation QA Approved'
         });
       } catch (custErr) {
-        console.warn('Customer status completion warning:', custErr);
+        console.warn('Customer status update warning:', custErr);
       }
 
-      // 2. Synchronize linked EPC Project to Stage 10 Handover and mark Completed
+      // 2. Record QA approval on linked EPC Project without bypassing Stage 4 (Net Metering) & Stage 5 (Handover)
       if (inst.projectId) {
         try {
           const proj = await Project.findById(inst.projectId);
-          if (proj) {
-            proj.status = ProjectStatus.COMPLETED;
-            proj.currentStage = ProjectStage.STAGE_10_COMMISSION_HANDOVER;
-            proj.actualCompletionDate = new Date();
+          if (proj && proj.status !== ProjectStatus.CANCELLED) {
             proj.stageHistory.push({
-              stage: ProjectStage.STAGE_10_COMMISSION_HANDOVER,
+              stage: proj.currentStage || ProjectStage.STAGE_3_SITE_INSTALLATION,
               changedAt: new Date(),
               changedBy: new Types.ObjectId(actorContext.actorId),
-              notes: `Installation report approved (${inst.installationNumber}). Plant successfully commissioned.`
+              notes: `Installation report QA approved (${inst.installationNumber}). Ready for Net Metering & DISCOM Sync gate.`
             });
-            // Complete all installation and commissioning milestones
             if (proj.milestones && proj.milestones.length > 0) {
               for (const m of proj.milestones) {
                 const mNameLower = (m.name || '').toLowerCase();
                 if (
                   mNameLower.includes('install') ||
-                  mNameLower.includes('commission') ||
                   mNameLower.includes('cabling') ||
                   mNameLower.includes('structure') ||
                   mNameLower.includes('wiring') ||
-                  mNameLower.includes('civil')
+                  mNameLower.includes('civil') ||
+                  mNameLower.includes('earthing')
                 ) {
                   m.status = MilestoneStatus.COMPLETED;
                   m.actualCompletionDate = new Date();
@@ -659,11 +628,11 @@ export class InstallationService {
             await proj.save();
           }
         } catch (projErr) {
-          console.warn('Project completion sync warning:', projErr);
+          console.warn('Project QA sync warning:', projErr);
         }
       }
 
-      // 3. Synchronize all installed hardware serial numbers in asset database
+      // 3. Synchronize installed hardware serial numbers custody (actual warranty start/end activates on final commissioning)
       const serialNumbersToSync = new Set<string>();
       if (inst.inverter?.serialNumber) serialNumbersToSync.add(inst.inverter.serialNumber.trim().toUpperCase());
       if (inst.netMeter?.serialNumber) serialNumbersToSync.add(inst.netMeter.serialNumber.trim().toUpperCase());
@@ -682,20 +651,23 @@ export class InstallationService {
 
       for (const sn of serialNumbersToSync) {
         try {
-          await ProductSerialNumber.findOneAndUpdate(
-            { serialNumber: sn },
-            {
-              $set: {
-                status: SerialNumberStatus.INSTALLED,
-                customerId: inst.customerId,
-                projectId: inst.projectId || undefined,
-                commissioningDate: new Date(),
-                warrantyStartDate: new Date(),
-                warrantyStatus: WarrantyStatus.ACTIVE,
-                notes: `Installed via report ${inst.installationNumber}`
-              }
-            }
-          );
+          const existingSn = await ProductSerialNumber.findOne({ serialNumber: sn });
+          if (existingSn) {
+            const prod = await Product.findById(existingSn.productId).lean();
+            const years = (prod as any)?.warranty?.warrantyYears || 5;
+            const installDate = new Date();
+            const endDate = new Date(installDate);
+            endDate.setFullYear(endDate.getFullYear() + years);
+
+            existingSn.status = SerialNumberStatus.INSTALLED;
+            existingSn.customerId = inst.customerId;
+            existingSn.projectId = inst.projectId || undefined;
+            existingSn.warrantyStartDate = installDate;
+            existingSn.warrantyEndDate = endDate;
+            existingSn.warrantyStatus = WarrantyStatus.ACTIVE;
+            existingSn.notes = `Installed via report ${inst.installationNumber}`;
+            await existingSn.save();
+          }
         } catch (snErr) {
           console.warn(`Serial number sync notice for ${sn}:`, snErr);
         }

@@ -72,6 +72,10 @@ interface ProfitabilityData {
   };
   estimatedGrossMarginPaise: number;
   grossMarginPercent: number;
+  budgetedGrossMarginPaise?: number;
+  budgetedMarginPercent?: number;
+  actualGrossMarginPaise?: number;
+  actualMarginPercent?: number;
   budgetComparison: {
     hasApprovedBudget: boolean;
     budgetVersion?: number;
@@ -350,26 +354,31 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
 
           <div className="bg-card border rounded-xl p-4 shadow-sm space-y-1">
             <span className="text-xs font-semibold text-solar-600 uppercase tracking-wider flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-1" /> Estimated Gross Margin
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> Actual Gross Margin
             </span>
             <div className="flex items-baseline space-x-2">
               <p className="text-xl font-bold text-foreground font-mono">
-                {formatPaise(report.estimatedGrossMarginPaise)}
+                {formatPaise(report.actualGrossMarginPaise ?? report.estimatedGrossMarginPaise)}
               </p>
               <span
                 className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                  report.grossMarginPercent >= 20
+                  (report.actualMarginPercent ?? report.grossMarginPercent) >= 20
                     ? 'bg-emerald-100 text-emerald-800'
-                    : report.grossMarginPercent >= 0
+                    : (report.actualMarginPercent ?? report.grossMarginPercent) >= 0
                       ? 'bg-amber-100 text-amber-800'
                       : 'bg-red-100 text-red-800'
                 }`}
               >
-                {report.grossMarginPercent.toFixed(1)}%
+                {(report.actualMarginPercent ?? report.grossMarginPercent).toFixed(1)}%
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Progress Revenue: {formatPaise(report.operationalProgressRevenuePaise)} (
+              Est./Budgeted:{' '}
+              {formatPaise(report.budgetedGrossMarginPaise ?? report.estimatedGrossMarginPaise)} (
+              {(report.budgetedMarginPercent ?? report.grossMarginPercent).toFixed(1)}%)
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Progress Rev: {formatPaise(report.operationalProgressRevenuePaise)} (
               {report.operationalProgressPercent}%)
             </p>
           </div>

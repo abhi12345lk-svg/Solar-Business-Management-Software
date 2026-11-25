@@ -57,15 +57,60 @@ export class QuotationService {
   ) {
     let subtotalPaise = 0;
     let totalLineDiscountPaise = 0;
+
+    // 1. Compute base line amounts after line-level discount
+    const baseLines = lineItemsInput.map(item => {
+      const grossLinePaise = Math.round(item.quantity * item.unitRatePaise);
+      const discountPaise = Math.min(grossLinePaise, item.discountPaise || 0);
+      const preAddlTaxable = Math.max(0, grossLinePaise - discountPaise);
+      subtotalPaise += grossLinePaise;
+      totalLineDiscountPaise += discountPaise;
+      return { item, grossLinePaise, discountPaise, preAddlTaxable };
+    });
+
+    const preAddlSubtotalTaxable = baseLines.reduce((s, l) => s + l.preAddlTaxable, 0);
+    const effectiveAdditionalDiscountPaise = Math.min(
+      preAddlSubtotalTaxable,
+      Math.max(0, additionalDiscountPaise || 0)
+    );
+
+    // 2. Allocate invoice-level additionalDiscountPaise proportionally BEFORE GST computation
+    //    so discounted value never inflates CGST/SGST/IGST under Section 15 GST valuation.
+    const apportionedAddlDiscounts = new Array<number>(baseLines.length).fill(0);
+    if (effectiveAdditionalDiscountPaise > 0 && preAddlSubtotalTaxable > 0) {
+      let remaining = effectiveAdditionalDiscountPaise;
+      let lastPositiveIdx = -1;
+      baseLines.forEach((l, idx) => {
+        if (l.preAddlTaxable > 0) {
+          lastPositiveIdx = idx;
+          const share = Math.floor(
+            (effectiveAdditionalDiscountPaise * l.preAddlTaxable) / preAddlSubtotalTaxable
+          );
+          const capped = Math.min(l.preAddlTaxable, share);
+          apportionedAddlDiscounts[idx] = capped;
+          remaining -= capped;
+        }
+      });
+      if (remaining > 0 && lastPositiveIdx >= 0) {
+        for (let idx = baseLines.length - 1; idx >= 0 && remaining > 0; idx--) {
+          const room = baseLines[idx]!.preAddlTaxable - apportionedAddlDiscounts[idx]!;
+          if (room > 0) {
+            const add = Math.min(room, remaining);
+            apportionedAddlDiscounts[idx]! += add;
+            remaining -= add;
+          }
+        }
+      }
+    }
+
     let totalTaxAmountPaise = 0;
     let cgstAmountPaise = 0;
     let sgstAmountPaise = 0;
     let igstAmountPaise = 0;
 
-    const computedLineItems: IQuotationLineItem[] = lineItemsInput.map(item => {
-      const grossLinePaise = Math.round(item.quantity * item.unitRatePaise);
-      const discountPaise = item.discountPaise || 0;
-      const taxableAmountPaise = Math.max(0, grossLinePaise - discountPaise);
+    const computedLineItems: IQuotationLineItem[] = baseLines.map((b, idx) => {
+      const { item, discountPaise, preAddlTaxable } = b;
+      const taxableAmountPaise = Math.max(0, preAddlTaxable - (apportionedAddlDiscounts[idx] || 0));
       const gstRateBasisPoints = item.gstRateBasisPoints ?? 1800; // Default 18%
 
       let lineCgstBps = 0;
@@ -92,9 +137,6 @@ export class QuotationService {
       }
 
       const totalAmountPaise = taxableAmountPaise + lineTaxPaise;
-
-      subtotalPaise += grossLinePaise;
-      totalLineDiscountPaise += discountPaise;
       totalTaxAmountPaise += lineTaxPaise;
 
       return {
@@ -119,11 +161,11 @@ export class QuotationService {
       };
     });
 
-    const totalDiscountPaise = totalLineDiscountPaise + additionalDiscountPaise;
+    const totalDiscountPaise = totalLineDiscountPaise + effectiveAdditionalDiscountPaise;
     const discountPercent =
       subtotalPaise > 0 ? Number(((totalDiscountPaise / subtotalPaise) * 100).toFixed(2)) : 0;
 
-    const overallTaxablePaise = Math.max(0, subtotalPaise - totalDiscountPaise);
+    const overallTaxablePaise = computedLineItems.reduce((s, li) => s + li.taxableAmountPaise, 0);
     const netTotalPaise = overallTaxablePaise + totalTaxAmountPaise;
 
     return {
@@ -194,26 +236,26 @@ export class QuotationService {
         customer = await Customer.create({
           customerCode: seqResult.formattedNumber,
           name: nc.name.trim(),
-          legalName: nc.name.trim(),
+          companyName: nc.companyName?.trim() || undefined,
           primaryPhone: cleanPhone,
           email: nc.email?.trim() || undefined,
-          customerType: CustomerType.INDIVIDUAL,
+          type: CustomerType.INDIVIDUAL,
           billingAddress: {
-            street: nc.address?.trim() || nc.name.trim(),
-            city: nc.city?.trim() || 'Jaipur',
-            state: nc.state?.trim() || 'Rajasthan',
-            pincode: '302001',
+            type: 'BILLING',
+            addressLine1: nc.address?.trim() || nc.name.trim(),
+            city: nc.city?.trim() || 'Raipur',
+            state: nc.state?.trim() || 'Chhattisgarh',
+            postalCode: nc.pincode?.trim() || '492001',
             country: 'India'
           },
-          installationAddresses: [
-            {
-              street: nc.address?.trim() || nc.name.trim(),
-              city: nc.city?.trim() || 'Jaipur',
-              state: nc.state?.trim() || 'Rajasthan',
-              pincode: '302001',
-              country: 'India'
-            }
-          ],
+          installationAddress: {
+            type: 'SITE_INSTALLATION',
+            addressLine1: nc.address?.trim() || nc.name.trim(),
+            city: nc.city?.trim() || 'Raipur',
+            state: nc.state?.trim() || 'Chhattisgarh',
+            postalCode: nc.pincode?.trim() || '492001',
+            country: 'India'
+          },
           createdBy: Types.ObjectId.isValid(user.userId)
             ? new Types.ObjectId(user.userId)
             : undefined
@@ -241,26 +283,26 @@ export class QuotationService {
         customer = await Customer.create({
           customerCode: seqResult.formattedNumber,
           name: lead.prospectName,
-          legalName: lead.companyName || lead.prospectName,
+          companyName: lead.companyName || undefined,
           primaryPhone: lead.prospectPhone,
           email: lead.prospectEmail,
-          customerType: CustomerType.INDIVIDUAL,
+          type: CustomerType.INDIVIDUAL,
           billingAddress: {
-            street: lead.location?.street || lead.prospectName,
-            city: lead.location?.city || 'Jaipur',
-            state: lead.location?.state || 'Rajasthan',
-            pincode: lead.location?.pinCode || '302001',
+            type: 'BILLING',
+            addressLine1: lead.location?.addressLine1 || lead.location?.street || lead.prospectName,
+            city: lead.location?.city || 'Raipur',
+            state: lead.location?.state || 'Chhattisgarh',
+            postalCode: lead.location?.pinCode || lead.location?.postalCode || '492001',
             country: 'India'
           },
-          installationAddresses: [
-            {
-              street: lead.location?.street || lead.prospectName,
-              city: lead.location?.city || 'Jaipur',
-              state: lead.location?.state || 'Rajasthan',
-              pincode: lead.location?.pinCode || '302001',
-              country: 'India'
-            }
-          ],
+          installationAddress: {
+            type: 'SITE_INSTALLATION',
+            addressLine1: lead.location?.addressLine1 || lead.location?.street || lead.prospectName,
+            city: lead.location?.city || 'Raipur',
+            state: lead.location?.state || 'Chhattisgarh',
+            postalCode: lead.location?.pinCode || lead.location?.postalCode || '492001',
+            country: 'India'
+          },
           createdBy: Types.ObjectId.isValid(user.userId)
             ? new Types.ObjectId(user.userId)
             : undefined

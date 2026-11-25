@@ -94,26 +94,26 @@ export class SolarDesignService {
         customer = await Customer.create({
           customerCode: seqResult.formattedNumber,
           name: lead.prospectName,
-          legalName: lead.companyName || lead.prospectName,
+          companyName: lead.companyName || undefined,
           primaryPhone: lead.prospectPhone,
           email: lead.prospectEmail,
-          customerType: CustomerType.INDIVIDUAL,
+          type: CustomerType.INDIVIDUAL,
           billingAddress: {
-            street: lead.location?.street || lead.prospectName,
-            city: lead.location?.city || 'Jaipur',
-            state: lead.location?.state || 'Rajasthan',
-            pincode: lead.location?.pinCode || '302001',
+            type: 'BILLING',
+            addressLine1: lead.location?.addressLine1 || lead.location?.street || lead.prospectName,
+            city: lead.location?.city || 'Raipur',
+            state: lead.location?.state || 'Chhattisgarh',
+            postalCode: lead.location?.pinCode || lead.location?.postalCode || '492001',
             country: 'India'
           },
-          installationAddresses: [
-            {
-              street: lead.location?.street || lead.prospectName,
-              city: lead.location?.city || 'Jaipur',
-              state: lead.location?.state || 'Rajasthan',
-              pincode: lead.location?.pinCode || '302001',
-              country: 'India'
-            }
-          ],
+          installationAddress: {
+            type: 'SITE_INSTALLATION',
+            addressLine1: lead.location?.addressLine1 || lead.location?.street || lead.prospectName,
+            city: lead.location?.city || 'Raipur',
+            state: lead.location?.state || 'Chhattisgarh',
+            postalCode: lead.location?.pinCode || lead.location?.postalCode || '492001',
+            country: 'India'
+          },
           createdBy: Types.ObjectId.isValid(user.userId)
             ? new Types.ObjectId(user.userId)
             : undefined

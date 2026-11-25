@@ -251,7 +251,6 @@ export const SubsidyPage: React.FC = () => {
 
       const defaultCap = 3.0;
       const defaultAmount = calculatePmSuryaGharSlab(defaultCap);
-      const defaultPortalApp = `PMSG-CG-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 
       setRegisterForm({
         customerId: initialCustomerId,
@@ -259,7 +258,7 @@ export const SubsidyPage: React.FC = () => {
         consumerName: initialCustomerName,
         consumerNumber: '',
         schemeName: 'PM Surya Ghar Muft Bijli Yojana',
-        portalApplicationNumber: defaultPortalApp,
+        portalApplicationNumber: '',
         systemCapacityKw: defaultCap,
         requestedAmountRupees: defaultAmount,
         notes: 'National Rooftop Solar Portal Claim'
@@ -342,9 +341,9 @@ export const SubsidyPage: React.FC = () => {
   // Open Record Sanction Modal
   const handleOpenSanctionModal = (sub: SubsidyRecord) => {
     setSelectedSubsidy(sub);
-    const requestedRupees = (sub.requestedAmountPaise || 7800000) / 100;
+    const requestedRupees = (sub.requestedAmountPaise || 0) / 100;
     setSanctionForm({
-      sanctionReference: `MNRE/PMSG/${new Date().getFullYear()}/${sub.portalApplicationNumber || Math.floor(100000 + Math.random() * 900000)}`,
+      sanctionReference: '',
       sanctionDate: new Date().toISOString().split('T')[0],
       approvedAmountRupees: requestedRupees,
       notes: 'Sanction letter issued on National Solar Portal'

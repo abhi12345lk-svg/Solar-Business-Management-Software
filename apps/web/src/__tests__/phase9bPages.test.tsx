@@ -233,13 +233,13 @@ describe('Phase 9B Frontend: Operations, Teams, Tasks & Document Vault', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Private Document Vault & Library')).toBeDefined();
+    expect(screen.getByText('Document Vault & Compliance')).toBeDefined();
     expect(screen.getByText('Upload to Vault')).toBeDefined();
 
     await waitFor(() => {
       expect(screen.getByText('DOC-2026-00001')).toBeDefined();
       expect(screen.getByText('Engineering SLD 10kWp Bifacial')).toBeDefined();
-      expect(screen.getByText('CUSTOMER VISIBLE')).toBeDefined();
+      expect(screen.getAllByText('Customer').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('ACCEPTED')).toBeDefined();
       expect(screen.getByText('v1')).toBeDefined();
     });

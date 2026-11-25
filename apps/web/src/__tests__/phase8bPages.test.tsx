@@ -175,7 +175,7 @@ describe('Phase 8B Frontend: Expense Management, Project Costing & Profitability
     );
 
     // Title
-    expect(screen.getByText('Operational Expense Management')).toBeInTheDocument();
+    expect(screen.getByText(/Site Expenses & Labor/i)).toBeInTheDocument();
 
     // KPI card titles
     expect(screen.getByText('Total Recorded Expenses')).toBeInTheDocument();
@@ -257,7 +257,7 @@ describe('Phase 8B Frontend: Expense Management, Project Costing & Profitability
       expect(screen.getByText('Contracted Order Value')).toBeInTheDocument();
       expect(screen.getByText('Customer Collections')).toBeInTheDocument();
       expect(screen.getByText('Total Incurred Cost')).toBeInTheDocument();
-      expect(screen.getByText('Estimated Gross Margin')).toBeInTheDocument();
+      expect(screen.getByText('Actual Gross Margin')).toBeInTheDocument();
       expect(screen.getByText('30.7%')).toBeInTheDocument(); // 30.67% rounded
     });
 
@@ -310,8 +310,8 @@ describe('Phase 8B Frontend: Expense Management, Project Costing & Profitability
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Incomplete Financial Data Notice')).toBeInTheDocument();
-      expect(screen.getByText(/No confirmed Sales Order is linked/i)).toBeInTheDocument();
+      expect(screen.getByText('Standalone Project Notice')).toBeInTheDocument();
+      expect(screen.getByText(/Financial metrics reflect/i)).toBeInTheDocument();
     });
   });
 });

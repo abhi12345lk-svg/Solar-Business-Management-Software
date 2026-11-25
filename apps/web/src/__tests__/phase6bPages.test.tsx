@@ -250,8 +250,8 @@ describe('Phase 6B Frontend: Material Dispatch & Installation Checklist', () => 
       // BOM summary cards
       expect(screen.getAllByText('Mono PERC 540W Solar Panel').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('SKU: SOL-540-MONO')).toBeInTheDocument();
-      expect(screen.getByText('60% Dispatched')).toBeInTheDocument();
-      expect(screen.getByText('100% Dispatched')).toBeInTheDocument();
+      expect(screen.getByText('60% In Transit')).toBeInTheDocument();
+      expect(screen.getByText('100% In Transit')).toBeInTheDocument();
 
       // Dispatch slip record
       expect(screen.getByText('DSP-2026-00001')).toBeInTheDocument();

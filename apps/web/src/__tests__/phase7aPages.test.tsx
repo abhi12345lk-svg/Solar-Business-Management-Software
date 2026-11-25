@@ -207,7 +207,8 @@ describe('Phase 7A Frontend: Net Metering & Subsidy Tracking', () => {
       expect(screen.getByText(/NMA-2026-00001/)).toBeInTheDocument();
       expect(screen.getByText(/Tata Power Delhi Distribution/)).toBeInTheDocument();
       expect(screen.getByText(/TPDDL-99882233/)).toBeInTheDocument();
-      expect(screen.getAllByText(/Installed/i).length).toBeGreaterThanOrEqual(2);
+      expect(screen.getByText('BM Meters Active')).toBeInTheDocument();
+      expect(screen.getByText(/BM: MTR-BI-88331/i)).toBeInTheDocument();
     });
   });
 
@@ -231,8 +232,8 @@ describe('Phase 7A Frontend: Net Metering & Subsidy Tracking', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Government Subsidies')).toBeInTheDocument();
-      expect(screen.getByText(/SUB-2026-00001/)).toBeInTheDocument();
+      expect(screen.getByText(/Government Subsidy & DBT Registry/i)).toBeInTheDocument();
+      expect(screen.getByText(/MNRE-SANC-2026-7788/)).toBeInTheDocument();
       expect(screen.getByText(/PMSG-DEL-2026-8812/)).toBeInTheDocument();
     });
   });
@@ -280,14 +281,14 @@ describe('Phase 7A Frontend: Net Metering & Subsidy Tracking', () => {
     });
 
     // Click Net Metering tab
-    const netMeteringTabBtn = screen.getByRole('button', { name: /Net Metering/i });
+    const netMeteringTabBtn = screen.getByRole('button', { name: /Net-Metering/i });
     fireEvent.click(netMeteringTabBtn);
 
     // Check that Net Metering details are rendered
     await waitFor(() => {
       expect(screen.getByText('NMA-2026-00001')).toBeInTheDocument();
       expect(screen.getByText('Tata Power Delhi Distribution Limited')).toBeInTheDocument();
-      expect(screen.getByText(/MTR-BI-88331/)).toBeInTheDocument();
+      expect(screen.getAllByText(/MTR-BI-88331/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Latest Electricity Bill')).toBeInTheDocument();
     });
   });

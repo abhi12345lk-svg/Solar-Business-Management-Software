@@ -25,33 +25,24 @@ export const LoginPage: React.FC = () => {
   type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'INSTALLER' | 'CUSTOMER';
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
 
-  const [email, setEmail] = useState('admin@inssolar.com');
-  const [password, setPassword] = useState('Ins#ADM!bf123aab648a9');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = (location.state as any)?.from?.pathname || '/';
 
-  // Synchronize credentials and active workstation title when portal tab is switched
+  // Clear stale credentials and update workstation title when portal tab is switched
   const handleSelectPortal = (portal: PortalType) => {
     setSelectedPortal(portal);
     setErrorMessage(null);
-    if (portal === 'ADMIN') {
-      setEmail('admin@inssolar.com');
-      setPassword('Ins#ADM!bf123aab648a9');
-    } else if (portal === 'SALES') {
-      setEmail('sales@inssolar.com');
-      setPassword('Ins#SAL!db40472b876c9');
-    } else if (portal === 'ACCOUNTS') {
-      setEmail('accounts@inssolar.com');
-      setPassword('Ins#ACC!ec1c0d0214329');
-    } else if (portal === 'INSTALLER') {
-      setEmail('installer@inssolar.com');
-      setPassword('Ins#INS!feb0a618e8b09');
-    } else if (portal === 'CUSTOMER') {
+    if (portal === 'CUSTOMER') {
       navigate('/customer-portal');
+      return;
     }
+    setEmail('');
+    setPassword('');
   };
 
   const portalConfig = {

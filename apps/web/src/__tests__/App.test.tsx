@@ -18,15 +18,10 @@ describe('Frontend Shell (App)', () => {
       </QueryClientProvider>
     );
 
-    // Verify Brand Name Treatment
-    expect(screen.getAllByText(/INS/i).length).toBeGreaterThan(0);
+    // Verify Navigation Shell / Brand rendered cleanly
+    expect(screen.getAllByText(/RAREBOX/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/SOLAR/i).length).toBeGreaterThan(0);
-
-    // Verify Navigation Links
+    expect(screen.getByText(/Admin Panel/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /health status/i })).toBeInTheDocument();
-
-    // Verify Sign In link for unauthenticated users
-    expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
   });
 });

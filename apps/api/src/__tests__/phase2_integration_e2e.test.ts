@@ -26,7 +26,9 @@ import {
   VendorInvoiceStatus,
   AuditAction,
   AuditOutcome,
-  MaterialDispatchStatus
+  MaterialDispatchStatus,
+  ProjectStatus,
+  ProjectStage
 } from '@ins-solar/shared';
 
 import { WarrantyClaim } from '../models/WarrantyClaim.js';
@@ -37,6 +39,7 @@ import { AnnualMaintenanceContract } from '../models/AnnualMaintenanceContract.j
 import { ServiceComplaint } from '../models/ServiceComplaint.js';
 import { ServiceVisit } from '../models/ServiceVisit.js';
 import { Project } from '../models/Project.js';
+import { SalesOrder } from '../models/SalesOrder.js';
 import { MaterialDispatch } from '../models/MaterialDispatch.js';
 import { PurchaseOrder } from '../models/PurchaseOrder.js';
 import { GoodsReceipt } from '../models/GoodsReceipt.js';
@@ -298,11 +301,13 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
   // 2. SERVICE & AMC MANAGEMENT (CAPABILITY 1)
   // =========================================================================
   describe('2. Service & AMC Management Engine', () => {
-    it('Scenario 2.5: Project Handover automatically initializes complimentary 1st-Year AMC with 4 quarterly visits', async () => {
+    it('Scenario 2.5: Project Handover initializes complimentary 1st-Year AMC awaiting contract approval', async () => {
+      const mockOrderId = new Types.ObjectId();
       const mockProjectDoc = {
         _id: mockProjectId,
         projectCode: 'PRJ-2026-00001',
         customerId: mockCustomerId,
+        orderId: mockOrderId,
         systemCapacityKwp: 10,
         currentStage: 'STAGE_5_HANDOVER_COMMISSIONING',
         status: 'COMPLETED'
@@ -321,6 +326,12 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
       ];
 
       vi.spyOn(Project, 'findById').mockResolvedValue(mockProjectDoc as any);
+      vi.spyOn(SalesOrder, 'findById').mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          _id: mockOrderId,
+          status: 'CONFIRMED'
+        })
+      } as any);
       vi.spyOn(AnnualMaintenanceContract, 'findOne').mockResolvedValue(null); // No existing AMC
       vi.spyOn(MaterialDispatch, 'find').mockReturnValue({
         lean: vi.fn().mockResolvedValue(mockDispatches)
@@ -346,7 +357,7 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
       expect(initializedAmc.contractAmountPaise).toBe(0); // Complimentary
       expect(initializedAmc.includedVisits).toBe(4);
       expect(initializedAmc.visitCadence).toBe(AmcVisitCadence.QUARTERLY);
-      expect(initializedAmc.status).toBe(AmcStatus.ACTIVE);
+      expect(initializedAmc.status).toBe(AmcStatus.PENDING_APPROVAL);
       expect(initializedAmc.coveredEquipment).toHaveLength(2);
       expect(amcSaveSpy).toHaveBeenCalled();
 
@@ -364,11 +375,15 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
     });
 
     it('Scenario 2.6: Does not duplicate AMC if active contract already exists for the project', async () => {
+      const mockOrderId = new Types.ObjectId();
       const mockProjectDoc = {
         _id: mockProjectId,
         projectCode: 'PRJ-2026-00001',
         customerId: mockCustomerId,
-        systemCapacityKwp: 10
+        orderId: mockOrderId,
+        systemCapacityKwp: 10,
+        currentStage: ProjectStage.STAGE_5_HANDOVER_COMMISSIONING,
+        status: ProjectStatus.COMPLETED
       };
 
       const existingAmcDoc = {
@@ -379,6 +394,12 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
       };
 
       vi.spyOn(Project, 'findById').mockResolvedValue(mockProjectDoc as any);
+      vi.spyOn(SalesOrder, 'findById').mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          _id: mockOrderId,
+          status: 'CONFIRMED'
+        })
+      } as any);
       vi.spyOn(AnnualMaintenanceContract, 'findOne').mockResolvedValue(existingAmcDoc as any);
 
       const amc = await ProjectService.initializeFirstYearAmc(mockProjectId.toString(), adminActor);

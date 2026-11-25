@@ -102,9 +102,13 @@ export interface ProjectProfitabilityReport {
   // Authoritative Recorded Costs
   costSummary: CostCategorySummary;
 
-  // Estimated Operational Margin
+  // Estimated vs Actual Operational Margins
   estimatedGrossMarginPaise: number;
   grossMarginPercent: number;
+  budgetedGrossMarginPaise?: number;
+  budgetedMarginPercent?: number;
+  actualGrossMarginPaise: number;
+  actualMarginPercent: number;
 
   // Budget vs Actual
   budgetComparison: BudgetVsActualComparison;
@@ -404,11 +408,10 @@ export class ProjectProfitabilityService {
     // 5. Cost Ledger & Summaries
     const { summary: costSummary } = await this.getCostLedger(projectId);
 
-    // 6. Estimated Gross Margin
-    const estimatedGrossMarginPaise = contractedSalesValuePaise - costSummary.totalCostPaise;
-    const grossMarginPercent =
+    const actualGrossMarginPaise = contractedSalesValuePaise - costSummary.totalCostPaise;
+    const actualMarginPercent =
       contractedSalesValuePaise > 0
-        ? Math.round((estimatedGrossMarginPaise / contractedSalesValuePaise) * 10000) / 100
+        ? Math.round((actualGrossMarginPaise / contractedSalesValuePaise) * 10000) / 100
         : 0;
 
     // 7. Budget vs Actual Comparison
@@ -416,6 +419,19 @@ export class ProjectProfitabilityService {
       projectId: project._id,
       status: ProjectBudgetStatus.APPROVED
     }).lean();
+
+    const plannedTotalBudgetPaise = approvedBudget?.totalBudgetPaise || 0;
+    const budgetedGrossMarginPaise = approvedBudget
+      ? contractedSalesValuePaise - plannedTotalBudgetPaise
+      : actualGrossMarginPaise;
+    const budgetedMarginPercent =
+      contractedSalesValuePaise > 0
+        ? Math.round((budgetedGrossMarginPaise / contractedSalesValuePaise) * 10000) / 100
+        : 0;
+
+    // Preserve legacy field name while providing explicit budgeted vs actual distinction
+    const estimatedGrossMarginPaise = budgetedGrossMarginPaise;
+    const grossMarginPercent = budgetedMarginPercent;
 
     const budgetComparison: BudgetVsActualComparison = {
       hasApprovedBudget: Boolean(approvedBudget),
@@ -486,6 +502,10 @@ export class ProjectProfitabilityService {
       costSummary,
       estimatedGrossMarginPaise,
       grossMarginPercent,
+      budgetedGrossMarginPaise,
+      budgetedMarginPercent,
+      actualGrossMarginPaise,
+      actualMarginPercent,
       budgetComparison,
       isDataComplete,
       dataCompletenessNotes: completenessNotes,

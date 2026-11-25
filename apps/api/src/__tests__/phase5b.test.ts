@@ -562,6 +562,7 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
     it('registers vendor invoice, rejects duplicates for same vendor, and marks RECONCILED on exact match', async () => {
       const vendorId = new Types.ObjectId('507f1f77bcf86cd799439044');
       const poId = new Types.ObjectId('507f1f77bcf86cd799439088');
+      const productId = new Types.ObjectId('507f1f77bcf86cd799439066');
 
       vi.spyOn(Vendor, 'findById').mockResolvedValue({
         _id: vendorId,
@@ -571,8 +572,27 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       vi.spyOn(VendorInvoice, 'findOne').mockResolvedValue(null);
       vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({
         _id: poId,
-        totalAmountPaise: 11200000
+        poNumber: 'PO-2026-00008',
+        totalAmountPaise: 11200000,
+        lineItems: [
+          {
+            productId,
+            orderedQuantity: 10,
+            unitPurchaseRatePaise: 1000000,
+            taxableAmountPaise: 10000000,
+            gstRate: 12,
+            taxAmountPaise: 1200000
+          }
+        ]
       } as any); // PO value = ₹112,000
+      vi.spyOn(GoodsReceipt, 'find').mockResolvedValue([
+        {
+          _id: new Types.ObjectId(),
+          purchaseOrderId: poId,
+          status: GoodsReceiptStatus.COMPLETED,
+          lineItems: [{ productId, acceptedQuantity: 10 }]
+        }
+      ] as any);
 
       vi.spyOn(VendorInvoice.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();
@@ -587,7 +607,7 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
           invoiceDate: new Date().toISOString(),
           subtotalPaise: 10000000,
           taxAmountPaise: 1200000,
-          totalAmountPaise: 11200000 // exactly matches PO!
+          totalAmountPaise: 11200000 // exactly matches PO & accepted GRN!
         },
         mockApproverUser,
         mockContext
@@ -603,6 +623,7 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
     it('detects 3-way match price discrepancy and flags invoice status as DISPUTED', async () => {
       const vendorId = new Types.ObjectId('507f1f77bcf86cd799439044');
       const poId = new Types.ObjectId('507f1f77bcf86cd799439088');
+      const productId = new Types.ObjectId('507f1f77bcf86cd799439066');
 
       vi.spyOn(Vendor, 'findById').mockResolvedValue({
         _id: vendorId,
@@ -611,8 +632,27 @@ describe('Phase 5B: Procurement, Vendor Management & Goods Receipt', () => {
       vi.spyOn(VendorInvoice, 'findOne').mockResolvedValue(null);
       vi.spyOn(PurchaseOrder, 'findById').mockResolvedValue({
         _id: poId,
-        totalAmountPaise: 10000000
-      } as any); // PO = ₹100,000
+        poNumber: 'PO-2026-00009',
+        totalAmountPaise: 10000000,
+        lineItems: [
+          {
+            productId,
+            orderedQuantity: 10,
+            unitPurchaseRatePaise: 892857,
+            taxableAmountPaise: 8928571,
+            gstRate: 12,
+            taxAmountPaise: 1071429
+          }
+        ]
+      } as any); // PO + GRN accepted value = ₹100,000
+      vi.spyOn(GoodsReceipt, 'find').mockResolvedValue([
+        {
+          _id: new Types.ObjectId(),
+          purchaseOrderId: poId,
+          status: GoodsReceiptStatus.COMPLETED,
+          lineItems: [{ productId, acceptedQuantity: 10 }]
+        }
+      ] as any);
 
       vi.spyOn(VendorInvoice.prototype, 'save').mockImplementation(async function (this: any) {
         this._id = new Types.ObjectId();

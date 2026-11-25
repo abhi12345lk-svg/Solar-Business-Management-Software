@@ -44,7 +44,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Vendor Directory/i);
-    expect(screen.getByText(/Add Vendor/i)).toBeInTheDocument();
+    expect(screen.getByText(/Register New Vendor/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Adani Solar Tech Ltd')).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe('Phase 5B: Procurement Frontend Operational Pages', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Purchase Orders/i);
-    expect(screen.getByText(/Create Purchase Order/i)).toBeInTheDocument();
+    expect(screen.getByText(/Raise Purchase Order/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('PO-2026-00001')).toBeInTheDocument();

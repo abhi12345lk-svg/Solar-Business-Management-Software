@@ -149,7 +149,7 @@ materialDispatchRouter.post(
  */
 materialDispatchRouter.post(
   '/:id/acknowledge',
-  requirePermission('dispatch:read'),
+  requirePermission(['dispatch:create', 'installation:update', 'project:update']),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.session.user!;

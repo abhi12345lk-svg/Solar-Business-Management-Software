@@ -62,7 +62,8 @@ describe('Three-Panel Enterprise Architecture Verification', () => {
       expect(getDefaultPanelForRole(UserRole.SERVICE_TECHNICIAN)).toBe(PanelType.ADMIN);
       expect(getDefaultPanelForRole(UserRole.TECHNICIAN)).toBe(PanelType.ADMIN);
 
-      expect(isRoleAllowedInPanel(UserRole.INSTALLATION_CREW, PanelType.ADMIN)).toBe(true);
+      expect(isRoleAllowedInPanel(UserRole.INSTALLATION_CREW, PanelType.INSTALLER)).toBe(true);
+      expect(isRoleAllowedInPanel(UserRole.INSTALLATION_CREW, PanelType.ADMIN)).toBe(false);
       expect(isRoleAllowedInPanel(UserRole.INSTALLATION_CREW, PanelType.SALES)).toBe(false);
       expect(isRoleAllowedInPanel(UserRole.INSTALLATION_CREW, PanelType.ACCOUNTS)).toBe(false);
 

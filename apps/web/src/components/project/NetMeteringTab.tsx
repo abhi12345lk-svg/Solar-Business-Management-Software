@@ -242,35 +242,6 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
     }
   };
 
-  const handleAutoAttachAllSampleDocs = async () => {
-    if (!selectedApp) return;
-    try {
-      setError(null);
-      setSuccessMsg('Auto-attaching required verification documents...');
-      const unfulfilledDocs = (selectedApp.documents || []).filter(
-        d => d.isRequired && (!d.storageKey || d.status === 'REQUIRED')
-      );
-      for (const doc of unfulfilledDocs) {
-        const safeKey = `evidence/documents/net-metering/${selectedApp._id}/${doc.documentType}/${Date.now()}-${doc.documentType.toLowerCase()}.pdf`;
-        await apiClient(`/net-metering/${selectedApp._id}/documents`, {
-          method: 'POST',
-          body: JSON.stringify({
-            documentType: doc.documentType,
-            storageKey: safeKey,
-            fileName: `${doc.documentType.toLowerCase()}_sample_verified.pdf`,
-            fileSize: 1024 * 350,
-            mimeType: 'application/pdf'
-          })
-        });
-      }
-      setSuccessMsg('All required documents attached and verified! You can now mark Ready to Submit.');
-      await fetchApplications();
-    } catch (err: any) {
-      setSuccessMsg(null);
-      setError(err?.message || 'Failed to attach sample documents.');
-    }
-  };
-
   const handleScheduleInspection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedApp) return;
@@ -499,25 +470,12 @@ export const NetMeteringTab: React.FC<NetMeteringTabProps> = ({
                 {/* Action Buttons for Lifecycle */}
                 <div className="flex flex-wrap items-center gap-2">
                   {selectedApp.status === 'DRAFT' && (
-                    <>
-                      {selectedApp.documents.some(d => d.isRequired && (!d.storageKey || d.status === 'REQUIRED')) && (
-                        <button
-                          type="button"
-                          onClick={handleAutoAttachAllSampleDocs}
-                          className="px-3 py-1.5 rounded-lg border border-solar-500 bg-solar-500/10 text-solar-800 dark:text-solar-300 text-xs font-semibold hover:bg-solar-500/20 transition-colors flex items-center gap-1 cursor-pointer"
-                          title="Attach sample documents for all required slots to enable instant submission"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Auto-Attach Sample Docs (1-Click)</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleAdvanceStatus('READY_TO_SUBMIT')}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
-                      >
-                        Check & Mark Ready to Submit
-                      </button>
-                    </>
+                    <button
+                      onClick={() => handleAdvanceStatus('READY_TO_SUBMIT')}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Check & Mark Ready to Submit
+                    </button>
                   )}
                   {selectedApp.status === 'READY_TO_SUBMIT' && (
                     <button

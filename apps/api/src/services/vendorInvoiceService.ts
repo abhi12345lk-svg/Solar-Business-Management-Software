@@ -78,6 +78,7 @@ export class VendorInvoiceService {
         grnIds = goodsReceipts.map(g => g._id);
 
         let totalAcceptedSubtotalPaise = 0;
+        let totalExpectedTaxPaise = 0;
         for (const poLine of po.lineItems || []) {
           const acceptedQty = goodsReceipts.reduce((sum, grn) => {
             const grnLine = grn.lineItems.find(
@@ -85,13 +86,25 @@ export class VendorInvoiceService {
             );
             return sum + (grnLine?.acceptedQuantity || 0);
           }, 0);
-          totalAcceptedSubtotalPaise += acceptedQty * (poLine.unitPricePaise || 0);
+          const orderedQty = poLine.orderedQuantity || 0;
+          const unitRate = (poLine as any).unitPurchaseRatePaise ?? (poLine as any).unitPricePaise ?? 0;
+          const lineDiscount = (poLine as any).discountPaise || 0;
+          const ratio = orderedQty > 0 ? Math.min(1, acceptedQty / orderedQty) : 0;
+          const netAcceptedSubtotal =
+            (poLine as any).taxableAmountPaise !== undefined
+              ? Math.round((poLine as any).taxableAmountPaise * ratio)
+              : Math.max(0, Math.round(acceptedQty * unitRate - lineDiscount * ratio));
+          const gstRate = (poLine as any).gstRate ?? 12;
+          const lineTax =
+            (poLine as any).taxAmountPaise !== undefined
+              ? Math.round((poLine as any).taxAmountPaise * ratio)
+              : Math.round((netAcceptedSubtotal * gstRate) / 100);
+
+          totalAcceptedSubtotalPaise += netAcceptedSubtotal;
+          totalExpectedTaxPaise += lineTax;
         }
 
-        const poSubtotal = po.subtotalPaise || 1;
-        const acceptedRatio = Math.min(1, totalAcceptedSubtotalPaise / poSubtotal);
-        const expectedTaxPaise = Math.round((po.totalTaxPaise || 0) * acceptedRatio);
-        const expectedAcceptedTotalPaise = totalAcceptedSubtotalPaise + expectedTaxPaise;
+        const expectedAcceptedTotalPaise = totalAcceptedSubtotalPaise + totalExpectedTaxPaise;
 
         const difference = input.totalAmountPaise - expectedAcceptedTotalPaise;
 

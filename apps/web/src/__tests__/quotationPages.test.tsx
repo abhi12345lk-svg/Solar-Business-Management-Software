@@ -253,16 +253,14 @@ describe('Phase 4B Frontend Operational Pages', () => {
 
     await waitFor(() => {
       expect(screen.getByText('QT-2026-00001-R0')).toBeInTheDocument();
-      expect(screen.getByText(/Revision R0/i)).toBeInTheDocument();
+      expect(screen.getByText('R0')).toBeInTheDocument();
       expect(screen.getByText('Apex Commercial Towers')).toBeInTheDocument();
       expect(screen.getAllByText(/550Wp Mono Perc Solar Module/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText(/Commercial Discount Control/i)).toBeInTheDocument();
-      expect(screen.getByText(/Exceeds 5.0% Limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/Manager Approval Required/i)).toBeInTheDocument();
+      expect(screen.getByText(/7\.3% Discount/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Approve Discount/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Reject Discount/i })).toBeInTheDocument();
-      expect(screen.getByText(/Anti-Self-Approval rule enforced on server/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Accept Proposal/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Decline/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Accept Proposal/i })).not.toBeInTheDocument();
       expect(
         screen.getByText(
           /final GST classification must be confirmed by qualified chartered accountant/i

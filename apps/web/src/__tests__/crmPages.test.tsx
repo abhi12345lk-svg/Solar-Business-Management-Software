@@ -30,12 +30,12 @@ describe('Phase 4A Frontend Operational Pages', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByRole('heading', { name: /CRM & Lead Pipeline/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/search prospect name/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /new lead/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Lead Management/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search name, phone, city/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add lead/i })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/no leads found/i)).toBeInTheDocument();
+      expect(screen.getByText(/no leads in this view/i)).toBeInTheDocument();
     });
   });
 
@@ -76,7 +76,7 @@ describe('Phase 4A Frontend Operational Pages', () => {
     expect(screen.getByRole('button', { name: /new site survey/i })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/no site surveys recorded/i)).toBeInTheDocument();
+      expect(screen.getByText(/no site surveys found in this view/i)).toBeInTheDocument();
     });
   });
 });

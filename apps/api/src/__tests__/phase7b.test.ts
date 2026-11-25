@@ -500,7 +500,7 @@ describe('Phase 7B Integration: Service, Warranty, AMC & Service Visits', () => 
         },
         adminUser
       )
-    ).rejects.toThrow(/already covers this project/);
+    ).rejects.toThrow(/already (covers this project|exists for this project)/i);
 
     // Approval workflow
     vi.spyOn(AnnualMaintenanceContract, 'findOne').mockResolvedValue(null);

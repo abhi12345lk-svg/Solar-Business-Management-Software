@@ -25,11 +25,9 @@ import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage.js';
 import { VendorInvoicesPage } from './pages/VendorInvoicesPage.js';
 import { NetMeteringPage } from './pages/NetMeteringPage.js';
 import { SubsidyPage } from './pages/SubsidyPage.js';
-import { CustomerServicePortalPage } from './pages/CustomerServicePortalPage.js';
 import { CustomerPortalPage } from './pages/CustomerPortalPage.js';
 import { PaymentsPage } from './pages/PaymentsPage.js';
 import { CustomerInvoicesPage } from './pages/CustomerInvoicesPage.js';
-import { CustomerPaymentsPortalPage } from './pages/CustomerPaymentsPortalPage.js';
 import { ExpensesPage } from './pages/ExpensesPage.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { CreateDocumentPage } from './pages/CreateDocumentPage.js';
@@ -70,7 +68,41 @@ export const App: React.FC = () => {
         <Route path="login" element={<LoginPage />} />
         <Route path="mfa-challenge" element={<Navigate to="/login" replace />} />
 
-        {/* Main Authenticated Application Shell */}
+        {/* Standalone Customer Portal Routes (Customer OTP / Magic-Link Isolated) */}
+        <Route
+          path="customer-portal"
+          element={
+            <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 max-w-6xl mx-auto">
+              <CustomerPortalPage />
+            </div>
+          }
+        />
+        <Route
+          path="portal"
+          element={
+            <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 max-w-6xl mx-auto">
+              <CustomerPortalPage />
+            </div>
+          }
+        />
+        <Route
+          path="customer-portal/service"
+          element={
+            <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 max-w-6xl mx-auto">
+              <CustomerPortalPage defaultTab="SERVICE" />
+            </div>
+          }
+        />
+        <Route
+          path="customer-portal/payments"
+          element={
+            <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 max-w-6xl mx-auto">
+              <CustomerPortalPage defaultTab="PAYMENTS" />
+            </div>
+          }
+        />
+
+        {/* Main Authenticated Internal ERP Application Shell */}
         <Route path="/" element={<AppLayout />}>
           <Route
             index
@@ -87,7 +119,7 @@ export const App: React.FC = () => {
           <Route
             path="leads"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="lead:read">
                 <LeadsPage />
               </ProtectedRoute>
             }
@@ -95,7 +127,7 @@ export const App: React.FC = () => {
           <Route
             path="leads/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="lead:read">
                 <LeadDetailPage />
               </ProtectedRoute>
             }
@@ -103,7 +135,7 @@ export const App: React.FC = () => {
           <Route
             path="customers"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="customer:read">
                 <CustomersPage />
               </ProtectedRoute>
             }
@@ -111,7 +143,7 @@ export const App: React.FC = () => {
           <Route
             path="follow-ups"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="lead:read">
                 <Navigate to="/leads" replace />
               </ProtectedRoute>
             }
@@ -119,7 +151,7 @@ export const App: React.FC = () => {
           <Route
             path="surveys"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="survey:read">
                 <SurveysPage />
               </ProtectedRoute>
             }
@@ -128,7 +160,7 @@ export const App: React.FC = () => {
           <Route
             path="solar-designs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="design:read">
                 <SolarDesignPage />
               </ProtectedRoute>
             }
@@ -142,7 +174,7 @@ export const App: React.FC = () => {
           <Route
             path="quotations"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="quote:read">
                 <QuotationsPage />
               </ProtectedRoute>
             }
@@ -150,7 +182,7 @@ export const App: React.FC = () => {
           <Route
             path="quotations/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="quote:read">
                 <QuotationDetailPage />
               </ProtectedRoute>
             }
@@ -158,7 +190,7 @@ export const App: React.FC = () => {
           <Route
             path="orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="order:read">
                 <OrdersPage />
               </ProtectedRoute>
             }
@@ -166,7 +198,7 @@ export const App: React.FC = () => {
           <Route
             path="orders/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="order:read">
                 <OrderDetailPage />
               </ProtectedRoute>
             }
@@ -174,7 +206,7 @@ export const App: React.FC = () => {
           <Route
             path="projects"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="project:read">
                 <ProjectsPage />
               </ProtectedRoute>
             }
@@ -182,7 +214,7 @@ export const App: React.FC = () => {
           <Route
             path="projects/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="project:read">
                 <ProjectDetailPage />
               </ProtectedRoute>
             }
@@ -194,7 +226,7 @@ export const App: React.FC = () => {
           <Route
             path="net-metering"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="net_metering:read">
                 <NetMeteringPage />
               </ProtectedRoute>
             }
@@ -202,7 +234,7 @@ export const App: React.FC = () => {
           <Route
             path="subsidies"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="subsidy:read">
                 <SubsidyPage />
               </ProtectedRoute>
             }
@@ -210,7 +242,7 @@ export const App: React.FC = () => {
           <Route
             path="inventory"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="inv:read">
                 <InventoryPage />
               </ProtectedRoute>
             }
@@ -218,7 +250,7 @@ export const App: React.FC = () => {
           <Route
             path="vendors"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="vendor:read">
                 <VendorsPage />
               </ProtectedRoute>
             }
@@ -226,7 +258,7 @@ export const App: React.FC = () => {
           <Route
             path="purchase-orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="po:read">
                 <PurchaseOrdersPage />
               </ProtectedRoute>
             }
@@ -234,7 +266,7 @@ export const App: React.FC = () => {
           <Route
             path="purchase-orders/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="po:read">
                 <PurchaseOrderDetailPage />
               </ProtectedRoute>
             }
@@ -242,7 +274,7 @@ export const App: React.FC = () => {
           <Route
             path="goods-receipts"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="grn:read">
                 <GoodsReceiptsPage />
               </ProtectedRoute>
             }
@@ -250,7 +282,7 @@ export const App: React.FC = () => {
           <Route
             path="vendor-invoices"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="vendor_invoice:read">
                 <VendorInvoicesPage />
               </ProtectedRoute>
             }
@@ -258,7 +290,7 @@ export const App: React.FC = () => {
           <Route
             path="service"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="service:ticket_read">
                 <ServiceHubPage />
               </ProtectedRoute>
             }
@@ -268,33 +300,9 @@ export const App: React.FC = () => {
           <Route path="amc" element={<Navigate to="/service?tab=amc" replace />} />
           <Route path="service-visits" element={<Navigate to="/service?tab=visits" replace />} />
           <Route
-            path="customer-portal/service"
-            element={
-              <ProtectedRoute>
-                <CustomerServicePortalPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="customer-portal"
-            element={
-              <ProtectedRoute>
-                <CustomerPortalPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="portal"
-            element={
-              <ProtectedRoute>
-                <CustomerPortalPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="customer-invoices"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="account:invoice_read">
                 <CustomerInvoicesPage />
               </ProtectedRoute>
             }
@@ -302,7 +310,7 @@ export const App: React.FC = () => {
           <Route
             path="payments"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="payment:read">
                 <PaymentsPage />
               </ProtectedRoute>
             }
@@ -310,23 +318,15 @@ export const App: React.FC = () => {
           <Route
             path="expenses"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="expense:read">
                 <ExpensesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="customer-portal/payments"
-            element={
-              <ProtectedRoute>
-                <CustomerPaymentsPortalPage />
               </ProtectedRoute>
             }
           />
           <Route
             path="employees"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="employee:read">
                 <EmployeesPage />
               </ProtectedRoute>
             }
@@ -334,7 +334,7 @@ export const App: React.FC = () => {
           <Route
             path="teams"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="team:read">
                 <TeamsPage />
               </ProtectedRoute>
             }
@@ -342,7 +342,7 @@ export const App: React.FC = () => {
           <Route
             path="tasks"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="task:read">
                 <TasksPage />
               </ProtectedRoute>
             }
@@ -350,7 +350,7 @@ export const App: React.FC = () => {
           <Route
             path="create-document"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="document:upload">
                 <CreateDocumentPage />
               </ProtectedRoute>
             }
@@ -358,7 +358,7 @@ export const App: React.FC = () => {
           <Route
             path="site-photos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="installation:read">
                 <SitePhotosPage initialTab="photos" />
               </ProtectedRoute>
             }
@@ -374,7 +374,7 @@ export const App: React.FC = () => {
           <Route
             path="documents/create"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="document:upload">
                 <CreateDocumentPage />
               </ProtectedRoute>
             }
@@ -382,7 +382,7 @@ export const App: React.FC = () => {
           <Route
             path="documents"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="document:read">
                 <DocumentsPage />
               </ProtectedRoute>
             }

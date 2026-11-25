@@ -4,10 +4,11 @@ import {
   uploadDocumentMetadataSchema,
   reviewDocumentSchema,
   createDocumentVersionSchema,
-  documentFilterSchema
+  documentFilterSchema,
+  UserRole
 } from '@ins-solar/shared';
 import { DocumentService } from '../services/documentService.js';
-import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
+import { requireAuth, requireEmployee, requirePermission, requireRole } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
 import { config } from '../config/env.js';
@@ -397,6 +398,7 @@ documentRouter.get(
 documentRouter.post(
   '/:id/review',
   requireEmployee,
+  requirePermission('document:review'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!mongoose.isValidObjectId(req.params.id)) {
@@ -436,6 +438,7 @@ documentRouter.post(
 documentRouter.post(
   '/:id/new-version',
   requireEmployee,
+  requirePermission('document:upload'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!mongoose.isValidObjectId(req.params.id)) {
@@ -475,6 +478,7 @@ documentRouter.post(
 documentRouter.patch(
   '/:id/archive',
   requireEmployee,
+  requirePermission('document:archive'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!mongoose.isValidObjectId(req.params.id)) {
@@ -510,6 +514,8 @@ documentRouter.patch(
 documentRouter.delete(
   '/:id',
   requireEmployee,
+  requireRole([UserRole.SUPERADMIN, UserRole.ADMIN]),
+  requirePermission('document:archive'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!mongoose.isValidObjectId(req.params.id)) {

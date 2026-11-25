@@ -714,7 +714,12 @@ export class MaterialDispatchService {
       uom: string;
       orderedQuantity: number;
       dispatchedQuantity: number;
+      deliveredQuantity: number;
+      inTransitQuantity: number;
       remainingQuantity: number;
+      isFullyDispatched: boolean;
+      isFullyDelivered: boolean;
+      deliveryStatus: string;
       contractedQuantity?: number;
       totalIssuedQuantity?: number;
     }>;
@@ -748,6 +753,8 @@ export class MaterialDispatchService {
               uom: p.uom || 'units',
               orderedQuantity: ol.quantity,
               dispatchedQuantity: 0,
+              deliveredQuantity: 0,
+              inTransitQuantity: 0,
               remainingQuantity: ol.quantity
             });
           }
@@ -755,13 +762,14 @@ export class MaterialDispatchService {
       }
     }
 
-    // Tally physical dispatches for this project
+    // Tally physical dispatches for this project, separating DELIVERED vs IN-TRANSIT (DISPATCHED)
     const dispatches = await MaterialDispatch.find({
       projectId: project._id,
       status: { $ne: MaterialDispatchStatus.CANCELLED }
     }).populate('lineItems.productId', 'name sku uom');
 
     for (const d of dispatches) {
+      const isDelivered = d.status === MaterialDispatchStatus.DELIVERED;
       for (const li of d.lineItems) {
         const p: any = li.productId;
         const pId = p._id.toString();
@@ -774,20 +782,45 @@ export class MaterialDispatchService {
             uom: p.uom || 'units',
             orderedQuantity: 0,
             dispatchedQuantity: 0,
+            deliveredQuantity: 0,
+            inTransitQuantity: 0,
             remainingQuantity: 0
           };
           itemsSummaryMap.set(pId, record);
         }
         record.dispatchedQuantity += li.issuedQuantity;
+        if (isDelivered) {
+          record.deliveredQuantity += li.issuedQuantity;
+        } else {
+          record.inTransitQuantity += li.issuedQuantity;
+        }
         record.remainingQuantity = Math.max(0, record.orderedQuantity - record.dispatchedQuantity);
       }
     }
 
-    const mappedItems = Array.from(itemsSummaryMap.values()).map(it => ({
-      ...it,
-      contractedQuantity: it.orderedQuantity,
-      totalIssuedQuantity: it.dispatchedQuantity
-    }));
+    const mappedItems = Array.from(itemsSummaryMap.values()).map(it => {
+      const targetQty = it.orderedQuantity;
+      const isFullyDispatched = targetQty > 0 ? it.dispatchedQuantity >= targetQty : it.dispatchedQuantity > 0;
+      const isFullyDelivered = targetQty > 0 ? it.deliveredQuantity >= targetQty : it.deliveredQuantity > 0 && it.inTransitQuantity === 0;
+      let deliveryStatus = 'NOT_DISPATCHED';
+      if (isFullyDelivered) {
+        deliveryStatus = 'DELIVERED';
+      } else if (it.deliveredQuantity > 0) {
+        deliveryStatus = 'PARTIALLY_DELIVERED';
+      } else if (it.dispatchedQuantity > 0 && isFullyDispatched) {
+        deliveryStatus = 'DISPATCHED_IN_TRANSIT';
+      } else if (it.dispatchedQuantity > 0) {
+        deliveryStatus = 'PARTIALLY_DISPATCHED';
+      }
+      return {
+        ...it,
+        isFullyDispatched,
+        isFullyDelivered,
+        deliveryStatus,
+        contractedQuantity: it.orderedQuantity,
+        totalIssuedQuantity: it.dispatchedQuantity
+      };
+    });
 
     return {
       projectCode: project.projectCode,

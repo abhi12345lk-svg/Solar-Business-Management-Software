@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OrdersPage } from '../pages/OrdersPage.js';
@@ -148,8 +148,8 @@ describe('Phase 5A Frontend Operational Pages', () => {
       expect(screen.getByText('ORD-2026-00001')).toBeInTheDocument();
       expect(screen.getAllByText('550Wp Mono Perc Solar Module').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('20 NOS').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByRole('button', { name: /Reserve Stock/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Cancel Order/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /Reserve Stock/i }).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
   });
 
@@ -203,7 +203,10 @@ describe('Phase 5A Frontend Operational Pages', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Receive Stock/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Issue Material/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Transfer/i })).toBeInTheDocument();
+    const moreOpsBtn = screen.getByRole('button', { name: /More Operations/i });
+    expect(moreOpsBtn).toBeInTheDocument();
+    fireEvent.click(moreOpsBtn);
+    expect(screen.getByRole('button', { name: /Warehouse Transfer/i })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('550Wp Solar Panel')).toBeInTheDocument();

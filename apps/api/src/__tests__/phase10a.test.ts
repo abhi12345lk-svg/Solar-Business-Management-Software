@@ -560,6 +560,10 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
         lean: vi.fn().mockResolvedValue([])
       } as any);
 
+      vi.spyOn(StockMovement, 'find').mockReturnValue({
+        lean: vi.fn().mockResolvedValue([])
+      } as any);
+
       const costLedger = await ProjectProfitabilityService.getCostLedger(projectId.toString());
 
       expect(costLedger.entries).toHaveLength(1);

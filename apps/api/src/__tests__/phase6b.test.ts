@@ -39,6 +39,7 @@ import { StockReservation } from '../models/StockReservation.js';
 import { InstallationChecklistTemplate } from '../models/InstallationChecklistTemplate.js';
 import { ProjectInstallationChecklist } from '../models/ProjectInstallationChecklist.js';
 import { MaterialDispatchService } from '../services/materialDispatchService.js';
+import { PaymentService } from '../services/paymentService.js';
 import { ChecklistService } from '../services/checklistService.js';
 import { ProjectService } from '../services/projectService.js';
 
@@ -96,6 +97,9 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
     vi.spyOn(Project, 'findById').mockResolvedValue(mockProject as any);
     vi.spyOn(Warehouse, 'findById').mockResolvedValue(mockWarehouse as any);
     vi.spyOn(SalesOrder, 'findById').mockResolvedValue(mockOrder as any);
+    vi.spyOn(PaymentService, 'getOrderReceivables').mockResolvedValue({
+      allocatedAmountPaise: 50000000
+    } as any);
     vi.spyOn(Product, 'findById').mockResolvedValue(mockProduct as any);
     vi.spyOn(MaterialDispatch, 'find').mockResolvedValue([]);
     vi.spyOn(StockReservation, 'findOneAndUpdate').mockResolvedValue(null);

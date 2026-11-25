@@ -145,6 +145,26 @@ export const ServiceVisitsPage: React.FC = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+  const [availableTechnicians, setAvailableTechnicians] = useState<any[]>([]);
+  const [availableAmcs, setAvailableAmcs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showScheduleModal) {
+      Promise.all([
+        apiClient<any>('/projects?limit=100').catch(() => null),
+        apiClient<any>('/employees?limit=100').catch(() => null),
+        apiClient<any>('/amc?limit=100').catch(() => null)
+      ]).then(([pRes, eRes, aRes]) => {
+        const pList = pRes?.projects || pRes?.data?.projects || pRes?.items || pRes?.data || [];
+        const eList = eRes?.employees || eRes?.items || eRes?.data?.employees || eRes?.data || [];
+        const aList = aRes?.items || aRes?.contracts || aRes?.amcs || aRes?.data?.items || [];
+        setAvailableProjects(Array.isArray(pList) ? pList : []);
+        setAvailableTechnicians(Array.isArray(eList) ? eList : []);
+        setAvailableAmcs(Array.isArray(aList) ? aList : []);
+      });
+    }
+  }, [showScheduleModal]);
 
   const fetchVisits = useCallback(async () => {
     try {
@@ -572,30 +592,82 @@ export const ServiceVisitsPage: React.FC = () => {
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Solar Project *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
-                    placeholder="Project Code (e.g. PRJ-2026-00001) or ID"
                     value={scheduleForm.projectId}
-                    onChange={e => setScheduleForm({ ...scheduleForm, projectId: e.target.value })}
+                    onChange={e => {
+                      const pId = e.target.value;
+                      const proj = availableProjects.find(p => (p._id || p.id) === pId);
+                      const custId =
+                        proj?.customerId?._id || proj?.customerId?.id || proj?.customerId || '';
+                      setScheduleForm({ ...scheduleForm, projectId: pId, customerId: custId });
+                    }}
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
-                  />
+                  >
+                    <option value="">-- Select Solar Project --</option>
+                    {availableProjects.map(p => (
+                      <option key={p._id || p.id} value={p._id || p.id}>
+                        {p.projectCode || 'PRJ'} — {p.name || 'Solar Project'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Technician User ID *
+                    Assigned Technician *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
-                    placeholder="Technician Employee ID / User ID"
                     value={scheduleForm.assignedTechnicianId}
                     onChange={e =>
                       setScheduleForm({ ...scheduleForm, assignedTechnicianId: e.target.value })
                     }
                     className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
-                  />
+                  >
+                    <option value="">-- Select Field Technician / Installer --</option>
+                    {availableTechnicians.map(emp => {
+                      const uid = emp.userId?._id || emp.userId || emp._id || emp.id;
+                      const name = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.email;
+                      return (
+                        <option key={uid} value={uid}>
+                          {name} ({emp.role || emp.department || 'Staff'})
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Linked Active AMC Contract (Optional — deducts quarterly visit quota)
+                </label>
+                <select
+                  value={scheduleForm.amcId}
+                  onChange={e => {
+                    const amcId = e.target.value;
+                    const amcObj = availableAmcs.find(a => (a._id || a.id) === amcId);
+                    const pId = amcObj?.projectId?._id || amcObj?.projectId || scheduleForm.projectId;
+                    const cId = amcObj?.customerId?._id || amcObj?.customerId || scheduleForm.customerId;
+                    setScheduleForm({
+                      ...scheduleForm,
+                      amcId,
+                      projectId: pId,
+                      customerId: cId,
+                      visitType: amcId ? 'ROUTINE_PREVENTIVE' : scheduleForm.visitType
+                    });
+                  }}
+                  className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none"
+                >
+                  <option value="">-- Standalone / Non-AMC Visit --</option>
+                  {availableAmcs
+                    .filter(a => a.status === 'ACTIVE')
+                    .map(a => (
+                      <option key={a._id || a.id} value={a._id || a.id}>
+                        {a.amcNumber} • {a.customerId?.name || 'Customer'} ({a.consumedVisits}/{a.includedVisits} visits used)
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

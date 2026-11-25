@@ -204,7 +204,7 @@ export const OrderDetailPage: React.FC = () => {
 
       const resolvedCustId = typeof custId === 'object' ? custId._id : custId;
 
-      // 1. Record Customer Payment in Accounts
+      // 1. Record Customer Payment in Accounts (awaits explicit verification & allocation)
       const pRes: any = await apiClient('/payments', {
         method: 'POST',
         body: JSON.stringify({
@@ -213,34 +213,21 @@ export const OrderDetailPage: React.FC = () => {
           paymentDate: paymentForm.paymentDate ? new Date(paymentForm.paymentDate) : new Date(),
           paymentMethod: paymentForm.paymentMethod,
           transactionReference: paymentForm.transactionReference.trim() || undefined,
-          notes: paymentForm.notes.trim() || `Payment for order ${order.orderNumber}`,
-          autoVerify: true
+          notes: paymentForm.notes.trim() || `Payment for order ${order.orderNumber} (OrderId:${order._id})`
         })
       });
 
       const paymentData = pRes?.data || pRes;
-      const paymentId = paymentData?._id || paymentData?.id;
+      const receiptNo = paymentData?.receiptNumber || 'Recorded';
 
-      // 2. Allocate payment directly to this Sales Order
-      if (paymentId) {
-        await apiClient(`/payments/${paymentId}/allocate`, {
-          method: 'POST',
-          body: JSON.stringify({
-            salesOrderId: order._id,
-            allocatedAmountPaise: amountPaise,
-            notes: paymentForm.notes.trim() || `Milestone payment credited to ${order.orderNumber}`
-          })
-        });
-      }
-
-      // 3. Immediately refresh order and receivables
+      // 2. Immediately refresh order and receivables
       await fetchReceivables();
       await fetchOrderDetail();
       setShowPaymentModal(false);
       setPaymentSuccess(
-        `✓ ₹${Number(paymentForm.amountRupees).toLocaleString('en-IN')} payment recorded & successfully allocated to ${order.orderNumber}!`
+        `Payment ₹${Number(paymentForm.amountRupees).toLocaleString('en-IN')} recorded (${receiptNo}) as Pending Verification. Verify and allocate in Accounts -> Payments to credit ${order.orderNumber}.`
       );
-      setTimeout(() => setPaymentSuccess(null), 6000);
+      setTimeout(() => setPaymentSuccess(null), 8000);
     } catch (err: any) {
       setPaymentError(err?.message || 'Failed to record payment receipt.');
     } finally {

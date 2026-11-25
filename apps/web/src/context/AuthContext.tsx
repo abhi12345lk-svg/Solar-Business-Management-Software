@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AuthUserDto, Permission, UserRole, Department, LoginInput, ROLE_DEFAULT_PERMISSIONS } from '@ins-solar/shared';
+import { AuthUserDto, Permission, UserRole, Department, LoginInput, ROLE_DEFAULT_PERMISSIONS, resolveEffectivePermissions } from '@ins-solar/shared';
 import { apiClient } from '../lib/api.js';
 
 interface MfaChallengeState {
@@ -205,9 +205,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!user) return false;
     // SuperAdmin and Admin have full permissions across all standard operational modules
     if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) return true;
-    const effectivePerms = (user.permissions && user.permissions.length > 0)
-      ? user.permissions
-      : (ROLE_DEFAULT_PERMISSIONS[user.role] || []);
+    const effectivePerms = resolveEffectivePermissions(
+      user.role,
+      user.department,
+      user.permissions || []
+    );
     return effectivePerms.includes(permission);
   };
 
