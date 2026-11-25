@@ -231,9 +231,18 @@ export function getStageDisplayInfo(stageKey: string) {
   return (FIVE_STAGES[idx] || FIVE_STAGES[0])!;
 }
 
+export type ProjectDetailTab =
+  | 'overview'
+  | 'dispatch'
+  | 'checklist'
+  | 'photos'
+  | 'net-metering'
+  | 'subsidy'
+  | 'costing';
+
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab') as any;
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
@@ -241,25 +250,16 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'dispatch' | 'checklist' | 'compliance' | 'financials'
-  >(() => {
+
+  const [activeTab, setActiveTab] = useState<ProjectDetailTab>(() => {
     if (urlTab === 'dispatch') return 'dispatch';
     if (urlTab === 'checklist') return 'checklist';
-    if (['net-metering', 'subsidy'].includes(urlTab)) return 'compliance';
-    if (['costing', 'service-amc', 'history'].includes(urlTab)) return 'financials';
+    if (urlTab === 'photos') return 'photos';
+    if (urlTab === 'net-metering') return 'net-metering';
+    if (urlTab === 'subsidy') return 'subsidy';
+    if (urlTab === 'costing') return 'costing';
     return 'overview';
   });
-
-  const [complianceSubTab, setComplianceSubTab] = useState<'net-metering' | 'subsidy'>(
-    urlTab === 'subsidy' ? 'subsidy' : 'net-metering'
-  );
-  const [financialsSubTab, setFinancialsSubTab] = useState<'costing' | 'history'>(
-    urlTab === 'history' ? 'history' : 'costing'
-  );
-  const [installationSubTab, setInstallationSubTab] = useState<'checklist' | 'photos'>(
-    urlTab === 'photos' ? 'photos' : 'checklist'
-  );
 
   // Status transition modal
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -454,27 +454,37 @@ export const ProjectDetailPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!urlTab) return;
+    if (!urlTab) {
+      setActiveTab('overview');
+      return;
+    }
     if (urlTab === 'dispatch') {
       setActiveTab('dispatch');
     } else if (urlTab === 'checklist') {
       setActiveTab('checklist');
+    } else if (urlTab === 'photos') {
+      setActiveTab('photos');
     } else if (urlTab === 'net-metering') {
-      setActiveTab('compliance');
-      setComplianceSubTab('net-metering');
+      setActiveTab('net-metering');
     } else if (urlTab === 'subsidy') {
-      setActiveTab('compliance');
-      setComplianceSubTab('subsidy');
+      setActiveTab('subsidy');
     } else if (urlTab === 'costing') {
-      setActiveTab('financials');
-      setFinancialsSubTab('costing');
-    } else if (urlTab === 'history') {
-      setActiveTab('financials');
-      setFinancialsSubTab('history');
+      setActiveTab('costing');
     } else {
       setActiveTab('overview');
     }
   }, [urlTab]);
+
+  const handleSelectTab = (tab: ProjectDetailTab) => {
+    setActiveTab(tab);
+    const newParams = new URLSearchParams(searchParams);
+    if (tab === 'overview') {
+      newParams.delete('tab');
+    } else {
+      newParams.set('tab', tab);
+    }
+    setSearchParams(newParams);
+  };
 
   useEffect(() => {
     if (id) {
@@ -651,15 +661,7 @@ export const ProjectDetailPage: React.FC = () => {
     const idx = getSimplifiedStageIndex(stageKey);
     const target = FIVE_STAGES[idx];
     if (target) {
-      if (target.targetTab === 'net-metering') {
-        setActiveTab('compliance');
-        setComplianceSubTab('net-metering');
-      } else if (target.targetTab === 'subsidy') {
-        setActiveTab('compliance');
-        setComplianceSubTab('subsidy');
-      } else {
-        setActiveTab(target.targetTab as any);
-      }
+      handleSelectTab(target.targetTab as ProjectDetailTab);
     }
   };
 
@@ -1133,23 +1135,23 @@ export const ProjectDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* 5-Tab Streamlined Navigation (Zero Horizontal Scrollbar) */}
-      <div className="border-b flex items-center gap-2 sm:gap-6 text-xs sm:text-sm font-medium pb-0.5">
+      {/* 7 First-Class Tabs + History Navigation */}
+      <div className="border-b flex items-center gap-1 sm:gap-4 text-xs sm:text-sm font-medium pb-0.5 overflow-x-auto scrollbar-none">
         <button
-          onClick={() => setActiveTab('overview')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
+          onClick={() => handleSelectTab('overview')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
             activeTab === 'overview'
               ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <FolderKanban className="w-4 h-4" />
-          <span>Overview & Milestones</span>
+          <span>Overview &amp; Milestones</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('dispatch')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
+          onClick={() => handleSelectTab('dispatch')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
             activeTab === 'dispatch'
               ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -1160,39 +1162,63 @@ export const ProjectDetailPage: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('checklist')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
+          onClick={() => handleSelectTab('checklist')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
             activeTab === 'checklist'
               ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <ClipboardCheck className="w-4 h-4" />
-          <span>Site Installation</span>
+          <span>Installation Checklist</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('compliance')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
-            activeTab === 'compliance'
+          onClick={() => handleSelectTab('photos')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
+            activeTab === 'photos'
+              ? 'border-solar-600 text-solar-600 font-bold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Camera className="w-4 h-4" />
+          <span>Site Photos &amp; Barcodes</span>
+        </button>
+
+        <button
+          onClick={() => handleSelectTab('net-metering')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
+            activeTab === 'net-metering'
+              ? 'border-solar-600 text-solar-600 font-bold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Net-Metering</span>
+        </button>
+
+        <button
+          onClick={() => handleSelectTab('subsidy')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
+            activeTab === 'subsidy'
               ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <Landmark className="w-4 h-4" />
-          <span>DISCOM & Subsidy</span>
+          <span>Subsidy &amp; PM Surya Ghar</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('financials')}
-          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors ${
-            activeTab === 'financials'
+          onClick={() => handleSelectTab('costing')}
+          className={`shrink-0 whitespace-nowrap pb-2.5 sm:pb-3 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
+            activeTab === 'costing'
               ? 'border-solar-600 text-solar-600 font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <IndianRupee className="w-4 h-4" />
-          <span>Costing & Audit</span>
+          <span>Project Costing</span>
         </button>
       </div>
 
@@ -1573,6 +1599,56 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Lifecycle & Stage Transition Audit History (Integrated in Overview) */}
+          <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <History className="w-4 h-4 text-solar-600" />
+              <span>Lifecycle &amp; Stage Transition History ({project.stageHistory?.length || 0})</span>
+            </h2>
+            {project.stageHistory && project.stageHistory.length > 0 ? (
+              <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
+                {project.stageHistory.map((item, idx) => {
+                  const stageInfo = getStageDisplayInfo(item.stage);
+                  return (
+                    <div key={idx} className="relative flex items-start space-x-4 pl-8">
+                      <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
+                      <div className="bg-muted/40 p-3 rounded-lg flex-1 border text-sm space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-foreground">
+                            {stageInfo?.fullName || item.stage}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {item.changedAt || item.transitionedAt
+                              ? new Date(item.changedAt || item.transitionedAt).toLocaleString()
+                              : new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                        {(item.changedBy || item.transitionedBy) && (
+                          <div className="text-xs text-muted-foreground">
+                            Updated by{' '}
+                            {typeof (item.changedBy || item.transitionedBy) === 'object'
+                              ? `${(item.changedBy || item.transitionedBy).firstName || ''} ${(item.changedBy || item.transitionedBy).lastName || ''}`.trim()
+                              : 'System Administrator'}
+                          </div>
+                        )}
+                        {item.notes && (
+                          <p className="text-xs text-foreground bg-background p-2 rounded">
+                            {item.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No historical transitions recorded yet.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -1581,166 +1657,35 @@ export const ProjectDetailPage: React.FC = () => {
         <MaterialDispatchTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
-      {/* Tab 3: Site Installation */}
+      {/* Tab 3: Site Installation Checklist */}
       {activeTab === 'checklist' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
-            <button
-              onClick={() => setInstallationSubTab('checklist')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                installationSubTab === 'checklist'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <ClipboardCheck className="w-3.5 h-3.5 text-solar-600" />
-              <span>Quality &amp; Safety Checklist</span>
-            </button>
-            <button
-              onClick={() => setInstallationSubTab('photos')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                installationSubTab === 'photos'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Camera className="w-3.5 h-3.5 text-solar-600" />
-              <span>Statutory DISCOM Site Photos</span>
-            </button>
-          </div>
-
-          {installationSubTab === 'checklist' && (
-            <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
-          )}
-
-          {installationSubTab === 'photos' && (
-            <ProjectSitePhotosTab
-              projectId={project._id}
-              customerId={(project.customerId as any)?._id || (project.customerId as any)?.id || project.customerId}
-              customerName={(project.customerId as any)?.name || (project.customerId as any)?.legalName}
-              projectCode={project.projectCode}
-              isTerminal={isTerminal}
-            />
-          )}
-        </div>
+        <InstallationChecklistTab projectId={project._id} isTerminal={isTerminal} />
       )}
 
-      {/* Tab 4: DISCOM & Subsidy (Unified statutory compliance hub) */}
-      {activeTab === 'compliance' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
-            <button
-              onClick={() => setComplianceSubTab('net-metering')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                complianceSubTab === 'net-metering'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 text-solar-600" />
-              <span>DISCOM Net Metering</span>
-            </button>
-            <button
-              onClick={() => setComplianceSubTab('subsidy')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                complianceSubTab === 'subsidy'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Landmark className="w-3.5 h-3.5 text-solar-600" />
-              <span>PM Surya Ghar Subsidy Claim</span>
-            </button>
-          </div>
-
-          {complianceSubTab === 'net-metering' && (
-            <NetMeteringTab projectId={project._id} isTerminal={isTerminal} />
-          )}
-
-          {complianceSubTab === 'subsidy' && (
-            <SubsidyTab projectId={project._id} isTerminal={isTerminal} />
-          )}
-        </div>
+      {/* Tab 4: Statutory Site Photos & Barcodes */}
+      {activeTab === 'photos' && (
+        <ProjectSitePhotosTab
+          projectId={project._id}
+          customerId={(project.customerId as any)?._id || (project.customerId as any)?.id || project.customerId}
+          customerName={(project.customerId as any)?.name || (project.customerId as any)?.legalName}
+          projectCode={project.projectCode}
+          isTerminal={isTerminal}
+        />
       )}
 
-      {/* Tab 5: Costing, AMC & Audit History */}
-      {activeTab === 'financials' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-1 bg-muted/70 rounded-xl w-fit">
-            <button
-              onClick={() => setFinancialsSubTab('costing')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                financialsSubTab === 'costing'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <IndianRupee className="w-3.5 h-3.5 text-solar-600" />
-              <span>Costing & Profitability</span>
-            </button>
-            <button
-              onClick={() => setFinancialsSubTab('history')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                financialsSubTab === 'history'
-                  ? 'bg-card text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <History className="w-3.5 h-3.5 text-solar-600" />
-              <span>Stage Audit History ({project.stageHistory?.length || 0})</span>
-            </button>
-          </div>
+      {/* Tab 5: DISCOM Net-Metering */}
+      {activeTab === 'net-metering' && (
+        <NetMeteringTab projectId={project._id} isTerminal={isTerminal} />
+      )}
 
-          {financialsSubTab === 'costing' && (
-            <ProjectCostingTab projectId={project._id} />
-          )}
+      {/* Tab 6: PM Surya Ghar Subsidy Claim */}
+      {activeTab === 'subsidy' && (
+        <SubsidyTab projectId={project._id} isTerminal={isTerminal} />
+      )}
 
-          {financialsSubTab === 'history' && (
-            <div className="bg-card border rounded-xl p-5 shadow-sm space-y-4">
-              <h2 className="text-base font-bold text-foreground">
-                Lifecycle & Stage Transition History
-              </h2>
-              {project.stageHistory && project.stageHistory.length > 0 ? (
-                <div className="space-y-4 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-muted">
-                  {project.stageHistory.map((item, idx) => {
-                    const stageInfo = getStageDisplayInfo(item.stage);
-                    return (
-                      <div key={idx} className="relative flex items-start space-x-4 pl-8">
-                        <div className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-solar-600 ring-4 ring-card" />
-                        <div className="bg-muted/40 p-3 rounded-lg flex-1 border text-sm space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-foreground">
-                              {stageInfo?.fullName || item.stage}
-                            </span>
-                            <span className="text-xs text-muted-foreground flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {new Date(item.transitionedAt).toLocaleString()}
-                            </span>
-                          </div>
-                          {item.transitionedBy && (
-                            <div className="text-xs text-muted-foreground">
-                              Updated by {item.transitionedBy.firstName}{' '}
-                              {item.transitionedBy.lastName} ({item.transitionedBy.email})
-                            </div>
-                          )}
-                          {item.notes && (
-                            <p className="text-xs text-foreground bg-background p-2 rounded">
-                              {item.notes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No historical transitions recorded yet.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Tab 7: Project Costing & Margin */}
+      {activeTab === 'costing' && (
+        <ProjectCostingTab projectId={project._id} />
       )}
 
       {/* Project Status Modal */}

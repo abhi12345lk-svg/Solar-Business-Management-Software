@@ -409,6 +409,7 @@ export class ProjectService {
       }
     }
     if (filter.priority) query.priority = filter.priority;
+    if (filter.systemTopology) query.systemTopology = filter.systemTopology;
     if (filter.customerId) query.customerId = new Types.ObjectId(filter.customerId);
     if (filter.projectManagerId)
       query.projectManagerId = new Types.ObjectId(filter.projectManagerId);
@@ -751,6 +752,37 @@ export class ProjectService {
 
     if (project.status === ProjectStatus.CANCELLED || project.status === ProjectStatus.COMPLETED) {
       throw AppError.businessRule(`Cannot advance stage on a ${project.status} project.`);
+    }
+
+    // Stage 1 -> Stage 2 (Material Dispatch Gate):
+    // Requires system capacity and engineering specifications
+    if (
+      (input.stage === ProjectStage.STAGE_2_MATERIAL_DISPATCH ||
+        input.stage === ProjectStage.STAGE_3_MATERIAL_DISPATCH) &&
+      (!project.systemCapacityKwp || project.systemCapacityKwp <= 0)
+    ) {
+      throw AppError.businessRule(
+        'Cannot advance to Material Dispatch: System capacity (kWp) and engineering design specifications must be defined.'
+      );
+    }
+
+    // Stage 2 -> Stage 3 (Site Installation Gate):
+    // Requires material to be dispatched from warehouse to the project site
+    if (
+      input.stage === ProjectStage.STAGE_3_SITE_INSTALLATION ||
+      input.stage === ProjectStage.STAGE_4_CIVIL_STRUCTURE
+    ) {
+      if (project.systemCapacityKwp && project.systemCapacityKwp > 0) {
+        const dispatches = await MaterialDispatch.find({
+          projectId: project._id,
+          status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
+        });
+        if (dispatches.length === 0) {
+          throw AppError.businessRule(
+            'Cannot advance to Site Installation: Bill of Materials (BOM) must be dispatched or delivered to site from the warehouse.'
+          );
+        }
+      }
     }
 
     // Commissioning stage gates check: verify mandatory checklist items are PASSED

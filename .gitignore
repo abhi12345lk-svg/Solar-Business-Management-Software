@@ -51,3 +51,5 @@ tmp/
 .storage_vault/
 apps/api/.storage_vault/
 temp/
+
+.demo_credentials.json

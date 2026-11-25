@@ -168,7 +168,8 @@ export const projectFilterSchema = PaginationQuerySchema.extend({
   currentStage: z.nativeEnum(ProjectStage).optional(),
   priority: z.nativeEnum(ProjectPriority).optional(),
   customerId: z.string().trim().optional(),
-  projectManagerId: z.string().trim().optional()
+  projectManagerId: z.string().trim().optional(),
+  systemTopology: z.nativeEnum(SolarTopology).optional()
 });
 
 /**

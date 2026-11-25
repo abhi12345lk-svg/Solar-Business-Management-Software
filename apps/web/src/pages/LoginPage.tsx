@@ -26,7 +26,7 @@ export const LoginPage: React.FC = () => {
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
 
   const [email, setEmail] = useState('admin@inssolar.com');
-  const [password, setPassword] = useState('SolarAdmin2026!');
+  const [password, setPassword] = useState('Ins#ADM!bf123aab648a9');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,16 +39,16 @@ export const LoginPage: React.FC = () => {
     setErrorMessage(null);
     if (portal === 'ADMIN') {
       setEmail('admin@inssolar.com');
-      setPassword('SolarAdmin2026!');
+      setPassword('Ins#ADM!bf123aab648a9');
     } else if (portal === 'SALES') {
       setEmail('sales@inssolar.com');
-      setPassword('SolarSales2026!');
+      setPassword('Ins#SAL!db40472b876c9');
     } else if (portal === 'ACCOUNTS') {
       setEmail('accounts@inssolar.com');
-      setPassword('SolarAccounts2026!');
+      setPassword('Ins#ACC!ec1c0d0214329');
     } else if (portal === 'INSTALLER') {
       setEmail('installer@inssolar.com');
-      setPassword('SolarInstaller2026!');
+      setPassword('Ins#INS!feb0a618e8b09');
     } else if (portal === 'CUSTOMER') {
       navigate('/customer-portal');
     }

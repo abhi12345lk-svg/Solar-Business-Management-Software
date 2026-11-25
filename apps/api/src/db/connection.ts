@@ -49,7 +49,7 @@ export class DatabaseManager {
     try {
       // Connect to MongoDB without logging connection credentials
       await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 20000,
         autoIndex: nodeEnv !== 'production'
       });
 
