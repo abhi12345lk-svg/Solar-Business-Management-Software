@@ -145,14 +145,6 @@ const ACCOUNTS_PANEL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: 'Procurement Verification',
-    items: [
-      { to: '/vendors', label: 'Vendors', icon: Building2, permission: 'vendor:read' },
-      { to: '/purchase-orders', label: 'Purchase Orders', icon: FileText, permission: 'po:read' },
-      { to: '/goods-receipts', label: 'Goods Receipts (GRN)', icon: PackageCheck, permission: 'grn:read' }
-    ]
-  },
-  {
     title: 'Payables & Expenses',
     items: [
       { to: '/vendor-invoices', label: 'Vendor Bills', icon: FileSpreadsheet, permission: 'vendor_invoice:read' },
@@ -208,9 +200,9 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Inventory' };
     return { section: 'Supply Chain', title: 'Inventory' };
   }
-  if (pathname.startsWith('/vendors')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Vendors' };
-  if (pathname.startsWith('/purchase-orders')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Purchase Orders' };
-  if (pathname.startsWith('/goods-receipts')) return { section: panel === PanelType.ACCOUNTS ? 'Procurement Verification' : 'Supply Chain', title: 'Goods Receipts' };
+  if (pathname.startsWith('/vendors')) return { section: 'Supply Chain', title: 'Vendors' };
+  if (pathname.startsWith('/purchase-orders')) return { section: 'Supply Chain', title: 'Purchase Orders' };
+  if (pathname.startsWith('/goods-receipts')) return { section: 'Supply Chain', title: 'Goods Receipts' };
   if (pathname.startsWith('/customer-invoices'))
     return {
       section: panel === PanelType.ACCOUNTS ? 'Billing & Inflow' : 'Finance & Accounts',
