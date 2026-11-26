@@ -267,29 +267,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
       const stage = p.currentStage || 'STAGE_1_DESIGN_APPROVAL';
       let target = 'STAGE_1_DESIGN_APPROVAL';
       switch (stage) {
-        case 'STAGE_1_ENGINEERING_DESIGN':
         case 'STAGE_1_DESIGN_APPROVAL':
+        case 'STAGE_1_ENGINEERING_DESIGN':
         case 'STAGE_2_NET_METERING_APPLY':
           target = 'STAGE_1_DESIGN_APPROVAL';
           break;
-        case 'STAGE_3_MATERIAL_DISPATCH':
         case 'STAGE_2_MATERIAL_DISPATCH':
+        case 'STAGE_3_MATERIAL_DISPATCH':
           target = 'STAGE_2_MATERIAL_DISPATCH';
           break;
+        case 'STAGE_3_SITE_INSTALLATION':
         case 'STAGE_4_CIVIL_STRUCTURE':
         case 'STAGE_5_MODULE_DC_CABLING':
         case 'STAGE_6_INVERTER_ACDB':
         case 'STAGE_7_EARTHING_LIGHTNING':
         case 'STAGE_8_TESTING_PRE_COMMISSION':
-        case 'STAGE_3_SITE_INSTALLATION':
           target = 'STAGE_3_SITE_INSTALLATION';
           break;
-        case 'STAGE_9_DISCOM_METER_INSTALL':
         case 'STAGE_4_NET_METER_SYNC':
+        case 'STAGE_9_DISCOM_METER_INSTALL':
           target = 'STAGE_4_NET_METER_SYNC';
           break;
-        case 'STAGE_10_COMMISSION_HANDOVER':
         case 'STAGE_5_HANDOVER_COMMISSIONING':
+        case 'STAGE_10_COMMISSION_HANDOVER':
           target = 'STAGE_5_HANDOVER_COMMISSIONING';
           break;
         default:
@@ -301,19 +301,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ dateRange }) => 
   }, [projects, dateRange]);
 
   const getStageMeta = (stageKey?: string) => {
-    const found = standardStages.find(s => s.stageKey === stageKey);
+    let canonicalKey = 'STAGE_1_DESIGN_APPROVAL';
+    switch (stageKey) {
+      case 'STAGE_2_MATERIAL_DISPATCH':
+      case 'STAGE_3_MATERIAL_DISPATCH':
+        canonicalKey = 'STAGE_2_MATERIAL_DISPATCH';
+        break;
+      case 'STAGE_3_SITE_INSTALLATION':
+      case 'STAGE_4_CIVIL_STRUCTURE':
+      case 'STAGE_5_MODULE_DC_CABLING':
+      case 'STAGE_6_INVERTER_ACDB':
+      case 'STAGE_7_EARTHING_LIGHTNING':
+      case 'STAGE_8_TESTING_PRE_COMMISSION':
+        canonicalKey = 'STAGE_3_SITE_INSTALLATION';
+        break;
+      case 'STAGE_4_NET_METER_SYNC':
+      case 'STAGE_9_DISCOM_METER_INSTALL':
+        canonicalKey = 'STAGE_4_NET_METER_SYNC';
+        break;
+      case 'STAGE_5_HANDOVER_COMMISSIONING':
+      case 'STAGE_10_COMMISSION_HANDOVER':
+        canonicalKey = 'STAGE_5_HANDOVER_COMMISSIONING';
+        break;
+      default:
+        canonicalKey = 'STAGE_1_DESIGN_APPROVAL';
+    }
+    const found = standardStages.find(s => s.stageKey === canonicalKey);
     if (found) {
       const num = parseInt(found.num, 10);
       return {
         num: found.num,
         name: found.name,
-        progressPercent: Math.round((num / 10) * 100)
+        progressPercent: Math.round((num / 5) * 100)
       };
     }
     return {
       num: '01',
-      name: 'Design & Engineering',
-      progressPercent: 10
+      name: 'Design & Approval',
+      progressPercent: 20
     };
   };
 

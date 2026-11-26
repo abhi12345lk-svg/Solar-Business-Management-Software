@@ -131,6 +131,30 @@ customerServiceRouter.get(
 );
 
 /**
+ * GET /api/v1/customer-portal/service/warranties/:serialNumber
+ * Retrieve single equipment warranty record owned strictly by the logged-in customer.
+ */
+customerServiceRouter.get(
+  '/warranties/:serialNumber',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const record = await WarrantyService.getWarrantyRecordBySerial(
+        req.params.serialNumber as string,
+        {
+          isCustomer: true,
+          customerId
+        }
+      );
+
+      return sendSuccess(req, res, record);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * GET /api/v1/customer-portal/service/amc
  * List Annual Maintenance Contracts belonging to the customer.
  */
@@ -152,6 +176,24 @@ customerServiceRouter.get('/amc', async (req: Request, res: Response, next: Next
 });
 
 /**
+ * GET /api/v1/customer-portal/service/amc/:id
+ * Retrieve single AMC contract owned strictly by the logged-in customer.
+ */
+customerServiceRouter.get('/amc/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customerId = req.session.customer!.customerId;
+    const amc = await AmcService.getAmcById(req.params.id as string, {
+      isCustomer: true,
+      customerId
+    });
+
+    return sendSuccess(req, res, amc);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
  * GET /api/v1/customer-portal/service/visits
  * List service visits for the customer's solar plants.
  */
@@ -167,6 +209,24 @@ customerServiceRouter.get('/visits', async (req: Request, res: Response, next: N
     });
 
     return sendSuccess(req, res, result);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /api/v1/customer-portal/service/visits/:id
+ * Retrieve single service visit owned strictly by the logged-in customer.
+ */
+customerServiceRouter.get('/visits/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const customerId = req.session.customer!.customerId;
+    const visit = await ServiceVisitService.getVisitById(req.params.id as string, {
+      isCustomer: true,
+      customerId
+    });
+
+    return sendSuccess(req, res, visit);
   } catch (err) {
     return next(err);
   }

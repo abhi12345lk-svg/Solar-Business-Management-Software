@@ -56,6 +56,14 @@ interface ChecklistItem {
   notes?: string;
   failureReason?: string;
   blockerReason?: string;
+  reworkHistory?: Array<{
+    _id?: string;
+    previousStatus?: string;
+    newStatus: string;
+    reason?: string;
+    notes?: string;
+    recordedAt?: string;
+  }>;
   inspectedAt?: string;
   inspectedBy?: {
     _id: string;
@@ -646,6 +654,27 @@ export const InstallationChecklistTab: React.FC<InstallationChecklistTabProps> =
                     {item.blockerReason && (
                       <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
                         <strong>Blocker Reason:</strong> {item.blockerReason}
+                      </div>
+                    )}
+                    {item.reworkHistory && item.reworkHistory.length > 0 && (
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                          Rework & Reinspection History ({item.reworkHistory.length})
+                        </div>
+                        {item.reworkHistory.map((rw, idx) => (
+                          <div key={rw._id || idx} className="text-[11px] text-slate-700 flex flex-wrap items-center gap-1.5">
+                            <span className="font-semibold">
+                              {rw.previousStatus || '—'} → {rw.newStatus}
+                            </span>
+                            {rw.reason && <span>• {rw.reason}</span>}
+                            {rw.notes && <span className="text-muted-foreground">({rw.notes})</span>}
+                            {rw.recordedAt && (
+                              <span className="text-muted-foreground text-[10px]">
+                                • {new Date(rw.recordedAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
 

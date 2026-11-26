@@ -123,6 +123,8 @@ export interface IInstallationDocument extends Document {
   status: InstallationStatus;
   rejectionReason?: string;
   adminRemarks?: string;
+  submittedBy?: Types.ObjectId;
+  submittedAt?: Date;
   reviewedBy?: Types.ObjectId;
   reviewedAt?: Date;
   currentStep: number;
@@ -323,6 +325,8 @@ const InstallationSchema = new Schema<IInstallationDocument>(
     },
     rejectionReason: { type: String, trim: true },
     adminRemarks: { type: String, trim: true },
+    submittedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    submittedAt: { type: Date },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: { type: Date },
     currentStep: { type: Number, default: 1, min: 1, max: 12 },

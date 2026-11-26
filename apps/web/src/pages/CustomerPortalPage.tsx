@@ -243,6 +243,7 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
   const [projectDetailLoading, setProjectDetailLoading] = useState(false);
 
   const [quotations, setQuotations] = useState<QuotationItem[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [receivables, setReceivables] = useState<any | null>(null);
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -426,12 +427,18 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
           const res = await apiClient<any>('/customer-portal/quotations');
           setQuotations(res?.data || res || []);
         } else if (tab === 'PAYMENTS') {
-          const [payRes, recRes] = await Promise.all([
+          const [payRes, recRes, invRes] = await Promise.all([
             apiClient<any>('/customer-portal/payments'),
-            apiClient<any>('/customer-portal/payments/receivables')
+            apiClient<any>('/customer-portal/payments/receivables'),
+            apiClient<any>('/customer-portal/invoices').catch(() => [])
           ]);
           setPayments(Array.isArray(payRes) ? payRes : payRes?.items || payRes?.data?.items || []);
           setReceivables(recRes?.data || recRes || null);
+          setInvoices(
+            Array.isArray(invRes)
+              ? invRes
+              : invRes?.items || invRes?.data?.items || invRes?.data || []
+          );
         } else if (tab === 'SERVICE') {
           const [compRes, warRes, amcRes, visRes] = await Promise.all([
             apiClient<any>('/customer-portal/service/complaints'),
@@ -1586,6 +1593,57 @@ export const CustomerPortalPage: React.FC<CustomerPortalPageProps> = ({
                         <Printer className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>Print Receipt</span>
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Customer Invoices & Credit Notes */}
+          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center space-x-2">
+              <FileText className="w-4 h-4 text-solar-500" />
+              <span>Tax Invoices &amp; Credit Notes</span>
+            </h4>
+            {invoices.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                No statutory GST invoices or credit notes issued yet.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {invoices.map((inv: any) => (
+                  <div
+                    key={inv._id || inv.id || inv.invoiceNumber}
+                    className="p-3.5 rounded-lg border bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-foreground">
+                          {inv.invoiceNumber}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-solar-500/10 text-solar-600">
+                          {inv.invoiceType || 'TAX_INVOICE'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold border bg-background text-foreground">
+                          {inv.status}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {inv.milestoneName ? `${inv.milestoneName} • ` : ''}
+                        Issued{' '}
+                        {inv.invoiceDate
+                          ? new Date(inv.invoiceDate).toLocaleDateString('en-IN')
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="text-right space-y-0.5 font-mono">
+                      <div className="font-bold text-foreground">
+                        Total: ₹{((inv.grossTotalPaise || 0) / 100).toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Paid: ₹{((inv.amountPaidPaise || 0) / 100).toLocaleString('en-IN')} • Due: ₹
+                        {((inv.balanceDuePaise || 0) / 100).toLocaleString('en-IN')}
+                      </div>
                     </div>
                   </div>
                 ))}

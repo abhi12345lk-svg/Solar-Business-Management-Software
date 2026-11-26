@@ -332,6 +332,11 @@ export class ChecklistService {
       throw AppError.notFound(`Checklist item with ID '${itemId}' not found in project checklist.`);
     }
 
+    const previousStatus = targetItem.status;
+    if (!Array.isArray(targetItem.reworkHistory)) {
+      targetItem.reworkHistory = [];
+    }
+
     // Evidence rule: cannot pass mandatory checklist item if template specifies evidence is required
     if (input.status === ChecklistItemStatus.PASSED) {
       if (
@@ -341,6 +346,16 @@ export class ChecklistService {
         throw AppError.validation(
           `Cannot mark checklist item '${targetItem.description}' as PASSED without required photo evidence.`
         );
+      }
+      if (previousStatus === ChecklistItemStatus.FAILED) {
+        targetItem.reworkHistory.push({
+          previousStatus,
+          newStatus: input.status,
+          reason: targetItem.failureReason,
+          notes: input.notes?.trim() || 'Reinspection passed after rework',
+          performedBy: new Types.ObjectId(user.userId),
+          performedAt: new Date()
+        });
       }
       targetItem.failureReason = undefined;
       targetItem.blockerReason = undefined;
@@ -356,6 +371,14 @@ export class ChecklistService {
       targetItem.blockerReason = undefined;
       targetItem.completedBy = new Types.ObjectId(user.userId);
       targetItem.completedAt = new Date();
+      targetItem.reworkHistory.push({
+        previousStatus,
+        newStatus: input.status,
+        reason: targetItem.failureReason,
+        notes: input.notes?.trim(),
+        performedBy: new Types.ObjectId(user.userId),
+        performedAt: new Date()
+      });
     } else if (input.status === ChecklistItemStatus.BLOCKED) {
       if (!input.blockerReason || !input.blockerReason.trim()) {
         throw AppError.validation(
@@ -366,8 +389,29 @@ export class ChecklistService {
       targetItem.failureReason = undefined;
       targetItem.completedBy = new Types.ObjectId(user.userId);
       targetItem.completedAt = new Date();
+      targetItem.reworkHistory.push({
+        previousStatus,
+        newStatus: input.status,
+        reason: targetItem.blockerReason,
+        notes: input.notes?.trim(),
+        performedBy: new Types.ObjectId(user.userId),
+        performedAt: new Date()
+      });
     } else {
-      // NOT_STARTED or IN_PROGRESS
+      // NOT_STARTED or IN_PROGRESS (preserve previous failure/blocker in reworkHistory before clearing active flags)
+      if (
+        previousStatus === ChecklistItemStatus.FAILED ||
+        previousStatus === ChecklistItemStatus.BLOCKED
+      ) {
+        targetItem.reworkHistory.push({
+          previousStatus,
+          newStatus: input.status,
+          reason: targetItem.failureReason || targetItem.blockerReason,
+          notes: input.notes?.trim() || 'Reopened for rework',
+          performedBy: new Types.ObjectId(user.userId),
+          performedAt: new Date()
+        });
+      }
       targetItem.completedBy = undefined;
       targetItem.completedAt = undefined;
       targetItem.failureReason = undefined;

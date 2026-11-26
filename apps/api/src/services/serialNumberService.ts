@@ -10,6 +10,7 @@ import {
   RegisterSerialNumberInput,
   RegisterSerialNumberInputSchema,
   SerialNumberStatus,
+  WarrantyStatus,
   AuditAction,
   AuditOutcome,
   ActorType
@@ -85,6 +86,7 @@ export class SerialNumberService {
       productId: new Types.ObjectId(validated.productId),
       warehouseId: new Types.ObjectId(validated.warehouseId),
       status: SerialNumberStatus.IN_STOCK,
+      warrantyStatus: WarrantyStatus.PENDING_ACTIVATION,
       movementHistory: [],
       registeredBy: new Types.ObjectId(actor.userId)
     }));

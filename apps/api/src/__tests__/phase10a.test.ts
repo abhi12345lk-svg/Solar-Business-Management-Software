@@ -337,7 +337,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
       );
     });
 
-    it('blocks advancing project to Stage 8 (Pre-Commissioning) if mandatory checklist items are not PASSED', async () => {
+    it('blocks advancing project to Stage 4 (Net Metering) if mandatory checklist items are not PASSED', async () => {
       const { cookie, csrfToken } = await loginUser(engineerId, UserRole.DEPARTMENT_HEAD);
       const projectId = new Types.ObjectId();
 
@@ -345,7 +345,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
         makePopulateQuery({
           _id: projectId,
           projectCode: 'PRJ-2026-00001',
-          currentStage: ProjectStage.STAGE_7_EARTHING_LIGHTNING,
+          currentStage: ProjectStage.STAGE_3_SITE_INSTALLATION,
           status: ProjectStatus.IN_PROGRESS,
           stageHistory: [],
           save: vi.fn().mockResolvedValue(true)
@@ -376,8 +376,8 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
         .set('Cookie', cookie)
         .set('x-csrf-token', csrfToken)
         .send({
-          stage: ProjectStage.STAGE_8_TESTING_PRE_COMMISSION,
-          notes: 'Attempting to advance to pre-commissioning'
+          stage: ProjectStage.STAGE_4_NET_METER_SYNC,
+          notes: 'Attempting to advance to net metering sync'
         });
 
       expect(res.status).toBe(422);
@@ -520,7 +520,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
         projectCode: 'PRJ-2026-00001',
         projectName: 'Commercial Rooftop Plant',
         orderId: new Types.ObjectId(),
-        currentStage: ProjectStage.STAGE_4_CIVIL_STRUCTURE,
+        currentStage: ProjectStage.STAGE_3_SITE_INSTALLATION,
         status: ProjectStatus.IN_PROGRESS
       } as any);
 
@@ -531,7 +531,7 @@ describe('Phase 10A Master Integration & Security Audit Suite', () => {
             _id: dispatchId,
             dispatchNumber: 'DSP-2026-00001',
             projectId,
-            status: MaterialDispatchStatus.DISPATCHED,
+            status: MaterialDispatchStatus.DELIVERED,
             dispatchedAt: new Date('2026-08-01'),
             lineItems: [
               {

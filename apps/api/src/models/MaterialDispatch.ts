@@ -13,6 +13,8 @@ export interface IDispatchLineItem {
   productId: Types.ObjectId;
   requestedQuantity: number;
   issuedQuantity: number;
+  reservedQuantityUsed?: number;
+  reservationId?: Types.ObjectId;
   serialNumbers?: string[];
   stockMovementId?: Types.ObjectId;
   unitCostPaise?: number;
@@ -38,6 +40,8 @@ export interface IMaterialDispatchDocument extends Document {
   driverName?: string;
   driverPhone?: string;
   notes?: string;
+  inTransitAt?: Date;
+  inTransitBy?: Types.ObjectId;
   deliveredAt?: Date;
   deliveredBy?: Types.ObjectId;
   deliveryNotes?: string;
@@ -68,6 +72,15 @@ const DispatchLineItemSchema = new Schema<IDispatchLineItem>(
       type: Number,
       required: true,
       min: 1
+    },
+    reservedQuantityUsed: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    reservationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'StockReservation'
     },
     serialNumbers: {
       type: [String],
@@ -143,6 +156,11 @@ const MaterialDispatchSchema = new Schema<IMaterialDispatchDocument>(
     driverName: { type: String, trim: true },
     driverPhone: { type: String, trim: true },
     notes: { type: String, trim: true },
+    inTransitAt: { type: Date },
+    inTransitBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
     deliveredAt: { type: Date },
     deliveredBy: {
       type: Schema.Types.ObjectId,

@@ -240,9 +240,14 @@ describe('Phase 2 E2E Integration: Warranty Replacement, Service & AMC, and Proc
       expect(decidedClaim.status).toBe(WarrantyClaimStatus.REPLACED);
       expect(decidedClaim.replacementSerialNumber).toBe('INV-NEW-REPLACEMENT-001');
 
-      // Verify warehouse stock was decremented
+      // Verify warehouse stock was decremented atomically with negative-stock guard
       expect(stockBalanceSpy).toHaveBeenCalledWith(
-        { productId: mockProductId, warehouseId: mockWarehouseId },
+        {
+          productId: mockProductId,
+          warehouseId: mockWarehouseId,
+          onHandQuantity: { $gte: 1 },
+          availableQuantity: { $gte: 1 }
+        },
         expect.objectContaining({
           $inc: { onHandQuantity: -1, availableQuantity: -1 }
         })

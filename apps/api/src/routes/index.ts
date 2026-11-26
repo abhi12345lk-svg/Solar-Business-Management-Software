@@ -17,7 +17,10 @@ import { vendorRouter } from './vendor.routes.js';
 import { purchaseOrderRouter } from './purchaseOrder.routes.js';
 import { goodsReceiptRouter } from './goodsReceipt.routes.js';
 import { vendorInvoiceRouter } from './vendorInvoice.routes.js';
-import { customerInvoiceRouter } from './customerInvoice.routes.js';
+import {
+  customerInvoiceRouter,
+  customerPortalInvoiceRouter
+} from './customerInvoice.routes.js';
 import { projectRouter } from './project.routes.js';
 import { projectTaskRouter } from './projectTask.routes.js';
 import { customerProjectRouter } from './customerProject.routes.js';
@@ -99,6 +102,7 @@ apiRouter.use('/documents', documentRouter);
 apiRouter.use('/installations', installationRouter);
 apiRouter.use('/customer-portal/projects', customerProjectRouter);
 apiRouter.use('/customer-portal/service', customerServiceRouter);
+apiRouter.use('/customer-portal/invoices', customerPortalInvoiceRouter);
 apiRouter.use('/customer-portal/payments', customerPaymentRouter);
 apiRouter.use('/customer-portal/notifications', customerNotificationRouter);
 apiRouter.use('/customer-portal/dashboard', customerDashboardRouter);

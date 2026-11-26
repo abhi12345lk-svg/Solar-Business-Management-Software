@@ -137,10 +137,18 @@ export const updateProjectSchema = z
     }
   );
 
+export const commissioningDetailsSchema = z.object({
+  generationReadingKwh: z.number().min(0, 'Generation reading cannot be negative').optional(),
+  customerHandoverSignedOff: z.boolean().optional(),
+  customerSignOffName: z.string().trim().max(120).optional(),
+  handoverNotes: z.string().trim().max(1000).optional()
+});
+
 export const updateProjectStatusSchema = z
   .object({
     status: z.nativeEnum(ProjectStatus),
-    reason: z.string().trim().max(500).optional()
+    reason: z.string().trim().max(500).optional(),
+    commissioningDetails: commissioningDetailsSchema.optional()
   })
   .refine(
     data => {

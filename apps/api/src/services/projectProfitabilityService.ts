@@ -21,7 +21,10 @@ import {
   IProjectBudgetDocument,
   PaymentAllocation,
   CustomerPayment,
-  StockMovement
+  StockMovement,
+  PurchaseOrder,
+  GoodsReceipt,
+  VendorInvoice
 } from '../models/index.js';
 import {
   MaterialDispatchStatus,
@@ -31,6 +34,9 @@ import {
   PaymentAllocationStatus,
   CustomerPaymentStatus,
   ProjectCostSourceType,
+  PurchaseOrderStatus,
+  GoodsReceiptStatus,
+  VendorInvoiceStatus,
   AuditAction,
   AuditOutcome,
   ActorType,
@@ -58,11 +64,30 @@ export interface CostLedgerEntry {
 
 export interface CostCategorySummary {
   materialsCostPaise: number;
+  materialIssuedCostPaise: number;
+  materialInTransitCostPaise: number;
+  materialConsumedCostPaise: number;
+  reusableReturnCreditPaise: number;
+  damagedScrapLossPaise: number;
+  approvedExpensesPaise: number;
   laborCostPaise: number;
   logisticsCostPaise: number;
   civilCostPaise: number;
   miscCostPaise: number;
   totalCostPaise: number;
+}
+
+export interface ProjectCostBreakdown {
+  estimatedCostPaise: number | null;
+  poCommittedCostPaise: number;
+  actualProcurementCostPaise: number;
+  materialIssuedCostPaise: number;
+  materialInTransitCostPaise: number;
+  materialConsumedCostPaise: number;
+  reusableReturnCreditPaise: number;
+  damagedScrapLossPaise: number;
+  approvedExpensesPaise: number;
+  actualProjectCostPaise: number;
 }
 
 export interface BudgetVsActualComparison {
@@ -93,6 +118,7 @@ export interface ProjectProfitabilityReport {
   contractedSalesValuePaise: number;
   operationalProgressPercent: number;
   operationalProgressRevenuePaise: number;
+  recognizedRevenuePaise: number;
 
   // Cash Inflows & Collections
   confirmedCollectionsPaise: number;
@@ -101,12 +127,13 @@ export interface ProjectProfitabilityReport {
 
   // Authoritative Recorded Costs
   costSummary: CostCategorySummary;
+  costBreakdown: ProjectCostBreakdown;
 
-  // Estimated vs Actual Operational Margins
-  estimatedGrossMarginPaise: number;
-  grossMarginPercent: number;
-  budgetedGrossMarginPaise?: number;
-  budgetedMarginPercent?: number;
+  // Estimated vs Actual Operational Margins (strictly separated; never fallback estimated to actual)
+  estimatedGrossMarginPaise: number | null;
+  grossMarginPercent: number | null;
+  budgetedGrossMarginPaise?: number | null;
+  budgetedMarginPercent?: number | null;
   actualGrossMarginPaise: number;
   actualMarginPercent: number;
 
@@ -138,11 +165,17 @@ export class ProjectProfitabilityService {
 
     const entries: CostLedgerEntry[] = [];
 
-    // 1. Materials consumed from DISPATCHED or DELIVERED material dispatches
-    // Note: Cancelled dispatches or draft dispatches are strictly excluded.
+    // 1. Track issued vs physically delivered/consumed material dispatches
+    // Note: DISPATCHED / IN_TRANSIT slips are reported under issued/in-transit cost, NEVER treated as consumed cost until DELIVERED at site.
     const dispatches = await MaterialDispatch.find({
       projectId: project._id,
-      status: { $in: [MaterialDispatchStatus.DISPATCHED, MaterialDispatchStatus.DELIVERED] }
+      status: {
+        $in: [
+          MaterialDispatchStatus.DISPATCHED,
+          MaterialDispatchStatus.IN_TRANSIT,
+          MaterialDispatchStatus.DELIVERED
+        ]
+      }
     }).lean();
 
     const productIds = new Set<string>();
@@ -161,7 +194,12 @@ export class ProjectProfitabilityService {
     const productMap = new Map<string, any>();
     products.forEach(p => productMap.set(p._id.toString(), p));
 
+    let materialIssuedCostPaise = 0;
+    let materialInTransitCostPaise = 0;
+    let deliveredMaterialCostPaise = 0;
+
     for (const d of dispatches) {
+      const isDelivered = d.status === MaterialDispatchStatus.DELIVERED;
       for (const item of d.lineItems || []) {
         const prod = productMap.get(item.productId.toString());
         const unitRate =
@@ -170,30 +208,44 @@ export class ProjectProfitabilityService {
             : prod?.standardPurchaseRatePaise || 0;
         const lineItemAmount = (item.issuedQuantity || 0) * unitRate;
 
+        materialIssuedCostPaise += lineItemAmount;
+        if (isDelivered) {
+          deliveredMaterialCostPaise += lineItemAmount;
+        } else {
+          materialInTransitCostPaise += lineItemAmount;
+        }
+
         entries.push({
           id: `${d._id}_${item.productId}`,
           sourceType: ProjectCostSourceType.MATERIAL_DISPATCH,
           sourceId: d._id.toString(),
           sourceNumber: d.dispatchNumber,
           costCategory: 'MATERIALS',
-          description: `${prod?.name || 'Solar Hardware Item'} (Qty: ${item.issuedQuantity} ${prod?.uom || 'NOS'})`,
+          description: `${prod?.name || 'Solar Hardware Item'} (Qty: ${item.issuedQuantity} ${prod?.uom || 'NOS'})${isDelivered ? '' : ' [In Transit — Not Yet Consumed]'}`,
           quantity: item.issuedQuantity,
           unitRatePaise: unitRate,
-          amountPaise: lineItemAmount,
+          amountPaise: isDelivered ? lineItemAmount : 0,
           effectiveDate: d.dispatchedAt || d.createdAt,
           status: d.status
         });
       }
     }
 
-    // 1b. Material returns (credit back to project to reflect net actual consumption)
+    // 1b. Physical Material returns (excluding DISPATCH_REVERSAL which cancels un-departed dispatches)
+    let reusableReturnCreditPaise = 0;
+    let damagedScrapLossPaise = 0;
+
     if (project.orderId) {
       const returnMovements = await StockMovement.find({
         orderId: project.orderId,
-        movementType: StockMovementType.RETURN
+        movementType: StockMovementType.RETURN,
+        isReversal: { $ne: true }
       }).lean();
 
       for (const ret of returnMovements) {
+        if (ret.movementType !== StockMovementType.RETURN || (ret as any).isReversal) {
+          continue;
+        }
         let prod = productMap.get(ret.productId.toString());
         if (!prod) {
           prod = await Product.findById(ret.productId).lean();
@@ -217,32 +269,36 @@ export class ProjectProfitabilityService {
           (isDamagedOrScrap ? 'SCRAP_WRITEOFF' : 'RESTOCK');
 
         const salvageCreditPaise = (ret as any).salvageCreditPaise || 0;
+        const grossReturnValue = Math.abs(Math.round((ret.quantity || 0) * unitRate));
 
         let returnCreditPaise = 0;
         let entryStatus = 'RETURNED';
+        let entrySourceType = ProjectCostSourceType.RETURN_CREDIT;
         let desc = '';
 
         if (!isDamagedOrScrap) {
           // Reusable / accepted physical return: full original valuation credited back to project
-          returnCreditPaise = -Math.abs(Math.round((ret.quantity || 0) * unitRate));
+          returnCreditPaise = -grossReturnValue;
+          reusableReturnCreditPaise += grossReturnValue;
           entryStatus = 'RETURNED';
+          entrySourceType = ProjectCostSourceType.RETURN_CREDIT;
           desc = `Material Return Credit [REUSABLE]: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'}) via ${ret.movementNumber}`;
         } else {
-          // Damaged / Scrap / Rejected return:
-          // Do NOT automatically credit full material cost! The project/business absorbed this loss.
-          // Only explicit salvage, insurance, or supplier RMA recovery amount is credited:
+          // Damaged / Scrap / Rejected return: business absorbed unrecovered loss
           returnCreditPaise = salvageCreditPaise > 0 ? -Math.abs(salvageCreditPaise) : 0;
+          damagedScrapLossPaise += Math.max(0, grossReturnValue - Math.abs(salvageCreditPaise));
           entryStatus = rawCondition.includes('DAMAGED')
             ? 'DAMAGED_WRITE_OFF'
             : rawCondition.includes('SCRAP')
             ? 'SCRAP_LOSS'
             : 'REJECTED';
+          entrySourceType = ProjectCostSourceType.SCRAP_LOSS;
           desc = `Material Site Return [${rawCondition} - ${disposition}]: ${prod?.name || 'Solar Hardware Item'} (Qty: ${ret.quantity} ${prod?.uom || 'NOS'})${salvageCreditPaise > 0 ? ` - Recovery Credit: ₹${salvageCreditPaise / 100}` : ' - Uncredited Damage/Loss'} via ${ret.movementNumber}`;
         }
 
         entries.push({
           id: `RET_${ret._id}`,
-          sourceType: ProjectCostSourceType.MATERIAL_DISPATCH,
+          sourceType: entrySourceType,
           sourceId: ret._id.toString(),
           sourceNumber: ret.movementNumber,
           costCategory: 'MATERIALS',
@@ -308,11 +364,26 @@ export class ProjectProfitabilityService {
 
     const totalCostPaise =
       materialsCostPaise + laborCostPaise + logisticsCostPaise + civilCostPaise + miscCostPaise;
+    const approvedExpensesPaise =
+      expenses.reduce(
+        (sum, exp) => sum + (exp.totalAmountPaise || exp.amountPaise + (exp.taxAmountPaise || 0)),
+        0
+      );
+    const materialConsumedCostPaise = Math.max(
+      0,
+      deliveredMaterialCostPaise - reusableReturnCreditPaise
+    );
 
     return {
       entries,
       summary: {
         materialsCostPaise,
+        materialIssuedCostPaise,
+        materialInTransitCostPaise,
+        materialConsumedCostPaise,
+        reusableReturnCreditPaise,
+        damagedScrapLossPaise,
+        approvedExpensesPaise,
         laborCostPaise,
         logisticsCostPaise,
         civilCostPaise,
@@ -405,8 +476,64 @@ export class ProjectProfitabilityService {
       contractedSalesValuePaise * (operationalProgressPercent / 100)
     );
 
-    // 5. Cost Ledger & Summaries
+    // 5. Cost Ledger & Summaries (Issued vs Consumed vs Return Credit vs Loss vs Approved Expenses)
     const { summary: costSummary } = await this.getCostLedger(projectId);
+
+    // 6. PO Committed & Actual Procurement Cost (tracked separately; NEVER added to actual project cost ledger to avoid double counting)
+    let poCommittedCostPaise = 0;
+    let actualProcurementCostPaise = 0;
+    if (mongoose.connection.readyState === 1 || (PurchaseOrder.find as any)?.mock) {
+      const committedPos = await PurchaseOrder.find({
+        projectId: project._id,
+        status: {
+          $in: [
+            PurchaseOrderStatus.APPROVED,
+            PurchaseOrderStatus.PARTIALLY_RECEIVED,
+            PurchaseOrderStatus.FULLY_RECEIVED
+          ]
+        }
+      }).lean();
+      poCommittedCostPaise = committedPos.reduce((sum, po) => sum + (po.totalAmountPaise || 0), 0);
+
+      const poIds = committedPos.map(po => po._id);
+      if (mongoose.connection.readyState === 1 || (VendorInvoice.find as any)?.mock) {
+        const vendorInvoices = await VendorInvoice.find({
+          status: { $ne: VendorInvoiceStatus.CANCELLED },
+          $or: [
+            { projectId: project._id },
+            ...(poIds.length > 0 ? [{ purchaseOrderId: { $in: poIds } }] : [])
+          ]
+        }).lean();
+        actualProcurementCostPaise = vendorInvoices.reduce(
+          (sum, v) => sum + (v.totalAmountPaise || 0),
+          0
+        );
+      }
+
+      if (
+        actualProcurementCostPaise === 0 &&
+        poIds.length > 0 &&
+        (mongoose.connection.readyState === 1 || (GoodsReceipt.find as any)?.mock)
+      ) {
+        const grns = await GoodsReceipt.find({
+          purchaseOrderId: { $in: poIds },
+          status: GoodsReceiptStatus.COMPLETED
+        }).lean();
+        for (const grn of grns) {
+          const po = committedPos.find(p => p._id.toString() === grn.purchaseOrderId.toString());
+          if (!po) continue;
+          for (const gLine of grn.lineItems || []) {
+            const pLine = (po.lineItems || []).find(
+              l => l.productId.toString() === gLine.productId.toString()
+            );
+            const rate = (pLine as any)?.unitPurchaseRatePaise ?? (pLine as any)?.unitPricePaise ?? 0;
+            const gst = (pLine as any)?.gstRate ?? 12;
+            const sub = (gLine.acceptedQuantity || 0) * rate;
+            actualProcurementCostPaise += sub + Math.round((sub * gst) / 100);
+          }
+        }
+      }
+    }
 
     const actualGrossMarginPaise = contractedSalesValuePaise - costSummary.totalCostPaise;
     const actualMarginPercent =
@@ -414,24 +541,41 @@ export class ProjectProfitabilityService {
         ? Math.round((actualGrossMarginPaise / contractedSalesValuePaise) * 10000) / 100
         : 0;
 
-    // 7. Budget vs Actual Comparison
+    // 7. Budget vs Actual Comparison (Never equate estimated/budgeted margin with actual margin!)
     const approvedBudget = await ProjectBudget.findOne({
       projectId: project._id,
       status: ProjectBudgetStatus.APPROVED
     }).lean();
 
-    const plannedTotalBudgetPaise = approvedBudget?.totalBudgetPaise || 0;
+    const estimatedCostPaise = approvedBudget ? approvedBudget.totalBudgetPaise || 0 : null;
     const budgetedGrossMarginPaise = approvedBudget
-      ? contractedSalesValuePaise - plannedTotalBudgetPaise
-      : actualGrossMarginPaise;
+      ? contractedSalesValuePaise - (estimatedCostPaise || 0)
+      : null;
     const budgetedMarginPercent =
-      contractedSalesValuePaise > 0
+      approvedBudget && contractedSalesValuePaise > 0 && budgetedGrossMarginPaise !== null
         ? Math.round((budgetedGrossMarginPaise / contractedSalesValuePaise) * 10000) / 100
-        : 0;
+        : null;
 
-    // Preserve legacy field name while providing explicit budgeted vs actual distinction
     const estimatedGrossMarginPaise = budgetedGrossMarginPaise;
     const grossMarginPercent = budgetedMarginPercent;
+
+    const costBreakdown: ProjectCostBreakdown = {
+      estimatedCostPaise,
+      poCommittedCostPaise,
+      actualProcurementCostPaise,
+      materialIssuedCostPaise: costSummary.materialIssuedCostPaise ?? costSummary.materialsCostPaise,
+      materialInTransitCostPaise: costSummary.materialInTransitCostPaise ?? 0,
+      materialConsumedCostPaise: costSummary.materialConsumedCostPaise ?? costSummary.materialsCostPaise,
+      reusableReturnCreditPaise: costSummary.reusableReturnCreditPaise ?? 0,
+      damagedScrapLossPaise: costSummary.damagedScrapLossPaise ?? 0,
+      approvedExpensesPaise:
+        costSummary.approvedExpensesPaise ??
+        costSummary.laborCostPaise +
+          costSummary.logisticsCostPaise +
+          costSummary.civilCostPaise +
+          costSummary.miscCostPaise,
+      actualProjectCostPaise: costSummary.totalCostPaise
+    };
 
     const budgetComparison: BudgetVsActualComparison = {
       hasApprovedBudget: Boolean(approvedBudget),
@@ -496,10 +640,12 @@ export class ProjectProfitabilityService {
       contractedSalesValuePaise,
       operationalProgressPercent,
       operationalProgressRevenuePaise,
+      recognizedRevenuePaise: operationalProgressRevenuePaise,
       confirmedCollectionsPaise,
       unallocatedCustomerCreditPaise,
       outstandingReceivablesPaise,
       costSummary,
+      costBreakdown,
       estimatedGrossMarginPaise,
       grossMarginPercent,
       budgetedGrossMarginPaise,

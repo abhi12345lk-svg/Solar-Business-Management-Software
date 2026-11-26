@@ -47,7 +47,7 @@ describe('Phase 6A Frontend Operational Pages', () => {
     },
     systemCapacityKwp: 25.0,
     systemTopology: 'ON_GRID',
-    currentStage: 'STAGE_1_ENGINEERING_DESIGN',
+    currentStage: 'STAGE_1_DESIGN_APPROVAL',
     status: 'IN_PROGRESS',
     priority: 'HIGH',
     plannedStartDate: '2026-11-01T00:00:00.000Z',
@@ -90,7 +90,7 @@ describe('Phase 6A Frontend Operational Pages', () => {
     },
     systemCapacityKwp: 25.0,
     systemTopology: 'ON_GRID',
-    currentStage: 'STAGE_1_ENGINEERING_DESIGN',
+    currentStage: 'STAGE_1_DESIGN_APPROVAL',
     status: 'IN_PROGRESS',
     priority: 'HIGH',
     plannedStartDate: '2026-11-01T00:00:00.000Z',
@@ -127,7 +127,7 @@ describe('Phase 6A Frontend Operational Pages', () => {
     ],
     stageHistory: [
       {
-        stage: 'STAGE_1_ENGINEERING_DESIGN',
+        stage: 'STAGE_1_DESIGN_APPROVAL',
         transitionedAt: '2026-11-01T08:00:00.000Z',
         transitionedBy: {
           firstName: 'Vikram',

@@ -65,7 +65,7 @@ interface MaterialDispatchItem {
     postalCode?: string;
   };
   lineItems: DispatchLineItem[];
-  status: 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  status: 'DRAFT' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
   dispatchedAt?: string;
   deliveredAt?: string;
   deliveryNotes?: string;
@@ -291,6 +291,19 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
     }
   };
 
+  const handleMarkInTransit = async (dispatch: MaterialDispatchItem) => {
+    try {
+      setError(null);
+      await apiClient(`/dispatches/${dispatch._id}/transit`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      await fetchData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to mark dispatch as In Transit.');
+    }
+  };
+
   const handleAcknowledgeDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!dispatchToAcknowledge) return;
@@ -491,10 +504,16 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
                             : disp.status === 'DELIVERED'
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                              : 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : disp.status === 'IN_TRANSIT'
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-blue-100 text-blue-800 border border-blue-200'
                         }`}
                       >
-                        {disp.status === 'DELIVERED' ? 'DELIVERED TO SITE' : disp.status}
+                        {disp.status === 'DELIVERED'
+                          ? 'DELIVERED TO SITE'
+                          : disp.status === 'IN_TRANSIT'
+                            ? 'IN TRANSIT'
+                            : disp.status}
                       </span>
                       {disp.dispatchedAt && (
                         <span className="text-xs text-muted-foreground flex items-center">
@@ -508,6 +527,15 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                       <div className="flex items-center gap-2 self-start sm:self-auto">
                         {disp.status === 'DISPATCHED' && (
                           <button
+                            onClick={() => handleMarkInTransit(disp)}
+                            className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-amber-600 text-white hover:bg-amber-700 shadow-xs cursor-pointer"
+                          >
+                            <Truck className="w-3.5 h-3.5 mr-1" />
+                            Mark In Transit
+                          </button>
+                        )}
+                        {(disp.status === 'DISPATCHED' || disp.status === 'IN_TRANSIT') && (
+                          <button
                             onClick={() => {
                               setDispatchToAcknowledge(disp);
                               setDeliveryNotes('');
@@ -519,7 +547,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                             Acknowledge Delivery
                           </button>
                         )}
-                        {disp.status !== 'DELIVERED' && (
+                        {(disp.status === 'DISPATCHED' || disp.status === 'DRAFT') && (
                           <button
                             onClick={() => {
                               setDispatchToCancel(disp);
@@ -529,7 +557,7 @@ export const MaterialDispatchTab: React.FC<MaterialDispatchTabProps> = ({
                             className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
                           >
                             <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                            Cancel & Return Stock
+                            Cancel Pre-Transit Dispatch
                           </button>
                         )}
                       </div>

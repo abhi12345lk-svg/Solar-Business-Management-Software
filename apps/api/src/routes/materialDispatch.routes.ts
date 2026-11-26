@@ -6,6 +6,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import {
   createMaterialDispatchSchema,
   cancelMaterialDispatchSchema,
+  markDispatchInTransitSchema,
+  acknowledgeDispatchDeliverySchema,
   dispatchFilterSchema
 } from '@ins-solar/shared';
 import { MaterialDispatchService } from '../services/materialDispatchService.js';
@@ -144,6 +146,40 @@ materialDispatchRouter.post(
 );
 
 /**
+ * POST /api/v1/dispatches/:id/transit
+ * Transition a staged DISPATCHED slip to IN_TRANSIT when goods physically leave the warehouse.
+ */
+materialDispatchRouter.post(
+  '/:id/transit',
+  requirePermission(['dispatch:create', 'project:update']),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parseResult = markDispatchInTransitSchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return next(AppError.validation(parseResult.error));
+      }
+
+      const user = req.session.user!;
+      const context = {
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        correlationId: (req as any).correlationId
+      };
+
+      const dispatch = await MaterialDispatchService.markInTransit(
+        req.params.id as string,
+        parseResult.data,
+        user,
+        context
+      );
+      return sendSuccess(req, res, dispatch);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+/**
  * POST /api/v1/dispatches/:id/acknowledge
  * Acknowledge receipt of dispatched equipment at project site by installation crew.
  */
@@ -152,6 +188,11 @@ materialDispatchRouter.post(
   requirePermission(['dispatch:create', 'installation:update', 'project:update']),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const parseResult = acknowledgeDispatchDeliverySchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return next(AppError.validation(parseResult.error));
+      }
+
       const user = req.session.user!;
       const context = {
         ipAddress: req.ip,

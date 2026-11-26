@@ -74,7 +74,7 @@ describe('Phase 8B Frontend: Expense Management, Project Costing & Profitability
     projectName: 'Rooftop 15kWp Commercial',
     customerId: 'cust-001',
     systemCapacityKwp: 15,
-    currentStage: 'STAGE_06_INSTALLATION_WORK',
+    currentStage: 'STAGE_3_SITE_INSTALLATION',
     projectStatus: 'IN_PROGRESS',
     hasConfirmedOrder: true,
     orderNumber: 'ORD-2026-00001',

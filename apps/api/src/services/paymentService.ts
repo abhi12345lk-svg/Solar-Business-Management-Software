@@ -80,16 +80,15 @@ export class PaymentService {
       throw AppError.notFound(`Customer with ID or Code '${cleanCustId}' not found.`);
     }
 
-    // 3. Duplicate transaction reference check for non-cash methods
+    // 3. Global duplicate transaction reference check across all non-reversed non-cash payments
     if (input.transactionReference?.trim() && input.paymentMethod !== PaymentMethod.CASH) {
       const duplicate = await CustomerPayment.findOne({
         transactionReference: input.transactionReference.trim(),
-        customerId: customer._id,
         status: { $ne: CustomerPaymentStatus.REVERSED }
       });
       if (duplicate) {
         throw AppError.badRequest(
-          `A payment with transaction reference '${input.transactionReference}' has already been recorded for this customer (${duplicate.receiptNumber}).`
+          `A payment with transaction reference '${input.transactionReference}' has already been recorded (${duplicate.receiptNumber}).`
         );
       }
     }
@@ -102,8 +101,8 @@ export class PaymentService {
       ? new mongoose.Types.ObjectId(actor.userId)
       : new mongoose.Types.ObjectId();
 
-    const isAutoVerified = Boolean(input.autoVerify);
-    const status = isAutoVerified ? CustomerPaymentStatus.VERIFIED : CustomerPaymentStatus.RECORDED;
+    // Recorded, verified and allocated stages are strictly separated: new payments ALWAYS enter as RECORDED
+    const status = CustomerPaymentStatus.RECORDED;
 
     const initialHistory = [
       {
@@ -111,7 +110,7 @@ export class PaymentService {
         toStatus: status,
         changedAt: new Date(),
         changedBy: actorId,
-        notes: isAutoVerified ? 'Payment recorded and verified on intake' : 'Payment recorded'
+        notes: 'Payment recorded (awaiting verification)'
       }
     ];
 
@@ -130,8 +129,8 @@ export class PaymentService {
       internalNotes: input.internalNotes?.trim(),
       idempotencyKey: input.idempotencyKey?.trim(),
       recordedBy: actorId,
-      verifiedBy: isAutoVerified ? actorId : undefined,
-      verifiedAt: isAutoVerified ? new Date() : undefined,
+      verifiedBy: undefined,
+      verifiedAt: undefined,
       statusHistory: initialHistory
     });
 

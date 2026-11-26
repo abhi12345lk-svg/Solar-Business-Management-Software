@@ -473,13 +473,13 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  // 1-Click Milestone Stage Selection with Smart Locking & Balance Tracking
+  // 1-Click Milestone Stage Selection matching active Sales Order schedule
   const applyMilestoneStage = (stage: 'M1' | 'M2' | 'M3' | 'CUSTOM') => {
     setSelectedMilestoneStage(stage);
 
     if (stage === 'M1') {
       if (m1Completed) {
-        alert(`Stage 1 (20% Booking Advance - ${formatINR(m1Target * 100)}) has already been fully paid and locked! Please proceed to Stage 2.`);
+        alert(`Stage 1 (${m1Pct}% ${m1Name} - ${formatINR(m1Target * 100)}) has already been fully paid and locked! Please proceed to Stage 2.`);
         return;
       }
       const stageAmt = m1Due > 0 ? m1Due : m1Target;
@@ -487,16 +487,16 @@ export const PaymentsPage: React.FC = () => {
         ...prev,
         amountRupees: stageAmt.toString(),
         notes: m1Paid > 0
-          ? `Stage 1 Booking Advance: Balance payment of ${formatINR(stageAmt * 100)} (completing 20% milestone)`
-          : `Stage 1: Booking Advance (20%) - Order confirmation token`
+          ? `Stage 1 ${m1Name}: Balance payment of ${formatINR(stageAmt * 100)} (completing ${m1Pct}% milestone)`
+          : `Stage 1: ${m1Name} (${m1Pct}%) - Order milestone receipt`
       }));
     } else if (stage === 'M2') {
       if (!m1Completed) {
-        alert(`Stage 1 (20% Booking Advance) must be completed before proceeding to Stage 2 (Material Pre-Dispatch)!`);
+        alert(`Stage 1 (${m1Pct}% ${m1Name}) must be completed before proceeding to Stage 2 (${m2Name})!`);
         return;
       }
       if (m2Completed) {
-        alert(`Stage 2 (70% Material Pre-Dispatch - ${formatINR(m2Target * 100)}) has already been fully paid and locked! Please proceed to Stage 3.`);
+        alert(`Stage 2 (${m2Pct}% ${m2Name} - ${formatINR(m2Target * 100)}) has already been fully paid and locked! Please proceed to Stage 3.`);
         return;
       }
       const stageAmt = m2Due > 0 ? m2Due : m2Target;
@@ -504,16 +504,16 @@ export const PaymentsPage: React.FC = () => {
         ...prev,
         amountRupees: stageAmt.toString(),
         notes: m2Paid > 0
-          ? `Stage 2 Pre-Dispatch: Balance payment of ${formatINR(stageAmt * 100)} (completing 70% milestone)`
-          : `Stage 2: Material Pre-Dispatch (70%) - Prior to warehouse dispatch`
+          ? `Stage 2 ${m2Name}: Balance payment of ${formatINR(stageAmt * 100)} (completing ${m2Pct}% milestone)`
+          : `Stage 2: ${m2Name} (${m2Pct}%) - Sales Order milestone`
       }));
     } else if (stage === 'M3') {
       if (!m2Completed) {
-        alert(`Stage 2 (70% Material Pre-Dispatch) must be completed before proceeding to Stage 3 (Commissioning & Handover)!`);
+        alert(`Stage 2 (${m2Pct}% ${m2Name}) must be completed before proceeding to Stage 3 (${m3Name})!`);
         return;
       }
       if (m3Completed) {
-        alert(`Stage 3 (10% Commissioning - ${formatINR(m3Target * 100)}) has already been fully paid! All project milestones are 100% completed.`);
+        alert(`Stage 3 (${m3Pct}% ${m3Name} - ${formatINR(m3Target * 100)}) has already been fully paid! All project milestones are 100% completed.`);
         return;
       }
       const stageAmt = m3Due > 0 ? m3Due : m3Target;
@@ -521,8 +521,8 @@ export const PaymentsPage: React.FC = () => {
         ...prev,
         amountRupees: stageAmt.toString(),
         notes: m3Paid > 0
-          ? `Stage 3 Commissioning: Balance payment of ${formatINR(stageAmt * 100)} (completing 10% handover milestone)`
-          : `Stage 3: Installation & Commissioning (10%) - Post net-meter test & final handover`
+          ? `Stage 3 ${m3Name}: Balance payment of ${formatINR(stageAmt * 100)} (completing ${m3Pct}% handover milestone)`
+          : `Stage 3: ${m3Name} (${m3Pct}%) - Commissioning & handover milestone`
       }));
     }
   };
@@ -1020,15 +1020,15 @@ export const PaymentsPage: React.FC = () => {
                   const isRecorded = payment.status === 'RECORDED';
                   const isReversed = payment.status === 'REVERSED';
 
-                  // Extract milestone tag if present
+                  // Extract milestone tag if present without assuming hardcoded 20/70/10 percentages
                   let milestoneLabel = 'General Receipt';
                   const n = (payment.notes || '').toLowerCase();
                   if (n.includes('stage 2') || n.includes('pre-dispatch') || n.includes('milestone 2')) {
-                    milestoneLabel = 'Stage 2: Pre-Dispatch (70%)';
+                    milestoneLabel = 'Stage 2: Pre-Dispatch';
                   } else if (n.includes('stage 3') || n.includes('commissioning') || n.includes('milestone 3')) {
-                    milestoneLabel = 'Stage 3: Commissioning (10%)';
+                    milestoneLabel = 'Stage 3: Commissioning';
                   } else if (n.includes('stage 1') || n.includes('advance') || n.includes('booking') || n.includes('milestone 1') || n.includes('token')) {
-                    milestoneLabel = 'Stage 1: Advance (20%)';
+                    milestoneLabel = 'Stage 1: Advance';
                   }
 
                   return (
@@ -1281,7 +1281,7 @@ export const PaymentsPage: React.FC = () => {
                     className="w-full px-3 py-1.5 border rounded-lg bg-background font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    Project total for tracking 3-stage milestone billing (20% Advance, 70% Pre-Dispatch, 10% Handover).
+                    Project total for tracking custom or standard milestone billing ({m1Pct}% {m1Name}, {m2Pct}% {m2Name}, {m3Pct}% {m3Name}).
                   </p>
                 </div>
               )}
@@ -1297,7 +1297,7 @@ export const PaymentsPage: React.FC = () => {
                       Contract 100% Fully Settled!
                     </h3>
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 max-w-md mx-auto">
-                      All 3 solar project milestones (20% Advance, 70% Pre-Dispatch, 10% Handover) have been completely realized and verified.
+                      All solar project milestones ({m1Pct}% {m1Name}, {m2Pct}% {m2Name}, {m3Pct}% {m3Name}) have been completely realized and verified.
                     </p>
                   </div>
 

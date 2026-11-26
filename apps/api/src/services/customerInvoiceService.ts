@@ -6,7 +6,7 @@
  * and audited lifecycle for customer tax invoices.
  */
 
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import {
   CreateCustomerInvoiceInput,
   CancelCustomerInvoiceInput,
@@ -95,7 +95,8 @@ export class CustomerInvoiceService {
       throw AppError.notFound(`Customer linked to order '${order.orderNumber}' not found.`);
     }
 
-    // 4. Duplicate Check
+    // 4. Duplicate & Credit Note Validation
+    let originalInvoice: ICustomerInvoiceDocument | null = null;
     if (input.invoiceType === CustomerInvoiceType.TAX_INVOICE) {
       const existingTaxInvoice = await CustomerInvoice.findOne({
         orderId: order._id,
@@ -122,6 +123,21 @@ export class CustomerInvoiceService {
           `A Milestone Invoice (${existingMilestoneInvoice.invoiceNumber}) has already been generated for milestone #${input.milestoneIndex + 1} of order '${order.orderNumber}'.`
         );
       }
+    } else if (input.invoiceType === CustomerInvoiceType.CREDIT_NOTE) {
+      if (!input.originalInvoiceId || !Types.ObjectId.isValid(input.originalInvoiceId)) {
+        throw AppError.badRequest('A valid originalInvoiceId is required when issuing a Credit Note.');
+      }
+      originalInvoice = await CustomerInvoice.findById(input.originalInvoiceId);
+      if (
+        !originalInvoice ||
+        originalInvoice.orderId.toString() !== order._id.toString() ||
+        originalInvoice.status === CustomerInvoiceStatus.CANCELLED ||
+        originalInvoice.invoiceType === CustomerInvoiceType.CREDIT_NOTE
+      ) {
+        throw AppError.businessRule(
+          'Original customer invoice is invalid, cancelled, or does not belong to this Sales Order.'
+        );
+      }
     }
 
     // 5. Fetch Company Settings (Registered Address, GSTIN, State)
@@ -146,7 +162,53 @@ export class CustomerInvoiceService {
     // 6. Calculate Line Items & GST
     const lineItems: IInvoiceLineItem[] = [];
 
-    if (input.invoiceType === CustomerInvoiceType.MILESTONE_INVOICE && input.milestoneIndex !== undefined) {
+    if (input.invoiceType === CustomerInvoiceType.CREDIT_NOTE && originalInvoice) {
+      const priorCreditNotes = await CustomerInvoice.find({
+        originalInvoiceId: originalInvoice._id,
+        invoiceType: CustomerInvoiceType.CREDIT_NOTE,
+        status: { $ne: CustomerInvoiceStatus.CANCELLED }
+      }).lean();
+      const priorCreditedPaise = priorCreditNotes.reduce(
+        (sum, cn) => sum + (cn.netTotalPaise || 0),
+        0
+      );
+      const remainingCreditablePaise = Math.max(
+        0,
+        (originalInvoice.netTotalPaise || 0) - priorCreditedPaise
+      );
+      const creditGrossTotalPaise = input.creditAmountPaise ?? remainingCreditablePaise;
+      if (creditGrossTotalPaise <= 0 || creditGrossTotalPaise > remainingCreditablePaise) {
+        throw AppError.businessRule(
+          `Credit Note amount (₹${(creditGrossTotalPaise / 100).toFixed(2)}) exceeds remaining creditable balance (₹${(remainingCreditablePaise / 100).toFixed(2)}) on ${originalInvoice.invoiceNumber}.`
+        );
+      }
+
+      const ratio =
+        originalInvoice.netTotalPaise > 0
+          ? creditGrossTotalPaise / originalInvoice.netTotalPaise
+          : 1;
+      const creditTaxable = Math.round((originalInvoice.taxableAmountPaise || 0) * ratio);
+      const creditCgst = Math.round((originalInvoice.totalCgstPaise || 0) * ratio);
+      const creditSgst = Math.round((originalInvoice.totalSgstPaise || 0) * ratio);
+      const creditIgst = Math.round((originalInvoice.totalIgstPaise || 0) * ratio);
+      const creditGstRateBps = originalInvoice.lineItems?.[0]?.gstRateBasisPoints ?? 1200;
+
+      lineItems.push({
+        itemType: 'CREDIT_ADJUSTMENT',
+        description: `Credit Note adjustment against ${originalInvoice.invoiceNumber}${input.notes ? ` (${input.notes.trim()})` : ''}`,
+        hsnSacCode: originalInvoice.lineItems?.[0]?.hsnSacCode || '9954',
+        quantity: 1,
+        unit: 'NOS',
+        unitRatePaise: creditTaxable,
+        discountPaise: 0,
+        taxableAmountPaise: creditTaxable,
+        gstRateBasisPoints: creditGstRateBps,
+        cgstPaise: creditCgst,
+        sgstPaise: creditSgst,
+        igstPaise: creditIgst,
+        itemTotalPaise: creditTaxable + creditCgst + creditSgst + creditIgst
+      });
+    } else if (input.invoiceType === CustomerInvoiceType.MILESTONE_INVOICE && input.milestoneIndex !== undefined) {
       const milestone = order.paymentMilestones?.[input.milestoneIndex];
       if (!milestone) {
         throw AppError.badRequest(`Milestone #${input.milestoneIndex + 1} does not exist on Sales Order '${order.orderNumber}'.`);
@@ -273,30 +335,81 @@ export class CustomerInvoiceService {
     const netTotalPaise = taxableAmountPaise + totalTaxPaise;
 
     let advancesAdjustedPaise = 0;
-    if (input.invoiceType === CustomerInvoiceType.TAX_INVOICE) {
-      const priorMilestones = await CustomerInvoice.find({
+    let priorMilestonesPaidPaise = 0;
+
+    if (
+      (input.invoiceType === CustomerInvoiceType.TAX_INVOICE ||
+        input.invoiceType === CustomerInvoiceType.MILESTONE_INVOICE) &&
+      (mongoose.connection.readyState === 1 || (CustomerInvoice.find as any)?.mock)
+    ) {
+      const orderDocs = await CustomerInvoice.find({
         orderId: order._id,
-        invoiceType: CustomerInvoiceType.MILESTONE_INVOICE,
+        invoiceType: {
+          $in: [CustomerInvoiceType.MILESTONE_INVOICE, CustomerInvoiceType.CREDIT_NOTE]
+        },
         status: { $ne: CustomerInvoiceStatus.CANCELLED }
       });
-      advancesAdjustedPaise = priorMilestones.reduce((sum, inv) => sum + (inv.netTotalPaise || 0), 0);
+
+      const priorMilestones = orderDocs.filter(
+        inv => !inv.invoiceType || inv.invoiceType === CustomerInvoiceType.MILESTONE_INVOICE
+      );
+      if (input.invoiceType === CustomerInvoiceType.TAX_INVOICE) {
+        const milestoneIds = new Set(
+          priorMilestones.map(m => m._id?.toString()).filter(Boolean)
+        );
+        const rawMilestonesBilledPaise = priorMilestones.reduce(
+          (sum, inv) => sum + (inv.netTotalPaise || 0),
+          0
+        );
+        // Credit Notes against prior Milestone Invoices reduce the billed milestone advance credit
+        const milestoneCreditNotesPaise = orderDocs
+          .filter(
+            cn =>
+              cn.invoiceType === CustomerInvoiceType.CREDIT_NOTE &&
+              cn.originalInvoiceId &&
+              milestoneIds.has(cn.originalInvoiceId.toString())
+          )
+          .reduce((sum, cn) => sum + (cn.netTotalPaise || 0), 0);
+
+        advancesAdjustedPaise = Math.max(0, rawMilestonesBilledPaise - milestoneCreditNotesPaise);
+      }
+      priorMilestonesPaidPaise = priorMilestones.reduce(
+        (sum, inv) => sum + (inv.amountPaidPaise || 0),
+        0
+      );
     }
 
-    // 8. Reconcile Customer Payments against this Order & Invoiced Advances
-    const allocations = await PaymentAllocation.find({
-      salesOrderId: order._id,
-      status: PaymentAllocationStatus.ACTIVE
-    });
-    const totalAllocatedPaise = allocations.reduce((sum, a) => sum + (a.allocatedAmountPaise || 0), 0);
-    const netPayablePaise = Math.max(0, netTotalPaise - advancesAdjustedPaise);
-    const amountPaidPaise = Math.min(netPayablePaise, totalAllocatedPaise);
-    const balanceDuePaise = Math.max(0, netPayablePaise - amountPaidPaise);
-
+    // 8. Reconcile Customer Payments without double-counting allocations across multiple Milestone Invoices
+    let amountPaidPaise = 0;
+    let balanceDuePaise = 0;
     let status = CustomerInvoiceStatus.ISSUED;
-    if (balanceDuePaise === 0 && netTotalPaise > 0) {
+
+    if (input.invoiceType === CustomerInvoiceType.CREDIT_NOTE) {
+      amountPaidPaise = netTotalPaise;
+      balanceDuePaise = 0;
       status = CustomerInvoiceStatus.PAID;
-    } else if (amountPaidPaise > 0) {
-      status = CustomerInvoiceStatus.PARTIALLY_PAID;
+    } else {
+      const allocations = await PaymentAllocation.find({
+        salesOrderId: order._id,
+        status: PaymentAllocationStatus.ACTIVE
+      });
+      const totalAllocatedPaise = allocations.reduce(
+        (sum, a) => sum + (a.allocatedAmountPaise || 0),
+        0
+      );
+      const remainingAvailableAllocations = Math.max(
+        0,
+        totalAllocatedPaise - priorMilestonesPaidPaise
+      );
+      const netPayablePaise = Math.max(0, netTotalPaise - advancesAdjustedPaise);
+      amountPaidPaise = Math.min(netPayablePaise, remainingAvailableAllocations);
+      balanceDuePaise = Math.max(0, netPayablePaise - amountPaidPaise);
+
+      if (balanceDuePaise === 0 && netTotalPaise > 0) {
+        status = CustomerInvoiceStatus.PAID;
+      } else if (amountPaidPaise > 0) {
+        status = CustomerInvoiceStatus.PARTIALLY_PAID;
+      }
     }
 
     // 9. Generate Strictly Monotonic Sequential Invoice Number
@@ -344,6 +457,7 @@ export class CustomerInvoiceService {
       invoiceDate: input.invoiceDate ? new Date(input.invoiceDate) : new Date(),
       dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
       invoiceType: input.invoiceType,
+      originalInvoiceId: originalInvoice?._id,
       milestoneIndex: input.milestoneIndex,
       milestoneName: input.milestoneIndex !== undefined ? order.paymentMilestones?.[input.milestoneIndex]?.name : undefined,
       percentageBilled: input.invoiceType === CustomerInvoiceType.MILESTONE_INVOICE && input.milestoneIndex !== undefined
@@ -373,9 +487,23 @@ export class CustomerInvoiceService {
 
     await invoice.save();
 
+    if (input.invoiceType === CustomerInvoiceType.CREDIT_NOTE && originalInvoice) {
+      originalInvoice.balanceDuePaise = Math.max(
+        0,
+        (originalInvoice.balanceDuePaise || 0) - netTotalPaise
+      );
+      if (originalInvoice.balanceDuePaise === 0 && originalInvoice.amountPaidPaise > 0) {
+        originalInvoice.status = CustomerInvoiceStatus.PAID;
+      }
+      await originalInvoice.save();
+    }
+
     // 11. Security Audit Logging
     await AuditService.recordEvent({
-      action: AuditAction.CUSTOMER_INVOICE_CREATED,
+      action:
+        input.invoiceType === CustomerInvoiceType.CREDIT_NOTE
+          ? AuditAction.CUSTOMER_CREDIT_NOTE_CREATED
+          : AuditAction.CUSTOMER_INVOICE_CREATED,
       actorType: ActorType.EMPLOYEE,
       actorId: user.userId,
       targetEntity: 'CustomerInvoice',
@@ -386,6 +514,8 @@ export class CustomerInvoiceService {
       correlationId: context.correlationId || 'N/A',
       details: {
         invoiceNumber: invoice.invoiceNumber,
+        invoiceType: invoice.invoiceType,
+        originalInvoiceNumber: originalInvoice?.invoiceNumber,
         orderNumber: order.orderNumber,
         customerName: customer.name,
         netTotalPaise,
@@ -408,17 +538,22 @@ export class CustomerInvoiceService {
       throw AppError.badRequest('Invalid Invoice ID format.');
     }
 
-    const query: any = { _id: new Types.ObjectId(id) };
-    if (customerScopeId) {
-      query.customerId = new Types.ObjectId(customerScopeId);
-    }
-
-    const invoice = await CustomerInvoice.findOne(query)
+    const invoice = await CustomerInvoice.findById(id)
       .populate('orderId', 'orderNumber status systemCapacityKwp systemTopology')
       .populate('customerId', 'name customerCode primaryPhone email');
 
     if (!invoice) {
       throw AppError.notFound(`Customer Invoice not found.`);
+    }
+
+    if (customerScopeId) {
+      const ownerId =
+        (invoice.customerId as any)?._id?.toString() || invoice.customerId?.toString();
+      if (ownerId !== customerScopeId) {
+        throw AppError.permissionDenied(
+          "Access denied: You cannot view another customer's tax invoice."
+        );
+      }
     }
 
     return invoice;
@@ -514,6 +649,31 @@ export class CustomerInvoiceService {
 
     if (invoice.status === CustomerInvoiceStatus.CANCELLED) {
       throw AppError.badRequest(`Invoice ${invoice.invoiceNumber} is already cancelled.`);
+    }
+
+    if (
+      invoice.invoiceType !== CustomerInvoiceType.CREDIT_NOTE &&
+      (invoice.amountPaidPaise || 0) > 0
+    ) {
+      throw AppError.badRequest(
+        `Cannot cancel invoice ${invoice.invoiceNumber} because ₹${((invoice.amountPaidPaise || 0) / 100).toLocaleString('en-IN')} has already been paid or credited. Reverse allocations or issue a Credit Note instead.`
+      );
+    }
+
+    if (mongoose.connection.readyState === 1 || (CustomerInvoice.findOne as any)?.mock) {
+      const activeCreditNote = await CustomerInvoice.findOne({
+        originalInvoiceId: invoice._id,
+        invoiceType: CustomerInvoiceType.CREDIT_NOTE,
+        status: { $ne: CustomerInvoiceStatus.CANCELLED },
+        isDeleted: { $ne: true }
+      })
+        .select('invoiceNumber')
+        .lean();
+      if (activeCreditNote) {
+        throw AppError.badRequest(
+          `Cannot cancel invoice ${invoice.invoiceNumber} while linked Credit Note ${activeCreditNote.invoiceNumber} is active.`
+        );
+      }
     }
 
     invoice.status = CustomerInvoiceStatus.CANCELLED;

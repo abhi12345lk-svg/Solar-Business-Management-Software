@@ -26,7 +26,8 @@ import {
   DocumentReviewStatus,
   DocumentStorageStatus,
   SerialNumberStatus,
-  WarrantyStatus
+  WarrantyStatus,
+  UserRole
 } from '@ins-solar/shared';
 import { InstallationModel, IInstallationDocument, ISitePhoto, ITechnicalManual } from '../models/Installation.js';
 import { Customer } from '../models/Customer.js';
@@ -34,7 +35,6 @@ import { Project } from '../models/Project.js';
 import { User } from '../models/User.js';
 import { DocumentModel } from '../models/DocumentModel.js';
 import { ProductSerialNumber } from '../models/ProductSerialNumber.js';
-import { Product } from '../models/Product.js';
 import { SequenceService } from './sequenceService.js';
 import { AuditService } from './auditService.js';
 import { getStorageAdapter } from './storage/index.js';
@@ -229,18 +229,15 @@ export class InstallationService {
       throw AppError.notFound(`Installation with ID '${id}' not found.`);
     }
 
-    // Role check: field installers can only edit if assigned to them, self-created, or if privileged admin / dev mode
-    const isPrivileged =
-      process.env.NODE_ENV !== 'production' ||
-      ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD', 'INSTALLATION_CREW', 'TECHNICIAN'].includes(
-        actorContext.role || ''
-      );
-    if (
-      !isPrivileged &&
-      inst.assignedInstallerId &&
-      inst.assignedInstallerId.toString() !== actorContext.actorId &&
-      inst.assignedBy?.toString() !== actorContext.actorId
-    ) {
+    // Role check: field installers can only edit installations assigned to them; only management roles have unrestricted edit access
+    const isPrivileged = ['SUPERADMIN', 'ADMIN', 'DEPARTMENT_HEAD'].includes(
+      actorContext.role || ''
+    );
+    const isAssignedInstaller =
+      (inst.assignedInstallerId && inst.assignedInstallerId.toString() === actorContext.actorId) ||
+      (inst.assignedBy && inst.assignedBy.toString() === actorContext.actorId);
+
+    if (!isPrivileged && !isAssignedInstaller) {
       throw AppError.forbidden('Access denied: You can only edit installations assigned to you.');
     }
 
@@ -475,6 +472,8 @@ export class InstallationService {
     }
 
     inst.status = InstallationStatus.SUBMITTED;
+    inst.submittedBy = new Types.ObjectId(actorContext.actorId);
+    inst.submittedAt = new Date();
     inst.isDraft = false;
     inst.completedDate = new Date();
     inst.currentStep = 11;
@@ -571,6 +570,16 @@ export class InstallationService {
       throw AppError.forbidden('Only administrative roles can approve or reject installation reports.');
     }
 
+    if (
+      inst.submittedBy &&
+      inst.submittedBy.toString() === actorContext.actorId &&
+      actorContext.role !== UserRole.SUPERADMIN
+    ) {
+      throw AppError.forbidden(
+        'Anti-self-approval violation: The installer or user who submitted this installation report cannot approve or reject it.'
+      );
+    }
+
     inst.reviewedBy = new Types.ObjectId(actorContext.actorId);
     inst.reviewedAt = new Date();
     inst.adminRemarks = input.adminRemarks?.trim() || '';
@@ -650,26 +659,37 @@ export class InstallationService {
       }
 
       for (const sn of serialNumbersToSync) {
-        try {
-          const existingSn = await ProductSerialNumber.findOne({ serialNumber: sn });
-          if (existingSn) {
-            const prod = await Product.findById(existingSn.productId).lean();
-            const years = (prod as any)?.warranty?.warrantyYears || 5;
-            const installDate = new Date();
-            const endDate = new Date(installDate);
-            endDate.setFullYear(endDate.getFullYear() + years);
-
-            existingSn.status = SerialNumberStatus.INSTALLED;
-            existingSn.customerId = inst.customerId;
-            existingSn.projectId = inst.projectId || undefined;
-            existingSn.warrantyStartDate = installDate;
-            existingSn.warrantyEndDate = endDate;
-            existingSn.warrantyStatus = WarrantyStatus.ACTIVE;
-            existingSn.notes = `Installed via report ${inst.installationNumber}`;
-            await existingSn.save();
+        const existingSn = await ProductSerialNumber.findOne({ serialNumber: sn });
+        if (existingSn) {
+          if (existingSn.status === SerialNumberStatus.DEFECTIVE) {
+            throw AppError.businessRule(
+              `Serial number '${sn}' is marked DEFECTIVE and cannot be installed.`
+            );
           }
-        } catch (snErr) {
-          console.warn(`Serial number sync notice for ${sn}:`, snErr);
+          if (
+            existingSn.status === SerialNumberStatus.INSTALLED &&
+            ((existingSn.projectId &&
+              inst.projectId &&
+              existingSn.projectId.toString() !== inst.projectId.toString()) ||
+              (existingSn.customerId &&
+                existingSn.customerId.toString() !== inst.customerId.toString()))
+          ) {
+            throw AppError.businessRule(
+              `Duplicate serial assignment blocked: Serial number '${sn}' is already installed on another customer/project.`
+            );
+          }
+
+          existingSn.status = SerialNumberStatus.INSTALLED;
+          existingSn.customerId = inst.customerId;
+          existingSn.projectId = inst.projectId || undefined;
+          // Installation QA photos alone NEVER activate warranty; warranty starts only upon final plant commissioning & JCR
+          if (existingSn.warrantyStatus !== WarrantyStatus.ACTIVE) {
+            existingSn.warrantyStatus = WarrantyStatus.PENDING_ACTIVATION;
+            existingSn.warrantyStartDate = undefined;
+            existingSn.warrantyEndDate = undefined;
+          }
+          existingSn.notes = `Installed via QA-approved report ${inst.installationNumber} (warranty pending commissioning)`;
+          await existingSn.save();
         }
       }
 
@@ -683,7 +703,7 @@ export class InstallationService {
             category: 'DOCUMENT',
             channel: 'IN_APP',
             title: `Installation Approved: ${inst.installationNumber}`,
-            body: `Solar installation for ${inst.customerName} has been approved by admin and marked commissioned!`,
+            body: `Solar installation QA report for ${inst.customerName} has been approved by supervisor! Proceed to Net Metering & Commissioning.`,
             deliveryStatus: 'DELIVERED',
             actionUrl: `/installations/${inst._id}`
           });
@@ -1202,11 +1222,18 @@ export class InstallationService {
     // Synchronize manual into Private Document Vault
     try {
       const docSeq = await SequenceService.generateNumber(SequenceEntityType.DOCUMENT, 'DOC');
+      const mappedCategory =
+        (meta.category as string) === 'COMMISSIONING_REPORT'
+          ? DocumentCategory.COMMISSIONING_REPORT
+          : (meta.category as string) === 'WARRANTY_CARD'
+            ? DocumentCategory.WARRANTY_CERTIFICATE
+            : DocumentCategory.INSTALLATION_QUALITY;
+
       await DocumentModel.create({
         documentNumber: docSeq.formattedNumber,
         originalFilename: meta.originalFilename,
         safeDisplayName: `${meta.title} - ${inst.customerName}`,
-        category: DocumentCategory.COMMISSIONING_REPORT,
+        category: mappedCategory,
         accessClassification: DocumentAccessClassification.CUSTOMER_VISIBLE,
         reviewStatus: DocumentReviewStatus.ACCEPTED,
         storageKey,

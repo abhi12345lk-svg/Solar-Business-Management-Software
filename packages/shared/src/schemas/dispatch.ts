@@ -36,6 +36,18 @@ export const cancelMaterialDispatchSchema = z.object({
     .max(1000, 'Cancellation reason cannot exceed 1000 characters')
 });
 
+export const markDispatchInTransitSchema = z.object({
+  vehicleNumber: z.string().trim().max(50).optional(),
+  driverName: z.string().trim().max(100).optional(),
+  driverPhone: z.string().trim().max(20).optional(),
+  notes: z.string().trim().max(1000).optional()
+});
+
+export const acknowledgeDispatchDeliverySchema = z.object({
+  deliveryNotes: z.string().trim().max(1000).optional(),
+  deliveredSerialNumbers: z.array(z.string().trim().toUpperCase()).optional()
+});
+
 export const dispatchFilterSchema = z.object({
   projectId: z.string().regex(OBJECT_ID_REGEX).optional(),
   status: z.nativeEnum(MaterialDispatchStatus).optional(),
@@ -55,6 +67,9 @@ export type CreateMaterialDispatchParsed = z.infer<typeof createMaterialDispatch
 
 export type CancelMaterialDispatchInput = z.input<typeof cancelMaterialDispatchSchema>;
 export type CancelMaterialDispatchParsed = z.infer<typeof cancelMaterialDispatchSchema>;
+
+export type MarkDispatchInTransitInput = z.input<typeof markDispatchInTransitSchema>;
+export type AcknowledgeDispatchDeliveryInput = z.input<typeof acknowledgeDispatchDeliverySchema>;
 
 export type DispatchFilterInput = z.input<typeof dispatchFilterSchema>;
 export type DispatchFilterParsed = z.infer<typeof dispatchFilterSchema>;

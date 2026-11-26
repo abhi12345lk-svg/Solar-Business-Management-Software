@@ -269,13 +269,16 @@ export class QuotationService {
         customer = await Customer.findById(lead.convertedCustomerId);
       }
       if (!customer) {
-        customer = await Customer.findOne({
-          $or: [
-            { primaryPhone: lead.prospectPhone },
-            { email: lead.prospectEmail },
-            { name: lead.prospectName }
-          ]
-        });
+        const contactClauses: any[] = [];
+        if (lead.prospectPhone?.trim()) {
+          contactClauses.push({ primaryPhone: lead.prospectPhone.trim() });
+        }
+        if (lead.prospectEmail?.trim()) {
+          contactClauses.push({ email: lead.prospectEmail.trim() });
+        }
+        if (contactClauses.length > 0) {
+          customer = await Customer.findOne({ $or: contactClauses });
+        }
       }
       // If customer record doesn't exist yet, auto-create customer profile for this lead
       if (!customer) {
@@ -808,19 +811,42 @@ export class QuotationService {
       throw AppError.notFound('Quotation not found.');
     }
 
+    if (!quotation.isLatestRevision) {
+      throw AppError.businessRule(
+        `Quotation revision '${quotation.fullQuotationCode}' is superseded. Decision can only be recorded on the latest active revision.`
+      );
+    }
+
     if (quotation.status === QuotationStatus.ACCEPTED && decision.action === 'ACCEPT') {
       return quotation;
     }
 
-    // Auto-advance draft/approved quotation to sent if accepting directly
-    if (
-      quotation.status === QuotationStatus.DRAFT ||
-      quotation.status === QuotationStatus.APPROVED
-    ) {
-      quotation.status = QuotationStatus.SENT;
-    }
-
     if (decision.action === 'ACCEPT') {
+      if (
+        quotation.requiresDiscountApproval &&
+        quotation.discountApprovalStatus !== 'APPROVED'
+      ) {
+        throw AppError.businessRule(
+          'Cannot accept quotation: High discount requires manager approval before customer acceptance can be recorded.'
+        );
+      }
+
+      if (quotation.validUntil && new Date(quotation.validUntil) < new Date()) {
+        throw AppError.businessRule(
+          `Quotation '${quotation.fullQuotationCode}' expired on ${new Date(quotation.validUntil).toISOString().split('T')[0]}. Create a new revision before acceptance.`
+        );
+      }
+
+      if (
+        quotation.status === QuotationStatus.REJECTED ||
+        quotation.status === QuotationStatus.EXPIRED ||
+        quotation.status === QuotationStatus.CANCELLED
+      ) {
+        throw AppError.businessRule(
+          `Cannot accept quotation in terminal '${quotation.status}' status.`
+        );
+      }
+
       quotation.status = QuotationStatus.ACCEPTED;
       quotation.acceptedAt = new Date();
       quotation.decisionIpAddress = context.ipAddress;

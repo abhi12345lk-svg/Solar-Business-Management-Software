@@ -26,6 +26,9 @@ export interface IProductSerialNumberDocument extends Document {
   supplierWarrantyReference?: string;
   commissioningDate?: Date;
   warrantyStatus?: WarrantyStatus;
+  replacesSerialNumber?: string;
+  replacedBySerialNumber?: string;
+  warrantyClaimId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -116,8 +119,23 @@ const ProductSerialNumberSchema = new Schema<IProductSerialNumberDocument>(
     warrantyStatus: {
       type: String,
       enum: Object.values(WarrantyStatus),
-      default: WarrantyStatus.ACTIVE,
+      default: WarrantyStatus.PENDING_ACTIVATION,
       index: true
+    },
+    replacesSerialNumber: {
+      type: String,
+      trim: true,
+      uppercase: true
+    },
+    replacedBySerialNumber: {
+      type: String,
+      trim: true,
+      uppercase: true
+    },
+    warrantyClaimId: {
+      type: Schema.Types.ObjectId,
+      ref: 'WarrantyClaim',
+      default: null
     }
   },
   {

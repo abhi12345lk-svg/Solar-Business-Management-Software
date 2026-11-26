@@ -502,6 +502,10 @@ export function VendorInvoicesPage() {
 
   // 5. Pay Bill Modal Open & Submit (Disbursement to Vendor)
   const handleOpenPayModal = (inv: VendorInvoiceItem) => {
+    if (inv.status === 'DISPUTED' || inv.status === 'CANCELLED') {
+      setPayFormError(`Disbursement is blocked while bill ${inv.vendorInvoiceNumber} is ${inv.status}.`);
+      return;
+    }
     setSelectedPayInvoice(inv);
     setPayFormError(null);
     const balanceInr = (inv.balancePayablePaise / 100).toFixed(2);
@@ -593,6 +597,22 @@ export function VendorInvoicesPage() {
 
   // Clean Payment Status Badge
   const getPaymentStatusBadge = (inv: VendorInvoiceItem) => {
+    if (inv.status === 'DISPUTED') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20">
+          <AlertCircle className="w-3 h-3 text-orange-600" />
+          <span>Disputed</span>
+        </span>
+      );
+    }
+    if (inv.status === 'CANCELLED') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20">
+          <AlertCircle className="w-3 h-3 text-slate-600" />
+          <span>Cancelled</span>
+        </span>
+      );
+    }
     const isPaid = (inv.balancePayablePaise || 0) === 0;
     const isPartial = (inv.paidAmountPaise || 0) > 0 && (inv.balancePayablePaise || 0) > 0;
 
@@ -962,8 +982,11 @@ export function VendorInvoicesPage() {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Disburse to Supplier (if outstanding due) */}
-                          {canManageInvoice && hasDue && (
+                          {/* Disburse to Supplier (if outstanding due and not disputed/cancelled) */}
+                          {canManageInvoice &&
+                            hasDue &&
+                            inv.status !== 'DISPUTED' &&
+                            inv.status !== 'CANCELLED' && (
                             <button
                               type="button"
                               onClick={() => handleOpenPayModal(inv)}
@@ -1806,7 +1829,12 @@ export function VendorInvoicesPage() {
             )}
 
             <div className="flex justify-between items-center pt-3 border-t">
-              {selectedDetailInvoice.balancePayablePaise > 0 ? (
+              {selectedDetailInvoice.status === 'DISPUTED' ||
+              selectedDetailInvoice.status === 'CANCELLED' ? (
+                <span className="text-xs font-bold text-orange-600 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" /> Payment Blocked ({selectedDetailInvoice.status})
+                </span>
+              ) : selectedDetailInvoice.balancePayablePaise > 0 ? (
                 <button
                   type="button"
                   onClick={() => {

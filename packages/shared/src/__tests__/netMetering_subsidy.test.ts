@@ -82,7 +82,8 @@ describe('Phase 7A: Shared Enums and Permissions', () => {
 
     const crewPerms = ROLE_DEFAULT_PERMISSIONS[UserRole.INSTALLATION_CREW];
     expect(crewPerms).toContain('net_metering:read');
-    expect(crewPerms).toContain('net_metering:update');
+    expect(crewPerms).not.toContain('net_metering:update');
+    expect(crewPerms).not.toContain('project:stage_advance');
   });
 });
 

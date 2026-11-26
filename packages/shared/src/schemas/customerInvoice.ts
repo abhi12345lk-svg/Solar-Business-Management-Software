@@ -11,6 +11,8 @@ export const createCustomerInvoiceSchema = z.object({
   orderId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Sales Order ID'),
   invoiceType: z.nativeEnum(CustomerInvoiceType).default(CustomerInvoiceType.TAX_INVOICE),
   milestoneIndex: z.number().int().min(0).optional(),
+  originalInvoiceId: z.string().regex(OBJECT_ID_REGEX, 'Invalid Original Invoice ID').optional(),
+  creditAmountPaise: z.number().int().positive('Credit note amount must be positive').optional(),
   invoiceDate: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().trim().max(1000).optional(),

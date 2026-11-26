@@ -48,7 +48,7 @@ describe('Phase 7A Frontend: Net Metering & Subsidy Tracking', () => {
     },
     systemCapacityKwp: 10.0,
     systemTopology: 'ON_GRID',
-    currentStage: 'STAGE_7_NET_METERING_INTERCONNECTION',
+    currentStage: 'STAGE_4_NET_METER_SYNC',
     status: 'IN_PROGRESS',
     priority: 'HIGH',
     plannedStartDate: '2026-11-01T00:00:00.000Z',

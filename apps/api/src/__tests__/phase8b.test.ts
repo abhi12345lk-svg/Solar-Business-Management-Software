@@ -323,7 +323,7 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
   // --------------------------------------------------------------------------
   // 4. Project Cost Ledger & Anti-Double-Counting Rules
   // --------------------------------------------------------------------------
-  it('derives materials consumed costs strictly from DISPATCHED material dispatches and excludes CANCELLED ones', async () => {
+  it('derives materials consumed costs strictly from DELIVERED dispatches (not IN_TRANSIT/CANCELLED) and excludes unapproved expenses', async () => {
     const mockProject = {
       _id: new Types.ObjectId(sampleProjectId),
       name: 'Rooftop 15kWp'
@@ -333,17 +333,27 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
     const productId1 = new Types.ObjectId();
     const productId2 = new Types.ObjectId();
 
-    // Mock DISPATCHED dispatches
+    // Mock DELIVERED (consumed) vs DISPATCHED-not-delivered (issued only) dispatches
     vi.spyOn(MaterialDispatch, 'find').mockReturnValue({
       lean: vi.fn().mockResolvedValue([
         {
           _id: new Types.ObjectId(),
           dispatchNumber: 'DSP-2026-00001',
-          status: MaterialDispatchStatus.DISPATCHED,
+          status: MaterialDispatchStatus.DELIVERED,
           dispatchedAt: new Date('2026-10-20'),
+          deliveredAt: new Date('2026-10-21'),
           lineItems: [
             { productId: productId1, issuedQuantity: 30 }, // 30 panels
             { productId: productId2, issuedQuantity: 1 } // 1 inverter
+          ]
+        },
+        {
+          _id: new Types.ObjectId(),
+          dispatchNumber: 'DSP-2026-00002',
+          status: MaterialDispatchStatus.DISPATCHED,
+          dispatchedAt: new Date('2026-10-22'),
+          lineItems: [
+            { productId: productId1, issuedQuantity: 2 } // Not yet delivered -> issued only, not consumed
           ]
         }
       ])
@@ -388,10 +398,12 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
 
     // 30 * 12,500 = ₹375,000 (37,500,000 paise) + 1 * ₹85,000 (8,500,000 paise) = 46,000,000 paise
     expect(summary.materialsCostPaise).toBe(46000000);
+    expect(summary.materialConsumedCostPaise).toBe(46000000);
+    expect(summary.materialIssuedCostPaise).toBe(48500000);
     // Labor: ₹45,000 = 4,500,000 paise
     expect(summary.laborCostPaise).toBe(4500000);
     expect(summary.totalCostPaise).toBe(50500000); // ₹505,000.00
-    expect(entries.length).toBe(3); // 2 materials + 1 expense
+    expect(entries.length).toBe(4); // 2 DELIVERED + 1 DISPATCHED (0 consumed amount) + 1 expense
   });
 
   // --------------------------------------------------------------------------
@@ -405,7 +417,7 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
       customerId: new Types.ObjectId(sampleCustomerId),
       orderId: new Types.ObjectId(sampleOrderId),
       systemCapacityKwp: 15,
-      currentStage: 'STAGE_06_INSTALLATION_WORK',
+      currentStage: 'STAGE_3_SITE_INSTALLATION',
       status: 'IN_PROGRESS',
       milestones: [
         { name: 'Site Readiness', status: 'COMPLETED' },
@@ -448,6 +460,12 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
       entries: [],
       summary: {
         materialsCostPaise: 46000000,
+        materialIssuedCostPaise: 46000000,
+        materialInTransitCostPaise: 0,
+        materialConsumedCostPaise: 46000000,
+        reusableReturnCreditPaise: 0,
+        damagedScrapLossPaise: 0,
+        approvedExpensesPaise: 6000000,
         laborCostPaise: 4500000,
         logisticsCostPaise: 1500000,
         civilCostPaise: 0,
@@ -582,6 +600,12 @@ describe('Phase 8B Integration: Expense Management, Project Costing & Profitabil
       entries: [],
       summary: {
         materialsCostPaise: 0,
+        materialIssuedCostPaise: 0,
+        materialInTransitCostPaise: 0,
+        materialConsumedCostPaise: 0,
+        reusableReturnCreditPaise: 0,
+        damagedScrapLossPaise: 0,
+        approvedExpensesPaise: 0,
         laborCostPaise: 0,
         logisticsCostPaise: 0,
         civilCostPaise: 0,

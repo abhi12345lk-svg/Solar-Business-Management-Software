@@ -212,6 +212,7 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
         _id: new Types.ObjectId(),
         projectCode: 'PRJ-2026-00001',
         status: ProjectStatus.PLANNING,
+        currentStage: ProjectStage.STAGE_5_HANDOVER_COMMISSIONING,
         save: vi.fn().mockResolvedValue(true)
       };
 
@@ -307,7 +308,8 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
         _id: new Types.ObjectId(),
         projectCode: 'PRJ-2026-00001',
         status: ProjectStatus.PLANNING,
-        currentStage: ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+        currentStage: ProjectStage.STAGE_1_DESIGN_APPROVAL,
+        systemCapacityKwp: 10,
         stageHistory: [],
         save: vi.fn().mockResolvedValue(true)
       };
@@ -316,14 +318,14 @@ describe('Phase 6A: Project Management & Installation Milestones', () => {
       const updated = await ProjectService.advanceProjectStage(
         mockProjectDoc._id.toString(),
         {
-          stage: ProjectStage.STAGE_2_NET_METERING_APPLY,
+          stage: ProjectStage.STAGE_2_MATERIAL_DISPATCH,
           notes: 'Engineering layout signed off by lead engineer.'
         },
         mockPmUser,
         mockContext
       );
 
-      expect(updated.currentStage).toBe(ProjectStage.STAGE_2_NET_METERING_APPLY);
+      expect(updated.currentStage).toBe(ProjectStage.STAGE_2_MATERIAL_DISPATCH);
       expect(updated.status).toBe(ProjectStatus.IN_PROGRESS); // Auto-promoted to IN_PROGRESS
       expect(updated.stageHistory.length).toBe(1);
       expect(updated.stageHistory[0]!.notes).toBe(

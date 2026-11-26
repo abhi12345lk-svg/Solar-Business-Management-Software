@@ -364,12 +364,12 @@ describe('Phase 12: User Acceptance Testing (UAT) Master Verification Suite', ()
     });
   });
 
-  describe('UAT Journey 3: Project Execution, 10-Stage Gates & Installation Quality', () => {
-    it('creates Project from Sales Order and enforces 10-stage execution pipeline gates', async () => {
+  describe('UAT Journey 3: Project Execution, 5-Stage Gates & Installation Quality', () => {
+    it('creates Project from Sales Order and enforces 5-stage execution pipeline gates', async () => {
       const mockProject = {
         _id: new Types.ObjectId(),
         projectCode: 'PRJ-2026-00077',
-        currentStage: ProjectStage.STAGE_1_ENGINEERING_DESIGN,
+        currentStage: ProjectStage.STAGE_1_DESIGN_APPROVAL,
         isCompleted: false
       };
 
@@ -379,11 +379,11 @@ describe('Phase 12: User Acceptance Testing (UAT) Master Verification Suite', ()
         adminActor
       );
       expect(project.projectCode).toBe('PRJ-2026-00077');
-      expect(project.currentStage).toBe(ProjectStage.STAGE_1_ENGINEERING_DESIGN);
+      expect(project.currentStage).toBe(ProjectStage.STAGE_1_DESIGN_APPROVAL);
 
       // Attempting to jump directly to Stage 3 without passing prerequisite stages must fail
       vi.spyOn(ProjectService, 'advanceProjectStage').mockImplementation(async (_prjId, input) => {
-        if (input.stage === ProjectStage.STAGE_3_MATERIAL_DISPATCH) {
+        if (input.stage === ProjectStage.STAGE_3_SITE_INSTALLATION) {
           throw new AppError(400, 'Prerequisite stages have not been completed.');
         }
         return { ...mockProject, currentStage: input.stage } as any;
@@ -392,7 +392,7 @@ describe('Phase 12: User Acceptance Testing (UAT) Master Verification Suite', ()
       await expect(
         ProjectService.advanceProjectStage(
           'prj-1',
-          { stage: ProjectStage.STAGE_3_MATERIAL_DISPATCH },
+          { stage: ProjectStage.STAGE_3_SITE_INSTALLATION },
           engineerActor
         )
       ).rejects.toThrow(/Prerequisite stages/i);

@@ -10,10 +10,12 @@ import {
 } from '@ins-solar/shared';
 import { CustomerInvoiceService } from '../services/customerInvoiceService.js';
 import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
+import { ensureCustomerPortalSession } from '../middleware/customerPortalGuard.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
 
 export const customerInvoiceRouter = Router();
+export const customerPortalInvoiceRouter = Router();
 
 customerInvoiceRouter.use(requireAuth);
 customerInvoiceRouter.use(requireEmployee);
@@ -116,6 +118,45 @@ customerInvoiceRouter.post(
         parseResult.data,
         user,
         context
+      );
+      return sendSuccess(req, res, invoice);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+// =============================================================================
+// Customer Portal Scoped Invoices Router (/api/v1/customer-portal/invoices)
+// =============================================================================
+customerPortalInvoiceRouter.use(requireAuth);
+customerPortalInvoiceRouter.use(ensureCustomerPortalSession);
+
+customerPortalInvoiceRouter.get(
+  '/',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const parseResult = customerInvoiceFilterSchema.safeParse(req.query);
+      const filterData = parseResult.success
+        ? parseResult.data
+        : { page: 1, limit: 20, sortBy: 'createdAt' as const, sortOrder: 'desc' as const };
+      const result = await CustomerInvoiceService.listInvoices(filterData, customerId);
+      return sendSuccess(req, res, result);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+customerPortalInvoiceRouter.get(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const customerId = req.session.customer!.customerId;
+      const invoice = await CustomerInvoiceService.getInvoiceById(
+        req.params.id as string,
+        customerId
       );
       return sendSuccess(req, res, invoice);
     } catch (err) {

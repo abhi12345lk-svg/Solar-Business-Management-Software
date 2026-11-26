@@ -289,16 +289,8 @@ export class ExpenseService {
       throw AppError.notFound(`Expense with ID ${id} not found.`);
     }
 
-    // Anti-self-approval enforcement:
-    // Non-privileged staff (technicians, crew, sales, department heads) cannot approve their own expense.
-    // Privileged fiscal roles (SUPERADMIN, ADMIN, ACCOUNTS_OFFICER) have authority to clear/approve expenses.
-    const isPrivilegedFiscalRole =
-      actor.role === UserRole.SUPERADMIN ||
-      actor.role === UserRole.ADMIN ||
-      actor.role === UserRole.ACCOUNTS_OFFICER;
-
+    // Anti-self-approval enforcement: NO employee (regardless of role) can approve their own expense submission.
     if (
-      !isPrivilegedFiscalRole &&
       actor.userId &&
       expense.submittedBy.toString() === actor.userId.toString()
     ) {

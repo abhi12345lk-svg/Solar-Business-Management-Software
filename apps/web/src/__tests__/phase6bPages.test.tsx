@@ -46,7 +46,7 @@ describe('Phase 6B Frontend: Material Dispatch & Installation Checklist', () => 
     },
     systemCapacityKwp: 25.0,
     systemTopology: 'ON_GRID',
-    currentStage: 'STAGE_3_MATERIAL_DISPATCH',
+    currentStage: 'STAGE_2_MATERIAL_DISPATCH',
     status: 'IN_PROGRESS',
     priority: 'HIGH',
     plannedStartDate: '2026-11-01T00:00:00.000Z',
@@ -263,7 +263,8 @@ describe('Phase 6B Frontend: Material Dispatch & Installation Checklist', () => 
 
       // Action button
       expect(screen.getByRole('button', { name: /Issue Material Dispatch/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Cancel & Return Stock/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Mark In Transit/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel Pre-Transit Dispatch/i })).toBeInTheDocument();
     });
   });
 

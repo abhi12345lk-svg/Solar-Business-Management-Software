@@ -23,7 +23,8 @@ import {
   AuditOutcome,
   ActorType,
   UserRole,
-  SequenceEntityType
+  SequenceEntityType,
+  SerialNumberStatus
 } from '@ins-solar/shared';
 import { StockBalance } from '../models/StockBalance.js';
 import { StockMovement, IStockMovementDocument } from '../models/StockMovement.js';
@@ -250,11 +251,11 @@ export class StockService {
     user: { userId: string; role: UserRole },
     context: { ipAddress?: string; userAgent?: string; correlationId?: string }
   ) {
-    // Atomically find and transition reservation from ACTIVE to RELEASED
+    // Atomically find and transition reservation from ACTIVE or PARTIALLY_ISSUED to RELEASED
     const reservation = await StockReservation.findOneAndUpdate(
       {
         _id: new Types.ObjectId(reservationId),
-        status: StockReservationStatus.ACTIVE
+        status: { $in: [StockReservationStatus.ACTIVE, StockReservationStatus.PARTIALLY_ISSUED] }
       },
       {
         $set: {
@@ -273,36 +274,43 @@ export class StockService {
       throw AppError.notFound('Stock Reservation not found.');
     }
 
-    // Atomically restore available stock on StockBalance
-    await StockBalance.findOneAndUpdate(
-      {
-        productId: reservation.productId,
-        warehouseId: reservation.warehouseId
-      },
-      {
-        $inc: {
-          reservedQuantity: -reservation.quantity,
-          availableQuantity: reservation.quantity
-        },
-        $set: { updatedAt: new Date() }
-      }
+    const unissuedQuantity = Math.max(
+      0,
+      reservation.quantity - (reservation.issuedQuantity || 0)
     );
 
-    // Append movement ledger
-    const movSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
-    const movement = new StockMovement({
-      movementNumber: movSeq.formattedNumber,
-      productId: reservation.productId,
-      quantity: reservation.quantity,
-      movementType: StockMovementType.RESERVATION_RELEASE,
-      sourceWarehouseId: reservation.warehouseId,
-      orderId: reservation.orderId,
-      reservationId: reservation._id,
-      performedBy: new Types.ObjectId(user.userId),
-      reason: `Reservation ${reservation.reservationNumber} released`
-    });
+    if (unissuedQuantity > 0) {
+      // Atomically restore available stock on StockBalance for remaining unissued portion only
+      await StockBalance.findOneAndUpdate(
+        {
+          productId: reservation.productId,
+          warehouseId: reservation.warehouseId
+        },
+        {
+          $inc: {
+            reservedQuantity: -unissuedQuantity,
+            availableQuantity: unissuedQuantity
+          },
+          $set: { updatedAt: new Date() }
+        }
+      );
 
-    await movement.save();
+      // Append movement ledger
+      const movSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
+      const movement = new StockMovement({
+        movementNumber: movSeq.formattedNumber,
+        productId: reservation.productId,
+        quantity: unissuedQuantity,
+        movementType: StockMovementType.RESERVATION_RELEASE,
+        sourceWarehouseId: reservation.warehouseId,
+        orderId: reservation.orderId,
+        reservationId: reservation._id,
+        performedBy: new Types.ObjectId(user.userId),
+        reason: `Reservation ${reservation.reservationNumber} released`
+      });
+
+      await movement.save();
+    }
 
     await AuditService.recordEvent({
       actorId: user.userId,
@@ -314,7 +322,7 @@ export class StockService {
       correlationId: context.correlationId || 'stock-release',
       details: {
         reservationNumber: reservation.reservationNumber,
-        releasedQuantity: reservation.quantity
+        releasedQuantity: unissuedQuantity
       }
     });
 
@@ -331,7 +339,7 @@ export class StockService {
   ) {
     const activeReservations = await StockReservation.find({
       orderId: new Types.ObjectId(orderId),
-      status: StockReservationStatus.ACTIVE
+      status: { $in: [StockReservationStatus.ACTIVE, StockReservationStatus.PARTIALLY_ISSUED] }
     });
 
     for (const res of activeReservations) {
@@ -636,6 +644,15 @@ export class StockService {
     user: { userId: string; role: UserRole },
     context: { ipAddress?: string; userAgent?: string; correlationId?: string }
   ): Promise<IStockMovementDocument> {
+    if (input.idempotencyKey && input.idempotencyKey.trim()) {
+      const existing = await StockMovement.findOne({
+        idempotencyKey: input.idempotencyKey.trim()
+      });
+      if (existing) {
+        return existing;
+      }
+    }
+
     const srcWarehouse = await Warehouse.findById(input.sourceWarehouseId);
     const destWarehouse = await Warehouse.findById(input.destinationWarehouseId);
     if (!srcWarehouse || !destWarehouse) {
@@ -647,24 +664,157 @@ export class StockService {
       throw AppError.notFound('Product not found.');
     }
 
+    const condition = input.condition || 'REUSABLE';
     const isDamagedOrScrap =
-      input.condition === 'DAMAGED' ||
-      input.condition === 'SCRAP' ||
-      input.condition === 'REJECTED';
+      condition === 'DAMAGED' ||
+      condition === 'SCRAP' ||
+      condition === 'REJECTED';
 
-    // Damaged or scrap returns must NOT increase availableQuantity for dispatch.
-    // Only reusable/accepted returns restore availableQuantity.
+    if (isDamagedOrScrap && input.disposition === 'RESTOCK') {
+      throw AppError.businessRule(
+        `Material in '${condition}' condition cannot be dispositioned as RESTOCK into sellable/available inventory.`
+      );
+    }
+
+    let linkedOrderId = input.orderId ? new Types.ObjectId(input.orderId) : undefined;
+    let referenceStr = input.dispatchId || input.projectId;
+
+    // Duplicate & over-return prevention when returning against a dispatch slip or original issue movement
+    if (input.dispatchId) {
+      const { MaterialDispatch } = await import('../models/MaterialDispatch.js');
+      const dispatch = await MaterialDispatch.findById(input.dispatchId);
+      if (!dispatch) {
+        throw AppError.notFound(`Dispatch '${input.dispatchId}' not found.`);
+      }
+      if (
+        dispatch.status !== 'DELIVERED' &&
+        dispatch.status !== 'IN_TRANSIT'
+      ) {
+        throw AppError.businessRule(
+          `Cannot process physical return inspection for dispatch '${dispatch.dispatchNumber}' in status '${dispatch.status}'. Cancel pre-transit dispatch directly instead.`
+        );
+      }
+      const dispItem = dispatch.lineItems.find(
+        li => li.productId.toString() === product._id.toString()
+      );
+      if (!dispItem) {
+        throw AppError.businessRule(
+          `Product '${product.name}' was not issued on dispatch '${dispatch.dispatchNumber}'.`
+        );
+      }
+      linkedOrderId = linkedOrderId || dispatch.orderId;
+      referenceStr = dispatch.dispatchNumber;
+
+      const priorReturns = await StockMovement.find({
+        productId: product._id,
+        movementType: StockMovementType.RETURN,
+        $or: [
+          { reference: dispatch.dispatchNumber },
+          ...(dispItem.stockMovementId ? [{ reversalOfMovementId: dispItem.stockMovementId }] : [])
+        ]
+      }).lean();
+      const alreadyReturned = priorReturns.reduce((sum, m) => sum + (m.quantity || 0), 0);
+      if (alreadyReturned + input.quantity > dispItem.issuedQuantity) {
+        throw AppError.businessRule(
+          `Over-return blocked: Already returned ${alreadyReturned} of ${dispItem.issuedQuantity} units dispatched on '${dispatch.dispatchNumber}'.`
+        );
+      }
+    } else if (input.originalMovementId) {
+      const origMove = await StockMovement.findById(input.originalMovementId);
+      if (!origMove || origMove.movementType !== StockMovementType.ISSUE) {
+        throw AppError.businessRule(
+          'Original reference movement must exist and be a physical stock ISSUE.'
+        );
+      }
+      if (origMove.productId.toString() !== product._id.toString()) {
+        throw AppError.businessRule('Return product does not match original issue movement product.');
+      }
+      linkedOrderId = linkedOrderId || origMove.orderId;
+      const priorReturns = await StockMovement.find({
+        reversalOfMovementId: origMove._id,
+        movementType: StockMovementType.RETURN
+      }).lean();
+      const alreadyReturned = priorReturns.reduce((sum, m) => sum + (m.quantity || 0), 0);
+      if (alreadyReturned + input.quantity > origMove.quantity) {
+        throw AppError.businessRule(
+          `Duplicate/over-return blocked: Only ${Math.max(0, origMove.quantity - alreadyReturned)} units remain eligible for return from movement '${origMove.movementNumber}'.`
+        );
+      }
+    } else if (linkedOrderId) {
+      const issuedMoves = await StockMovement.find({
+        orderId: linkedOrderId,
+        productId: product._id,
+        movementType: StockMovementType.ISSUE
+      }).lean();
+      const totalIssued = issuedMoves.reduce((sum, m) => sum + (m.quantity || 0), 0);
+      const returnMoves = await StockMovement.find({
+        orderId: linkedOrderId,
+        productId: product._id,
+        movementType: StockMovementType.RETURN
+      }).lean();
+      const alreadyReturned = returnMoves.reduce((sum, m) => sum + (m.quantity || 0), 0);
+      if (totalIssued > 0 && alreadyReturned + input.quantity > totalIssued) {
+        throw AppError.businessRule(
+          `Over-return blocked: Cumulative returns (${alreadyReturned + input.quantity}) exceed net issued quantity (${totalIssued}) for this order.`
+        );
+      }
+    }
+
+    // Serialized return inspection & duplicate return guard
+    const normalizedSerials = (input.serialNumbers || []).map(s => s.toUpperCase().trim());
+    if (normalizedSerials.length > 0) {
+      if (normalizedSerials.length !== input.quantity) {
+        throw AppError.validation(
+          `Returned serial count (${normalizedSerials.length}) must match return quantity (${input.quantity}).`
+        );
+      }
+      for (const sn of normalizedSerials) {
+        const serialDoc = await ProductSerialNumber.findOneAndUpdate(
+          {
+            serialNumber: sn,
+            productId: product._id,
+            status: { $in: [SerialNumberStatus.ISSUED, SerialNumberStatus.INSTALLED] }
+          },
+          {
+            $set: {
+              status: isDamagedOrScrap ? SerialNumberStatus.DEFECTIVE : SerialNumberStatus.IN_STOCK,
+              warehouseId: destWarehouse._id,
+              orderId: isDamagedOrScrap ? undefined : null,
+              projectId: isDamagedOrScrap ? undefined : null,
+              customerId: isDamagedOrScrap ? undefined : null,
+              notes: `${condition} return inspected (${input.inspectionNotes || input.reason})`
+            }
+          },
+          { new: true }
+        );
+        if (!serialDoc) {
+          throw AppError.businessRule(
+            `Serial number '${sn}' cannot be returned: it is either not ISSUED/INSTALLED or has already been returned.`
+          );
+        }
+      }
+    }
+
+    // Damaged, rejected, or scrap returns must NOT increase availableQuantity (cannot be re-dispatched as good stock).
+    // Only inspected REUSABLE returns restore availableQuantity.
     const availableInc = isDamagedOrScrap ? 0 : input.quantity;
+    const onHandInc = isDamagedOrScrap ? 0 : input.quantity;
 
-    // Atomic addition at return destination warehouse
-    await StockBalance.findOneAndUpdate(
-      { productId: product._id, warehouseId: destWarehouse._id },
-      {
-        $inc: { onHandQuantity: input.quantity, availableQuantity: availableInc },
-        $set: { updatedAt: new Date() }
-      },
-      { upsert: true, new: true }
-    );
+    if (onHandInc > 0 || availableInc > 0) {
+      await StockBalance.findOneAndUpdate(
+        { productId: product._id, warehouseId: destWarehouse._id },
+        {
+          $inc: { onHandQuantity: onHandInc, availableQuantity: availableInc },
+          $set: { updatedAt: new Date() }
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    const unitCostPaise =
+      input.unitCostPaise !== undefined
+        ? input.unitCostPaise
+        : (product.standardPurchaseRatePaise || 0);
 
     const movSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
     const movement = new StockMovement({
@@ -674,12 +824,17 @@ export class StockService {
       movementType: StockMovementType.RETURN,
       sourceWarehouseId: srcWarehouse._id,
       destinationWarehouseId: destWarehouse._id,
-      condition: input.condition || 'REUSABLE',
+      orderId: linkedOrderId,
+      serialNumbers: normalizedSerials.length > 0 ? normalizedSerials : undefined,
+      condition,
       disposition: input.disposition || (isDamagedOrScrap ? 'SCRAP_WRITEOFF' : 'RESTOCK'),
-      unitCostPaise: input.unitCostPaise,
+      unitCostPaise,
       salvageCreditPaise: input.salvageCreditPaise || 0,
       performedBy: new Types.ObjectId(user.userId),
-      reason: input.reason,
+      reason: input.inspectionNotes
+        ? `${input.reason} [Inspection: ${input.inspectionNotes}]`
+        : input.reason,
+      reference: referenceStr,
       reversalOfMovementId: input.originalMovementId
         ? new Types.ObjectId(input.originalMovementId)
         : undefined,
@@ -699,6 +854,8 @@ export class StockService {
       details: {
         movementNumber: movement.movementNumber,
         returnedQuantity: input.quantity,
+        condition,
+        disposition: movement.disposition,
         reason: input.reason
       }
     });

@@ -137,6 +137,20 @@ export const StockReturnInputSchema = z.object({
     .optional(),
   condition: z.enum(['REUSABLE', 'DAMAGED', 'SCRAP', 'REJECTED']).optional(),
   disposition: z.enum(['RESTOCK', 'SCRAP_WRITEOFF', 'SUPPLIER_RMA', 'INSURANCE_CLAIM']).optional(),
+  orderId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  projectId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  dispatchId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  serialNumbers: z.array(z.string().trim().toUpperCase()).optional(),
+  inspectionNotes: z.string().trim().max(500).optional(),
   unitCostPaise: MoneyPaiseSchema.optional(),
   salvageCreditPaise: MoneyPaiseSchema.optional(),
   idempotencyKey: z.string().trim().min(1).max(64).optional()

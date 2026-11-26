@@ -455,12 +455,12 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
   // --------------------------------------------------------------------------
   // 9. Commissioning Stage Gate Enforcement
   // --------------------------------------------------------------------------
-  it('blocks advancing project to STAGE_8 or STAGE_10 when mandatory checklist items are not passed', async () => {
+  it('blocks advancing project to Stage 4 or Stage 5 when mandatory checklist items are not passed', async () => {
     const mockProject = {
       _id: new Types.ObjectId(sampleProjectId),
       projectCode: 'PRJ-2026-00001',
       status: ProjectStatus.IN_PROGRESS,
-      currentStage: ProjectStage.STAGE_7_EARTHING_LIGHTNING,
+      currentStage: ProjectStage.STAGE_3_SITE_INSTALLATION,
       stageHistory: [],
       save: vi.fn().mockResolvedValue(true)
     };
@@ -487,7 +487,7 @@ describe('Phase 6B Integration: Installation Execution & Inventory Integration',
     await expect(
       ProjectService.advanceProjectStage(
         sampleProjectId,
-        { stage: ProjectStage.STAGE_8_TESTING_PRE_COMMISSION },
+        { stage: ProjectStage.STAGE_4_NET_METER_SYNC },
         adminUser
       )
     ).rejects.toThrow(

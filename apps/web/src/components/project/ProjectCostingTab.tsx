@@ -59,21 +59,40 @@ interface ProfitabilityData {
   contractedSalesValuePaise: number;
   operationalProgressPercent: number;
   operationalProgressRevenuePaise: number;
+  recognizedRevenuePaise?: number;
   confirmedCollectionsPaise: number;
   unallocatedCustomerCreditPaise: number;
   outstandingReceivablesPaise: number;
   costSummary: {
     materialsCostPaise: number;
+    materialIssuedCostPaise?: number;
+    materialInTransitCostPaise?: number;
+    materialConsumedCostPaise?: number;
+    reusableReturnCreditPaise?: number;
+    damagedScrapLossPaise?: number;
+    approvedExpensesPaise?: number;
     laborCostPaise: number;
     logisticsCostPaise: number;
     civilCostPaise: number;
     miscCostPaise: number;
     totalCostPaise: number;
   };
-  estimatedGrossMarginPaise: number;
-  grossMarginPercent: number;
-  budgetedGrossMarginPaise?: number;
-  budgetedMarginPercent?: number;
+  costBreakdown?: {
+    estimatedCostPaise: number | null;
+    poCommittedCostPaise: number;
+    actualProcurementCostPaise: number;
+    materialIssuedCostPaise: number;
+    materialInTransitCostPaise: number;
+    materialConsumedCostPaise: number;
+    reusableReturnCreditPaise: number;
+    damagedScrapLossPaise: number;
+    approvedExpensesPaise: number;
+    actualProjectCostPaise: number;
+  };
+  estimatedGrossMarginPaise: number | null;
+  grossMarginPercent: number | null;
+  budgetedGrossMarginPaise?: number | null;
+  budgetedMarginPercent?: number | null;
   actualGrossMarginPaise?: number;
   actualMarginPercent?: number;
   budgetComparison: {
@@ -358,29 +377,103 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
             </span>
             <div className="flex items-baseline space-x-2">
               <p className="text-xl font-bold text-foreground font-mono">
-                {formatPaise(report.actualGrossMarginPaise ?? report.estimatedGrossMarginPaise)}
+                {formatPaise(
+                  report.actualGrossMarginPaise ??
+                    report.contractedSalesValuePaise - report.costSummary.totalCostPaise
+                )}
               </p>
               <span
                 className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                  (report.actualMarginPercent ?? report.grossMarginPercent) >= 20
+                  (report.actualMarginPercent ?? 0) >= 20
                     ? 'bg-emerald-100 text-emerald-800'
-                    : (report.actualMarginPercent ?? report.grossMarginPercent) >= 0
+                    : (report.actualMarginPercent ?? 0) >= 0
                       ? 'bg-amber-100 text-amber-800'
                       : 'bg-red-100 text-red-800'
                 }`}
               >
-                {(report.actualMarginPercent ?? report.grossMarginPercent).toFixed(1)}%
+                {(
+                  report.actualMarginPercent ??
+                  (report.contractedSalesValuePaise > 0
+                    ? ((report.contractedSalesValuePaise - report.costSummary.totalCostPaise) /
+                        report.contractedSalesValuePaise) *
+                      100
+                    : 0)
+                ).toFixed(1)}
+                %
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
               Est./Budgeted:{' '}
-              {formatPaise(report.budgetedGrossMarginPaise ?? report.estimatedGrossMarginPaise)} (
-              {(report.budgetedMarginPercent ?? report.grossMarginPercent).toFixed(1)}%)
+              {report.budgetComparison.hasApprovedBudget &&
+              (report.budgetedGrossMarginPaise ?? report.estimatedGrossMarginPaise) !== null
+                ? `${formatPaise(report.budgetedGrossMarginPaise ?? report.estimatedGrossMarginPaise ?? 0)} (${(report.budgetedMarginPercent ?? report.grossMarginPercent ?? 0).toFixed(1)}%)`
+                : 'No baseline budget'}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Progress Rev: {formatPaise(report.operationalProgressRevenuePaise)} (
+              Recognized Rev: {formatPaise(report.recognizedRevenuePaise ?? report.operationalProgressRevenuePaise)} (
               {report.operationalProgressPercent}%)
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Separated Costing Lifecycle Breakdown */}
+      {report?.costBreakdown && (
+        <div className="bg-card border rounded-xl p-4 shadow-sm space-y-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Separated Costing Lifecycle Breakdown
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Estimated Cost (Budget)</span>
+              <span className="font-mono font-bold text-foreground">
+                {report.costBreakdown.estimatedCostPaise !== null
+                  ? formatPaise(report.costBreakdown.estimatedCostPaise)
+                  : 'Not budgeted'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">PO Committed Cost</span>
+              <span className="font-mono font-bold text-foreground">
+                {formatPaise(report.costBreakdown.poCommittedCostPaise)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Actual Procurement Cost</span>
+              <span className="font-mono font-bold text-foreground">
+                {formatPaise(report.costBreakdown.actualProcurementCostPaise)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Material Issued (Total / In-Transit)</span>
+              <span className="font-mono font-bold text-amber-600">
+                {formatPaise(report.costBreakdown.materialIssuedCostPaise)} ({formatPaise(report.costBreakdown.materialInTransitCostPaise)})
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Material Consumed (Site Net)</span>
+              <span className="font-mono font-bold text-foreground">
+                {formatPaise(report.costBreakdown.materialConsumedCostPaise)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Reusable Return Credit</span>
+              <span className="font-mono font-bold text-emerald-600">
+                -{formatPaise(report.costBreakdown.reusableReturnCreditPaise)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Damaged / Scrap Loss</span>
+              <span className="font-mono font-bold text-rose-600">
+                {formatPaise(report.costBreakdown.damagedScrapLossPaise)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted/30 border">
+              <span className="text-muted-foreground block text-[10px]">Approved Direct Expenses</span>
+              <span className="font-mono font-bold text-foreground">
+                {formatPaise(report.costBreakdown.approvedExpensesPaise)}
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -536,6 +629,8 @@ export const ProjectCostingTab: React.FC<ProjectCostingTabProps> = ({ projectId 
             >
               <option value="ALL">All Sources ({costLedger.length})</option>
               <option value="MATERIAL_DISPATCH">Materials Dispatched</option>
+              <option value="RETURN_CREDIT">Reusable Return Credits</option>
+              <option value="SCRAP_LOSS">Damaged / Scrap Returns</option>
               <option value="EXPENSE">Direct Expenses</option>
             </select>
           </div>

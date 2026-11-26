@@ -15,6 +15,7 @@ export interface IStockReservationDocument extends Document {
   productId: Types.ObjectId;
   warehouseId: Types.ObjectId;
   quantity: number;
+  issuedQuantity: number;
   status: StockReservationStatus;
   reservedAt: Date;
   reservedBy: Types.ObjectId;
@@ -64,6 +65,11 @@ const StockReservationSchema = new Schema<IStockReservationDocument>(
       type: Number,
       required: true,
       min: [0.001, 'Reserved quantity must be strictly greater than 0.']
+    },
+    issuedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0
     },
     status: {
       type: String,

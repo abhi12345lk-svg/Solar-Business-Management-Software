@@ -901,7 +901,10 @@ export const OrderDetailPage: React.FC = () => {
                     ];
 
                 return milestones.map((m, idx) => {
-                  const targetRupees = Math.round((order.netTotalPaise * m.percentage) / 100 / 100);
+                  const targetRupees =
+                    (m as any).amountPaise && (m as any).amountPaise > 0
+                      ? Math.round((m as any).amountPaise / 100)
+                      : Math.round((order.netTotalPaise * m.percentage) / 100 / 100);
                   const paidRupees = Math.min(targetRupees, Math.max(0, accumulatedAllocated));
                   accumulatedAllocated -= paidRupees;
                   const balanceRupees = Math.max(0, targetRupees - paidRupees);

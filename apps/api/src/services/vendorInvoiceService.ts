@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import {
   CreateVendorInvoiceInput,
   ReconcileVendorInvoiceInput,
@@ -106,13 +106,40 @@ export class VendorInvoiceService {
 
         const expectedAcceptedTotalPaise = totalAcceptedSubtotalPaise + totalExpectedTaxPaise;
 
-        const difference = input.totalAmountPaise - expectedAcceptedTotalPaise;
+        // Prevent duplicate billing against the same accepted GRN quantities on prior invoices for this PO
+        let priorBilledTotalPaise = 0;
+        const alreadyBilledGrnIdSet = new Set<string>();
+        if (mongoose.connection.readyState === 1 || (VendorInvoice.find as any)?.mock) {
+          const priorInvoices = await VendorInvoice.find({
+            purchaseOrderId: po._id,
+            status: { $ne: VendorInvoiceStatus.CANCELLED }
+          }).lean();
+          for (const pinv of priorInvoices || []) {
+            priorBilledTotalPaise += pinv.totalAmountPaise || 0;
+            for (const gId of pinv.goodsReceiptIds || []) {
+              alreadyBilledGrnIdSet.add(gId.toString());
+            }
+          }
+        }
 
-        if (difference > 100) {
+        // Only link unbilled GRNs when newly submitted (retain all GRNs only if partial unbilled remainder exists)
+        const unbilledGrnIds = grnIds.filter(gId => !alreadyBilledGrnIdSet.has(gId.toString()));
+        const remainingBillableTotalPaise = Math.max(0, expectedAcceptedTotalPaise - priorBilledTotalPaise);
+
+        const difference = input.totalAmountPaise - remainingBillableTotalPaise;
+
+        if (unbilledGrnIds.length === 0 && priorBilledTotalPaise >= expectedAcceptedTotalPaise) {
+          status = VendorInvoiceStatus.DISPUTED;
+          discrepancyAmountPaise = input.totalAmountPaise;
+          reconciliationNotes = `Duplicate GRN Billing Discrepancy: All accepted Goods Receipts for PO ${po.poNumber} have already been billed by prior vendor invoice(s) totalling ₹${(priorBilledTotalPaise / 100).toFixed(2)}.`;
+        } else if (difference > 100) {
           status = VendorInvoiceStatus.DISPUTED;
           discrepancyAmountPaise = difference;
-          reconciliationNotes = `3-Way Match Discrepancy: Invoiced amount (₹${(input.totalAmountPaise / 100).toFixed(2)}) exceeds accepted warehouse receipts value (₹${(expectedAcceptedTotalPaise / 100).toFixed(2)}) by ₹${(discrepancyAmountPaise / 100).toFixed(2)}. Flagged for accountant review.`;
+          reconciliationNotes = `3-Way Match Discrepancy: Invoiced amount (₹${(input.totalAmountPaise / 100).toFixed(2)}) exceeds remaining unbilled accepted GRN value (₹${(remainingBillableTotalPaise / 100).toFixed(2)}) by ₹${(discrepancyAmountPaise / 100).toFixed(2)}. Flagged for accountant review.`;
         } else {
+          if (unbilledGrnIds.length > 0) {
+            grnIds = unbilledGrnIds;
+          }
           status = VendorInvoiceStatus.RECONCILED;
           reconciliationNotes =
             '3-Way Match successful: Invoice totals match physical warehouse GRN accepted receipts and approved PO terms.';
@@ -363,6 +390,15 @@ export class VendorInvoiceService {
       throw AppError.notFound('Vendor Invoice not found.');
     }
 
+    if (
+      invoice.status === VendorInvoiceStatus.DISPUTED ||
+      invoice.status === VendorInvoiceStatus.CANCELLED
+    ) {
+      throw AppError.businessRule(
+        `Cannot disburse payment against a ${invoice.status} vendor invoice (${invoice.vendorInvoiceNumber}). Resolve and reconcile discrepancies first.`
+      );
+    }
+
     if (invoice.balancePayablePaise <= 0) {
       throw AppError.validation('Invoice has no outstanding balance payable.');
     }
@@ -377,7 +413,7 @@ export class VendorInvoiceService {
 
     invoice.paidAmountPaise += payAmt;
     invoice.balancePayablePaise = Math.max(0, invoice.totalAmountPaise - invoice.paidAmountPaise);
-    if (invoice.balancePayablePaise === 0 && invoice.status !== VendorInvoiceStatus.DISPUTED) {
+    if (invoice.balancePayablePaise === 0) {
       invoice.status = VendorInvoiceStatus.RECONCILED;
     }
     const payNote = `Payment of ₹${(payAmt / 100).toFixed(2)} disbursed (${input.paymentMethod || 'Bank Transfer'}${input.paymentReference ? ` Ref: ${input.paymentReference}` : ''}).`;

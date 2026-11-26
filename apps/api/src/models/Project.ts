@@ -59,6 +59,17 @@ export interface IProjectDocument extends Document {
   notes?: string;
   holdReason?: string;
   cancellationReason?: string;
+  commissioningDetails?: {
+    isCommissioned: boolean;
+    commissionedAt?: Date;
+    generationReadingKwh?: number;
+    jcrDocumentId?: Types.ObjectId;
+    customerHandoverSignedOff?: boolean;
+    customerSignOffName?: string;
+    customerSignOffDate?: Date;
+    handoverNotes?: string;
+  };
+  financialClosureStatus?: 'OPEN' | 'PARTIALLY_SETTLED' | 'SETTLED';
   idempotencyKey?: string;
   milestones: Types.DocumentArray<IProjectMilestone & Document>;
   createdBy: Types.ObjectId;
@@ -250,6 +261,21 @@ const ProjectSchema = new Schema<IProjectDocument>(
     cancellationReason: {
       type: String,
       trim: true
+    },
+    commissioningDetails: {
+      isCommissioned: { type: Boolean, default: false },
+      commissionedAt: { type: Date },
+      generationReadingKwh: { type: Number, min: 0 },
+      jcrDocumentId: { type: Schema.Types.ObjectId, ref: 'DocumentModel', default: null },
+      customerHandoverSignedOff: { type: Boolean, default: false },
+      customerSignOffName: { type: String, trim: true },
+      customerSignOffDate: { type: Date },
+      handoverNotes: { type: String, trim: true }
+    },
+    financialClosureStatus: {
+      type: String,
+      enum: ['OPEN', 'PARTIALLY_SETTLED', 'SETTLED'],
+      default: 'OPEN'
     },
     idempotencyKey: {
       type: String,

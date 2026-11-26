@@ -67,6 +67,7 @@ export interface ICustomerInvoiceDocument extends Document {
   invoiceDate: Date;
   dueDate?: Date;
   invoiceType: CustomerInvoiceType;
+  originalInvoiceId?: Types.ObjectId;
   milestoneIndex?: number;
   milestoneName?: string;
   percentageBilled?: number;
@@ -179,6 +180,12 @@ const CustomerInvoiceSchema = new Schema<ICustomerInvoiceDocument>(
       enum: Object.values(CustomerInvoiceType),
       default: CustomerInvoiceType.TAX_INVOICE,
       required: true,
+      index: true
+    },
+    originalInvoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'CustomerInvoice',
+      default: null,
       index: true
     },
     milestoneIndex: { type: Number },

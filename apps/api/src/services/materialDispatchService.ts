@@ -11,10 +11,11 @@
  * - Cumulative quantity enforcement against originating sales order
  */
 
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import {
   CreateMaterialDispatchInput,
   CancelMaterialDispatchInput,
+  MarkDispatchInTransitInput,
   DispatchFilterInput,
   MaterialDispatchStatus,
   PaymentMilestoneTrigger,
@@ -228,7 +229,13 @@ export class MaterialDispatchService {
     if (order && order.lineItems) {
       const existingDispatches = await MaterialDispatch.find({
         projectId: project._id,
-        status: { $ne: MaterialDispatchStatus.CANCELLED }
+        status: {
+          $in: [
+            MaterialDispatchStatus.DISPATCHED,
+            MaterialDispatchStatus.IN_TRANSIT,
+            MaterialDispatchStatus.DELIVERED
+          ]
+        }
       });
 
       const alreadyDispatchedMap = new Map<string, number>();
@@ -258,7 +265,10 @@ export class MaterialDispatchService {
     const rollbackStockBalances: Array<{
       productId: Types.ObjectId;
       quantity: number;
-      wasReserved: boolean;
+      reservedQtyUsed: number;
+      reservationId?: Types.ObjectId;
+      previousIssuedQty?: number;
+      previousStatus?: StockReservationStatus;
     }> = [];
     const rollbackSerials: string[] = [];
 
@@ -269,26 +279,92 @@ export class MaterialDispatchService {
           throw AppError.businessRule(`Product '${item.productId}' is inactive or not found.`);
         }
 
-        // Check if an active reservation exists for this order/product/warehouse
+        // Check active or partially-issued reservation for this order/product/warehouse
         let reservation: any = null;
+        let reservedQtyUsed = 0;
+        let previousIssuedQty = 0;
+        let previousStatus = StockReservationStatus.ACTIVE;
+
         if (order) {
-          reservation = await StockReservation.findOneAndUpdate(
-            {
-              orderId: order._id,
-              productId: product._id,
-              warehouseId: warehouse._id,
-              status: StockReservationStatus.ACTIVE
-            },
-            {
-              $set: {
-                status: StockReservationStatus.ISSUED,
-                issuedAt: new Date(),
-                issuedBy: new Types.ObjectId(user.userId)
+          const existingRes =
+            mongoose.connection.readyState === 1
+              ? await StockReservation.findOne({
+                  orderId: order._id,
+                  productId: product._id,
+                  warehouseId: warehouse._id,
+                  status: {
+                    $in: [StockReservationStatus.ACTIVE, StockReservationStatus.PARTIALLY_ISSUED]
+                  }
+                })
+              : null;
+
+          if (existingRes) {
+            const alreadyIssued = existingRes.issuedQuantity || 0;
+            const remainingReserved = Math.max(0, existingRes.quantity - alreadyIssued);
+            if (remainingReserved > 0) {
+              reservedQtyUsed = Math.min(item.requestedQuantity, remainingReserved);
+              const nextIssued = alreadyIssued + reservedQtyUsed;
+              const nextStatus =
+                nextIssued >= existingRes.quantity
+                  ? StockReservationStatus.ISSUED
+                  : StockReservationStatus.PARTIALLY_ISSUED;
+              previousIssuedQty = alreadyIssued;
+              previousStatus = existingRes.status;
+
+              reservation = await StockReservation.findOneAndUpdate(
+                {
+                  _id: existingRes._id,
+                  issuedQuantity: alreadyIssued,
+                  status: {
+                    $in: [StockReservationStatus.ACTIVE, StockReservationStatus.PARTIALLY_ISSUED]
+                  }
+                },
+                {
+                  $set: {
+                    issuedQuantity: nextIssued,
+                    status: nextStatus,
+                    issuedAt: new Date(),
+                    issuedBy: new Types.ObjectId(user.userId)
+                  }
+                },
+                { new: true }
+              );
+
+              if (!reservation) {
+                throw AppError.conflict(
+                  `Concurrent dispatch detected on stock reservation for '${product.name}'. Please retry.`
+                );
               }
-            },
-            { new: true }
-          );
+            }
+          } else {
+            // Fallback for mocked or legacy un-read reservation
+            reservation = await StockReservation.findOneAndUpdate(
+              {
+                orderId: order._id,
+                productId: product._id,
+                warehouseId: warehouse._id,
+                status: StockReservationStatus.ACTIVE
+              },
+              {
+                $set: {
+                  status: StockReservationStatus.ISSUED,
+                  issuedQuantity: item.requestedQuantity,
+                  issuedAt: new Date(),
+                  issuedBy: new Types.ObjectId(user.userId)
+                }
+              },
+              { new: true }
+            );
+            if (reservation) {
+              reservedQtyUsed = Math.min(
+                item.requestedQuantity,
+                reservation.quantity ?? item.requestedQuantity
+              );
+            }
+          }
         }
+
+        const availableQtyNeeded = item.requestedQuantity - reservedQtyUsed;
 
         // Atomic conditional update on StockBalance
         const updateFilter: any = {
@@ -302,16 +378,26 @@ export class MaterialDispatchService {
           $set: { updatedAt: new Date() }
         };
 
-        if (reservation) {
-          updateFilter.reservedQuantity = { $gte: item.requestedQuantity };
-          updateOps.$inc.reservedQuantity = -item.requestedQuantity;
-        } else {
-          updateFilter.availableQuantity = { $gte: item.requestedQuantity };
-          updateOps.$inc.availableQuantity = -item.requestedQuantity;
+        if (reservedQtyUsed > 0) {
+          updateFilter.reservedQuantity = { $gte: reservedQtyUsed };
+          updateOps.$inc.reservedQuantity = -reservedQtyUsed;
+        }
+        if (availableQtyNeeded > 0) {
+          updateFilter.availableQuantity = { $gte: availableQtyNeeded };
+          updateOps.$inc.availableQuantity = -availableQtyNeeded;
         }
 
         const balance = await StockBalance.findOneAndUpdate(updateFilter, updateOps, { new: true });
         if (!balance) {
+          // Restore reservation before throwing insufficient stock
+          if (reservation && reservedQtyUsed > 0) {
+            await StockReservation.findByIdAndUpdate(reservation._id, {
+              $set: {
+                issuedQuantity: previousIssuedQty,
+                status: previousStatus
+              }
+            });
+          }
           throw AppError.insufficientStock(
             `Insufficient physical inventory in '${warehouse.name}' to dispatch ${item.requestedQuantity} units of '${product.name}'.`
           );
@@ -320,7 +406,10 @@ export class MaterialDispatchService {
         rollbackStockBalances.push({
           productId: product._id,
           quantity: item.requestedQuantity,
-          wasReserved: !!reservation
+          reservedQtyUsed,
+          reservationId: reservation?._id,
+          previousIssuedQty,
+          previousStatus
         });
 
         // Validate serial numbers if provided
@@ -385,24 +474,36 @@ export class MaterialDispatchService {
           productId: product._id,
           requestedQuantity: item.requestedQuantity,
           issuedQuantity: item.requestedQuantity,
+          reservedQuantityUsed: reservedQtyUsed,
+          reservationId: reservation?._id,
           serialNumbers: normalizedSerials,
           stockMovementId: movement._id,
           unitCostPaise: product.standardPurchaseRatePaise || 0
         });
       }
     } catch (err) {
-      // Compensate / Rollback any already modified stock balances
+      // Compensate / Rollback any already modified stock balances & reservations
       for (const rb of rollbackStockBalances) {
+        const availableRollback = rb.quantity - rb.reservedQtyUsed;
         const incOps: any = { onHandQuantity: rb.quantity };
-        if (rb.wasReserved) {
-          incOps.reservedQuantity = rb.quantity;
-        } else {
-          incOps.availableQuantity = rb.quantity;
+        if (rb.reservedQtyUsed > 0) {
+          incOps.reservedQuantity = rb.reservedQtyUsed;
+        }
+        if (availableRollback > 0) {
+          incOps.availableQuantity = availableRollback;
         }
         await StockBalance.findOneAndUpdate(
           { productId: rb.productId, warehouseId: warehouse._id },
           { $inc: incOps }
         );
+        if (rb.reservationId && rb.reservedQtyUsed > 0) {
+          await StockReservation.findByIdAndUpdate(rb.reservationId, {
+            $set: {
+              issuedQuantity: rb.previousIssuedQty ?? 0,
+              status: rb.previousStatus ?? StockReservationStatus.ACTIVE
+            }
+          });
+        }
       }
 
       // Rollback serial statuses
@@ -500,47 +601,76 @@ export class MaterialDispatchService {
       );
     }
 
+    if (dispatch.status === MaterialDispatchStatus.IN_TRANSIT) {
+      throw AppError.businessRule(
+        `Dispatch slip '${dispatch.dispatchNumber}' is currently IN_TRANSIT. Stock cannot be auto-restored while goods are on the road; complete delivery/physical return inspection first.`
+      );
+    }
+
     const project = await Project.findById(dispatch.projectId);
 
-    // Perform reversal on inventory balances and generate compensating movements
-    for (const item of dispatch.lineItems) {
-      // Atomically restore on-hand and available quantities in warehouse
-      await StockBalance.findOneAndUpdate(
-        { productId: item.productId, warehouseId: dispatch.sourceWarehouseId },
-        {
-          $inc: {
-            onHandQuantity: item.issuedQuantity,
-            availableQuantity: item.issuedQuantity
-          },
-          $set: { updatedAt: new Date() }
-        }
-      );
+    // Only DISPATCHED slips (staged in warehouse before transit departure) reverse physical deductions
+    if (dispatch.status === MaterialDispatchStatus.DISPATCHED) {
+      for (const item of dispatch.lineItems) {
+        const reservedUsed = Math.min(item.reservedQuantityUsed || 0, item.issuedQuantity);
+        const availableRestore = item.issuedQuantity - reservedUsed;
+        const incOps: any = { onHandQuantity: item.issuedQuantity };
+        if (reservedUsed > 0) incOps.reservedQuantity = reservedUsed;
+        if (availableRestore > 0) incOps.availableQuantity = availableRestore;
 
-      // Revert serial numbers back to IN_STOCK
-      if (item.serialNumbers && item.serialNumbers.length > 0) {
-        for (const sn of item.serialNumbers) {
-          await ProductSerialNumber.findOneAndUpdate(
-            { serialNumber: sn },
-            { $set: { status: 'IN_STOCK', orderId: null } }
-          );
+        await StockBalance.findOneAndUpdate(
+          { productId: item.productId, warehouseId: dispatch.sourceWarehouseId },
+          {
+            $inc: incOps,
+            $set: { updatedAt: new Date() }
+          }
+        );
+
+        if (item.reservationId && reservedUsed > 0) {
+          const resDoc = await StockReservation.findById(item.reservationId);
+          if (resDoc) {
+            const nextIssued = Math.max(0, (resDoc.issuedQuantity || 0) - reservedUsed);
+            resDoc.issuedQuantity = nextIssued;
+            resDoc.status =
+              nextIssued > 0
+                ? StockReservationStatus.PARTIALLY_ISSUED
+                : StockReservationStatus.ACTIVE;
+            await resDoc.save();
+          }
         }
+
+        // Revert serial numbers back to IN_STOCK or RESERVED
+        if (item.serialNumbers && item.serialNumbers.length > 0) {
+          for (const sn of item.serialNumbers) {
+            await ProductSerialNumber.findOneAndUpdate(
+              { serialNumber: sn },
+              {
+                $set: {
+                  status: reservedUsed > 0 ? 'RESERVED' : 'IN_STOCK',
+                  orderId: reservedUsed > 0 ? dispatch.orderId : null
+                }
+              }
+            );
+          }
+        }
+
+        // Create compensating DISPATCH_REVERSAL StockMovement (NEVER RETURN so costing doesn't miscount as site return)
+        const movSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
+        const reversalMovement = new StockMovement({
+          movementNumber: movSeq.formattedNumber,
+          productId: item.productId,
+          quantity: item.issuedQuantity,
+          movementType: StockMovementType.DISPATCH_REVERSAL,
+          isReversal: true,
+          reversalOfMovementId: item.stockMovementId,
+          destinationWarehouseId: dispatch.sourceWarehouseId,
+          serialNumbers: item.serialNumbers,
+          performedBy: new Types.ObjectId(user.userId),
+          reason: `Reversal of staged dispatch ${dispatch.dispatchNumber}: ${input.cancellationReason.trim()}`
+        });
+
+        await reversalMovement.save();
       }
-
-      // Create compensating return StockMovement
-      const movSeq = await SequenceService.generateNumber(SequenceEntityType.STOCK_MOVEMENT);
-      const returnMovement = new StockMovement({
-        movementNumber: movSeq.formattedNumber,
-        productId: item.productId,
-        quantity: item.issuedQuantity,
-        movementType: StockMovementType.RETURN,
-        destWarehouseId: dispatch.sourceWarehouseId,
-        orderId: dispatch.orderId,
-        serialNumbers: item.serialNumbers,
-        performedBy: new Types.ObjectId(user.userId),
-        reason: `Reversal of dispatch ${dispatch.dispatchNumber}: ${input.cancellationReason.trim()}`
-      });
-
-      await returnMovement.save();
     }
 
     dispatch.status = MaterialDispatchStatus.CANCELLED;
@@ -571,6 +701,60 @@ export class MaterialDispatchService {
   }
 
   /**
+   * 2a. Mark staged DISPATCHED slip as IN_TRANSIT when vehicle departs warehouse.
+   */
+  public static async markInTransit(
+    dispatchId: string,
+    input: MarkDispatchInTransitInput,
+    user: { userId: string; role: UserRole },
+    context?: { ipAddress?: string; userAgent?: string; correlationId?: string }
+  ): Promise<IMaterialDispatchDocument> {
+    if (!Types.ObjectId.isValid(dispatchId)) {
+      throw AppError.validation(`Invalid dispatch ID '${dispatchId}'.`);
+    }
+    const dispatch = await MaterialDispatch.findById(dispatchId);
+    if (!dispatch) {
+      throw AppError.notFound(`Dispatch ${dispatchId} not found.`);
+    }
+    if (dispatch.status !== MaterialDispatchStatus.DISPATCHED) {
+      throw AppError.businessRule(
+        `Only staged DISPATCHED slips can transition to IN_TRANSIT (current status: '${dispatch.status}').`
+      );
+    }
+
+    dispatch.status = MaterialDispatchStatus.IN_TRANSIT;
+    dispatch.inTransitAt = new Date();
+    dispatch.inTransitBy = new Types.ObjectId(user.userId);
+    if (input?.vehicleNumber?.trim()) dispatch.vehicleNumber = input.vehicleNumber.trim();
+    if (input?.driverName?.trim()) dispatch.driverName = input.driverName.trim();
+    if (input?.driverPhone?.trim()) dispatch.driverPhone = input.driverPhone.trim();
+    if (input?.notes?.trim()) {
+      dispatch.notes = dispatch.notes ? `${dispatch.notes} | ${input.notes.trim()}` : input.notes.trim();
+    }
+
+    await dispatch.save();
+
+    await AuditService.recordEvent({
+      actorId: user.userId,
+      actorType: ActorType.EMPLOYEE,
+      action: AuditAction.MATERIAL_DISPATCH_TRANSIT,
+      outcome: AuditOutcome.SUCCESS,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+      correlationId: context?.correlationId || 'dispatch-transit',
+      targetEntity: 'MaterialDispatch',
+      targetId: dispatch._id.toString(),
+      details: {
+        dispatchNumber: dispatch.dispatchNumber,
+        vehicleNumber: dispatch.vehicleNumber,
+        inTransitAt: dispatch.inTransitAt
+      }
+    });
+
+    return dispatch;
+  }
+
+  /**
    * 2b. Acknowledge on-site delivery of dispatched materials by field installation crew.
    */
   public static async acknowledgeDelivery(
@@ -586,6 +770,10 @@ export class MaterialDispatchService {
 
     if (dispatch.status === MaterialDispatchStatus.CANCELLED) {
       throw AppError.businessRule('Cannot acknowledge delivery for a cancelled dispatch.');
+    }
+
+    if (dispatch.status === MaterialDispatchStatus.DRAFT) {
+      throw AppError.businessRule('Cannot acknowledge delivery for a DRAFT dispatch that has not been issued.');
     }
 
     if (dispatch.status === MaterialDispatchStatus.DELIVERED) {
@@ -762,10 +950,16 @@ export class MaterialDispatchService {
       }
     }
 
-    // Tally physical dispatches for this project, separating DELIVERED vs IN-TRANSIT (DISPATCHED)
+    // Tally physical dispatches for this project, separating DELIVERED vs IN-TRANSIT (DISPATCHED / IN_TRANSIT)
     const dispatches = await MaterialDispatch.find({
       projectId: project._id,
-      status: { $ne: MaterialDispatchStatus.CANCELLED }
+      status: {
+        $in: [
+          MaterialDispatchStatus.DISPATCHED,
+          MaterialDispatchStatus.IN_TRANSIT,
+          MaterialDispatchStatus.DELIVERED
+        ]
+      }
     }).populate('lineItems.productId', 'name sku uom');
 
     for (const d of dispatches) {

@@ -22,6 +22,15 @@ export interface IChecklistEvidence {
   longitude?: number;
 }
 
+export interface IChecklistReworkEntry {
+  previousStatus: ChecklistItemStatus;
+  newStatus: ChecklistItemStatus;
+  reason?: string;
+  notes?: string;
+  performedBy: Types.ObjectId;
+  performedAt: Date;
+}
+
 export interface IProjectChecklistItem {
   _id: Types.ObjectId;
   itemCode: string;
@@ -35,6 +44,7 @@ export interface IProjectChecklistItem {
   assignedUserId?: Types.ObjectId;
   completedBy?: Types.ObjectId;
   completedAt?: Date;
+  reworkHistory?: IChecklistReworkEntry[];
   evidence: IChecklistEvidence[];
 }
 
@@ -70,6 +80,26 @@ const ChecklistEvidenceSchema = new Schema<IChecklistEvidence>(
   { _id: true }
 );
 
+const ChecklistReworkEntrySchema = new Schema<IChecklistReworkEntry>(
+  {
+    previousStatus: {
+      type: String,
+      enum: Object.values(ChecklistItemStatus),
+      required: true
+    },
+    newStatus: {
+      type: String,
+      enum: Object.values(ChecklistItemStatus),
+      required: true
+    },
+    reason: { type: String, trim: true },
+    notes: { type: String, trim: true },
+    performedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    performedAt: { type: Date, default: Date.now, required: true }
+  },
+  { _id: false }
+);
+
 const ProjectChecklistItemSchema = new Schema<IProjectChecklistItem>(
   {
     itemCode: { type: String, required: true, trim: true },
@@ -88,6 +118,7 @@ const ProjectChecklistItemSchema = new Schema<IProjectChecklistItem>(
     assignedUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     completedAt: { type: Date },
+    reworkHistory: { type: [ChecklistReworkEntrySchema], default: [] },
     evidence: { type: [ChecklistEvidenceSchema], default: [] }
   },
   { _id: true }

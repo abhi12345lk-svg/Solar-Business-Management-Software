@@ -21,14 +21,15 @@ import {
 } from '@ins-solar/shared';
 import { QuotationService } from '../services/quotationService.js';
 import { ProposalCompilerService } from '../services/proposalCompilerService.js';
-import { requireAuth, requirePermission } from '../middleware/authorize.js';
+import { requireAuth, requireEmployee, requirePermission } from '../middleware/authorize.js';
 import { sendSuccess } from '../utils/responseEnvelope.js';
 import { AppError } from '../errors/AppError.js';
 
 export const quotationRouter = Router();
 
-// Internal staff routes require authentication
+// Internal staff routes require authentication & employee boundary
 quotationRouter.use(requireAuth);
+quotationRouter.use(requireEmployee);
 
 /**
  * POST /api/v1/quotations

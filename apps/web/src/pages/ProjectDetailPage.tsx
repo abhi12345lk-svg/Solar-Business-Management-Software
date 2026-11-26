@@ -265,6 +265,9 @@ export const ProjectDetailPage: React.FC = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string>('');
   const [statusReason, setStatusReason] = useState<string>('');
+  const [generationReadingKwh, setGenerationReadingKwh] = useState<string>('');
+  const [customerHandoverSignedOff, setCustomerHandoverSignedOff] = useState<boolean>(false);
+  const [customerSignOffName, setCustomerSignOffName] = useState<string>('');
   const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [statusModalError, setStatusModalError] = useState<string | null>(null);
 
@@ -509,16 +512,29 @@ export const ProjectDetailPage: React.FC = () => {
     try {
       setStatusSubmitting(true);
       setStatusModalError(null);
+      const bodyPayload: any = {
+        status: targetStatus,
+        reason: statusReason.trim() || undefined
+      };
+      if (targetStatus === 'COMPLETED') {
+        const genNum = generationReadingKwh.trim() !== '' ? Number(generationReadingKwh) : undefined;
+        bodyPayload.commissioningDetails = {
+          ...(genNum !== undefined && !isNaN(genNum) ? { generationReadingKwh: genNum } : {}),
+          customerHandoverSignedOff,
+          customerSignOffName: customerSignOffName.trim() || undefined,
+          handoverNotes: statusReason.trim() || undefined
+        };
+      }
       await apiClient(`/projects/${project._id}/status`, {
         method: 'POST',
-        body: JSON.stringify({
-          status: targetStatus,
-          reason: statusReason.trim() || undefined
-        })
+        body: JSON.stringify(bodyPayload)
       });
       setActionSuccess(`Project successfully transitioned to ${targetStatus}`);
       setStatusModalOpen(false);
       setStatusReason('');
+      setGenerationReadingKwh('');
+      setCustomerHandoverSignedOff(false);
+      setCustomerSignOffName('');
       fetchProject();
     } catch (err: any) {
       setStatusModalError(err?.message || 'Failed to update project status');
@@ -1711,6 +1727,49 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             )}
 
+            {targetStatus === 'COMPLETED' && (
+              <div className="space-y-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  Stage 5 Commissioning &amp; Customer Handover Verification
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Initial Generation Reading (kWh)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={generationReadingKwh}
+                    onChange={e => setGenerationReadingKwh(e.target.value)}
+                    placeholder="e.g. 12.5"
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-1.5 text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Customer / Authorised Signatory Name
+                  </label>
+                  <input
+                    type="text"
+                    value={customerSignOffName}
+                    onChange={e => setCustomerSignOffName(e.target.value)}
+                    placeholder="Name of person signing JCR / handover"
+                    className="w-full text-sm rounded-lg border bg-background px-3 py-1.5 text-foreground"
+                  />
+                </div>
+                <label className="flex items-center space-x-2 text-xs font-medium text-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customerHandoverSignedOff}
+                    onChange={e => setCustomerHandoverSignedOff(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  <span>Customer Handover &amp; Joint Commissioning Report (JCR) Signed Off</span>
+                </label>
+              </div>
+            )}
+
             {['ON_HOLD', 'CANCELLED'].includes(targetStatus) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">
@@ -1784,9 +1843,7 @@ export const ProjectDetailPage: React.FC = () => {
                 </select>
               </div>
 
-              {(targetStage === 'STAGE_5_HANDOVER_COMMISSIONING' ||
-                targetStage === 'STAGE_8_TESTING_PRE_COMMISSION' ||
-                targetStage === 'STAGE_10_COMMISSION_HANDOVER') && (
+              {targetStage === 'STAGE_5_HANDOVER_COMMISSIONING' && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
