@@ -5,72 +5,96 @@ import { hashPassword } from '../utils/crypto.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Ensures initial default workstation users exist in MongoDB upon fresh connection.
+ * Ensures all 4 workstation panel users exist in MongoDB with correct passwords.
+ * Runs on every server start — creates missing users and resets passwords for existing ones.
  * Idempotent and concurrency-safe. Does NOT insert any demo or mock business data.
  */
 export async function bootstrapDefaultUsers(): Promise<void> {
   if (mongoose.connection.readyState !== 1) return;
 
   try {
-    const adminExists = await User.exists({ email: 'admin@inssolar.com' });
-    if (!adminExists) {
-      const adminPassHash = await hashPassword('SolarAdmin2026!');
-      await User.create({
-        employeeCode: 'EMP-0001',
-        firstName: 'System',
-        lastName: 'Administrator',
-        email: 'admin@inssolar.com',
-        phone: '+919876500000',
-        passwordHash: adminPassHash,
-        department: Department.ADMIN,
-        role: UserRole.SUPERADMIN,
-        permissions: [],
-        isActive: true,
-        mfaEnabled: false,
-        sessionVersion: 1
-      });
-      logger.info('Initialized default Super Administrator (admin@inssolar.com).');
-    }
+    // --- Helper: upsert a workstation user (create or reset password) ---
+    const ensureUser = async (opts: {
+      employeeCode: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      password: string;
+      department: Department;
+      role: UserRole;
+    }) => {
+      const passHash = await hashPassword(opts.password);
+      const existing = await User.findOne({ email: opts.email });
+      if (existing) {
+        existing.passwordHash = passHash;
+        existing.isActive = true;
+        await existing.save();
+        logger.info(`Verified workstation user (${opts.email}).`);
+      } else {
+        await User.create({
+          employeeCode: opts.employeeCode,
+          firstName: opts.firstName,
+          lastName: opts.lastName,
+          email: opts.email,
+          phone: opts.phone,
+          passwordHash: passHash,
+          department: opts.department,
+          role: opts.role,
+          permissions: [],
+          isActive: true,
+          mfaEnabled: false,
+          sessionVersion: 1
+        });
+        logger.info(`Initialized workstation user (${opts.email}).`);
+      }
+    };
 
-    const salesExists = await User.exists({ email: 'sales@inssolar.com' });
-    if (!salesExists) {
-      const salesPassHash = await hashPassword('SolarSales2026!');
-      await User.create({
-        employeeCode: 'EMP-0002',
-        firstName: 'Rajesh',
-        lastName: 'Sharma',
-        email: 'sales@inssolar.com',
-        phone: '+919876500001',
-        passwordHash: salesPassHash,
-        department: Department.SALES,
-        role: UserRole.SALES_EXECUTIVE,
-        permissions: [],
-        isActive: true,
-        mfaEnabled: false,
-        sessionVersion: 1
-      });
-      logger.info('Initialized default Sales Executive (sales@inssolar.com).');
-    }
+    await ensureUser({
+      employeeCode: 'EMP-0001',
+      firstName: 'System',
+      lastName: 'Administrator',
+      email: 'admin@inssolar.com',
+      phone: '+919876500000',
+      password: 'SolarAdmin2026!',
+      department: Department.ADMIN,
+      role: UserRole.SUPERADMIN
+    });
 
-    const accountsExists = await User.exists({ email: 'accounts@inssolar.com' });
-    if (!accountsExists) {
-      const accountsPassHash = await hashPassword('SolarAccounts2026!');
-      await User.create({
-        employeeCode: 'EMP-0003',
-        firstName: 'Priya',
-        lastName: 'Verma',
-        email: 'accounts@inssolar.com',
-        phone: '+919876500002',
-        passwordHash: accountsPassHash,
-        department: Department.ACCOUNTS,
-        role: UserRole.ACCOUNTS_OFFICER,
-        permissions: [],
-        isActive: true,
-        mfaEnabled: false,
-        sessionVersion: 1
-      });
-      logger.info('Initialized default Accounts Officer (accounts@inssolar.com).');
-    }
+    await ensureUser({
+      employeeCode: 'EMP-0002',
+      firstName: 'Rajesh',
+      lastName: 'Sharma',
+      email: 'sales@inssolar.com',
+      phone: '+919876500001',
+      password: 'SolarSales2026!',
+      department: Department.SALES,
+      role: UserRole.SALES_EXECUTIVE
+    });
+
+    await ensureUser({
+      employeeCode: 'EMP-0003',
+      firstName: 'Priya',
+      lastName: 'Verma',
+      email: 'accounts@inssolar.com',
+      phone: '+919876500002',
+      password: 'SolarAccounts2026!',
+      department: Department.ACCOUNTS,
+      role: UserRole.ACCOUNTS_OFFICER
+    });
+
+    await ensureUser({
+      employeeCode: 'EMP-0004',
+      firstName: 'Field',
+      lastName: 'Installer',
+      email: 'installer@inssolar.com',
+      phone: '+919876500003',
+      password: 'SolarInstaller2026!',
+      department: Department.OPERATIONS,
+      role: UserRole.INSTALLATION_CREW
+    });
+
+    logger.info('All 4 panel workstation accounts verified and passwords synchronized.');
 
     // Bootstrap default central warehouse if none exists
     const warehouseCount = await Warehouse.countDocuments({});
