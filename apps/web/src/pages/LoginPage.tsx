@@ -25,15 +25,24 @@ export const LoginPage: React.FC = () => {
   type PortalType = 'ADMIN' | 'SALES' | 'ACCOUNTS' | 'INSTALLER' | 'CUSTOMER';
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('ADMIN');
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Demo credentials per portal – auto-fill on tab switch for quick access
+  const portalCredentials: Record<PortalType, { email: string; password: string }> = {
+    ADMIN:     { email: 'admin@inssolar.com',     password: 'SolarAdmin2026!' },
+    SALES:     { email: 'sales@inssolar.com',     password: 'SolarSales2026!' },
+    ACCOUNTS:  { email: 'accounts@inssolar.com',  password: 'SolarAccounts2026!' },
+    INSTALLER: { email: 'installer@inssolar.com', password: 'SolarInstaller2026!' },
+    CUSTOMER:  { email: '',                        password: '' }
+  };
+
+  const [email, setEmail] = useState(portalCredentials.ADMIN.email);
+  const [password, setPassword] = useState(portalCredentials.ADMIN.password);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = (location.state as any)?.from?.pathname || '/';
 
-  // Clear stale credentials and update workstation title when portal tab is switched
+  // Auto-fill credentials and update workstation title when portal tab is switched
   const handleSelectPortal = (portal: PortalType) => {
     setSelectedPortal(portal);
     setErrorMessage(null);
@@ -41,8 +50,9 @@ export const LoginPage: React.FC = () => {
       navigate('/customer-portal');
       return;
     }
-    setEmail('');
-    setPassword('');
+    const creds = portalCredentials[portal];
+    setEmail(creds.email);
+    setPassword(creds.password);
   };
 
   const portalConfig = {
