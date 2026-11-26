@@ -159,8 +159,7 @@ const INSTALLER_PANEL_SECTIONS: NavSection[] = [
     items: [
       { to: '/projects', label: 'Assigned Projects', icon: FolderKanban, permission: 'project:read' },
       { to: '/site-photos', label: 'Site Photos & Barcodes', icon: Camera, permission: 'installation:read' },
-      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench, permission: 'service:ticket_read' },
-      { to: '/documents', label: 'Site Documents', icon: FolderLock, permission: 'document:read' }
+      { to: '/service?tab=visits', label: 'Field Service Visits', icon: Wrench, permission: 'service:ticket_read' }
     ]
   }
 ];
@@ -226,7 +225,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
   if (pathname.startsWith('/create-document') || pathname.startsWith('/documents/create'))
     return { section: 'Organization', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
-    if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents' };
     return { section: 'Organization', title: 'Documents' };
   }
   if (pathname.startsWith('/service') || pathname.startsWith('/complaints') || pathname.startsWith('/service-visits') || pathname.startsWith('/warranties') || pathname.startsWith('/amc')) {
