@@ -79,9 +79,14 @@ export async function cleanAllDatabaseData() {
 
   console.log('All transaction data wiped and sequence counters reset.');
 
-  // Reset reserved stock in stock balances back to 0
-  await StockBalance.updateMany({}, { $set: { reservedQuantity: 0 } });
-  console.log('Stock reservations cleared.');
+  // Reset reserved stock in stock balances back to 0 and reconcile availableQuantity = onHandQuantity
+  const stockBalances = await StockBalance.find({});
+  for (const sb of stockBalances) {
+    sb.reservedQuantity = 0;
+    sb.availableQuantity = Math.max(0, sb.onHandQuantity || 0);
+    await sb.save();
+  }
+  console.log('Stock reservations cleared and available balances reconciled.');
 
   // Verify core login users exist
   console.log('--- Verifying panel login accounts ---');

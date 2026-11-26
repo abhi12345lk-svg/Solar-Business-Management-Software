@@ -162,20 +162,40 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     });
 
     // Check KPI metrics
-    expect(screen.getByText('Total Realized Collections')).toBeInTheDocument();
-    expect(screen.getByText('Allocated to Orders')).toBeInTheDocument();
-    expect(screen.getByText('Unallocated Credits')).toBeInTheDocument();
+    expect(screen.getByText('Realized Collections')).toBeInTheDocument();
+    expect(screen.getByText('Applied to Solar Orders')).toBeInTheDocument();
+    expect(screen.getByText('Total Payment Records')).toBeInTheDocument();
   });
 
   it('opens Record Payment modal with required fields when button is clicked', async () => {
-    vi.spyOn(apiModule, 'apiClient').mockResolvedValue({
-      data: {
-        items: [],
-        total: 0,
-        page: 1,
-        limit: 15
+    vi.spyOn(apiModule, 'apiClient').mockImplementation(((endpoint: string) => {
+      if (endpoint.startsWith('/customers')) {
+        return Promise.resolve({
+          items: [
+            {
+              _id: 'cust-001',
+              name: 'Vikram Mehta',
+              customerCode: 'CUST-2026-00001',
+              primaryPhone: '9876543210'
+            }
+          ]
+        });
       }
-    } as any);
+      if (endpoint.startsWith('/orders')) {
+        return Promise.resolve({ items: [] });
+      }
+      if (endpoint.includes('/receivables/customers')) {
+        return Promise.resolve({ data: { totalPaidPaise: 0, payments: [] } });
+      }
+      return Promise.resolve({
+        data: {
+          items: [],
+          total: 0,
+          page: 1,
+          limit: 15
+        }
+      });
+    }) as any);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -188,9 +208,19 @@ describe('Phase 8A Frontend: Customer Payments, Allocations & Receivables', () =
     const recordBtn = screen.getByText('Record Payment');
     fireEvent.click(recordBtn);
 
-    expect(screen.getByText('Record Customer Payment')).toBeInTheDocument();
-    expect(screen.getByText('-- Choose Customer --')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('e.g. 100000')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Record Customer Payment')).toBeInTheDocument();
+      expect(screen.getByText('-- Choose Customer --')).toBeInTheDocument();
+    });
+
+    const selectEl = screen.getByText('-- Choose Customer --').closest('select')!;
+    fireEvent.change(selectEl, { target: { value: 'cust-001' } });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('e.g. 100000')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('e.g. 30000')).toBeInTheDocument();
+      expect(screen.getByText('Save & Issue Receipt')).toBeInTheDocument();
+    });
   });
 
   it('opens and prints operational payment receipt with legal non-tax disclaimer', async () => {

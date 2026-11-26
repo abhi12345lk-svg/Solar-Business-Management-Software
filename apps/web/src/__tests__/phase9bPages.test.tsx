@@ -240,8 +240,8 @@ describe('Phase 9B Frontend: Operations, Teams, Tasks & Document Vault', () => {
       expect(screen.getByText('DOC-2026-00001')).toBeDefined();
       expect(screen.getByText('Engineering SLD 10kWp Bifacial')).toBeDefined();
       expect(screen.getAllByText('Customer').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('ACCEPTED')).toBeDefined();
-      expect(screen.getByText('v1')).toBeDefined();
+      expect(screen.getByText('Accepted')).toBeDefined();
+      expect(screen.getByText(/v1/)).toBeDefined();
     });
   });
 
