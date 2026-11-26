@@ -126,12 +126,6 @@ const SALES_PANEL_SECTIONS: NavSection[] = [
       { to: '/orders', label: 'Orders', icon: ShoppingCart, permission: 'order:read' },
       { to: '/customers', label: 'Customers', icon: UserCheck, permission: 'customer:read' }
     ]
-  },
-  {
-    title: 'Resources',
-    items: [
-      { to: '/documents', label: 'Proposals & Datasheets', icon: FolderLock, permission: 'document:read' }
-    ]
   }
 ];
 
@@ -241,7 +235,6 @@ function getBreadcrumb(pathname: string, panel?: PanelType): { section: string; 
     return { section: 'Organization', title: 'Create Document' };
   if (pathname.startsWith('/documents') || pathname.startsWith('/document-vault')) {
     if (panel === PanelType.INSTALLER) return { section: 'Field Operations', title: 'Site Documents' };
-    if (panel === PanelType.SALES) return { section: 'Resources', title: 'Proposals & Datasheets' };
     return { section: 'Organization', title: 'Documents' };
   }
   if (pathname.startsWith('/service') || pathname.startsWith('/complaints') || pathname.startsWith('/service-visits') || pathname.startsWith('/warranties') || pathname.startsWith('/amc')) {
