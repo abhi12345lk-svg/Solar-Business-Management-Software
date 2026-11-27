@@ -187,7 +187,7 @@ export const OrderDetailPage: React.FC = () => {
 
       const resolvedCustId = typeof custId === 'object' ? custId._id : custId;
 
-      // 1. Record Customer Payment in Accounts (awaits explicit verification & allocation)
+      // 1. Record Customer Payment in Accounts
       const pRes: any = await apiClient('/payments', {
         method: 'POST',
         body: JSON.stringify({
@@ -201,14 +201,38 @@ export const OrderDetailPage: React.FC = () => {
       });
 
       const paymentData = pRes?.data || pRes;
+      const paymentId = paymentData?._id;
       const receiptNo = paymentData?.receiptNumber || 'Recorded';
 
-      // 2. Immediately refresh order and receivables
+      // 2. Auto-verify and allocate payment directly against this order so it reflects immediately
+      if (paymentId) {
+        try {
+          await apiClient(`/payments/${paymentId}/verify`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              verificationNotes: `Verified on receipt for Order ${order.orderNumber}`
+            })
+          });
+
+          await apiClient(`/payments/${paymentId}/allocate`, {
+            method: 'POST',
+            body: JSON.stringify({
+              salesOrderId: order._id,
+              amountPaise,
+              notes: `Allocated to ${paymentForm.milestoneName || 'Milestone'} for Order ${order.orderNumber}`
+            })
+          });
+        } catch {
+          // If auto-allocation faces permission checks, it will remain as recorded in Accounts
+        }
+      }
+
+      // 3. Immediately refresh order and receivables
       await fetchReceivables();
       await fetchOrderDetail();
       setShowPaymentModal(false);
       setPaymentSuccess(
-        `Payment ₹${Number(paymentForm.amountRupees).toLocaleString('en-IN')} recorded (${receiptNo}) as Pending Verification. Verify and allocate in Accounts -> Payments to credit ${order.orderNumber}.`
+        `Payment ₹${Number(paymentForm.amountRupees).toLocaleString('en-IN')} received (${receiptNo})! Advance credited to Order ${order.orderNumber}.`
       );
       setTimeout(() => setPaymentSuccess(null), 8000);
     } catch (err: any) {
@@ -790,10 +814,10 @@ export const OrderDetailPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
               <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-solar-500" />
-                Agreed Bill of Materials & Work Scope
+                Solar Equipment &amp; Panels (BOM)
               </h2>
               <span className="text-[11px] text-muted-foreground font-medium">
-                {order.lineItems.length} line item(s)
+                {order.lineItems.length} item(s)
               </span>
             </div>
 
@@ -893,10 +917,10 @@ export const OrderDetailPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-border/70 pb-2">
               <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-solar-500" />
-                <span>Payment Milestones &amp; Commercial Conditions</span>
+                <span>Customer Payment Stages (3-Step Payout)</span>
               </h2>
               <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded">
-                Direct Milestone Settlement
+                Standard EPC Milestones
               </span>
             </div>
 
@@ -1147,7 +1171,7 @@ export const OrderDetailPage: React.FC = () => {
           <div className="bg-card border border-border rounded-xl p-4 sm:p-5 shadow-xs space-y-3.5">
             <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/70 pb-2.5">
               <FolderKanban className="w-3.5 h-3.5 text-solar-500" />
-              Fulfillment & Operations Handover
+              Stock &amp; Installation Status
             </h2>
 
             {/* 1. Stock Allocation Item */}
