@@ -179,13 +179,14 @@ export const OrderDetailPage: React.FC = () => {
         return;
       }
 
-      const custId = (order.customerId as any)?._id || order.customerId;
+      const custId = (order.customerId as any)?._id || (order.customerId as any)?.id || order.customerId;
       if (!custId) {
         setPaymentError('Customer record not linked to this order.');
         return;
       }
 
-      const resolvedCustId = typeof custId === 'object' ? custId._id : custId;
+      const resolvedCustId = typeof custId === 'object' ? String(custId._id || custId.id) : String(custId);
+      const cleanOrderId = String(order._id || (order as any).id);
 
       // 1. Record Customer Payment in Accounts
       const pRes: any = await apiClient('/payments', {
@@ -196,12 +197,12 @@ export const OrderDetailPage: React.FC = () => {
           paymentDate: paymentForm.paymentDate ? new Date(paymentForm.paymentDate) : new Date(),
           paymentMethod: paymentForm.paymentMethod,
           transactionReference: paymentForm.transactionReference.trim() || undefined,
-          notes: paymentForm.notes.trim() || `Payment for order ${order.orderNumber} (OrderId:${order._id})`
+          notes: paymentForm.notes.trim() || `Payment for order ${order.orderNumber} (OrderId:${cleanOrderId})`
         })
       });
 
       const paymentData = pRes?.data || pRes;
-      const paymentId = paymentData?._id;
+      const paymentId = paymentData?._id || paymentData?.id;
       const receiptNo = paymentData?.receiptNumber || 'Recorded';
 
       // 2. Auto-verify and allocate payment directly against this order so it reflects immediately
@@ -217,7 +218,7 @@ export const OrderDetailPage: React.FC = () => {
           await apiClient(`/payments/${paymentId}/allocate`, {
             method: 'POST',
             body: JSON.stringify({
-              salesOrderId: order._id,
+              salesOrderId: cleanOrderId,
               allocatedAmountPaise: amountPaise,
               notes: `Allocated to ${paymentForm.milestoneName || 'Milestone'} for Order ${order.orderNumber}`
             })
@@ -620,32 +621,36 @@ export const OrderDetailPage: React.FC = () => {
             </div>
 
             {/* Smart Action Guidance Prompt */}
-            {order.status !== 'CANCELLED' && (
-              <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/30 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-3 sm:px-5 rounded-b-2xl">
-                {!isAdvancePaid ? (
-                  <>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse shrink-0" />
-                      <div className="text-xs">
-                        <span className="font-bold text-foreground block">Next Recommended Step:</span>
-                        <span className="text-muted-foreground text-[11px]">
-                          Customer se 20% Booking Advance (₹{Math.round((order.netTotalPaise * 0.2) / 100).toLocaleString('en-IN')}) record karein taaki project formally start ho sake.
-                        </span>
+            {order.status !== 'CANCELLED' && (() => {
+              const firstMilestone = (order.paymentMilestones && order.paymentMilestones[0]) || { name: 'Booking Advance', percentage: 20 };
+              const m1Pct = firstMilestone.percentage || 20;
+              const m1AmountRupees = Math.round((order.netTotalPaise * (m1Pct / 100)) / 100);
+
+              return (
+                <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/30 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-3 sm:px-5 rounded-b-2xl">
+                  {!isAdvancePaid ? (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse shrink-0" />
+                        <div className="text-xs">
+                          <span className="font-bold text-foreground block">Next Recommended Step:</span>
+                          <span className="text-muted-foreground text-[11px]">
+                            Customer se {firstMilestone.name || 'Advance'} ({m1Pct}%, ₹{m1AmountRupees.toLocaleString('en-IN')}) record karein taaki project formally start ho sake.
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const m = (order.paymentMilestones && order.paymentMilestones[0]) || { name: 'Booking Advance', percentage: 20 };
-                        handleOpenRecordMilestonePayment(0, m, Math.round((order.netTotalPaise * 0.2) / 100));
-                      }}
-                      className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Record Booking Advance Now</span>
-                    </button>
-                  </>
-                ) : !isStockAllocated ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOpenRecordMilestonePayment(0, firstMilestone, m1AmountRupees);
+                        }}
+                        className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>Record {firstMilestone.name || 'Booking Advance'} Now</span>
+                      </button>
+                    </>
+                  ) : !isStockAllocated ? (
                   <>
                     <div className="flex items-center gap-2.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
@@ -703,10 +708,11 @@ export const OrderDetailPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })()}
+            );
+          })()}
+        </div>
+      );
+    })()}
 
       {actionSuccess && (
         <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between">

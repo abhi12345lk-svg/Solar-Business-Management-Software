@@ -632,7 +632,10 @@ export class PaymentService {
   ): Promise<{
     order: any;
     orderTotalPaise: number;
+    totalReceivablePaise?: number;
     allocatedAmountPaise: number;
+    totalAllocatedPaise?: number;
+    paidAmountPaise?: number;
     outstandingBalancePaise: number;
     paymentStatus: OrderPaymentStatus;
     activeAllocations: any[];
@@ -684,7 +687,10 @@ export class PaymentService {
     return {
       order,
       orderTotalPaise,
+      totalReceivablePaise: orderTotalPaise,
       allocatedAmountPaise,
+      totalAllocatedPaise: allocatedAmountPaise,
+      paidAmountPaise: allocatedAmountPaise,
       outstandingBalancePaise,
       paymentStatus,
       activeAllocations,
