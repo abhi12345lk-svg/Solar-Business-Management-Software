@@ -1,4 +1,5 @@
 import { dbManager } from '../db/connection.js';
+import { InstallationModel } from '../models/Installation.js';
 import {
   Customer,
   CustomerIdentity,
@@ -68,6 +69,7 @@ export async function cleanAllDatabaseData() {
     StockMovement.deleteMany({}),
     StockReservation.deleteMany({}),
     ProductSerialNumber.deleteMany({}),
+    InstallationModel.deleteMany({}),
     DocumentModel.deleteMany({}),
     ServiceComplaint.deleteMany({}),
     WarrantyClaim.deleteMany({}),
