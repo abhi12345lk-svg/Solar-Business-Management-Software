@@ -799,12 +799,9 @@ export const OrderDetailPage: React.FC = () => {
                 <Clock className="w-3.5 h-3.5 text-solar-500" />
                 <span>Payment Milestones &amp; Commercial Conditions</span>
               </h2>
-              <Link
-                to={`/payments?orderId=${order._id}&customerId=${(order.customerId as any)?._id || order.customerId}`}
-                className="text-[11px] font-bold text-solar-600 hover:text-solar-700 flex items-center gap-1"
-              >
-                <span>Reconcile in Accounts ➔</span>
-              </Link>
+              <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+                Direct Milestone Settlement
+              </span>
             </div>
 
             {/* Total Payment Collection Progress Bar */}

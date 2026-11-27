@@ -786,7 +786,7 @@ export const PaymentsPage: React.FC = () => {
 
   // Handle URL navigation params (orderId, customerId from other pages)
   useEffect(() => {
-    if (paramCustomerId) {
+    if (paramCustomerId && paramCustomerId !== '[object Object]' && paramCustomerId !== 'undefined') {
       openRecordModal(
         paramCustomerId,
         paramOrderId || undefined,
