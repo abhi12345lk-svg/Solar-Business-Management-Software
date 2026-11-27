@@ -501,19 +501,20 @@ export const OrderDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          {/* Collect / Reconcile Payment in Accounts */}
+        {/* Clean Contextual Top Action Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 1. Record Payment / Milestone Intake */}
           <button
             type="button"
             onClick={handleOpenGeneralPayment}
             className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-            title="Record customer payment or advance directly against this order"
+            title="Record customer payment or milestone advance against this order"
           >
             <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-            <span>Record Payment / Milestones</span>
+            <span>Record Payment</span>
           </button>
-          {/* Customer Statutory GST Tax Invoice */}
+
+          {/* 2. Customer Statutory GST Tax Invoice */}
           <Link
             to={`/customer-invoices?search=${encodeURIComponent(order.orderNumber)}`}
             className="inline-flex items-center px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-colors shadow-xs"
@@ -522,39 +523,8 @@ export const OrderDetailPage: React.FC = () => {
             <Receipt className="w-3.5 h-3.5 mr-1.5 text-solar-400" />
             <span>Tax Invoice</span>
           </Link>
-          {order.status !== 'CANCELLED' &&
-            (linkedProject ? (
-              <Link
-                to={`/projects/${linkedProject._id || linkedProject.id}`}
-                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs"
-              >
-                <FolderKanban className="w-3.5 h-3.5 mr-1.5" />
-                <span>View EPC Project ({linkedProject.projectCode})</span>
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateProjectModal(true);
-                  setProjectError(null);
-                }}
-                className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-              >
-                <FolderKanban className="w-3.5 h-3.5 mr-1.5" />
-                <span>Initialize EPC Project</span>
-              </button>
-            ))}
 
-          {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
-            <button
-              onClick={openReserveModal}
-              className="inline-flex items-center px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-            >
-              <PackageCheck className="w-3.5 h-3.5 mr-1.5" />
-              <span>Reserve Stock</span>
-            </button>
-          )}
-
+          {/* 3. Reopen Order (if cancelled) */}
           {order.status === 'CANCELLED' && (
             <button
               onClick={handleReopenOrder}
@@ -566,6 +536,7 @@ export const OrderDetailPage: React.FC = () => {
             </button>
           )}
 
+          {/* 4. Cancel Order (if active) */}
           {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
             <button
               onClick={() => {
@@ -575,7 +546,7 @@ export const OrderDetailPage: React.FC = () => {
               className="inline-flex items-center px-3 py-2 rounded-lg bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border text-xs font-medium transition-colors cursor-pointer"
             >
               <Ban className="w-3.5 h-3.5 mr-1" />
-              <span>Cancel</span>
+              <span>Cancel Order</span>
             </button>
           )}
         </div>
@@ -1115,7 +1086,7 @@ export const OrderDetailPage: React.FC = () => {
             </h2>
 
             {/* 1. Stock Allocation Item */}
-            <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+            <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <WarehouseIcon className="w-4 h-4 text-indigo-500" />
@@ -1130,36 +1101,47 @@ export const OrderDetailPage: React.FC = () => {
                         : 'bg-muted text-muted-foreground border border-border'
                   }`}
                 >
-                  {order.reservationStatus}
+                  {order.reservationStatus === 'FULLY_RESERVED'
+                    ? 'FULLY RESERVED'
+                    : order.reservationStatus === 'PARTIALLY_RESERVED'
+                      ? 'PARTIAL'
+                      : 'NOT RESERVED'}
                 </span>
               </div>
 
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {order.reservationStatus === 'FULLY_RESERVED'
-                  ? 'All solar modules and inverters are allocated and reserved in warehouse inventory.'
+                  ? 'All solar modules and inverters are allocated and locked in warehouse inventory.'
                   : order.reservationStatus === 'PARTIALLY_RESERVED'
                     ? 'Some physical materials are allocated. Additional hardware reservation required.'
-                    : 'Physical materials are not reserved yet. Reserve stock before dispatching hardware.'}
+                    : 'Physical materials are not locked yet. Reserve stock before dispatching hardware.'}
               </p>
 
-              {order.status !== 'CANCELLED' && order.reservationStatus !== 'FULLY_RESERVED' && (
-                <button
-                  type="button"
-                  onClick={openReserveModal}
-                  className="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <PackageCheck className="w-3.5 h-3.5" />
-                  <span>Reserve Stock Now</span>
-                </button>
+              {order.status !== 'CANCELLED' && (
+                order.reservationStatus === 'FULLY_RESERVED' ? (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Hardware locked in Depot for this Order</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openReserveModal}
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <PackageCheck className="w-3.5 h-3.5" />
+                    <span>Reserve Stock Allocation</span>
+                  </button>
+                )
               )}
             </div>
 
             {/* 2. EPC Project Item */}
-            <div className="p-3 rounded-lg border border-border bg-secondary/20 space-y-2">
+            <div className="p-3.5 rounded-lg border border-border bg-secondary/20 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="w-4 h-4 text-solar-500" />
-                  <span className="text-xs font-bold text-foreground">EPC Project</span>
+                  <span className="text-xs font-bold text-foreground">EPC Site Project</span>
                 </div>
                 {linkedProject ? (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
@@ -1172,9 +1154,9 @@ export const OrderDetailPage: React.FC = () => {
                 )}
               </div>
 
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {linkedProject
-                  ? `Active EPC Execution under project ${linkedProject.projectCode}. Linear DISCOM liaisons, installation checklist & commissioning enabled.`
+                  ? `Active execution under project ${linkedProject.projectCode}. Engineering, DISCOM liaison, Net Metering & site work linked.`
                   : 'Start linear engineering, DISCOM liaison, Net Metering approval, and site execution pipeline.'}
               </p>
 
@@ -1182,7 +1164,7 @@ export const OrderDetailPage: React.FC = () => {
                 linkedProject ? (
                   <Link
                     to={`/projects/${linkedProject._id || linkedProject.id}`}
-                    className="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5"
                   >
                     <FolderKanban className="w-3.5 h-3.5" />
                     <span>Open EPC Project ({linkedProject.projectCode}) →</span>
@@ -1194,10 +1176,10 @@ export const OrderDetailPage: React.FC = () => {
                       setShowCreateProjectModal(true);
                       setProjectError(null);
                     }}
-                    className="w-full py-1.5 px-3 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 px-3 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <FolderKanban className="w-3.5 h-3.5" />
-                    <span>Launch EPC Project →</span>
+                    <span>Initialize EPC Project →</span>
                   </button>
                 )
               )}
