@@ -327,10 +327,11 @@ export const OrderDetailPage: React.FC = () => {
     setReserveError(null);
     try {
       const res = await apiClient<any>('/warehouses?isActive=true');
-      const list = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const list: any[] = res?.data || res?.items || (Array.isArray(res) ? res : []);
       setWarehouses(list);
       if (list && list.length > 0) {
-        setSelectedWarehouseId(list[0]._id);
+        const firstId = list[0]._id || list[0].id;
+        setSelectedWarehouseId(firstId ? String(firstId) : '');
       } else {
         setReserveError('No active warehouses found. Please configure a warehouse first.');
       }
@@ -358,12 +359,13 @@ export const OrderDetailPage: React.FC = () => {
   const handleReserveStock = async (e: React.FormEvent) => {
     e.preventDefault();
     const orderId = (order as any)?._id || (order as any)?.id || id;
-    const warehouseId = selectedWarehouseId || warehouses[0]?._id;
+    const warehouseId = selectedWarehouseId || warehouses[0]?._id || warehouses[0]?.id;
     if (!orderId) {
       setReserveError('Sales order ID is missing.');
       return;
     }
-    if (!warehouseId) {
+    const cleanWhId = warehouseId ? String(warehouseId) : '';
+    if (!cleanWhId) {
       setReserveError('Please select a valid fulfillment warehouse.');
       return;
     }
@@ -373,7 +375,7 @@ export const OrderDetailPage: React.FC = () => {
       await apiClient(`/orders/${orderId}/reserve-stock`, {
         method: 'POST',
         body: JSON.stringify({
-          warehouseId
+          warehouseId: cleanWhId
         })
       });
       setShowReserveModal(false);
@@ -1332,11 +1334,14 @@ export const OrderDetailPage: React.FC = () => {
                     required
                     className="w-full px-3 py-2 rounded-lg bg-background border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    {warehouses.map(wh => (
-                      <option key={wh._id} value={wh._id}>
-                        {wh.name} ({wh.code}) {wh.address?.city ? `— ${wh.address.city}` : ''}
-                      </option>
-                    ))}
+                    {warehouses.map(wh => {
+                      const whId = String(wh._id || wh.id);
+                      return (
+                        <option key={whId} value={whId}>
+                          {wh.name} ({wh.code}) {wh.address?.city ? `— ${wh.address.city}` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 ) : (
                   <div className="p-3 bg-secondary/40 rounded-lg text-xs text-muted-foreground border">
