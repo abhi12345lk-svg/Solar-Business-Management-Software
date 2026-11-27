@@ -96,24 +96,38 @@ export async function bootstrapDefaultUsers(): Promise<void> {
 
     logger.info('All 4 panel workstation accounts verified and passwords synchronized.');
 
-    // Bootstrap default central warehouse if none exists
-    const warehouseCount = await Warehouse.countDocuments({});
-    let defaultWarehouse = await Warehouse.findOne({ code: 'WH-JAIPUR-01' });
-    if (warehouseCount === 0 || !defaultWarehouse) {
+    // Bootstrap default central warehouse in Raipur operations
+    let defaultWarehouse = await Warehouse.findOne({
+      $or: [{ code: 'WH-RAIPUR-01' }, { code: 'WH-JAIPUR-01' }]
+    });
+
+    if (!defaultWarehouse) {
       defaultWarehouse = await Warehouse.create({
-        code: 'WH-JAIPUR-01',
-        name: 'Central Depot Jaipur',
+        code: 'WH-RAIPUR-01',
+        name: 'Central Depot Raipur',
         type: 'CENTRAL_DEPOT',
         address: {
-          addressLine1: 'Warehouse C-12, Transport Nagar',
-          city: 'Jaipur',
-          state: 'Rajasthan',
-          postalCode: '302003',
+          addressLine1: 'Warehouse C-12, Transport Nagar, Tatibandh',
+          city: 'Raipur',
+          state: 'Chhattisgarh',
+          postalCode: '492099',
           country: 'India'
         },
         isActive: true
       });
-      logger.info('Initialized default Central Depot Jaipur.');
+      logger.info('Initialized default Central Depot Raipur.');
+    } else if (defaultWarehouse.code === 'WH-JAIPUR-01') {
+      defaultWarehouse.code = 'WH-RAIPUR-01';
+      defaultWarehouse.name = 'Central Depot Raipur';
+      defaultWarehouse.address = {
+        addressLine1: 'Warehouse C-12, Transport Nagar, Tatibandh',
+        city: 'Raipur',
+        state: 'Chhattisgarh',
+        postalCode: '492099',
+        country: 'India'
+      };
+      await defaultWarehouse.save();
+      logger.info('Upgraded default warehouse to Central Depot Raipur (WH-RAIPUR-01).');
     }
 
     // Bootstrap product categories if none exists

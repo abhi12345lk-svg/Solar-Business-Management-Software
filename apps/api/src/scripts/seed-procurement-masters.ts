@@ -7,27 +7,43 @@ async function run() {
     if (!db) throw new Error('No DB connection');
 
     // 1. Warehouse
-    let wh = await db.collection('warehouses').findOne({ code: 'WH-JAIPUR-01' });
+    let wh = await db.collection('warehouses').findOne({
+      $or: [{ code: 'WH-RAIPUR-01' }, { code: 'WH-JAIPUR-01' }]
+    });
     if (!wh) {
       const res = await db.collection('warehouses').insertOne({
-        code: 'WH-JAIPUR-01',
-        name: 'Central Depot Jaipur',
+        code: 'WH-RAIPUR-01',
+        name: 'Central Depot Raipur',
         type: 'CENTRAL_DEPOT',
         address: {
-          addressLine1: 'Warehouse C-12, Transport Nagar',
-          city: 'Jaipur',
-          state: 'Rajasthan',
-          postalCode: '302003',
+          addressLine1: 'Warehouse C-12, Transport Nagar, Tatibandh',
+          city: 'Raipur',
+          state: 'Chhattisgarh',
+          postalCode: '492099',
           country: 'India'
         },
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       });
-      wh = { _id: res.insertedId, code: 'WH-JAIPUR-01', name: 'Central Depot Jaipur' };
-      console.log('Seeded Central Warehouse.');
+      wh = { _id: res.insertedId, code: 'WH-RAIPUR-01', name: 'Central Depot Raipur' };
+      console.log('Seeded Central Warehouse Raipur.');
     } else {
-      console.log('Central Warehouse exists:', wh.name);
+      await db.collection('warehouses').updateOne(
+        { _id: wh._id },
+        {
+          $set: {
+            code: 'WH-RAIPUR-01',
+            name: 'Central Depot Raipur',
+            'address.city': 'Raipur',
+            'address.state': 'Chhattisgarh',
+            updatedAt: new Date()
+          }
+        }
+      );
+      wh.code = 'WH-RAIPUR-01';
+      wh.name = 'Central Depot Raipur';
+      console.log('Central Warehouse updated to:', wh.name);
     }
 
     // 2. Vendors

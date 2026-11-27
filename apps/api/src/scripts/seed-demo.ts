@@ -168,23 +168,36 @@ export async function seedDemoData(): Promise<void> {
     }
 
     // 3. Central Warehouse
-    let warehouse = await Warehouse.findOne({ code: 'WH-JAIPUR-01' });
+    let warehouse = await Warehouse.findOne({
+      $or: [{ code: 'WH-RAIPUR-01' }, { code: 'WH-JAIPUR-01' }]
+    });
     if (!warehouse) {
       warehouse = await Warehouse.create({
-        code: 'WH-JAIPUR-01',
-        name: 'Central Depot Jaipur',
+        code: 'WH-RAIPUR-01',
+        name: 'Central Depot Raipur',
         type: 'CENTRAL_DEPOT',
         address: {
-          addressLine1: 'Warehouse C-12, Sitapura Industrial Area',
-          city: 'Jaipur',
-          state: 'Rajasthan',
-          postalCode: '302022',
+          addressLine1: 'Warehouse C-12, Transport Nagar, Tatibandh',
+          city: 'Raipur',
+          state: 'Chhattisgarh',
+          postalCode: '492099',
           country: 'India'
         },
         isActive: true,
         createdBy: admin._id
       });
-      console.log('✓ Central warehouse seeded.');
+      console.log('✓ Central warehouse Raipur seeded.');
+    } else {
+      warehouse.code = 'WH-RAIPUR-01';
+      warehouse.name = 'Central Depot Raipur';
+      warehouse.address = {
+        addressLine1: 'Warehouse C-12, Transport Nagar, Tatibandh',
+        city: 'Raipur',
+        state: 'Chhattisgarh',
+        postalCode: '492099',
+        country: 'India'
+      };
+      await warehouse.save();
     }
 
     // 4. Product Categories & Products
