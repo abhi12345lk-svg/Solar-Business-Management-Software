@@ -524,67 +524,163 @@ export const OrderDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Sleek 1-Line Lifecycle Progress Stepper */}
-      <div className="bg-card border border-border/80 rounded-xl px-4 py-2.5 shadow-xs">
-        <div className="flex items-center justify-between gap-1 text-xs">
-          {[
-            {
-              step: 1,
-              label: 'Order Confirmed',
-              done: true,
-              active: order.status === 'CONFIRMED' && order.reservationStatus === 'NONE'
-            },
-            {
-              step: 2,
-              label: 'Stock Allocation',
-              done: order.reservationStatus === 'FULLY_RESERVED' || order.reservationStatus === 'PARTIALLY_RESERVED',
-              active: order.status === 'CONFIRMED' && order.reservationStatus !== 'FULLY_RESERVED'
-            },
-            {
-              step: 3,
-              label: 'EPC Execution',
-              done: !!linkedProject,
-              active: !!linkedProject && order.status !== 'COMPLETED'
-            },
-            {
-              step: 4,
-              label: 'Commissioned',
-              done: order.status === 'COMPLETED',
-              active: order.status === 'COMPLETED'
-            }
-          ].map((s, idx, arr) => (
-            <React.Fragment key={s.step}>
-              <div
-                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${
-                  s.active
-                    ? 'bg-solar-500/10 text-solar-900 dark:text-solar-200 font-bold'
-                    : s.done
-                      ? 'text-foreground font-medium'
-                      : 'text-muted-foreground/50'
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    s.done
-                      ? 'bg-emerald-500 text-white'
-                      : s.active
-                        ? 'bg-solar-500 text-white'
-                        : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {s.done ? '✓' : s.step}
-                </div>
-                <span className="hidden sm:inline">{s.label}</span>
+      {/* 2. Interactive Smart Action Guide (Easy & Step-by-Step) */}
+      {(() => {
+        const isAdvancePaid = (receivables?.allocatedAmountPaise || 0) >= Math.round(order.netTotalPaise * 0.2);
+        const isStockAllocated = order.reservationStatus === 'FULLY_RESERVED';
+        const isProjectLaunched = !!linkedProject;
+        const isCommissioned = order.status === 'COMPLETED';
+
+        return (
+          <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+            {/* Visual Stepper */}
+            <div className="flex items-center justify-between gap-1 text-xs">
+              {[
+                {
+                  step: 1,
+                  label: 'Booking Advance (20%)',
+                  done: isAdvancePaid,
+                  active: !isAdvancePaid
+                },
+                {
+                  step: 2,
+                  label: 'Stock Allocation',
+                  done: isStockAllocated,
+                  active: isAdvancePaid && !isStockAllocated
+                },
+                {
+                  step: 3,
+                  label: 'EPC Execution',
+                  done: isProjectLaunched,
+                  active: isStockAllocated && !isProjectLaunched
+                },
+                {
+                  step: 4,
+                  label: 'Commissioned',
+                  done: isCommissioned,
+                  active: isProjectLaunched && !isCommissioned
+                }
+              ].map((s, idx, arr) => (
+                <React.Fragment key={s.step}>
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl transition-all ${
+                      s.active
+                        ? 'bg-solar-500/10 text-solar-900 dark:text-solar-200 font-bold border border-solar-500/30'
+                        : s.done
+                          ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
+                          : 'text-muted-foreground/60'
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        s.done
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : s.active
+                            ? 'bg-solar-600 text-white shadow-xs ring-2 ring-solar-500/20'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {s.done ? '✓' : s.step}
+                    </div>
+                    <span className="hidden sm:inline text-xs">{s.label}</span>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <div
+                      className={`flex-1 h-0.5 mx-1 transition-all ${s.done ? 'bg-emerald-500' : 'bg-border'}`}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Smart Action Guidance Prompt */}
+            {order.status !== 'CANCELLED' && (
+              <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/30 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-3 sm:px-5 rounded-b-2xl">
+                {!isAdvancePaid ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse shrink-0" />
+                      <div className="text-xs">
+                        <span className="font-bold text-foreground block">Next Recommended Step:</span>
+                        <span className="text-muted-foreground text-[11px]">
+                          Customer se 20% Booking Advance (₹{Math.round((order.netTotalPaise * 0.2) / 100).toLocaleString('en-IN')}) record karein taaki project formally start ho sake.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const m = (order.paymentMilestones && order.paymentMilestones[0]) || { name: 'Booking Advance', percentage: 20 };
+                        handleOpenRecordMilestonePayment(0, m, Math.round((order.netTotalPaise * 0.2) / 100));
+                      }}
+                      className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Record Booking Advance Now</span>
+                    </button>
+                  </>
+                ) : !isStockAllocated ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+                      <div className="text-xs">
+                        <span className="font-bold text-foreground block">Next Recommended Step:</span>
+                        <span className="text-muted-foreground text-[11px]">
+                          Booking advance aa chuka hai! Central Depot Raipur se solar panels &amp; inverter allocate karein.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openReserveModal}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <PackageCheck className="w-3.5 h-3.5" />
+                      <span>Reserve Stock Allocation</span>
+                    </button>
+                  </>
+                ) : !isProjectLaunched ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-solar-500 animate-pulse shrink-0" />
+                      <div className="text-xs">
+                        <span className="font-bold text-foreground block">Next Recommended Step:</span>
+                        <span className="text-muted-foreground text-[11px]">
+                          Stock reserve ho chuka hai! Site survey, engineering aur Net Metering liaison shuru karein.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateProjectModal(true);
+                        setProjectError(null);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <FolderKanban className="w-3.5 h-3.5" />
+                      <span>Initialize EPC Project →</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>EPC Project {linkedProject.projectCode} active execution me hai. Material dispatch &amp; Net Metering tracker enabled.</span>
+                    </div>
+                    <Link
+                      to={`/projects/${linkedProject._id || linkedProject.id}`}
+                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs shrink-0 flex items-center gap-1"
+                    >
+                      <span>Go to Project →</span>
+                    </Link>
+                  </div>
+                )}
               </div>
-              {idx < arr.length - 1 && (
-                <div
-                  className={`flex-1 h-0.5 mx-1 ${s.done ? 'bg-emerald-500/60' : 'bg-border'}`}
-                />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
+            )}
+          </div>
+        );
+      })()}
 
       {actionSuccess && (
         <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-between">
