@@ -167,23 +167,6 @@ export const OrderDetailPage: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handleOpenGeneralPayment = () => {
-    const outstanding = receivables ? Math.round((receivables.outstandingBalancePaise || 0) / 100) : 0;
-    const initialAmount = outstanding > 0 ? outstanding : Math.round(((order?.netTotalPaise || 0) * 0.2) / 100);
-
-    setPaymentForm({
-      milestoneName: 'Customer Payment / Order Advance',
-      milestoneIndex: -1,
-      amountRupees: initialAmount.toString(),
-      paymentMethod: 'BANK_TRANSFER',
-      transactionReference: `UTR-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
-      paymentDate: new Date().toISOString().split('T')[0],
-      notes: `Direct payment intake for Sales Order ${order?.orderNumber}`
-    });
-    setPaymentError(null);
-    setShowPaymentModal(true);
-  };
-
   const handleRecordOrderPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
@@ -503,18 +486,7 @@ export const OrderDetailPage: React.FC = () => {
 
         {/* Clean Contextual Top Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* 1. Record Payment / Milestone Intake */}
-          <button
-            type="button"
-            onClick={handleOpenGeneralPayment}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg bg-solar-600 hover:bg-solar-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-            title="Record customer payment or milestone advance against this order"
-          >
-            <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-            <span>Record Payment</span>
-          </button>
-
-          {/* 2. Customer Statutory GST Tax Invoice */}
+          {/* 1. Customer Statutory GST Tax Invoice */}
           <Link
             to={`/customer-invoices?search=${encodeURIComponent(order.orderNumber)}`}
             className="inline-flex items-center px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-colors shadow-xs"
@@ -524,7 +496,7 @@ export const OrderDetailPage: React.FC = () => {
             <span>Tax Invoice</span>
           </Link>
 
-          {/* 3. Reopen Order (if cancelled) */}
+          {/* 2. Reopen Order (if cancelled) */}
           {order.status === 'CANCELLED' && (
             <button
               onClick={handleReopenOrder}
@@ -536,7 +508,7 @@ export const OrderDetailPage: React.FC = () => {
             </button>
           )}
 
-          {/* 4. Cancel Order (if active) */}
+          {/* 3. Cancel Order (if active) */}
           {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
             <button
               onClick={() => {
