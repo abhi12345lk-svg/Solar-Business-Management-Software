@@ -218,7 +218,7 @@ export const OrderDetailPage: React.FC = () => {
             method: 'POST',
             body: JSON.stringify({
               salesOrderId: order._id,
-              amountPaise,
+              allocatedAmountPaise: amountPaise,
               notes: `Allocated to ${paymentForm.milestoneName || 'Milestone'} for Order ${order.orderNumber}`
             })
           });
@@ -289,7 +289,7 @@ export const OrderDetailPage: React.FC = () => {
         .split('T')[0];
 
       const custId = (order.customerId as any)?._id || (order.customerId as any)?.id || order.customerId;
-      const custName = (order.customerId as any)?.legalName || 'Client';
+      const custName = (order.customerId as any)?.name || (order.customerId as any)?.companyName || (order.customerId as any)?.legalName || 'Client';
       const orderId = (order as any)?._id || (order as any)?.id || id;
       const quotId = (order.quotationRevisionId as any)?._id || (order.quotationRevisionId as any)?.id || order.quotationRevisionId || undefined;
       const designId = (order.solarDesignId as any)?._id || (order.solarDesignId as any)?.id || order.solarDesignId || undefined;
@@ -757,7 +757,7 @@ export const OrderDetailPage: React.FC = () => {
               <div>
                 <span className="text-[11px] text-muted-foreground block">Customer</span>
                 <span className="font-semibold text-foreground text-xs line-clamp-1">
-                  {order.customerId.legalName}
+                  {(order.customerId as any)?.name || (order.customerId as any)?.companyName || (order.customerId as any)?.legalName || 'Client'}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-mono block">
                   {order.customerId.customerCode || '—'}
@@ -1410,7 +1410,9 @@ export const OrderDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Client Legal Entity:</span>
-                <span className="font-bold text-foreground">{order.customerId?.legalName}</span>
+                <span className="font-bold text-foreground">
+                  {(order.customerId as any)?.name || (order.customerId as any)?.companyName || (order.customerId as any)?.legalName || 'Client'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Solar Capacity:</span>
@@ -1557,7 +1559,8 @@ export const OrderDetailPage: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Client / Beneficiary:</span>
                 <span className="font-bold text-foreground">
-                  {order.customerId?.legalName} {order.customerId?.customerCode ? `(${order.customerId.customerCode})` : ''}
+                  {(order.customerId as any)?.name || (order.customerId as any)?.companyName || (order.customerId as any)?.legalName || 'Client'}{' '}
+                  {order.customerId?.customerCode ? `(${order.customerId.customerCode})` : ''}
                 </span>
               </div>
               <div className="flex justify-between">

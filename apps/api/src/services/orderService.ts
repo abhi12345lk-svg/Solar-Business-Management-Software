@@ -259,7 +259,7 @@ export class OrderService {
     scopedCustomerId?: string
   ): Promise<ISalesOrderDocument> {
     const order = await SalesOrder.findById(orderId)
-      .populate('customerId', 'legalName customerCode primaryPhone email addresses')
+      .populate('customerId', 'name companyName legalName customerCode primaryPhone email addresses')
       .populate('quotationRevisionId', 'fullQuotationCode revisionNumber validUntil')
       .populate('solarDesignId', 'designNumber proposedCapacityKwp systemTopology')
       .populate('lineItems.productId', 'name sku brand productType')
